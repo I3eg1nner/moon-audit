@@ -1,4 +1,4 @@
-name = "nicball/moon-audit"
+name = "minie135/moon-audit"
 
 version = "0.1.0"
 

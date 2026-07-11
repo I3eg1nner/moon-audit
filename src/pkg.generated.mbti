@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "nicball/moon-audit/src"
+package "minie135/moon-audit/src"
 
 import {
   "moonbitlang/core/debug",

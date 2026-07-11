@@ -1,5 +1,5 @@
 import {
-  "nicball/moon-audit/src" @audit,
+  "minie135/moon-audit/src" @audit,
   "moonbitlang/x/fs",
   "moonbitlang/core/argparse",
   "moonbitlang/core/builtin",
