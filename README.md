@@ -61,39 +61,52 @@ moon run src/main -- list-rules
 
 ### LLM 辅助分析
 
-静态分析发现可能存在误报。`llm-analyze` 子命令为每个 Finding 生成结构化提示词，发送给 LLM 进行深度验证：
+静态分析发现可能存在误报。`llm-analyze` 子命令读取项目 `.env` 配置，自动生成可执行的 LLM 验证脚本。
+
+**第一步：配置 `.env` 文件**
+
+在待扫描项目根目录创建 `.env`：
 
 ```bash
-# 生成 Claude API 兼容的 JSON 请求体（可直接 curl 调用）
-moon run src/main -- llm-analyze /path/to/project
+# Anthropic Claude API
+LLM_API_KEY=sk-ant-api03-xxxxx
+LLM_BASE_URL=https://api.anthropic.com/v1/messages
+LLM_MODEL=claude-sonnet-4-20250514
 
-# 输出人类可读的 Markdown 格式
+# 或使用 OpenAI 兼容 API（如 DeepSeek、本地 Ollama 等）
+# LLM_API_KEY=sk-xxxxx
+# LLM_BASE_URL=https://api.deepseek.com/v1/chat/completions
+# LLM_MODEL=deepseek-chat
+```
+
+**第二步：生成并运行分析脚本**
+
+```bash
+# 生成自动化分析脚本（读取 .env 配置）
+moon run src/main -- llm-analyze --format script /path/to/project
+
+# 运行分析（自动调用 LLM API，逐条验证每个 Finding）
+python3 llm_analyze.py
+```
+
+脚本会逐条发送 Finding 给 LLM，输出：
+- 每条 Finding 的真阳性/假阳性判定
+- 置信度评分 (0.0-1.0)
+- 详细分析推理
+- 修复建议
+- 汇总统计 + JSON 结果文件 `llm_analysis_results.json`
+
+**其他输出格式：**
+
+```bash
+# JSON 格式（Claude API 请求体，便于自定义集成）
+moon run src/main -- llm-analyze --format json /path/to/project
+
+# Markdown 格式（人类可读的提示词文档）
 moon run src/main -- llm-analyze --format text /path/to/project
-
-# 保存到文件
-moon run src/main -- llm-analyze -o prompts.json /path/to/project
 ```
 
-**调用 Claude API 验证：**
-
-```bash
-# 1. 生成提示词
-moon run src/main -- llm-analyze -o prompts.json /path/to/project
-
-# 2. 提取单个请求并发送到 Claude API
-cat prompts.json | jq '.[0]' > request.json
-curl https://api.anthropic.com/v1/messages \
-  -H "x-api-key: $ANTHROPIC_API_KEY" \
-  -H "content-type: application/json" \
-  -H "anthropic-version: 2023-06-01" \
-  -d @request.json
-```
-
-LLM 会返回 JSON 响应，包含：
-- `is_true_positive`: 是否为真阳性
-- `confidence`: 置信度 (0.0-1.0)
-- `explanation`: 分析推理过程
-- `remediation`: 修复建议
+自动兼容 Anthropic Claude API 和 OpenAI 兼容 API（DeepSeek、Ollama 等），根据 `LLM_BASE_URL` 自动切换请求格式。
 
 ### PoC 漏洞利用脚本生成
 

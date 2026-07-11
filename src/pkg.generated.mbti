@@ -66,6 +66,8 @@ pub fn generate_analysis_prompt(Finding, String, ImportContext) -> LLMAnalysisRe
 
 pub fn generate_batch_prompts(Array[Finding], Map[String, String], ImportContext) -> Array[LLMAnalysisRequest]
 
+pub fn generate_llm_script(LLMConfig, Array[LLMAnalysisRequest]) -> String
+
 pub fn generate_poc(Finding, ImportContext) -> PoCTemplate?
 
 pub fn get_all_remediations(Array[Finding]) -> Array[Remediation]
@@ -87,6 +89,10 @@ pub fn is_constant_string(@syntax.Expr) -> Bool
 pub fn list_all_rules() -> Array[RuleInfo]
 
 pub fn load_config(String) -> Config
+
+pub fn load_env(String) -> Map[String, String]
+
+pub fn load_llm_config(String) -> LLMConfig
 
 pub fn merge_imports(ImportContext, ImportContext) -> ImportContext
 
@@ -199,6 +205,13 @@ pub(all) struct LLMAnalysisResult {
   severity_adjustment : Severity?
   remediation : String
 }
+
+pub(all) struct LLMConfig {
+  base_url : String
+  model : String
+  api_key : String
+}
+pub fn LLMConfig::default() -> Self
 
 pub(all) struct Location {
   file : String

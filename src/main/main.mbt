@@ -66,7 +66,7 @@ fn main {
             "format",
             short='f',
             long="format",
-            about="Output format: json (Claude API), text (human-readable)",
+            about="Output format: script (auto-run Python), json (API bodies), text (readable)",
             default_values=["json"],
           ),
           @argparse.OptionArg(
@@ -344,7 +344,7 @@ fn cmd_llm_analyze(matches : @argparse.Matches) -> Unit {
   let format = get_val(matches, "format", "json")
   let output_file = get_opt(matches, "output")
   let path = get_val(matches, "path", ".")
-  println("moon-audit LLM Analysis Prompt Generator\n")
+  println("moon-audit LLM Analysis\n")
   println("Scanning: " + path + "\n")
   let result = do_scan(matches)
   if result.findings.length() == 0 {
@@ -352,10 +352,26 @@ fn cmd_llm_analyze(matches : @argparse.Matches) -> Unit {
     return
   }
   println(
-    "Generating LLM prompts for " +
+    "Found " +
     result.findings.length().to_string() +
-    " finding(s)...\n",
+    " finding(s), preparing LLM analysis...\n",
   )
+  let llm_config = @audit.load_llm_config(path)
+  println("LLM Config:")
+  println("  Base URL: " + llm_config.base_url)
+  println("  Model:    " + llm_config.model)
+  if llm_config.api_key.length() > 0 {
+    let end = if llm_config.api_key.length() > 8 {
+      8
+    } else {
+      llm_config.api_key.length()
+    }
+    let masked = llm_config.api_key[0:end].to_owned()
+    println("  API Key:  " + masked + "...")
+  } else {
+    println("  API Key:  (not set - configure LLM_API_KEY in .env)")
+  }
+  println("")
   let sources : Map[String, String] = {}
   for f in result.findings {
     if !sources.contains(f.file) {
@@ -369,7 +385,23 @@ fn cmd_llm_analyze(matches : @argparse.Matches) -> Unit {
     sources,
     imports,
   )
-  if format == "json" {
+  if format == "script" || format == "run" {
+    let script = @audit.generate_llm_script(llm_config, requests)
+    let script_file = match output_file {
+      Some(f) => f
+      None => "llm_analyze.py"
+    }
+    @fs.write_string_to_file(script_file, script) catch {
+      _ => {
+        println("Error writing script file")
+        return
+      }
+    }
+    println("Generated: " + script_file)
+    println("")
+    println("Run the analysis:")
+    println("  python3 " + script_file)
+  } else if format == "json" {
     let buf = StringBuilder::new()
     buf.write_string("[\n")
     for i, req in requests {
@@ -403,21 +435,6 @@ fn cmd_llm_analyze(matches : @argparse.Matches) -> Unit {
       buf.write_string(req.prompt)
       buf.write_string("\n```\n\n---\n\n")
     }
-    buf.write_string("## Usage\n\n")
-    buf.write_string(
-      "1. Use `--format json` to get Claude API-compatible request bodies\n",
-    )
-    buf.write_string("2. Send each request to Claude API:\n")
-    buf.write_string(
-      "   ```bash\n   curl https://api.anthropic.com/v1/messages \\\n",
-    )
-    buf.write_string("     -H \"x-api-key: $ANTHROPIC_API_KEY\" \\\n")
-    buf.write_string("     -H \"content-type: application/json\" \\\n")
-    buf.write_string("     -H \"anthropic-version: 2023-06-01\" \\\n")
-    buf.write_string("     -d @prompt_1.json\n   ```\n")
-    buf.write_string(
-      "3. LLM will respond with: is_true_positive, confidence, explanation, remediation\n",
-    )
     write_output(buf.to_string(), output_file)
   }
 }
