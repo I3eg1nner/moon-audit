@@ -7,8 +7,8 @@ MoonBit 生态安全静态分析工具。基于 AST 语法树分析，检测 Moo
 - **11 条安全检测规则**，覆盖 OWASP Top 10 中的注入、访问控制、安全配置错误等类别
 - **Import 门控**：根据项目依赖自动激活相关规则，降低误报率
 - **多格式输出**：支持 Text、JSON、SARIF 2.1.0（兼容 GitHub Code Scanning）
-- **LLM 辅助分析**：生成结构化提示词，供 LLM 进行深度漏洞验证和误报过滤
-- **PoC 自动生成**：根据检测结果生成 Python 漏洞利用脚本模板
+- **LLM 辅助分析**：读取 `.env` 配置，自动调用 LLM API 验证 Finding 真伪
+- **PoC 动态验证**：根据检测结果生成 PoC 验证脚本，部署到目标环境确认漏洞可达性
 - **修复建议引擎**：提供每种 CWE 的修复方案，含 Before/After 代码示例
 - **污点追踪**：追踪用户输入从 Source 到 Sink 的数据流
 - **扫描报告统计**：按规则、文件、CWE、OWASP 分类聚合分析结果
@@ -29,10 +29,32 @@ MoonBit 生态安全静态分析工具。基于 AST 语法树分析，检测 Moo
 | CWE-346/ws-origin | WebSocket 无 Origin 校验 | Warning |
 | CWE-22/path-concat | 路径拼接可能导致目录穿越 | Warning |
 
-## 安装
+## 快速开始
 
 ```bash
 moon add minie135/moon-audit
+```
+
+### 一键自动化扫描流程
+
+moon-audit 提供从静态检测到 LLM 验证到 PoC 确认的完整自动化流水线：
+
+```bash
+# 1. 静态扫描 → 输出发现
+moon run src/main -- /path/to/project
+
+# 2. LLM 验证 → 过滤误报（需配置 .env）
+moon run src/main -- llm-analyze --format script /path/to/project
+python3 llm_analyze.py
+
+# 3. PoC 验证 → 确认可达性
+moon run src/main -- generate-poc -o poc.md /path/to/project
+
+# 4. 修复建议 → 指导开发者修复
+moon run src/main -- remediate -o fixes.md /path/to/project
+
+# 5. 统计报告 → 风险评估
+moon run src/main -- summary /path/to/project
 ```
 
 ## 使用方式
@@ -108,19 +130,22 @@ moon run src/main -- llm-analyze --format text /path/to/project
 
 自动兼容 Anthropic Claude API 和 OpenAI 兼容 API（DeepSeek、Ollama 等），根据 `LLM_BASE_URL` 自动切换请求格式。
 
-### PoC 漏洞利用脚本生成
+### 动态部署 PoC 漏洞验证
 
-根据扫描发现自动生成 Python 利用脚本模板，用于红队验证：
+根据静态扫描发现，生成针对目标环境的 PoC 验证脚本。脚本部署到运行中的服务实例，验证漏洞在真实条件下的可达性：
 
 ```bash
-# 生成 PoC 报告
+# 生成 PoC 验证报告
 moon run src/main -- generate-poc /path/to/project
 
 # 保存到文件
-moon run src/main -- generate-poc -o poc-report.md /path/to/project
+moon run src/main -- generate-poc -o poc.md /path/to/project
 ```
 
-生成的 PoC 脚本覆盖 CORS 凭据窃取、Cookie 劫持、DoS 攻击、XSS 注入、路径穿越、CRLF 注入等攻击类型。
+生成的 PoC 脚本针对 CORS 错误配置、Cookie 属性缺失、请求体 DoS、XSS 注入、路径穿越、CRLF 注入等 CWE 类型，每个脚本包含：
+- 攻击步骤说明
+- 可执行的 Python 验证脚本（需指向目标服务地址）
+- 预期结果与判定条件
 
 ### 修复建议
 
@@ -157,6 +182,209 @@ moon run src/main -- summary --format json -o summary.json /path/to/project
 }
 ```
 
+## 集成到其他 MoonBit 项目
+
+moon-audit 可以作为库嵌入到其他 MoonBit 项目中，实现编译期或 CI 阶段的安全检查。
+
+### 方式一：作为 CI 检查集成
+
+在你的 MoonBit 项目中添加 GitHub Actions 步骤，自动扫描每次提交：
+
+```yaml
+# .github/workflows/security.yml
+name: Security Audit
+on: [push, pull_request]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit toolchain
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: Clone moon-audit
+        run: git clone https://github.com/I3eg1nner/moon-audit.git /tmp/moon-audit
+
+      - name: Install moon-audit dependencies
+        run: cd /tmp/moon-audit && moon install
+
+      - name: Run security scan
+        run: |
+          cd /tmp/moon-audit
+          moon run src/main -- --format sarif -o ${{ github.workspace }}/audit.sarif ${{ github.workspace }}
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: audit.sarif
+```
+
+扫描结果会自动出现在 GitHub 仓库的 **Security → Code scanning alerts** 页面。
+
+### 方式二：作为库依赖调用
+
+将 moon-audit 的扫描引擎嵌入到你的 MoonBit 项目中，用于构建自定义安全工具或编辑器插件。
+
+**1. 添加依赖**
+
+```bash
+moon add minie135/moon-audit
+```
+
+**2. 在 `moon.pkg` 中引入**
+
+```json
+{
+  "import": [
+    { "path": "minie135/moon-audit/src", "alias": "audit" }
+  ]
+}
+```
+
+**3. 调用扫描 API**
+
+```moonbit
+fn check_security(project_path : String) -> Unit {
+  // 加载配置
+  let config = @audit.Config::default()
+
+  // 扫描项目
+  let result = @audit.scan_project(project_path, config)
+
+  // 过滤 Error 级别
+  let errors = result.findings.filter(fn(f) {
+    f.severity == @audit.Error
+  })
+
+  if errors.length() > 0 {
+    // 输出文本报告
+    println(@audit.format_text(result, false))
+
+    // 或生成 JSON
+    let json = @audit.format_json(result)
+    @fs.write_string_to_file("audit.json", json)
+
+    // 生成修复建议
+    let remediations = @audit.get_all_remediations(errors)
+    println(@audit.format_remediation_report(remediations))
+  }
+}
+```
+
+**4. 自定义规则配置**
+
+通过 `Config` 控制启用哪些规则和最低严重级别：
+
+```moonbit
+fn custom_scan() -> Unit {
+  let mut config = @audit.Config::default()
+
+  // 启用高误报规则（需要在确认项目上下文时使用）
+  config.rules["CWE-94/eval-extern"] = { enabled: true, severity: None }
+
+  // 调整严重级别
+  config = { ..config, min_severity: @audit.Info }
+
+  let result = @audit.scan_project(".", config)
+
+  // 生成统计摘要
+  let rules = @audit.list_all_rules()
+  let summary = @audit.build_summary(result, rules)
+  println(@audit.format_summary_text(summary))
+  println("Risk: " + @audit.risk_level(@audit.risk_score(summary)))
+}
+```
+
+**5. LLM 辅助验证集成**
+
+将静态分析结果发送给 LLM 进行二次验证：
+
+```moonbit
+fn llm_verify(project_path : String) -> Unit {
+  let config = @audit.Config::default()
+  let result = @audit.scan_project(project_path, config)
+
+  // 读取 LLM 配置
+  let llm_config = @audit.load_llm_config(project_path)
+
+  // 读取源文件用于上下文分析
+  let sources : Map[String, String] = {}
+  for f in result.findings {
+    if !sources.contains(f.file) {
+      let content = @fs.read_file_to_string(f.file) catch { _ => "" }
+      sources[f.file] = content
+    }
+  }
+
+  // 生成 LLM 分析提示
+  let imports = @audit.ImportContext::empty()
+  let prompts = @audit.generate_batch_prompts(result.findings, sources, imports)
+
+  // 生成可执行的验证脚本
+  let script = @audit.generate_llm_script(llm_config, prompts)
+  @fs.write_string_to_file("verify.py", script)
+  println("Run: python3 verify.py")
+}
+```
+
+### 方式三：低误报配置推荐
+
+moon-audit 通过 Import 门控大幅降低误报率。以下是针对不同项目类型的推荐配置：
+
+**Web 服务项目**（使用 mocket/crescent）：
+
+```json
+{
+  "rules": {
+    "CWE-116/replace-escaping": { "enabled": true, "severity": "error" },
+    "CWE-79/cmark-unsafe": { "enabled": true, "severity": "error" },
+    "CWE-942/cors-credentials": { "enabled": true, "severity": "error" },
+    "CWE-614/cookie-attrs": { "enabled": true, "severity": "warning" },
+    "CWE-770/no-body-limit": { "enabled": true, "severity": "warning" },
+    "CWE-113/crlf-injection": { "enabled": true, "severity": "error" },
+    "CWE-94/eval-extern": { "enabled": false },
+    "CWE-79/inner-html": { "enabled": false },
+    "CWE-22/path-concat": { "enabled": false }
+  }
+}
+```
+
+**前端 Wasm 项目**（使用 rabbita）：
+
+```json
+{
+  "rules": {
+    "CWE-79/inner-html": { "enabled": true, "severity": "error" },
+    "CWE-116/replace-escaping": { "enabled": true, "severity": "error" },
+    "CWE-94/eval-extern": { "enabled": true, "severity": "error" },
+    "CWE-942/cors-credentials": { "enabled": false },
+    "CWE-614/cookie-attrs": { "enabled": false },
+    "CWE-770/no-body-limit": { "enabled": false },
+    "CWE-346/ws-origin": { "enabled": false }
+  }
+}
+```
+
+**通用库项目**（最低误报）：
+
+```json
+{
+  "rules": {
+    "CWE-116/replace-escaping": { "enabled": true, "severity": "error" },
+    "CWE-94/eval-extern": { "enabled": false },
+    "CWE-79/inner-html": { "enabled": false },
+    "CWE-22/path-concat": { "enabled": false }
+  }
+}
+```
+
+> Import 门控原理：当项目未引入 `cmark`、`mocket`、`crescent`、`rabbita` 等包时，相关规则自动跳过，不会产生误报。手动禁用的规则适用于已知高误报场景（如 `eval-extern` 在非浏览器环境下无风险）。
+
 ## 架构
 
 ```
@@ -166,10 +394,11 @@ src/
 ├── helpers.mbt          # AST 参数检查工具函数
 ├── import_analysis.mbt  # moon.pkg/moon.mod 依赖分析
 ├── config.mbt           # .moon-audit.json 配置加载
+├── env_config.mbt       # .env 文件解析 + LLM 脚本生成
 ├── output.mbt           # Text/JSON 输出格式化
 ├── sarif.mbt            # SARIF 2.1.0 输出
 ├── llm_prompt.mbt       # LLM 辅助分析提示词生成
-├── poc_gen.mbt          # PoC 漏洞利用脚本生成
+├── poc_gen.mbt          # PoC 动态验证脚本生成
 ├── remediation.mbt      # 修复建议引擎
 ├── taint.mbt            # 污点追踪数据流分析
 ├── summary.mbt          # 扫描统计报告
@@ -181,27 +410,36 @@ src/
 
 ### 工作原理
 
-1. **Import 分析**：解析 `moon.pkg` 提取依赖信息，构建 `ImportContext`
-2. **AST 解析**：使用 `moonbitlang/parser` 将 `.mbt` 源文件解析为语法树
-3. **规则匹配**：每条规则实现 `IterVisitor` trait，遍历 AST 匹配漏洞模式
-4. **门控过滤**：仅在项目使用相关框架时激活对应规则
-5. **结果输出**：支持 Text/JSON/SARIF 多种格式
-
-### LLM 辅助分析流程
-
 ```
-静态分析发现 → 生成结构化提示词 → LLM 深度分析 → 误报过滤 → 高精度结果
+                    ┌─────────────┐
+                    │  .mbt 源码   │
+                    └──────┬──────┘
+                           │
+                    ┌──────▼──────┐
+                    │ Import 分析  │ ← moon.pkg/moon.mod
+                    └──────┬──────┘
+                           │
+                    ┌──────▼──────┐
+                    │  AST 解析    │ ← moonbitlang/parser
+                    └──────┬──────┘
+                           │
+              ┌────────────▼────────────┐
+              │  11 条 CWE 规则匹配      │ ← Import 门控过滤
+              └────────────┬────────────┘
+                           │
+          ┌────────────────┼────────────────┐
+          │                │                │
+   ┌──────▼──────┐  ┌─────▼──────┐  ┌──────▼──────┐
+   │ LLM 验证    │  │ PoC 验证   │  │  修复建议   │
+   │ (误报过滤)   │  │ (可达确认)  │  │ (代码修补)  │
+   └──────┬──────┘  └─────┬──────┘  └──────┬──────┘
+          │                │                │
+          └────────────────┼────────────────┘
+                           │
+                    ┌──────▼──────┐
+                    │  报告输出    │ → Text / JSON / SARIF
+                    └─────────────┘
 ```
-
-`generate_analysis_prompt()` 将每个 Finding 转换为包含源码上下文、Import 信息和 MoonBit 语义提示的分析请求，输出 Claude API 兼容的 JSON 格式。
-
-### PoC 验证流程
-
-```
-静态分析发现 → 分类 CWE 类型 → 生成 Python 利用脚本 → 红队验证
-```
-
-`generate_poc()` 为 CORS、Cookie、DoS、XSS、路径穿越、CRLF 注入等类型自动生成可执行的 PoC 脚本。
 
 ## 开发
 
