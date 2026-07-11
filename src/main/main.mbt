@@ -258,6 +258,11 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     }
     None => ()
   }
+  let path_ok = @fs.is_dir(path) catch { _ => false }
+  if !path_ok {
+    println("moon-audit: error: path not found or not a directory: " + path)
+    return
+  }
   if !quiet {
     println("moon-audit v0.1.0 - Static security scanner for MoonBit\n")
     println("Scanning: " + path)
@@ -290,11 +295,12 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     }
     None => println(output)
   }
-  let has_errors = filtered_findings
-    .iter()
-    .any(fn(f) { f.severity == @audit.Error })
-  if has_errors {
-    @builtin.panic()
+  if result.errors.length() > 0 && !quiet {
+    println("")
+    println("Scan completed with " + result.errors.length().to_string() + " file error(s):")
+    for e in result.errors {
+      println("  " + e)
+    }
   }
 }
 
@@ -332,11 +338,16 @@ fn write_output(content : String, output_file : String?) -> Unit {
 }
 
 ///|
-fn do_scan(matches : @argparse.Matches) -> @audit.ScanResult {
+fn do_scan(matches : @argparse.Matches) -> @audit.ScanResult? {
   let path = get_val(matches, "path", ".")
+  let path_ok = @fs.is_dir(path) catch { _ => false }
+  if !path_ok {
+    println("moon-audit: error: path not found or not a directory: " + path)
+    return None
+  }
   let config_path = get_val(matches, "config", ".moon-audit.json")
   let config = @audit.load_config(config_path)
-  @audit.scan_project(path, config)
+  Some(@audit.scan_project(path, config))
 }
 
 ///|
@@ -346,7 +357,10 @@ fn cmd_llm_analyze(matches : @argparse.Matches) -> Unit {
   let path = get_val(matches, "path", ".")
   println("moon-audit LLM Analysis\n")
   println("Scanning: " + path + "\n")
-  let result = do_scan(matches)
+  let result = match do_scan(matches) {
+    Some(r) => r
+    None => return
+  }
   if result.findings.length() == 0 {
     println("No findings to analyze.")
     return
@@ -445,7 +459,10 @@ fn cmd_generate_poc(matches : @argparse.Matches) -> Unit {
   let path = get_val(matches, "path", ".")
   println("moon-audit PoC Generator\n")
   println("Scanning: " + path + "\n")
-  let result = do_scan(matches)
+  let result = match do_scan(matches) {
+    Some(r) => r
+    None => return
+  }
   if result.findings.length() == 0 {
     println("No findings to generate PoC for.")
     return
@@ -467,7 +484,10 @@ fn cmd_remediate(matches : @argparse.Matches) -> Unit {
   let path = get_val(matches, "path", ".")
   println("moon-audit Remediation Guide Generator\n")
   println("Scanning: " + path + "\n")
-  let result = do_scan(matches)
+  let result = match do_scan(matches) {
+    Some(r) => r
+    None => return
+  }
   if result.findings.length() == 0 {
     println("No findings to remediate.")
     return
@@ -489,7 +509,10 @@ fn cmd_summary(matches : @argparse.Matches) -> Unit {
   let path = get_val(matches, "path", ".")
   println("moon-audit Scan Summary\n")
   println("Scanning: " + path + "\n")
-  let result = do_scan(matches)
+  let result = match do_scan(matches) {
+    Some(r) => r
+    None => return
+  }
   let rules = @audit.list_all_rules()
   let summary = @audit.build_summary(result, rules)
   let score = @audit.risk_score(summary)
