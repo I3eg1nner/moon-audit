@@ -8,6 +8,10 @@ keywords = [ "security", "scanner", "static-analysis" ]
 
 description = "Static security scanner for MoonBit projects"
 
+readme = "README.md"
+
+repository = "https://github.com/I3eg1nner/moon-audit"
+
 preferred_target = "native"
 
 import {
