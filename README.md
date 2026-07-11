@@ -118,25 +118,55 @@ cp _build/native/debug/build/src/main/main.exe /usr/local/bin/moon-audit
 moon add minie135/moon-audit
 ```
 
-### 一键自动化扫描流程
-
-moon-audit 提供从静态检测到 LLM 验证到 PoC 确认的完整自动化流水线：
+### 一键全流程分析（pipeline）
 
 ```bash
-# 1. 静态扫描 → 输出发现
+moon-audit pipeline /path/to/project
+```
+
+一条命令完成全部 6 个分析阶段，只扫描一次，输出到 `moon-audit-report/` 目录：
+
+```
+[1/6] Static scan...        → scan-results.txt / .json / .sarif
+[2/6] Taint analysis...     → taint-analysis.txt
+[3/6] LLM analysis script...→ llm_analyze.py
+[4/6] PoC verification...   → poc-scripts.md
+[5/6] Remediation guide...  → remediation.md
+[6/6] Summary report...     → summary.txt / .json
+```
+
+LLM 验证需要 API 调用，pipeline 生成脚本后提示手动执行：
+
+```bash
+# 配置 .env 后运行 LLM 验证
+python3 moon-audit-report/llm_analyze.py
+```
+
+指定输出目录：
+
+```bash
+moon-audit pipeline -d ./my-report /path/to/project
+```
+
+### 分步执行
+
+也可以单独运行每个阶段：
+
+```bash
+# 静态扫描
 moon-audit /path/to/project
 
-# 2. LLM 验证 → 过滤误报（需配置 .env）
+# LLM 验证
 moon-audit llm-analyze --format script /path/to/project
 python3 llm_analyze.py
 
-# 3. PoC 验证 → 确认可达性
+# PoC 验证
 moon-audit generate-poc -o poc.md /path/to/project
 
-# 4. 修复建议 → 指导开发者修复
+# 修复建议
 moon-audit remediate -o fixes.md /path/to/project
 
-# 5. 统计报告 → 风险评估
+# 统计报告
 moon-audit summary /path/to/project
 ```
 
