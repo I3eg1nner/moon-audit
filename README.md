@@ -302,13 +302,11 @@ moon-audit summary --format json -o summary.json /path/to/project
 }
 ```
 
-## 集成到其他 MoonBit 项目
+## 集成到 CI
 
-moon-audit 可以作为库嵌入到其他 MoonBit 项目中，实现编译期或 CI 阶段的安全检查。
+### GitHub Actions（推荐）
 
-### 方式一：作为 CI 检查集成
-
-在你的 MoonBit 项目中添加 GitHub Actions 步骤，自动扫描每次提交：
+在项目中添加一个 workflow 文件即可，moon-audit 自动安装 MoonBit 工具链、运行扫描、上传结果到 GitHub Security：
 
 ```yaml
 # .github/workflows/security.yml
@@ -318,35 +316,77 @@ on: [push, pull_request]
 jobs:
   audit:
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install MoonBit toolchain
-        run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
-          echo "$HOME/.moon/bin" >> $GITHUB_PATH
-
-      - name: Clone moon-audit
-        run: git clone https://github.com/I3eg1nner/moon-audit.git /tmp/moon-audit
-
-      - name: Install moon-audit dependencies
-        run: cd /tmp/moon-audit && moon install
-
-      - name: Run security scan
-        run: |
-          cd /tmp/moon-audit
-          moon run src/main -- --format sarif -o ${{ github.workspace }}/audit.sarif ${{ github.workspace }}
-
-      - name: Upload SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: audit.sarif
+      - uses: I3eg1nner/moon-audit@main
 ```
 
-扫描结果会自动出现在 GitHub 仓库的 **Security → Code scanning alerts** 页面。
+扫描结果自动出现在 **Security → Code scanning alerts** 页面。
 
-### 方式二：作为库依赖调用
+#### 配置选项
+
+```yaml
+- uses: I3eg1nner/moon-audit@main
+  with:
+    path: '.'                  # 扫描路径（默认当前目录）
+    format: 'sarif'            # 输出格式：text, json, sarif（默认 sarif）
+    severity: 'warning'        # 最低报告级别：error, warning, info
+    fail-on-findings: 'false'  # 发现漏洞时是否阻断 CI（默认 false）
+    upload-sarif: 'true'       # 上传 SARIF 到 GitHub Security（默认 true）
+```
+
+#### 常见用法
+
+**发现漏洞时阻断 PR 合并：**
+
+```yaml
+- uses: I3eg1nner/moon-audit@main
+  with:
+    fail-on-findings: 'true'
+```
+
+**仅报告 Error 级别漏洞：**
+
+```yaml
+- uses: I3eg1nner/moon-audit@main
+  with:
+    severity: 'error'
+    fail-on-findings: 'true'
+```
+
+**输出 JSON 报告（不上传 SARIF）：**
+
+```yaml
+- uses: I3eg1nner/moon-audit@main
+  with:
+    format: 'json'
+    upload-sarif: 'false'
+```
+
+**读取检出数量：**
+
+```yaml
+- uses: I3eg1nner/moon-audit@main
+  id: audit
+- run: echo "Found ${{ steps.audit.outputs.findings-count }} issue(s)"
+```
+
+### 其他 CI 系统（GitLab CI / Jenkins 等）
+
+```bash
+# 安装 MoonBit
+curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+export PATH="$HOME/.moon/bin:$PATH"
+
+# 克隆并运行 moon-audit
+git clone --depth 1 https://github.com/I3eg1nner/moon-audit.git /tmp/moon-audit
+cd /tmp/moon-audit && moon install
+moon run src/main -- --format json -o "$PROJECT_DIR/audit.json" "$PROJECT_DIR"
+```
+
+## 作为库依赖调用
 
 将 moon-audit 的扫描引擎嵌入到你的 MoonBit 项目中，用于构建自定义安全工具或编辑器插件。
 
@@ -427,7 +467,7 @@ fn llm_verify(project_path : String) -> Unit {
 }
 ```
 
-### 方式三：低误报配置推荐
+### 低误报配置推荐
 
 moon-audit 通过 Import 门控大幅降低误报率。以下是针对不同项目类型的推荐配置：
 
