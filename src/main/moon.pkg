@@ -1,6 +1,8 @@
 import {
   "minie135/moon-audit/src" @audit,
+  "moonbitlang/parser",
   "moonbitlang/x/fs",
+  "moonbitlang/x/path",
   "moonbitlang/core/argparse",
   "moonbitlang/core/builtin",
 }

@@ -138,6 +138,31 @@ fn main {
         ],
       ),
       @argparse.Command(
+        "pipeline",
+        about="Run full analysis pipeline: scan + taint + LLM + PoC + remediation + summary",
+        options=[
+          @argparse.OptionArg(
+            "output-dir",
+            short='d',
+            long="output-dir",
+            about="Output directory for all reports (default: moon-audit-report)",
+            default_values=["moon-audit-report"],
+          ),
+          @argparse.OptionArg(
+            "config",
+            short='c',
+            long="config",
+            about="Config file path",
+            default_values=[".moon-audit.json"],
+          ),
+        ],
+        positionals=[
+          @argparse.PositionArg("path", about="Project path to scan", default_values=[
+            ".",
+          ]),
+        ],
+      ),
+      @argparse.Command(
         "summary",
         about="Show scan summary with statistics",
         options=[
@@ -182,6 +207,7 @@ fn main {
     Some(("llm-analyze", sub)) => cmd_llm_analyze(sub)
     Some(("generate-poc", sub)) => cmd_generate_poc(sub)
     Some(("remediate", sub)) => cmd_remediate(sub)
+    Some(("pipeline", sub)) => cmd_pipeline(sub)
     Some(("summary", sub)) => cmd_summary(sub)
     _ => cmd_scan(matches)
   }
@@ -535,4 +561,167 @@ fn cmd_summary(matches : @argparse.Matches) -> Unit {
     buf.to_string()
   }
   write_output(output, output_file)
+}
+
+///|
+fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
+  let path = get_val(matches, "path", ".")
+  let out_dir = get_val(matches, "output-dir", "moon-audit-report")
+  let config_path = get_val(matches, "config", ".moon-audit.json")
+  println("=".repeat(60))
+  println("  moon-audit Full Analysis Pipeline")
+  println("=".repeat(60))
+  println("")
+  println("  Target:  " + path)
+  println("  Output:  " + out_dir + "/")
+  println("")
+  let path_ok = @fs.is_dir(path) catch { _ => false }
+  if !path_ok {
+    println("moon-audit: error: path not found or not a directory: " + path)
+    return
+  }
+  @fs.create_dir(out_dir) catch {
+    _ => ()
+  }
+  let config = @audit.load_config(config_path)
+  // Phase 1: Static scan
+  println("[1/6] Static scan...")
+  let result = @audit.scan_project(path, config)
+  println(
+    "      " +
+    result.files_scanned.to_string() +
+    " files scanned, " +
+    result.findings.length().to_string() +
+    " finding(s)",
+  )
+  let scan_text = @audit.format_text(result, true)
+  let scan_path = @path.Path(out_dir).join(@path.Path("scan-results.txt")).0
+  @fs.write_string_to_file(scan_path, scan_text) catch {
+    _ => ()
+  }
+  let sarif = @audit.format_sarif(result)
+  let sarif_path = @path.Path(out_dir).join(@path.Path("scan-results.sarif")).0
+  @fs.write_string_to_file(sarif_path, sarif) catch {
+    _ => ()
+  }
+  let json_out = @audit.format_json(result)
+  let json_path = @path.Path(out_dir).join(@path.Path("scan-results.json")).0
+  @fs.write_string_to_file(json_path, json_out) catch {
+    _ => ()
+  }
+  if result.findings.length() == 0 {
+    println("")
+    println("No findings detected. Pipeline complete.")
+    return
+  }
+  // Phase 2: Taint analysis
+  println("[2/6] Taint analysis...")
+  let sources : Map[String, String] = {}
+  for f in result.findings {
+    if !sources.contains(f.file) {
+      let content = @fs.read_file_to_string(f.file) catch { _ => "" }
+      sources[f.file] = content
+    }
+  }
+  let mod_imports = @audit.analyze_mod_imports(path)
+  let all_flows : Array[@audit.TaintFlow] = []
+  for file, source in sources {
+    let (impls, _) = @parser.parse_string(source, name=file)
+    let state = @audit.run_taint_analysis(impls, file, source, mod_imports)
+    for flow in state.flows {
+      all_flows.push(flow)
+    }
+  }
+  let taint_report = @audit.format_taint_report(all_flows)
+  let taint_path = @path.Path(out_dir).join(@path.Path("taint-analysis.txt")).0
+  @fs.write_string_to_file(taint_path, taint_report) catch {
+    _ => ()
+  }
+  println("      " + all_flows.length().to_string() + " taint flow(s) traced")
+  // Phase 3: LLM analysis script
+  println("[3/6] LLM analysis script...")
+  let llm_config = @audit.load_llm_config(path)
+  let imports = @audit.ImportContext::empty()
+  let requests = @audit.generate_batch_prompts(
+    result.findings,
+    sources,
+    imports,
+  )
+  let script = @audit.generate_llm_script(llm_config, requests)
+  let script_path = @path.Path(out_dir).join(@path.Path("llm_analyze.py")).0
+  @fs.write_string_to_file(script_path, script) catch {
+    _ => ()
+  }
+  if llm_config.api_key.length() > 0 {
+    println("      Generated: " + script_path)
+    println("      Run: python3 " + script_path)
+  } else {
+    println("      Generated: " + script_path + " (configure .env to enable)")
+  }
+  // Phase 4: PoC generation
+  println("[4/6] PoC verification scripts...")
+  let pocs = @audit.generate_all_pocs(result.findings, imports)
+  if pocs.length() > 0 {
+    let poc_report = @audit.format_poc_report(pocs)
+    let poc_path = @path.Path(out_dir).join(@path.Path("poc-scripts.md")).0
+    @fs.write_string_to_file(poc_path, poc_report) catch {
+      _ => ()
+    }
+    println("      " + pocs.length().to_string() + " PoC template(s)")
+  } else {
+    println("      No PoC templates for detected finding types")
+  }
+  // Phase 5: Remediation
+  println("[5/6] Remediation guide...")
+  let rems = @audit.get_all_remediations(result.findings)
+  let rem_report = @audit.format_remediation_report(rems)
+  let rem_path = @path.Path(out_dir).join(@path.Path("remediation.md")).0
+  @fs.write_string_to_file(rem_path, rem_report) catch {
+    _ => ()
+  }
+  println("      " + rems.length().to_string() + " fix guide(s)")
+  // Phase 6: Summary
+  println("[6/6] Summary report...")
+  let rules = @audit.list_all_rules()
+  let summary = @audit.build_summary(result, rules)
+  let score = @audit.risk_score(summary)
+  let level = @audit.risk_level(score)
+  let summary_text = @audit.format_summary_text(summary)
+  let summary_path = @path.Path(out_dir).join(@path.Path("summary.txt")).0
+  @fs.write_string_to_file(summary_path, summary_text) catch {
+    _ => ()
+  }
+  let summary_json = @audit.format_summary_json(summary)
+  let summary_json_path = @path.Path(out_dir).join(@path.Path("summary.json")).0
+  @fs.write_string_to_file(summary_json_path, summary_json) catch {
+    _ => ()
+  }
+  // Final output
+  println("")
+  println("=".repeat(60))
+  println("  Pipeline Complete")
+  println("=".repeat(60))
+  println("")
+  println("  Findings:    " + result.findings.length().to_string())
+  println("  Risk Score:  " + score.to_string() + " / 100 (" + level + ")")
+  println("")
+  println("  Output directory: " + out_dir + "/")
+  println("    scan-results.txt      Static scan findings (text)")
+  println("    scan-results.json     Static scan findings (JSON)")
+  println("    scan-results.sarif    SARIF 2.1.0 (GitHub Code Scanning)")
+  println("    taint-analysis.txt    Data flow taint traces")
+  println("    llm_analyze.py        LLM verification script")
+  println("    poc-scripts.md        PoC verification templates")
+  println("    remediation.md        Fix guide with code examples")
+  println("    summary.txt           Risk summary (text)")
+  println("    summary.json          Risk summary (JSON)")
+  println("")
+  if llm_config.api_key.length() > 0 {
+    println("  Next step: python3 " + script_path)
+  } else {
+    println(
+      "  Next step: configure .env with LLM_API_KEY, then run python3 " +
+      script_path,
+    )
+  }
 }

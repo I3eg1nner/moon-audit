@@ -4,3 +4,4 @@ _build/
 .env
 llm_analyze.py
 llm_analysis_results.json
+.DS_Store
