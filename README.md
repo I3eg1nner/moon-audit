@@ -59,6 +59,15 @@ MoonBit 生态安全静态分析工具。基于 AST 语法树分析，检测 Moo
 
 无 Web 框架依赖的项目（pug、xml、async）自动跳过 Web 相关规则，零误报。
 
+### 已提交的安全修复 PR
+
+| 项目 | 漏洞 | PR |
+|---|---|---|
+| cmark.mbt | 存储型 XSS (CWE-79) — render() 默认 safe=false | [moonbit-community/cmark.mbt#137](https://github.com/moonbit-community/cmark.mbt/pull/137) |
+| crescent | CORS 凭证窃取 (CWE-942) + 会话劫持 (CWE-614) + 资源耗尽 DoS (CWE-770) | [bobzhang/crescent#44](https://github.com/bobzhang/crescent/pull/44) |
+| mocket | 反射型 XSS (CWE-79) + 目录穿越 (CWE-22) | [oboard/mocket#12](https://github.com/oboard/mocket/pull/12) |
+| async | CRLF 注入 (CWE-113) | [moonbitlang/async#494](https://github.com/moonbitlang/async/pull/494) |
+
 ## 功能特性
 
 - **11 条安全检测规则**，覆盖 OWASP Top 10 中的注入、访问控制、安全配置错误等类别
