@@ -15,19 +15,19 @@ MoonBit 生态安全静态分析工具。基于 AST 语法树分析，检测 Moo
 
 ## 检测规则
 
-| 规则 ID | 描述 | 严重级别 |
+| 规则 ID | 描述 | 默认规则 |
 |---|---|---|
-| CWE-116/replace-escaping | `String::replace()` 仅替换首次出现，HTML 转义不完整 | Error |
-| CWE-79/cmark-unsafe | cmark 渲染 Markdown 时默认 `safe=false`，允许注入 | Error |
-| CWE-79/inner-html | `inner_html()` 接收动态内容，DOM XSS | Error |
-| CWE-79/template-injection | HTML 响应中使用字符串插值，反射型 XSS | Error |
-| CWE-94/eval-extern | extern JS 中使用 `eval()`/`new Function()` | Error |
-| CWE-113/crlf-injection | HTTP 响应头注入动态值，CRLF 注入 | Error |
-| CWE-942/cors-credentials | CORS `credentials=true` 且未限制 Origin | Error |
-| CWE-614/cookie-attrs | Cookie 缺少 HttpOnly/Secure/SameSite 属性 | Warning |
-| CWE-770/no-body-limit | 服务器无请求体大小限制，DoS 风险 | Warning |
-| CWE-346/ws-origin | WebSocket 无 Origin 校验 | Warning |
-| CWE-22/path-concat | 路径拼接可能导致目录穿越 | Warning |
+| CWE-116/replace-escaping | `String::replace()` 仅替换首次出现，HTML 转义不完整 | 是 |
+| CWE-79/cmark-unsafe | cmark 渲染 Markdown 时默认 `safe=false`，允许注入 | 是 |
+| CWE-79/inner-html | `inner_html()` 接收动态内容，DOM XSS | 否 |
+| CWE-79/template-injection | HTML 响应中使用字符串插值，反射型 XSS | 是 |
+| CWE-94/eval-extern | extern JS 中使用 `eval()`/`new Function()` | 否 |
+| CWE-113/crlf-injection | HTTP 响应头注入动态值，CRLF 注入 | 是 |
+| CWE-942/cors-credentials | CORS `credentials=true` 且未限制 Origin | 是 |
+| CWE-614/cookie-attrs | Cookie 缺少 HttpOnly/Secure/SameSite 属性 | 是 |
+| CWE-770/no-body-limit | 服务器无请求体大小限制，DoS 风险 | 是 |
+| CWE-346/ws-origin | WebSocket 无 Origin 校验 | 是 |
+| CWE-22/path-concat | 路径拼接可能导致目录穿越 | 否 |
 
 ## 快速开始
 
