@@ -1,0 +1,347 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "nicball/moon-audit/src"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/list",
+  "moonbitlang/parser/syntax",
+}
+
+// Values
+pub fn analyze_imports(String) -> ImportContext
+
+pub fn analyze_mod_imports(String) -> ImportContext
+
+pub fn build_summary(ScanResult, Array[RuleInfo]) -> ScanSummary
+
+pub fn cwe022_info() -> RuleInfo
+
+pub fn cwe079_cmark_info() -> RuleInfo
+
+pub fn cwe079_inner_html_info() -> RuleInfo
+
+pub fn cwe079_template_info() -> RuleInfo
+
+pub fn cwe094_info() -> RuleInfo
+
+pub fn cwe113_info() -> RuleInfo
+
+pub fn cwe116_info() -> RuleInfo
+
+pub fn cwe346_info() -> RuleInfo
+
+pub fn cwe614_info() -> RuleInfo
+
+pub fn cwe770_info() -> RuleInfo
+
+pub fn cwe942_info() -> RuleInfo
+
+pub fn filter_by_llm_results(Array[LLMAnalysisResult], Double) -> Array[LLMAnalysisResult]
+
+pub fn format_json(ScanResult) -> String
+
+pub fn format_llm_report(Array[LLMAnalysisResult]) -> String
+
+pub fn format_poc_report(Array[PoCTemplate]) -> String
+
+pub fn format_poc_script(PoCTemplate) -> String
+
+pub fn format_prompt_as_json(LLMAnalysisRequest) -> String
+
+pub fn format_remediation_report(Array[Remediation]) -> String
+
+pub fn format_sarif(ScanResult) -> String
+
+pub fn format_summary_json(ScanSummary) -> String
+
+pub fn format_summary_text(ScanSummary) -> String
+
+pub fn format_taint_report(Array[TaintFlow]) -> String
+
+pub fn format_text(ScanResult, Bool) -> String
+
+pub fn generate_all_pocs(Array[Finding], ImportContext) -> Array[PoCTemplate]
+
+pub fn generate_analysis_prompt(Finding, String, ImportContext) -> LLMAnalysisRequest
+
+pub fn generate_batch_prompts(Array[Finding], Map[String, String], ImportContext) -> Array[LLMAnalysisRequest]
+
+pub fn generate_poc(Finding, ImportContext) -> PoCTemplate?
+
+pub fn get_all_remediations(Array[Finding]) -> Array[Remediation]
+
+pub fn get_labelled_string_value(@list.List[@syntax.Argument], String) -> String?
+
+pub fn get_remediation(Finding) -> Remediation
+
+pub fn get_source_line(String, Int) -> String
+
+pub fn has_labelled_arg(@list.List[@syntax.Argument], String) -> Bool
+
+pub fn has_labelled_bool_arg(@list.List[@syntax.Argument], String, Bool) -> Bool
+
+pub fn is_any_constant(@syntax.Expr) -> Bool
+
+pub fn is_constant_string(@syntax.Expr) -> Bool
+
+pub fn list_all_rules() -> Array[RuleInfo]
+
+pub fn load_config(String) -> Config
+
+pub fn merge_imports(ImportContext, ImportContext) -> ImportContext
+
+pub fn parse_llm_response(Finding, String) -> LLMAnalysisResult?
+
+pub fn poc_type_str(PoCType) -> String
+
+pub fn risk_level(Double) -> String
+
+pub fn risk_score(ScanSummary) -> Double
+
+pub fn rule_id_str(RuleId) -> String
+
+pub fn run_cwe022(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
+
+pub fn run_cwe079_cmark(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
+
+pub fn run_cwe079_inner_html(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
+
+pub fn run_cwe079_template(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
+
+pub fn run_cwe094(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
+
+pub fn run_cwe113(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
+
+pub fn run_cwe116(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
+
+pub fn run_cwe346(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
+
+pub fn run_cwe614(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
+
+pub fn run_cwe770(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
+
+pub fn run_cwe942(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
+
+pub fn run_taint_analysis(@list.List[@syntax.Impl], String, String, ImportContext) -> TaintState
+
+pub fn scan_project(String, Config) -> ScanResult
+
+pub fn severity_from_str(String) -> Severity
+
+pub fn severity_level(Severity) -> Int
+
+pub fn severity_str(Severity) -> String
+
+pub fn taint_flows_to_findings(Array[TaintFlow], Severity) -> Array[Finding]
+
+// Errors
+
+// Types and methods
+pub(all) struct CWEStat {
+  cwe_id : Int
+  name : String
+  count : Int
+}
+
+pub(all) struct Config {
+  rules : Map[String, RuleConfig]
+  exclude : Array[String]
+  includes : Array[String]
+  output_format : String
+  min_severity : Severity
+}
+pub fn Config::default() -> Self
+pub fn Config::get_severity(Self, String, Severity) -> Severity
+pub fn Config::is_enabled(Self, String) -> Bool
+
+pub(all) struct FileStat {
+  file : String
+  finding_count : Int
+  error_count : Int
+  warning_count : Int
+}
+
+pub(all) struct Finding {
+  rule_id : RuleId
+  severity : Severity
+  message : String
+  file : String
+  line : Int
+  column : Int
+  end_line : Int
+  end_column : Int
+  snippet : String
+} derive(@debug.Debug)
+
+pub(all) struct ImportContext {
+  has_cmark : Bool
+  has_rabbita : Bool
+  has_mocket : Bool
+  has_crescent : Bool
+  has_liquid : Bool
+  has_pug : Bool
+}
+pub fn ImportContext::empty() -> Self
+
+pub(all) struct LLMAnalysisRequest {
+  finding : Finding
+  source_context : String
+  import_context : ImportContext
+  prompt : String
+  system_prompt : String
+}
+
+pub(all) struct LLMAnalysisResult {
+  finding : Finding
+  is_true_positive : Bool
+  confidence : Double
+  explanation : String
+  severity_adjustment : Severity?
+  remediation : String
+}
+
+pub(all) struct Location {
+  file : String
+  line : Int
+  column : Int
+}
+
+pub(all) struct OwaspStat {
+  category : String
+  count : Int
+  cwe_ids : Array[Int]
+}
+
+pub(all) struct PoCTemplate {
+  finding : Finding
+  poc_type : PoCType
+  title : String
+  description : String
+  prerequisites : Array[String]
+  attack_steps : Array[String]
+  script : String
+  expected_result : String
+  cwe_url : String
+}
+
+pub(all) enum PoCType {
+  HttpRequest
+  RawSocket
+  BrowserBased
+  CLICommand
+}
+
+pub(all) struct Remediation {
+  rule_id : String
+  title : String
+  risk_summary : String
+  fix_description : String
+  code_before : String
+  code_after : String
+  references : Array[String]
+  owasp_category : String
+}
+
+pub(all) struct RuleConfig {
+  enabled : Bool
+  severity : Severity?
+}
+
+pub(all) struct RuleId {
+  cwe : Int
+  variant : String
+} derive(@debug.Debug)
+
+pub(all) struct RuleInfo {
+  id : RuleId
+  name : String
+  description : String
+  default_severity : Severity
+}
+
+pub(all) struct RuleStat {
+  rule_id : String
+  name : String
+  count : Int
+  severity : Severity
+}
+
+pub(all) struct ScanResult {
+  findings : Array[Finding]
+  files_scanned : Int
+  errors : Array[String]
+}
+
+pub(all) struct ScanSummary {
+  total_findings : Int
+  error_count : Int
+  warning_count : Int
+  info_count : Int
+  files_scanned : Int
+  files_with_findings : Int
+  rules_triggered : Array[RuleStat]
+  file_stats : Array[FileStat]
+  cwe_categories : Array[CWEStat]
+  owasp_mapping : Array[OwaspStat]
+  scan_errors : Int
+}
+
+pub(all) enum Severity {
+  Error
+  Warning
+  Info
+} derive(Eq, @debug.Debug)
+
+pub(all) struct TaintFlow {
+  source : TaintSource
+  sink : TaintSink
+  source_location : Location
+  sink_location : Location
+  path : Array[String]
+}
+
+pub(all) enum TaintSink {
+  HtmlOutput
+  SqlQuery
+  FilePathConcat
+  HeaderValue
+  CookieValue
+  ShellCommand
+  ExternJsEval
+  RedirectUrl
+}
+
+pub(all) enum TaintSource {
+  RouteParam(String)
+  QueryParam(String)
+  RequestBody
+  RequestHeader(String)
+  WebSocketMessage
+  FileUpload
+  FormField(String)
+}
+
+pub(all) struct TaintState {
+  tainted_vars : Map[String, TaintedVar]
+  flows : Array[TaintFlow]
+  current_file : String
+}
+pub fn TaintState::add_tainted_var(Self, String, TaintSource, Int) -> Unit
+pub fn TaintState::clear_var(Self, String) -> Unit
+pub fn TaintState::get_taint_source(Self, String) -> TaintSource?
+pub fn TaintState::is_tainted(Self, String) -> Bool
+pub fn TaintState::new(String) -> Self
+pub fn TaintState::propagate(Self, String, String, Int) -> Unit
+pub fn TaintState::record_flow(Self, TaintSource, TaintSink, Int, Int, Int, Int, Array[String]) -> Unit
+
+pub(all) struct TaintedVar {
+  name : String
+  source : TaintSource
+  file : String
+  line : Int
+}
+
+// Type aliases
+
+// Traits
+

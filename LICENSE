@@ -1,0 +1,89 @@
+木兰宽松许可证, 第2版
+
+2020年1月 http://license.coscl.org.cn/MulanPSL2
+
+您对"软件"的使用、修改和分发受木兰宽松许可证, 第2版（"本许可证"）的以下条款的约束：
+
+0. 定义
+
+"软件"是指由"贡献"者许可在本许可证下的源代码、目标代码以及相关文档的集合。
+
+"贡献"是指由任何个人或法人实体在本许可证下提交到软件中的源代码、目标代码以及相关文档的修改或新增。
+
+"贡献者"是指在本许可证下将贡献许可到软件中的个人或法人实体。
+
+"法人实体"是指提交贡献的实体及其"关联实体"。"关联实体"对于特定法人实体是指与该法人实体控制、被其控制或与其共同受控的任何实体。"控制"是指直接或间接地拥有影响被控实体管理方向的权力，无论是通过所有权、投票权、合同或其他方式。
+
+"许可作品"是指由贡献者许可在本许可证下的软件和/或其衍生作品。
+
+2. 授予版权许可
+
+每个贡献者根据本许可证向您授予永久性的、全球性的、免费的、非独占的、不可撤销的版权许可，您可以复制、使用、修改、分发其贡献，无论是否修改。
+
+3. 授予专利许可
+
+每个贡献者根据本许可证向您授予永久性的、全球性的、免费的、非独占的、不可撤销的（根据本条规定撤销的情形除外）专利许可，供您制造、委托制造、使用、许诺销售、销售、进口其贡献或以其他方式转移其贡献。前述专利许可仅限于贡献者现在或将来拥有或控制的其贡献中的专利权利要求，而不包括仅因您的修改或任何第三方修改或与软件其他部分组合而产生的专利权利要求。如果您或您的关联实体直接或间接地（包括通过代理、专利被许可人或受让人），针对软件或软件中包含的贡献的任何部分提出专利侵权诉讼（包括在诉讼中提出反诉请求或交叉请求）或其他专利维权行动，则自此类行动提出之日起，授予您的该贡献的专利许可自动终止。
+
+4. 分发限制
+
+如果您分发软件或其衍生作品，您须遵守以下限制：
+
+  a) 您必须向该软件或衍生作品的接收者提供本许可证的副本，并保留该软件中的版权、商标、专利和免责声明。
+
+  b) 如果您修改了软件，您必须在修改后的文件中附上明确的说明，声明您已修改了该文件。
+
+5. 免责声明与责任限制
+
+软件及其中的贡献按"原样"提供，没有任何明示或默示保证，包括但不限于适销性和特定目的适用性的保证。在任何情况下，贡献者或版权所有者不对您使用软件或其中的贡献所引起的任何直接或间接损害承担责任。
+
+6. 语言
+
+本许可证以中文和英文双语提供，中英文版本具有同等法律效力。如中英文版本产生冲突，以中文版本为准。
+
+Mulan Permissive Software License, Version 2
+
+January 2020 http://license.coscl.org.cn/MulanPSL2
+
+Your reproduction, use, modification and distribution of the Software shall be subject to Mulan PSL v2 (this License) with the following terms and conditions:
+
+0. Definition
+
+Software means the program and related documents which are licensed under this License and comprise all Contribution(s).
+
+Contribution means the copyrightable work licensed by a particular Contributor under this License.
+
+Contributor means the Individual or Legal Entity who licenses its copyrightable work under this License.
+
+Legal Entity means the entity making a Contribution and all its Affiliates.
+
+Affiliates means entities that control, are controlled by, or are under common control with the acting entity under this License, 'control' means direct or indirect ownership of at least fifty percent (50%) of the voting power, capital or other securities of controlled or commonly controlled entity.
+
+1. Grant of Copyright License
+
+Subject to the terms and conditions of this License, each Contributor hereby grants to you a perpetual, worldwide, royalty-free, non-exclusive, irrevocable copyright license to reproduce, use, modify, or distribute its Contribution, with modification or without modification.
+
+2. Grant of Patent License
+
+Subject to the terms and conditions of this License, each Contributor hereby grants to you a perpetual, worldwide, royalty-free, non-exclusive, irrevocable (except for revocation under this Section) patent license to make, have made, use, offer for sale, sell, import or otherwise transfer its Contribution, where such patent license is only limited to the patent claims owned or controlled by such Contributor now or in future which will be necessarily infringed by its Contribution alone, or by combination of the Contribution with the Software to which the Contribution was contributed. The patent license shall not apply to any modification of the Contribution, and any other combination which includes the Contribution. If you or your Affiliates directly or indirectly institute patent litigation (including a cross claim or counterclaim in a lawsuit) or other patent enforcement action against any individual or entity -- Loss of any patent license to that individual or entity from the date of such action.
+
+3. No Trademark License
+
+No trademark license is granted to use the trade names, trademarks, service marks, or product names of the Contributor, except as required to fulfill notice requirements in Section 4.
+
+4. Distribution Restriction
+
+If you distribute the Software in any form, you must:
+
+  a) Provide recipients a copy of this License;
+
+  b) Retain copyright, trademark, patent and disclaimer statements in the Software.
+
+If you modify the Software, you must mark the modified files in a noticeable way, indicating that you have changed those files.
+
+5. Disclaimer of Warranty and Limitation of Liability
+
+THE SOFTWARE AND CONTRIBUTION IN IT ARE PROVIDED WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. IN NO EVENT SHALL ANY CONTRIBUTOR OR COPYRIGHT HOLDER BE LIABLE TO YOU FOR ANY DAMAGES, INCLUDING, BUT NOT LIMITED TO ANY DIRECT, OR INDIRECT, SPECIAL OR CONSEQUENTIAL DAMAGES ARISING FROM YOUR USE OR INABILITY TO USE THE SOFTWARE OR THE CONTRIBUTION IN IT, NO MATTER HOW IT'S CAUSED OR BASED ON WHICH LEGAL THEORY, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+6. Language
+
+THIS LICENSE IS WRITTEN IN BOTH CHINESE AND ENGLISH, AND THE CHINESE VERSION AND ENGLISH VERSION SHALL HAVE THE SAME LEGAL EFFECT. IN THE CASE OF DIVERGENCE BETWEEN THE CHINESE AND ENGLISH VERSIONS, THE CHINESE VERSION SHALL PREVAIL.

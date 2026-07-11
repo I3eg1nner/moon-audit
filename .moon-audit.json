@@ -1,0 +1,15 @@
+{
+  "rules": {
+    "CWE-116/replace-escaping": { "enabled": true, "severity": "error" },
+    "CWE-79/cmark-unsafe":      { "enabled": true, "severity": "error" },
+    "CWE-942/cors-credentials": { "enabled": true, "severity": "error" },
+    "CWE-614/cookie-attrs":     { "enabled": true, "severity": "warning" },
+    "CWE-770/no-body-limit":    { "enabled": true, "severity": "warning" },
+    "CWE-346/ws-origin":        { "enabled": true, "severity": "warning" },
+
+    "CWE-94/eval-extern":       { "enabled": false },
+    "CWE-79/inner-html":        { "enabled": false },
+    "CWE-22/path-concat":       { "enabled": false }
+  },
+  "exclude": ["_build", ".mooncakes", "*_test.mbt"]
+}

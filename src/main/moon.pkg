@@ -1,0 +1,10 @@
+import {
+  "nicball/moon-audit/src" @audit,
+  "moonbitlang/x/fs",
+  "moonbitlang/core/argparse",
+  "moonbitlang/core/builtin",
+}
+
+options(
+  "is-main": true,
+)
