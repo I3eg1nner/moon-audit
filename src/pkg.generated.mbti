@@ -92,6 +92,8 @@ pub fn load_config(String) -> Config
 
 pub fn load_env(String) -> Map[String, String]
 
+pub fn load_env_merged(String) -> Map[String, String]
+
 pub fn load_llm_config(String) -> LLMConfig
 
 pub fn merge_imports(ImportContext, ImportContext) -> ImportContext

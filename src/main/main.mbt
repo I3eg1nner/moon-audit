@@ -297,7 +297,11 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
   }
   if result.errors.length() > 0 && !quiet {
     println("")
-    println("Scan completed with " + result.errors.length().to_string() + " file error(s):")
+    println(
+      "Scan completed with " +
+      result.errors.length().to_string() +
+      " file error(s):",
+    )
     for e in result.errors {
       println("  " + e)
     }
