@@ -32,7 +32,7 @@ MoonBit 生态安全静态分析工具。基于 AST 语法树分析，检测 Moo
 ## 安装
 
 ```bash
-moon add nicball/moon-audit
+moon add minie135/moon-audit
 ```
 
 ## 使用方式
@@ -57,6 +57,77 @@ moon run src/main -- --format sarif -o results.sarif /path/to/project
 
 ```bash
 moon run src/main -- list-rules
+```
+
+### LLM 辅助分析
+
+静态分析发现可能存在误报。`llm-analyze` 子命令为每个 Finding 生成结构化提示词，发送给 LLM 进行深度验证：
+
+```bash
+# 生成 Claude API 兼容的 JSON 请求体（可直接 curl 调用）
+moon run src/main -- llm-analyze /path/to/project
+
+# 输出人类可读的 Markdown 格式
+moon run src/main -- llm-analyze --format text /path/to/project
+
+# 保存到文件
+moon run src/main -- llm-analyze -o prompts.json /path/to/project
+```
+
+**调用 Claude API 验证：**
+
+```bash
+# 1. 生成提示词
+moon run src/main -- llm-analyze -o prompts.json /path/to/project
+
+# 2. 提取单个请求并发送到 Claude API
+cat prompts.json | jq '.[0]' > request.json
+curl https://api.anthropic.com/v1/messages \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "content-type: application/json" \
+  -H "anthropic-version: 2023-06-01" \
+  -d @request.json
+```
+
+LLM 会返回 JSON 响应，包含：
+- `is_true_positive`: 是否为真阳性
+- `confidence`: 置信度 (0.0-1.0)
+- `explanation`: 分析推理过程
+- `remediation`: 修复建议
+
+### PoC 漏洞利用脚本生成
+
+根据扫描发现自动生成 Python 利用脚本模板，用于红队验证：
+
+```bash
+# 生成 PoC 报告
+moon run src/main -- generate-poc /path/to/project
+
+# 保存到文件
+moon run src/main -- generate-poc -o poc-report.md /path/to/project
+```
+
+生成的 PoC 脚本覆盖 CORS 凭据窃取、Cookie 劫持、DoS 攻击、XSS 注入、路径穿越、CRLF 注入等攻击类型。
+
+### 修复建议
+
+为每种检出的 CWE 漏洞类型生成修复指南，含 Before/After 代码示例和 OWASP 分类：
+
+```bash
+moon run src/main -- remediate /path/to/project
+moon run src/main -- remediate -o fixes.md /path/to/project
+```
+
+### 扫描统计报告
+
+按规则、文件、CWE、OWASP 分类聚合分析结果，输出风险评分：
+
+```bash
+# 文本格式统计面板
+moon run src/main -- summary /path/to/project
+
+# JSON 格式（便于集成到 CI/CD）
+moon run src/main -- summary --format json -o summary.json /path/to/project
 ```
 
 ### 配置文件

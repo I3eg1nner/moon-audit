@@ -58,6 +58,116 @@ fn main {
     ],
     subcommands=[
       @argparse.Command("list-rules", about="List all available rules"),
+      @argparse.Command(
+        "llm-analyze",
+        about="Generate LLM analysis prompts for findings",
+        options=[
+          @argparse.OptionArg(
+            "format",
+            short='f',
+            long="format",
+            about="Output format: json (Claude API), text (human-readable)",
+            default_values=["json"],
+          ),
+          @argparse.OptionArg(
+            "output",
+            short='o',
+            long="output",
+            about="Write prompts to file",
+          ),
+          @argparse.OptionArg(
+            "config",
+            short='c',
+            long="config",
+            about="Config file path",
+            default_values=[".moon-audit.json"],
+          ),
+        ],
+        positionals=[
+          @argparse.PositionArg("path", about="Project path to scan", default_values=[
+            ".",
+          ]),
+        ],
+      ),
+      @argparse.Command(
+        "generate-poc",
+        about="Generate PoC exploit scripts from findings",
+        options=[
+          @argparse.OptionArg(
+            "output",
+            short='o',
+            long="output",
+            about="Write PoC report to file",
+          ),
+          @argparse.OptionArg(
+            "config",
+            short='c',
+            long="config",
+            about="Config file path",
+            default_values=[".moon-audit.json"],
+          ),
+        ],
+        positionals=[
+          @argparse.PositionArg("path", about="Project path to scan", default_values=[
+            ".",
+          ]),
+        ],
+      ),
+      @argparse.Command(
+        "remediate",
+        about="Generate remediation guide from findings",
+        options=[
+          @argparse.OptionArg(
+            "output",
+            short='o',
+            long="output",
+            about="Write remediation report to file",
+          ),
+          @argparse.OptionArg(
+            "config",
+            short='c',
+            long="config",
+            about="Config file path",
+            default_values=[".moon-audit.json"],
+          ),
+        ],
+        positionals=[
+          @argparse.PositionArg("path", about="Project path to scan", default_values=[
+            ".",
+          ]),
+        ],
+      ),
+      @argparse.Command(
+        "summary",
+        about="Show scan summary with statistics",
+        options=[
+          @argparse.OptionArg(
+            "format",
+            short='f',
+            long="format",
+            about="Output format: text, json",
+            default_values=["text"],
+          ),
+          @argparse.OptionArg(
+            "output",
+            short='o',
+            long="output",
+            about="Write summary to file",
+          ),
+          @argparse.OptionArg(
+            "config",
+            short='c',
+            long="config",
+            about="Config file path",
+            default_values=[".moon-audit.json"],
+          ),
+        ],
+        positionals=[
+          @argparse.PositionArg("path", about="Project path to scan", default_values=[
+            ".",
+          ]),
+        ],
+      ),
     ],
   )
   let matches = cmd.parse() catch {
@@ -69,6 +179,10 @@ fn main {
   }
   match matches.subcommand {
     Some(("list-rules", _)) => cmd_list_rules()
+    Some(("llm-analyze", sub)) => cmd_llm_analyze(sub)
+    Some(("generate-poc", sub)) => cmd_generate_poc(sub)
+    Some(("remediate", sub)) => cmd_remediate(sub)
+    Some(("summary", sub)) => cmd_summary(sub)
     _ => cmd_scan(matches)
   }
 }
@@ -182,4 +296,199 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
   if has_errors {
     @builtin.panic()
   }
+}
+
+///|
+fn get_val(
+  matches : @argparse.Matches,
+  key : String,
+  default : String,
+) -> String {
+  match matches.values.get(key) {
+    Some(arr) => if arr.length() > 0 { arr[0] } else { default }
+    None => default
+  }
+}
+
+///|
+fn get_opt(matches : @argparse.Matches, key : String) -> String? {
+  match matches.values.get(key) {
+    Some(arr) => if arr.length() > 0 { Some(arr[0]) } else { None }
+    None => None
+  }
+}
+
+///|
+fn write_output(content : String, output_file : String?) -> Unit {
+  match output_file {
+    Some(out_path) => {
+      @fs.write_string_to_file(out_path, content) catch {
+        _ => println("Error writing output file")
+      }
+      println("Output written to: " + out_path)
+    }
+    None => println(content)
+  }
+}
+
+///|
+fn do_scan(matches : @argparse.Matches) -> @audit.ScanResult {
+  let path = get_val(matches, "path", ".")
+  let config_path = get_val(matches, "config", ".moon-audit.json")
+  let config = @audit.load_config(config_path)
+  @audit.scan_project(path, config)
+}
+
+///|
+fn cmd_llm_analyze(matches : @argparse.Matches) -> Unit {
+  let format = get_val(matches, "format", "json")
+  let output_file = get_opt(matches, "output")
+  let path = get_val(matches, "path", ".")
+  println("moon-audit LLM Analysis Prompt Generator\n")
+  println("Scanning: " + path + "\n")
+  let result = do_scan(matches)
+  if result.findings.length() == 0 {
+    println("No findings to analyze.")
+    return
+  }
+  println(
+    "Generating LLM prompts for " +
+    result.findings.length().to_string() +
+    " finding(s)...\n",
+  )
+  let sources : Map[String, String] = {}
+  for f in result.findings {
+    if !sources.contains(f.file) {
+      let content = @fs.read_file_to_string(f.file) catch { _ => "" }
+      sources[f.file] = content
+    }
+  }
+  let imports = @audit.ImportContext::empty()
+  let requests = @audit.generate_batch_prompts(
+    result.findings,
+    sources,
+    imports,
+  )
+  if format == "json" {
+    let buf = StringBuilder::new()
+    buf.write_string("[\n")
+    for i, req in requests {
+      if i > 0 {
+        buf.write_string(",\n")
+      }
+      buf.write_string(@audit.format_prompt_as_json(req))
+    }
+    buf.write_string("\n]")
+    write_output(buf.to_string(), output_file)
+  } else {
+    let buf = StringBuilder::new()
+    buf.write_string("# LLM Analysis Prompts\n\n")
+    buf.write_string(
+      "Use these prompts with Claude or other LLMs to verify findings.\n\n",
+    )
+    for i, req in requests {
+      buf.write_string("## Finding ")
+      buf.write_string((i + 1).to_string())
+      buf.write_string(": ")
+      buf.write_string(@audit.rule_id_str(req.finding.rule_id))
+      buf.write_string(" (")
+      buf.write_string(req.finding.file)
+      buf.write_string(":")
+      buf.write_string(req.finding.line.to_string())
+      buf.write_string(")\n\n")
+      buf.write_string("### System Prompt\n\n```\n")
+      buf.write_string(req.system_prompt)
+      buf.write_string("\n```\n\n")
+      buf.write_string("### User Prompt\n\n```\n")
+      buf.write_string(req.prompt)
+      buf.write_string("\n```\n\n---\n\n")
+    }
+    buf.write_string("## Usage\n\n")
+    buf.write_string(
+      "1. Use `--format json` to get Claude API-compatible request bodies\n",
+    )
+    buf.write_string("2. Send each request to Claude API:\n")
+    buf.write_string(
+      "   ```bash\n   curl https://api.anthropic.com/v1/messages \\\n",
+    )
+    buf.write_string("     -H \"x-api-key: $ANTHROPIC_API_KEY\" \\\n")
+    buf.write_string("     -H \"content-type: application/json\" \\\n")
+    buf.write_string("     -H \"anthropic-version: 2023-06-01\" \\\n")
+    buf.write_string("     -d @prompt_1.json\n   ```\n")
+    buf.write_string(
+      "3. LLM will respond with: is_true_positive, confidence, explanation, remediation\n",
+    )
+    write_output(buf.to_string(), output_file)
+  }
+}
+
+///|
+fn cmd_generate_poc(matches : @argparse.Matches) -> Unit {
+  let output_file = get_opt(matches, "output")
+  let path = get_val(matches, "path", ".")
+  println("moon-audit PoC Generator\n")
+  println("Scanning: " + path + "\n")
+  let result = do_scan(matches)
+  if result.findings.length() == 0 {
+    println("No findings to generate PoC for.")
+    return
+  }
+  let imports = @audit.ImportContext::empty()
+  let pocs = @audit.generate_all_pocs(result.findings, imports)
+  if pocs.length() == 0 {
+    println("No PoC templates available for the detected finding types.")
+    return
+  }
+  println("Generated " + pocs.length().to_string() + " PoC template(s)\n")
+  let report = @audit.format_poc_report(pocs)
+  write_output(report, output_file)
+}
+
+///|
+fn cmd_remediate(matches : @argparse.Matches) -> Unit {
+  let output_file = get_opt(matches, "output")
+  let path = get_val(matches, "path", ".")
+  println("moon-audit Remediation Guide Generator\n")
+  println("Scanning: " + path + "\n")
+  let result = do_scan(matches)
+  if result.findings.length() == 0 {
+    println("No findings to remediate.")
+    return
+  }
+  let remediations = @audit.get_all_remediations(result.findings)
+  println(
+    "Generated remediation guide for " +
+    remediations.length().to_string() +
+    " rule(s)\n",
+  )
+  let report = @audit.format_remediation_report(remediations)
+  write_output(report, output_file)
+}
+
+///|
+fn cmd_summary(matches : @argparse.Matches) -> Unit {
+  let format = get_val(matches, "format", "text")
+  let output_file = get_opt(matches, "output")
+  let path = get_val(matches, "path", ".")
+  println("moon-audit Scan Summary\n")
+  println("Scanning: " + path + "\n")
+  let result = do_scan(matches)
+  let rules = @audit.list_all_rules()
+  let summary = @audit.build_summary(result, rules)
+  let score = @audit.risk_score(summary)
+  let level = @audit.risk_level(score)
+  let output = if format == "json" {
+    @audit.format_summary_json(summary)
+  } else {
+    let text = @audit.format_summary_text(summary)
+    let buf = StringBuilder::new()
+    buf.write_string(text)
+    buf.write_string("\n  Risk Score: ")
+    buf.write_string(score.to_string())
+    buf.write_string(" / 100 (")
+    buf.write_string(level)
+    buf.write_string(")\n")
+    buf.to_string()
+  }
+  write_output(output, output_file)
 }
