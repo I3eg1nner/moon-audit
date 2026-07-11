@@ -79,7 +79,16 @@ fn strip_quotes(s : String) -> String {
 
 ///|
 pub fn load_llm_config(dir : String) -> LLMConfig {
-  let env = load_env(dir)
+  let env = load_env(".")
+  if env.length() == 0 {
+    let env2 = load_env(dir)
+    return build_llm_config(env2)
+  }
+  build_llm_config(env)
+}
+
+///|
+fn build_llm_config(env : Map[String, String]) -> LLMConfig {
   let base = LLMConfig::default()
   let base_url = match env.get("LLM_BASE_URL") {
     Some(v) => if v.length() > 0 { v } else { base.base_url }
@@ -98,6 +107,18 @@ pub fn load_llm_config(dir : String) -> LLMConfig {
       }
   }
   { base_url, model, api_key }
+}
+
+///|
+pub fn load_env_merged(dir : String) -> Map[String, String] {
+  let env = load_env(".")
+  let env2 = load_env(dir)
+  for k, v in env2 {
+    if !env.contains(k) {
+      env[k] = v
+    }
+  }
+  env
 }
 
 ///|
@@ -161,6 +182,9 @@ pub fn generate_llm_script(
 ///|
 fn write_py_is_anthropic(buf : StringBuilder) -> Unit {
   buf.write_string("IS_ANTHROPIC = \"anthropic\" in BASE_URL\n\n")
+  buf.write_string("# Auto-append endpoint path if BASE_URL is just the base\n")
+  buf.write_string("if not IS_ANTHROPIC and not BASE_URL.endswith(\"/chat/completions\"):\n")
+  buf.write_string("    BASE_URL = BASE_URL.rstrip(\"/\") + \"/chat/completions\"\n\n")
 }
 
 ///|
