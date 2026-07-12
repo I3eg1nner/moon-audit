@@ -17,6 +17,11 @@ fn main {
         long="verbose",
         about="Show detailed scan info",
       ),
+      @argparse.FlagArg(
+        "fail-on-error",
+        long="fail-on-error",
+        about="Exit with code 1 when error-level findings exist (for CI gating)",
+      ),
     ],
     options=[
       @argparse.OptionArg(
@@ -140,6 +145,13 @@ fn main {
       @argparse.Command(
         "pipeline",
         about="Run analysis pipeline: scan + taint + summary",
+        flags=[
+          @argparse.FlagArg(
+            "fail-on-error",
+            long="fail-on-error",
+            about="Exit with code 1 when error-level findings exist",
+          ),
+        ],
         options=[
           @argparse.OptionArg(
             "output-dir",
@@ -258,6 +270,10 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     Some(v) => v
     None => false
   }
+  let fail_on_error = match matches.flags.get("fail-on-error") {
+    Some(v) => v
+    None => false
+  }
   let severity_filter = match matches.values.get("severity") {
     Some(arr) =>
       if arr.length() > 0 {
@@ -342,11 +358,13 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
       println("  " + e)
     }
   }
-  let has_errors = filtered_findings
-    .iter()
-    .any(fn(f) { f.severity == @audit.Error })
-  if has_errors {
-    @sys.exit(1)
+  if fail_on_error {
+    let has_errors = filtered_findings
+      .iter()
+      .any(fn(f) { f.severity == @audit.Error })
+    if has_errors {
+      @sys.exit(1)
+    }
   }
 }
 
@@ -598,6 +616,10 @@ fn cmd_summary(matches : @argparse.Matches) -> Unit {
 fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
   let path = get_val(matches, "path", ".")
   let out_dir = get_val(matches, "output-dir", "moon-audit-report")
+  let fail_on_error = match matches.flags.get("fail-on-error") {
+    Some(v) => v
+    None => false
+  }
   let config_path = get_val(matches, "config", ".moon-audit.json")
   let resolved_config = if config_path == ".moon-audit.json" {
     @path.Path(path).join(@path.Path(config_path)).0
@@ -706,10 +728,12 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
   println("    moon-audit llm-analyze " + path + "   # LLM-assisted triage")
   println("    moon-audit generate-poc " + path + "  # PoC exploit templates")
   println("    moon-audit remediate " + path + "     # Fix guide")
-  let has_errors = result.findings
-    .iter()
-    .any(fn(f) { f.severity == @audit.Error })
-  if has_errors {
-    @sys.exit(1)
+  if fail_on_error {
+    let has_errors = result.findings
+      .iter()
+      .any(fn(f) { f.severity == @audit.Error })
+    if has_errors {
+      @sys.exit(1)
+    }
   }
 }

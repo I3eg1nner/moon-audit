@@ -38,5 +38,5 @@
 - [x] `moon check --target all`
 - [x] `moon test --target all` (38/38 x 4 targets)
 - [x] `moon fmt` 格式稳定
-- [ ] 推送到 GitHub + GitLink
-- [ ] 确认 GitHub CI 通过
+- [x] 推送到 GitHub (origin) — CI 通过 (ubuntu/macos/windows)
+- [ ] 推送到 GitLink — SSH 服务端不可达，待恢复后重试
