@@ -63,6 +63,7 @@ test "LLM: generate_analysis_prompt produces non-empty prompt" {
   let finding : Finding = {
     rule_id: { cwe: 942, variant: "cors-credentials" },
     severity: Error,
+    confidence: Medium,
     message: "CORS credential theft",
     file: "server.mbt",
     line: 10,
@@ -70,6 +71,7 @@ test "LLM: generate_analysis_prompt produces non-empty prompt" {
     end_line: 10,
     end_column: 50,
     snippet: "handle_cors(credentials=true)",
+    fingerprint: "",
   }
   let source = "fn main() {\n  handle_cors(credentials=true)\n}\n"
   let imports = ImportContext::empty()
@@ -85,6 +87,7 @@ test "LLM: parse_llm_response parses valid JSON" {
   let finding : Finding = {
     rule_id: { cwe: 79, variant: "cmark-unsafe" },
     severity: Error,
+    confidence: High,
     message: "test",
     file: "test.mbt",
     line: 1,
@@ -92,6 +95,7 @@ test "LLM: parse_llm_response parses valid JSON" {
     end_line: 1,
     end_column: 10,
     snippet: "",
+    fingerprint: "",
   }
   let json = "{\"is_true_positive\": true, \"confidence\": 0.95, \"explanation\": \"Real vulnerability\", \"remediation\": \"Add safe=true\"}"
   let result = parse_llm_response(finding, json)
@@ -111,6 +115,7 @@ test "LLM: format_prompt_as_json produces valid structure" {
   let finding : Finding = {
     rule_id: { cwe: 116, variant: "replace-escaping" },
     severity: Error,
+    confidence: High,
     message: "test",
     file: "test.mbt",
     line: 1,
@@ -118,6 +123,7 @@ test "LLM: format_prompt_as_json produces valid structure" {
     end_line: 1,
     end_column: 10,
     snippet: "",
+    fingerprint: "",
   }
   let req = generate_analysis_prompt(
     finding,
@@ -138,6 +144,7 @@ test "PoC: generate_poc creates CORS PoC" {
   let finding : Finding = {
     rule_id: { cwe: 942, variant: "cors-credentials" },
     severity: Error,
+    confidence: Medium,
     message: "CORS credential theft",
     file: "server.mbt",
     line: 10,
@@ -145,6 +152,7 @@ test "PoC: generate_poc creates CORS PoC" {
     end_line: 10,
     end_column: 50,
     snippet: "",
+    fingerprint: "",
   }
   let poc = generate_poc(finding, ImportContext::empty())
   assert_true(poc is Some(_))
@@ -164,6 +172,7 @@ test "PoC: generate_poc creates cookie PoC" {
   let finding : Finding = {
     rule_id: { cwe: 614, variant: "cookie-attrs" },
     severity: Warning,
+    confidence: Medium,
     message: "Missing cookie attrs",
     file: "server.mbt",
     line: 20,
@@ -171,6 +180,7 @@ test "PoC: generate_poc creates cookie PoC" {
     end_line: 20,
     end_column: 50,
     snippet: "",
+    fingerprint: "",
   }
   let poc = generate_poc(finding, ImportContext::empty())
   assert_true(poc is Some(_))
@@ -189,6 +199,7 @@ test "PoC: generate_all_pocs handles multiple findings" {
     {
       rule_id: { cwe: 942, variant: "cors-credentials" },
       severity: Error,
+      confidence: Medium,
       message: "CORS",
       file: "a.mbt",
       line: 1,
@@ -196,10 +207,12 @@ test "PoC: generate_all_pocs handles multiple findings" {
       end_line: 1,
       end_column: 10,
       snippet: "",
+      fingerprint: "",
     },
     {
       rule_id: { cwe: 770, variant: "no-body-limit" },
       severity: Warning,
+      confidence: Medium,
       message: "DoS",
       file: "b.mbt",
       line: 2,
@@ -207,6 +220,7 @@ test "PoC: generate_all_pocs handles multiple findings" {
       end_line: 2,
       end_column: 10,
       snippet: "",
+      fingerprint: "",
     },
   ]
   let pocs = generate_all_pocs(findings, ImportContext::empty())
@@ -222,6 +236,7 @@ test "Remediation: get_remediation returns correct fix for CWE-116" {
   let finding : Finding = {
     rule_id: { cwe: 116, variant: "replace-escaping" },
     severity: Error,
+    confidence: High,
     message: "test",
     file: "test.mbt",
     line: 1,
@@ -229,6 +244,7 @@ test "Remediation: get_remediation returns correct fix for CWE-116" {
     end_line: 1,
     end_column: 10,
     snippet: "",
+    fingerprint: "",
   }
   let rem = get_remediation(finding)
   assert_true(rem.title.contains("replace_all"))
@@ -243,6 +259,7 @@ test "Remediation: get_all_remediations deduplicates" {
     {
       rule_id: { cwe: 614, variant: "cookie-attrs" },
       severity: Warning,
+      confidence: Medium,
       message: "a",
       file: "a.mbt",
       line: 1,
@@ -250,10 +267,12 @@ test "Remediation: get_all_remediations deduplicates" {
       end_line: 1,
       end_column: 5,
       snippet: "",
+      fingerprint: "",
     },
     {
       rule_id: { cwe: 614, variant: "cookie-attrs" },
       severity: Warning,
+      confidence: Medium,
       message: "b",
       file: "b.mbt",
       line: 2,
@@ -261,6 +280,7 @@ test "Remediation: get_all_remediations deduplicates" {
       end_line: 2,
       end_column: 5,
       snippet: "",
+      fingerprint: "",
     },
   ]
   let rems = get_all_remediations(findings)
@@ -272,6 +292,7 @@ test "Remediation: format_remediation_report produces markdown" {
   let finding : Finding = {
     rule_id: { cwe: 942, variant: "cors-credentials" },
     severity: Error,
+    confidence: Medium,
     message: "test",
     file: "test.mbt",
     line: 1,
@@ -279,6 +300,7 @@ test "Remediation: format_remediation_report produces markdown" {
     end_line: 1,
     end_column: 10,
     snippet: "",
+    fingerprint: "",
   }
   let rems = [get_remediation(finding)]
   let report = format_remediation_report(rems)

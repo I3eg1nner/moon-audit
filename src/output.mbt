@@ -11,7 +11,9 @@ pub fn format_text(result : ScanResult, verbose : Bool) -> String {
     buf.write_string(severity_str(f.severity))
     buf.write_char('[')
     buf.write_string(rule_id_str(f.rule_id))
-    buf.write_string("] ")
+    buf.write_string("] (")
+    buf.write_string(confidence_str(f.confidence))
+    buf.write_string(") ")
     buf.write_string(f.message)
     buf.write_char('\n')
     if f.snippet.length() > 0 {
@@ -61,6 +63,7 @@ fn finding_to_json(f : Finding) -> Json {
   {
     "rule_id": Json::string(rule_id_str(f.rule_id)),
     "severity": Json::string(severity_str(f.severity)),
+    "confidence": Json::string(confidence_str(f.confidence)),
     "message": Json::string(f.message),
     "file": Json::string(f.file),
     "line": Json::number(f.line.to_double()),
@@ -68,5 +71,6 @@ fn finding_to_json(f : Finding) -> Json {
     "end_line": Json::number(f.end_line.to_double()),
     "end_column": Json::number(f.end_column.to_double()),
     "snippet": Json::string(f.snippet),
+    "fingerprint": Json::string(f.fingerprint),
   }
 }

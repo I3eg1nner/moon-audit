@@ -30,13 +30,7 @@ fn dedup_findings(findings : Array[Finding]) -> Array[Finding] {
   let seen : Map[String, Bool] = {}
   let result : Array[Finding] = []
   for f in findings {
-    let key = f.file +
-      ":" +
-      f.line.to_string() +
-      ":" +
-      f.column.to_string() +
-      ":" +
-      rule_id_str(f.rule_id)
+    let key = f.file + ":" + f.fingerprint + ":" + rule_id_str(f.rule_id)
     if !seen.contains(key) {
       seen[key] = true
       result.push(f)

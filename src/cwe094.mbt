@@ -88,6 +88,7 @@ impl @syntax.IterVisitor for Cwe094Visitor with fn visit_FuncStubs_Embedded(
         make_finding(
           { cwe: 94, variant: "eval-extern" },
           env.severity,
+          High,
           "eval() or new Function() in extern JS block enables code injection. Consider safer alternatives.",
           env.file,
           env.source,

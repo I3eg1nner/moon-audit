@@ -89,6 +89,7 @@ pub fn get_source_line(source : String, line_num : Int) -> String {
 fn make_finding(
   rule_id : RuleId,
   severity : Severity,
+  confidence : Confidence,
   message : String,
   file : String,
   source : String,
@@ -98,17 +99,31 @@ fn make_finding(
   let col = loc.start.column()
   let end_line = loc.end.lnum
   let end_col = loc.end.column()
+  let snippet = get_source_line(source, line)
   {
     rule_id,
     severity,
+    confidence,
     message,
     file,
     line,
     column: col,
     end_line,
     end_column: end_col,
-    snippet: get_source_line(source, line),
+    snippet,
+    fingerprint: compute_fingerprint(rule_id, snippet),
   }
+}
+
+///|
+pub fn compute_fingerprint(rule_id : RuleId, snippet : String) -> String {
+  let input = rule_id_str(rule_id) + ":" + snippet
+  let mut h : UInt = 2166136261U
+  for i = 0; i < input.length(); i = i + 1 {
+    h = h.lxor(input[i].to_uint())
+    h = h * 16777619U
+  }
+  h.to_string()
 }
 
 ///|

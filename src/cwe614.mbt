@@ -57,6 +57,7 @@ impl @syntax.IterVisitor for Cwe614Visitor with fn visit_Expr_DotApply(
         make_finding(
           { cwe: 614, variant: "cookie-attrs" },
           env.severity,
+          Medium,
           "set_cookie() missing security attributes: " +
           attrs +
           ". Add these to protect against XSS cookie theft and CSRF.",

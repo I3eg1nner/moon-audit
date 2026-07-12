@@ -66,6 +66,7 @@ impl @syntax.IterVisitor for Cwe942Visitor with fn visit_Expr_Apply(
           make_finding(
             { cwe: 942, variant: "cors-credentials" },
             env.severity,
+            Medium,
             "CORS with credentials=true and default/wildcard origin reflects any Origin header. Specify an explicit origin to prevent credential theft.",
             env.file,
             env.source,

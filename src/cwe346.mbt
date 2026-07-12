@@ -60,6 +60,7 @@ impl @syntax.IterVisitor for Cwe346Visitor with fn visit_Expr_DotApply(
         make_finding(
           { cwe: 346, variant: "ws-origin" },
           env.severity,
+          Low,
           "WebSocket upgrade without Origin validation. Any website can connect via cross-site WebSocket hijacking.",
           env.file,
           env.source,
@@ -85,6 +86,7 @@ impl @syntax.IterVisitor for Cwe346Visitor with fn visit_Expr_Apply(
         make_finding(
           { cwe: 346, variant: "ws-origin" },
           env.severity,
+          Low,
           "WebSocket upgrade without Origin validation. Any website can connect via cross-site WebSocket hijacking.",
           env.file,
           env.source,

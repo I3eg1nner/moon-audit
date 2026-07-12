@@ -438,9 +438,11 @@ pub fn taint_flows_to_findings(
       " flows to " +
       taint_sink_str(flow.sink) +
       " without sanitization"
+    let rid : RuleId = { cwe, variant }
     findings.push({
-      rule_id: { cwe, variant },
+      rule_id: rid,
       severity: Error,
+      confidence: Medium,
       message,
       file: flow.sink_location.file,
       line: flow.sink_location.line,
@@ -448,6 +450,7 @@ pub fn taint_flows_to_findings(
       end_line: flow.sink_location.line,
       end_column: flow.sink_location.column + 10,
       snippet: "",
+      fingerprint: compute_fingerprint(rid, ""),
     })
   }
   findings

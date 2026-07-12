@@ -14,6 +14,12 @@ pub fn analyze_mod_imports(String) -> ImportContext
 
 pub fn build_summary(ScanResult, Array[RuleInfo]) -> ScanSummary
 
+pub fn compute_fingerprint(RuleId, String) -> String
+
+pub fn confidence_from_str(String) -> Confidence
+
+pub fn confidence_str(Confidence) -> String
+
 pub fn cwe022_info() -> RuleInfo
 
 pub fn cwe079_cmark_info() -> RuleInfo
@@ -46,7 +52,7 @@ pub fn format_poc_report(Array[PoCTemplate]) -> String
 
 pub fn format_poc_script(PoCTemplate) -> String
 
-pub fn format_prompt_as_json(LLMAnalysisRequest) -> String
+pub fn format_prompt_as_json(LLMAnalysisRequest, model? : String) -> String
 
 pub fn format_remediation_report(Array[Remediation]) -> String
 
@@ -151,6 +157,12 @@ pub(all) struct CWEStat {
   count : Int
 }
 
+pub(all) enum Confidence {
+  High
+  Medium
+  Low
+} derive(Eq, @debug.Debug)
+
 pub(all) struct Config {
   rules : Map[String, RuleConfig]
   exclude : Array[String]
@@ -172,6 +184,7 @@ pub(all) struct FileStat {
 pub(all) struct Finding {
   rule_id : RuleId
   severity : Severity
+  confidence : Confidence
   message : String
   file : String
   line : Int
@@ -179,6 +192,7 @@ pub(all) struct Finding {
   end_line : Int
   end_column : Int
   snippet : String
+  fingerprint : String
 } derive(@debug.Debug)
 
 pub(all) struct ImportContext {

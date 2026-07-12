@@ -58,6 +58,7 @@ impl @syntax.IterVisitor for Cwe079CmarkVisitor with fn visit_Expr_Apply(
         make_finding(
           { cwe: 79, variant: "cmark-unsafe" },
           env.severity,
+          High,
           "cmark render()/from_doc() defaults to safe=false. Raw HTML and javascript: URLs pass through. Add safe=true explicitly.",
           env.file,
           env.source,

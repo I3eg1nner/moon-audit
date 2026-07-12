@@ -6,6 +6,13 @@ pub(all) enum Severity {
 } derive(Eq, Debug)
 
 ///|
+pub(all) enum Confidence {
+  High
+  Medium
+  Low
+} derive(Eq, Debug)
+
+///|
 pub(all) struct RuleId {
   cwe : Int
   variant : String
@@ -23,6 +30,7 @@ pub(all) struct RuleInfo {
 pub(all) struct Finding {
   rule_id : RuleId
   severity : Severity
+  confidence : Confidence
   message : String
   file : String
   line : Int
@@ -30,6 +38,7 @@ pub(all) struct Finding {
   end_line : Int
   end_column : Int
   snippet : String
+  fingerprint : String
 } derive(Debug)
 
 ///|
@@ -146,5 +155,25 @@ pub fn severity_level(s : Severity) -> Int {
     Error => 3
     Warning => 2
     Info => 1
+  }
+}
+
+///|
+pub fn confidence_str(c : Confidence) -> String {
+  match c {
+    High => "high"
+    Medium => "medium"
+    Low => "low"
+  }
+}
+
+///|
+pub fn confidence_from_str(s : String) -> Confidence {
+  if s == "high" {
+    High
+  } else if s == "low" {
+    Low
+  } else {
+    Medium
   }
 }

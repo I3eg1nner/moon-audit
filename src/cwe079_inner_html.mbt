@@ -50,6 +50,7 @@ impl @syntax.IterVisitor for Cwe079InnerHtmlVisitor with fn visit_Expr_DotApply(
         make_finding(
           { cwe: 79, variant: "inner-html" },
           env.severity,
+          Medium,
           "inner_html() with non-constant argument is an XSS sink. User-controlled content will be injected as raw HTML.",
           env.file,
           env.source,

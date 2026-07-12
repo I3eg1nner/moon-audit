@@ -3,6 +3,7 @@ import {
   "moonbitlang/parser",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
+  "moonbitlang/x/sys",
   "moonbitlang/core/argparse",
   "moonbitlang/core/builtin",
 }

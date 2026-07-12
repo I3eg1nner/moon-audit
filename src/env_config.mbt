@@ -153,11 +153,15 @@ pub fn generate_llm_script(
   buf.write_string("# ── Load .env file ──\n")
   buf.write_string("def load_dotenv():\n")
   buf.write_string("    env = {}\n")
-  buf.write_string("    for p in [Path('.env'), Path(__file__).parent / '.env']:\n")
+  buf.write_string(
+    "    for p in [Path('.env'), Path(__file__).parent / '.env']:\n",
+  )
   buf.write_string("        if p.is_file():\n")
   buf.write_string("            for line in p.read_text().splitlines():\n")
   buf.write_string("                line = line.strip()\n")
-  buf.write_string("                if not line or line.startswith('#') or '=' not in line:\n")
+  buf.write_string(
+    "                if not line or line.startswith('#') or '=' not in line:\n",
+  )
   buf.write_string("                    continue\n")
   buf.write_string("                k, v = line.split('=', 1)\n")
   buf.write_string("                v = v.strip().strip('\"').strip(\"'\")\n")
@@ -166,15 +170,21 @@ pub fn generate_llm_script(
   buf.write_string("    return env\n\n")
   buf.write_string("_dotenv = load_dotenv()\n")
   buf.write_string("def _cfg(key, default=''):\n")
-  buf.write_string("    return os.environ.get(key) or _dotenv.get(key) or default\n\n")
-  buf.write_string("# ── Configuration (.env → env var → default) ──\n")
+  buf.write_string(
+    "    return os.environ.get(key) or _dotenv.get(key) or default\n\n",
+  )
+  buf.write_string(
+    "# ── Configuration (.env → env var → default) ──\n",
+  )
   buf.write_string("BASE_URL = _cfg('LLM_BASE_URL', '")
   buf.write_string(escape_py_str(llm_config.base_url))
   buf.write_string("')\n")
   buf.write_string("MODEL    = _cfg('LLM_MODEL', '")
   buf.write_string(escape_py_str(llm_config.model))
   buf.write_string("')\n")
-  buf.write_string("API_KEY  = _cfg('LLM_API_KEY') or _cfg('ANTHROPIC_API_KEY')\n\n")
+  buf.write_string(
+    "API_KEY  = _cfg('LLM_API_KEY') or _cfg('ANTHROPIC_API_KEY')\n\n",
+  )
   buf.write_string("if not API_KEY:\n")
   buf.write_string("    print('ERROR: No API key configured.')\n")
   buf.write_string(

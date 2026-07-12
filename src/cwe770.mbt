@@ -58,6 +58,7 @@ impl @syntax.IterVisitor for Cwe770Visitor with fn visit_Expr_DotApply(
         make_finding(
           { cwe: 770, variant: "no-body-limit" },
           env.severity,
+          Medium,
           "Server started without request body size limit. Large payloads can exhaust memory. Set a max body size.",
           env.file,
           env.source,

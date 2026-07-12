@@ -76,6 +76,7 @@ impl @syntax.IterVisitor for Cwe113Visitor with fn visit_Expr_DotApply(
       make_finding(
         { cwe: 113, variant: "crlf-injection" },
         env.severity,
+        Medium,
         "Response header set with dynamic value without CRLF sanitization. Attacker can inject \\r\\n to split the HTTP response, enabling session fixation or XSS.",
         env.file,
         env.source,

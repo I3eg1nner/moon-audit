@@ -70,6 +70,8 @@ fn finding_to_sarif(f : Finding) -> Json {
         },
       },
     ]),
+    "partialFingerprints": { "moon-audit/v1": Json::string(f.fingerprint) },
+    "properties": { "confidence": Json::string(confidence_str(f.confidence)) },
   }
 }
 

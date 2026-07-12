@@ -70,6 +70,7 @@ impl @syntax.IterVisitor for Cwe079TemplateVisitor with fn visit_Expr_Apply(
         make_finding(
           { cwe: 79, variant: "template-injection" },
           env.severity,
+          Medium,
           "HTML response contains string interpolation with potentially user-controlled values. Apply HTML encoding to prevent reflected XSS.",
           env.file,
           env.source,
@@ -97,6 +98,7 @@ impl @syntax.IterVisitor for Cwe079TemplateVisitor with fn visit_Expr_DotApply(
         make_finding(
           { cwe: 79, variant: "template-injection" },
           env.severity,
+          Medium,
           "HTML response contains string interpolation with potentially user-controlled values. Apply HTML encoding to prevent reflected XSS.",
           env.file,
           env.source,

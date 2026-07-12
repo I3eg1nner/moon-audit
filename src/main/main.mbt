@@ -139,7 +139,7 @@ fn main {
       ),
       @argparse.Command(
         "pipeline",
-        about="Run full analysis pipeline: scan + taint + LLM + PoC + remediation + summary",
+        about="Run analysis pipeline: scan + taint + summary",
         options=[
           @argparse.OptionArg(
             "output-dir",
@@ -199,7 +199,8 @@ fn main {
     e => {
       println("Error: " + e.to_string())
       println(cmd.render_help())
-      @builtin.panic()
+      @sys.exit(2)
+      return
     }
   }
   match matches.subcommand {
@@ -340,6 +341,12 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     for e in result.errors {
       println("  " + e)
     }
+  }
+  let has_errors = filtered_findings
+    .iter()
+    .any(fn(f) { f.severity == @audit.Error })
+  if has_errors {
+    @sys.exit(1)
   }
 }
 
@@ -598,7 +605,7 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
     config_path
   }
   println("=".repeat(60))
-  println("  moon-audit Full Analysis Pipeline")
+  println("  moon-audit Analysis Pipeline")
   println("=".repeat(60))
   println("")
   println("  Target:  " + path)
@@ -620,7 +627,7 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
   }
   let config = @audit.load_config(resolved_config)
   // Phase 1: Static scan
-  println("[1/6] Static scan...")
+  println("[1/3] Static scan...")
   let result = @audit.scan_project(path, config)
   println(
     "      " +
@@ -640,14 +647,12 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
   write_pipeline_file(json_path, json_out)
   if result.findings.length() == 0 {
     println("")
-    println(
-      "No findings detected. Scan results written to " + out_dir + "/",
-    )
-    println("Pipeline complete (phases 2-6 skipped: no findings to analyze).")
+    println("No findings detected. Scan results written to " + out_dir + "/")
+    println("Pipeline complete (phases 2-3 skipped: no findings to analyze).")
     return
   }
   // Phase 2: Taint analysis
-  println("[2/6] Taint analysis...")
+  println("[2/3] Taint analysis...")
   let sources : Map[String, String] = {}
   for f in result.findings {
     if !sources.contains(f.file) {
@@ -668,44 +673,8 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
   let taint_path = @path.Path(out_dir).join(@path.Path("taint-analysis.txt")).0
   write_pipeline_file(taint_path, taint_report)
   println("      " + all_flows.length().to_string() + " taint flow(s) traced")
-  // Phase 3: LLM analysis script
-  println("[3/6] LLM analysis script...")
-  let llm_config = @audit.load_llm_config(path)
-  let imports = @audit.ImportContext::empty()
-  let requests = @audit.generate_batch_prompts(
-    result.findings,
-    sources,
-    imports,
-  )
-  let script = @audit.generate_llm_script(llm_config, requests)
-  let script_path = @path.Path(out_dir).join(@path.Path("llm_analyze.py")).0
-  write_pipeline_file(script_path, script)
-  if llm_config.api_key.length() > 0 {
-    println("      Generated: " + script_path)
-    println("      Run: python3 " + script_path)
-  } else {
-    println("      Generated: " + script_path + " (configure .env to enable)")
-  }
-  // Phase 4: PoC generation
-  println("[4/6] PoC verification scripts...")
-  let pocs = @audit.generate_all_pocs(result.findings, imports)
-  if pocs.length() > 0 {
-    let poc_report = @audit.format_poc_report(pocs)
-    let poc_path = @path.Path(out_dir).join(@path.Path("poc-scripts.md")).0
-    write_pipeline_file(poc_path, poc_report)
-    println("      " + pocs.length().to_string() + " PoC template(s)")
-  } else {
-    println("      No PoC templates for detected finding types")
-  }
-  // Phase 5: Remediation
-  println("[5/6] Remediation guide...")
-  let rems = @audit.get_all_remediations(result.findings)
-  let rem_report = @audit.format_remediation_report(rems)
-  let rem_path = @path.Path(out_dir).join(@path.Path("remediation.md")).0
-  write_pipeline_file(rem_path, rem_report)
-  println("      " + rems.length().to_string() + " fix guide(s)")
-  // Phase 6: Summary
-  println("[6/6] Summary report...")
+  // Phase 3: Summary
+  println("[3/3] Summary report...")
   let rules = @audit.list_all_rules()
   let summary = @audit.build_summary(result, rules)
   let score = @audit.risk_score(summary)
@@ -730,18 +699,17 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
   println("    scan-results.json     Static scan findings (JSON)")
   println("    scan-results.sarif    SARIF 2.1.0 (GitHub Code Scanning)")
   println("    taint-analysis.txt    Data flow taint traces")
-  println("    llm_analyze.py        LLM verification script")
-  println("    poc-scripts.md        PoC verification templates")
-  println("    remediation.md        Fix guide with code examples")
   println("    summary.txt           Risk summary (text)")
   println("    summary.json          Risk summary (JSON)")
   println("")
-  if llm_config.api_key.length() > 0 {
-    println("  Next step: python3 " + script_path)
-  } else {
-    println(
-      "  Next step: configure .env with LLM_API_KEY, then run python3 " +
-      script_path,
-    )
+  println("  Optional next steps:")
+  println("    moon-audit llm-analyze " + path + "   # LLM-assisted triage")
+  println("    moon-audit generate-poc " + path + "  # PoC exploit templates")
+  println("    moon-audit remediate " + path + "     # Fix guide")
+  let has_errors = result.findings
+    .iter()
+    .any(fn(f) { f.severity == @audit.Error })
+  if has_errors {
+    @sys.exit(1)
   }
 }

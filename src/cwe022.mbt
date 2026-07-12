@@ -103,6 +103,7 @@ impl @syntax.IterVisitor for Cwe022Visitor with fn visit_Expr_Infix(
           make_finding(
             { cwe: 22, variant: "path-concat" },
             env.severity,
+            Low,
             "String concatenation to build file path. Use path sanitization to prevent directory traversal (e.g., reject '..' segments).",
             env.file,
             env.source,

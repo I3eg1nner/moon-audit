@@ -46,6 +46,7 @@ impl @syntax.IterVisitor for Cwe116Visitor with fn visit_Expr_DotApply(
       make_finding(
         { cwe: 116, variant: "replace-escaping" },
         env.severity,
+        High,
         "String::replace() only replaces the first occurrence. Use replace_all() for HTML escaping to prevent XSS bypass.",
         env.file,
         env.source,
