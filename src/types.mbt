@@ -93,6 +93,7 @@ pub fn Config::default() -> Config {
   rules["CWE-94/eval-extern"] = { enabled: false, severity: None }
   rules["CWE-79/inner-html"] = { enabled: false, severity: None }
   rules["CWE-22/path-concat"] = { enabled: false, severity: None }
+  rules["CWE-704/unsafe-cast"] = { enabled: false, severity: None }
   {
     rules,
     exclude: ["_build", ".mooncakes"],

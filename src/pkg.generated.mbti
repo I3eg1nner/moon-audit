@@ -214,6 +214,7 @@ pub(all) struct ImportContext {
   has_crescent : Bool
   has_liquid : Bool
   has_pug : Bool
+  is_stdlib : Bool
 }
 pub fn ImportContext::empty() -> Self
 
