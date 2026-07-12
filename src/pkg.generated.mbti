@@ -34,9 +34,15 @@ pub fn cwe113_info() -> RuleInfo
 
 pub fn cwe116_info() -> RuleInfo
 
+pub fn cwe248_info() -> RuleInfo
+
 pub fn cwe346_info() -> RuleInfo
 
 pub fn cwe614_info() -> RuleInfo
+
+pub fn cwe676_info() -> RuleInfo
+
+pub fn cwe704_info() -> RuleInfo
 
 pub fn cwe770_info() -> RuleInfo
 
@@ -128,9 +134,15 @@ pub fn run_cwe113(@list.List[@syntax.Impl], String, String, Array[Finding], Seve
 
 pub fn run_cwe116(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
+pub fn run_cwe248(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
+
 pub fn run_cwe346(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
 pub fn run_cwe614(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
+
+pub fn run_cwe676(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
+
+pub fn run_cwe704(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
 pub fn run_cwe770(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
