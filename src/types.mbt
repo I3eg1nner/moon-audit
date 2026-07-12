@@ -93,6 +93,8 @@ pub fn Config::default() -> Config {
   rules["CWE-94/eval-extern"] = { enabled: false, severity: None }
   rules["CWE-79/inner-html"] = { enabled: false, severity: None }
   rules["CWE-22/path-concat"] = { enabled: false, severity: None }
+  rules["CWE-676/unsafe-call"] = { enabled: false, severity: None }
+  rules["CWE-248/panic-reachable"] = { enabled: false, severity: None }
   rules["CWE-704/unsafe-cast"] = { enabled: false, severity: None }
   {
     rules,
