@@ -64,23 +64,23 @@ moon-audit --fail-on-error /path/to/project         # 有 Error 级别漏洞时 
 | CWE-248/panic-reachable | 库代码中 `abort("message")` 使调用者无法恢复 | 关闭 | 裸 panic、guard-else、平台桩、契约断言跳过 |
 | CWE-704/unsafe-cast | `.cast()` 绕过类型系统 | 关闭 | FFI 绑定文件跳过 |
 | CWE-116/replace-escaping | `String::replace()` 仅替换首次出现，HTML 转义不完整 | 开启 | — |
-| CWE-94/eval-extern | extern JS 中使用 `eval()`/`new Function()` | 开启 | — |
-| CWE-22/path-concat | 路径拼接可能导致目录穿越 | 开启 | — |
+| CWE-94/eval-extern | extern JS 中使用 `eval()`/`new Function()` | 关闭 | — |
+| CWE-22/path-concat | 路径拼接可能导致目录穿越 | 关闭 | — |
 
 ### Web 框架规则（Import 门控）
 
 仅在项目引入相关框架时激活，从源头消除无关误报。
 
-| 规则 ID | 描述 | 门控框架 |
-|---|---|---|
-| CWE-79/cmark-unsafe | cmark 渲染 `safe=false`，原始 HTML 注入 | cmark |
-| CWE-79/inner-html | `inner_html()` 接收动态内容，DOM XSS | rabbita |
-| CWE-79/template-injection | HTML 响应字符串插值，反射型 XSS | mocket/crescent |
-| CWE-113/crlf-injection | HTTP 响应头注入动态值 | 通用 |
-| CWE-942/cors-credentials | CORS `credentials=true` 且未限制 Origin | mocket/crescent |
-| CWE-614/cookie-attrs | Cookie 缺少 HttpOnly/Secure/SameSite | mocket/crescent |
-| CWE-770/no-body-limit | 无请求体大小限制，DoS 风险 | crescent |
-| CWE-346/ws-origin | WebSocket 无 Origin 校验 | mocket/crescent |
+| 规则 ID | 描述 | 默认 | 门控框架 |
+|---|---|---|---|
+| CWE-79/cmark-unsafe | cmark 渲染 `safe=false`，原始 HTML 注入 | 开启 | cmark |
+| CWE-79/inner-html | `inner_html()` 接收动态内容，DOM XSS | 关闭 | rabbita |
+| CWE-79/template-injection | HTML 响应字符串插值，反射型 XSS | 开启 | mocket/crescent |
+| CWE-113/crlf-injection | HTTP 响应头注入动态值 | 开启 | 通用 |
+| CWE-942/cors-credentials | CORS `credentials=true` 且未限制 Origin | 开启 | mocket/crescent |
+| CWE-614/cookie-attrs | Cookie 缺少 HttpOnly/Secure/SameSite | 开启 | mocket/crescent |
+| CWE-770/no-body-limit | 无请求体大小限制，DoS 风险 | 开启 | crescent |
+| CWE-346/ws-origin | WebSocket 无 Origin 校验 | 开启 | mocket/crescent |
 
 标准库模块（`moonbitlang/core`、`moonbitlang/x` 等）自动跳过通用规则。
 
