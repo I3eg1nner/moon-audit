@@ -18,14 +18,14 @@ moon-audit 用 MoonBit 官方 parser 直接解析 AST，在语法树上匹配 14
 
 | 项目 | 检出 | 类型 | 修复 PR |
 |---|---|---|---|
-| [mizchi/luna.mbt](https://github.com/mizchi/luna.mbt) | 14 | CRLF 注入 | — |
+| [mizchi/luna.mbt](https://github.com/mizchi/luna.mbt) | 14 | CRLF 注入 | [#103](https://github.com/mizchi/luna.mbt/pull/103) |
 | [oboard/mocket](https://github.com/oboard/mocket) | 8 | XSS、CRLF 注入、Cookie、CORS、目录穿越 | [#12](https://github.com/oboard/mocket/pull/12) |
 | [bobzhang/crescent](https://github.com/bobzhang/crescent) | 8 | Cookie、DoS、CORS | [#44](https://github.com/bobzhang/crescent/pull/44) |
 | [moonbit-community/cmark.mbt](https://github.com/moonbit-community/cmark.mbt) | 1 | XSS（已由上游修复为 safe=true） | [#137](https://github.com/moonbit-community/cmark.mbt/pull/137) |
 
 另提交 async CRLF 注入修复 [moonbitlang/async#494](https://github.com/moonbitlang/async/pull/494)。
 
-Web 规则整体真阳率：去除 config 驱动假阳性后 100%（26/26）。所有检出漏洞均有可运行的 PoC 验证脚本，在本地部署的靶机上实际复现。
+静态扫描的价值在于发现——它能在代码合入前低成本地扫出可疑模式，但不可避免地会有误报（luna.mbt 的 14 个 CRLF 检出中 11 个是 config 驱动的固定 header 值）。所以 moon-audit 在静态扫描之上还提供了 PoC 动态验证脚本生成和 LLM 辅助分析，用于在本地部署的靶机上实际复现，区分真正的漏洞和噪音。目前所有提交 PR 的漏洞均经过本地运行时验证确认。
 
 ## 快速开始
 
