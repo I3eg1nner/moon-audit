@@ -1,5 +1,5 @@
 // CWE-704: Incorrect Type Conversion — .cast() bypasses MoonBit's type system.
-// Unchecked cast can produce invalid values and undefined behavior at runtime.
+// Filter: skip files containing extern "js" — FFI bindings require .cast() as the only conversion mechanism.
 
 ///|
 priv struct Cwe704Visitor {
@@ -27,8 +27,18 @@ pub fn run_cwe704(
   findings : Array[Finding],
   severity : Severity,
 ) -> Unit {
+  if is_ffi_file(source) {
+    return
+  }
   let visitor : Cwe704Visitor = { findings, file, source, severity }
   impls.each(fn(impl_) { @syntax.IterVisitor::visit_Impl(visitor, impl_) })
+}
+
+///|
+fn is_ffi_file(source : String) -> Bool {
+  source.contains("extern \"js\"") ||
+  source.contains("extern \"javascript\"") ||
+  source.contains("#external")
 }
 
 ///|

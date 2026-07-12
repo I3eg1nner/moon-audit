@@ -1,4 +1,5 @@
 // CWE-676: Use of potentially dangerous unsafe_* functions that bypass MoonBit's safety guarantees.
+// Filter: skip when call is inside a guard body — the guard validates input before the unsafe call.
 
 ///|
 priv struct Cwe676Visitor {
@@ -6,6 +7,7 @@ priv struct Cwe676Visitor {
   file : String
   source : String
   severity : Severity
+  mut in_guard_body : Bool
 }
 
 ///|
@@ -26,13 +28,39 @@ pub fn run_cwe676(
   findings : Array[Finding],
   severity : Severity,
 ) -> Unit {
-  let visitor : Cwe676Visitor = { findings, file, source, severity }
+  let visitor : Cwe676Visitor = {
+    findings,
+    file,
+    source,
+    severity,
+    in_guard_body: false,
+  }
   impls.each(fn(impl_) { @syntax.IterVisitor::visit_Impl(visitor, impl_) })
 }
 
 ///|
 fn is_unsafe_method_name(name : String) -> Bool {
   name.has_prefix("unsafe_")
+}
+
+///|
+impl @syntax.IterVisitor for Cwe676Visitor with fn visit_Expr_Guard(
+  env,
+  cond~,
+  otherwise~,
+  body~,
+  loc~,
+) {
+  let _ = loc
+  env.base().visit_Expr(cond)
+  match otherwise {
+    Some(else_expr) => env.base().visit_Expr(else_expr)
+    None => ()
+  }
+  let prev = env.in_guard_body
+  env.in_guard_body = true
+  env.base().visit_Expr(body)
+  env.in_guard_body = prev
 }
 
 ///|
@@ -44,7 +72,7 @@ impl @syntax.IterVisitor for Cwe676Visitor with fn visit_Expr_DotApply(
   return_self~,
   loc~,
 ) {
-  if is_unsafe_method_name(method_name.name) {
+  if is_unsafe_method_name(method_name.name) && !env.in_guard_body {
     env.findings.push(
       make_finding(
         { cwe: 676, variant: "unsafe-call" },
@@ -76,7 +104,7 @@ impl @syntax.IterVisitor for Cwe676Visitor with fn visit_Expr_Apply(
     Method(method_name~, ..) => is_unsafe_method_name(method_name.name)
     _ => false
   }
-  if is_unsafe {
+  if is_unsafe && !env.in_guard_body {
     env.findings.push(
       make_finding(
         { cwe: 676, variant: "unsafe-call" },

@@ -67,3 +67,9 @@
 - CWE-248 (panic): 5/5 FP — guard 模式和平台桩代码中的 panic 属于预期行为
 - CWE-704 (cast): 22/22 FP — JS FFI 中 .cast() 是唯一的类型转换手段
 - 结论: 通用规则在 FFI 重度项目上误报率高，需后续增加上下文感知过滤
+
+### 3.5 上下文感知过滤 (通用规则降误报)
+- [x] CWE-704: 跳过含 `extern "js"` 或 `#external` 的 FFI 文件 (22 FP → 0)
+- [x] CWE-248: 跳过 guard...else{panic/abort}、平台桩文件 (.wasm.mbt/.js.mbt)、abort("unreachable"/"unimplemented")
+- [x] CWE-676: 跳过 guard body 内的 unsafe_* 调用 (guard 已验证输入)
+- mocket 重新扫描: 37 → 9 findings (CWE-704: 22→0, CWE-248: 5→3, Web 规则不变)

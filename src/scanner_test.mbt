@@ -297,8 +297,8 @@ test "CWE-248: panic() should trigger" {
 }
 
 ///|
-test "CWE-248: abort() should trigger" {
-  let source = "fn foo() -> Unit { abort(\"unreachable\") }"
+test "CWE-248: abort() with custom message should trigger" {
+  let source = "fn foo() -> Unit { abort(\"bad state\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[Finding] = []
   run_cwe248(impls, "test.mbt", source, findings, Warning)
@@ -311,6 +311,42 @@ test "CWE-248: normal function should not trigger" {
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[Finding] = []
   run_cwe248(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-248: abort(unreachable) should not trigger" {
+  let source = "fn foo() -> Unit { abort(\"unreachable\") }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-248: abort(unimplemented) should not trigger" {
+  let source = "fn foo() -> Unit { abort(\"unimplemented\") }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-248: panic in guard else should not trigger" {
+  let source = "fn foo(x : Int?) -> Int { guard x is Some(v) else { panic() }; v }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-248: platform stub file should not trigger" {
+  let source = "fn foo() -> Unit { panic() }"
+  let (impls, _) = @parser.parse_string(source, name="test.wasm.mbt")
+  let findings : Array[Finding] = []
+  run_cwe248(impls, "test.wasm.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -333,5 +369,36 @@ test "CWE-704: .to_string() should not trigger" {
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[Finding] = []
   run_cwe704(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-704: .cast() in extern js file should not trigger" {
+  let source = "extern \"js\" fn js_get() -> JsValue = #| ...\nfn foo(v : JsValue) -> String { v.cast() }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe704(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-704: .cast() in #external type file should not trigger" {
+  let source = "#external\ntype JsValue\nfn foo(v : JsValue) -> String { v.cast() }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe704(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+// ---------------------------------------------------------------------------
+// CWE-676 filter: unsafe call inside guard body
+// ---------------------------------------------------------------------------
+
+///|
+test "CWE-676: unsafe_to_char after guard should not trigger" {
+  let source = "fn foo(c : Int) -> Char { guard c >= 0 && c <= 127 else { panic() }; c.unsafe_to_char() }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe676(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
