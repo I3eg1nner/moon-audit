@@ -56,6 +56,7 @@ pub(all) struct ImportContext {
   has_crescent : Bool
   has_liquid : Bool
   has_pug : Bool
+  is_stdlib : Bool
 }
 
 ///|
@@ -82,6 +83,7 @@ pub fn ImportContext::empty() -> ImportContext {
     has_crescent: false,
     has_liquid: false,
     has_pug: false,
+    is_stdlib: false,
   }
 }
 

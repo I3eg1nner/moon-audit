@@ -4,6 +4,8 @@
 //   - Platform stub files (.wasm.mbt, .js.mbt): platform-specific, won't execute on other targets
 //   - abort("unreachable") / abort("unimplemented"): developer-annotated dead code
 //   - Bare panic() with no arguments: typically a match-exhaustiveness sentinel, not a real error
+//   - Contract assertions: standard library patterns like abort("index out of bounds"),
+//     abort("division by zero") — these are correct runtime behavior, not security bugs
 
 ///|
 priv struct Cwe248Visitor {
@@ -69,8 +71,10 @@ fn get_panic_kind(func : @syntax.Expr) -> String {
 fn is_unreachable_abort(args : @list.List[@syntax.Argument]) -> Bool {
   args.any(fn(arg) {
     match arg.value {
-      Constant(c=String(s), ..) =>
-        s.contains("unreachable") || s.contains("unimplemented")
+      Constant(c=String(s), ..) => {
+        let lower = s.to_lower()
+        lower.contains("unreachable") || lower.contains("unimplemented")
+      }
       _ => false
     }
   })
@@ -79,6 +83,35 @@ fn is_unreachable_abort(args : @list.List[@syntax.Argument]) -> Bool {
 ///|
 fn is_bare_panic(kind : String, args : @list.List[@syntax.Argument]) -> Bool {
   kind == "panic" && args.is_empty()
+}
+
+///|
+fn is_contract_assertion(
+  kind : String,
+  args : @list.List[@syntax.Argument],
+) -> Bool {
+  if kind != "abort" {
+    return false
+  }
+  args.any(fn(arg) {
+    match arg.value {
+      Constant(c=String(s), ..) => {
+        let lower = s.to_lower()
+        lower.contains("out of bounds") ||
+        lower.contains("division by zero") ||
+        lower.contains("divide by zero") ||
+        lower.contains("overflow") ||
+        lower.contains("underflow") ||
+        lower.contains("negative") ||
+        lower.contains("empty") ||
+        lower.contains("length") ||
+        lower.contains("capacity") ||
+        lower.contains("not found") ||
+        lower.contains("invalid")
+      }
+      _ => false
+    }
+  })
 }
 
 ///|
@@ -114,7 +147,8 @@ impl @syntax.IterVisitor for Cwe248Visitor with fn visit_Expr_Apply(
   if kind != "" &&
     !env.in_guard_else &&
     !is_unreachable_abort(args) &&
-    !is_bare_panic(kind, args) {
+    !is_bare_panic(kind, args) &&
+    !is_contract_assertion(kind, args) {
     env.findings.push(
       make_finding(
         { cwe: 248, variant: "panic-reachable" },

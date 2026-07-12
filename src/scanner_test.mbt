@@ -377,6 +377,51 @@ test "CWE-248: platform stub file should not trigger" {
   assert_true(findings.length() == 0)
 }
 
+///|
+test "CWE-248: abort(Unreachable) case-insensitive should not trigger" {
+  let source = "fn foo() -> Unit { abort(\"Unreachable\") }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-248: abort(index out of bounds) contract assertion should not trigger" {
+  let source = "fn foo() -> Unit { abort(\"index out of bounds\") }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-248: abort(division by zero) contract assertion should not trigger" {
+  let source = "fn foo() -> Unit { abort(\"division by zero\") }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-248: abort(integer overflow) contract assertion should not trigger" {
+  let source = "fn foo() -> Unit { abort(\"integer overflow\") }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-248: panic(custom error) should still trigger" {
+  let source = "fn foo() -> Unit { panic(\"something went wrong\") }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() > 0)
+}
+
 // ---------------------------------------------------------------------------
 // CWE-704: unchecked .cast() type coercion
 // ---------------------------------------------------------------------------

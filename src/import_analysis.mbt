@@ -12,6 +12,7 @@ pub fn analyze_imports(pkg_dir : String) -> ImportContext {
     has_crescent: imports.iter().any(fn(s) { s.contains("crescent") }),
     has_liquid: imports.iter().any(fn(s) { s.contains("liquid") }),
     has_pug: imports.iter().any(fn(s) { s.contains("pug") }),
+    is_stdlib: false,
   }
 }
 
@@ -29,6 +30,7 @@ pub fn analyze_mod_imports(project_root : String) -> ImportContext {
     has_crescent: imports.iter().any(fn(s) { s.contains("crescent") }),
     has_liquid: imports.iter().any(fn(s) { s.contains("liquid") }),
     has_pug: imports.iter().any(fn(s) { s.contains("pug") }),
+    is_stdlib: is_stdlib_module(content),
   }
 }
 
@@ -41,7 +43,26 @@ pub fn merge_imports(a : ImportContext, b : ImportContext) -> ImportContext {
     has_crescent: a.has_crescent || b.has_crescent,
     has_liquid: a.has_liquid || b.has_liquid,
     has_pug: a.has_pug || b.has_pug,
+    is_stdlib: a.is_stdlib || b.is_stdlib,
   }
+}
+
+///|
+fn is_stdlib_module(mod_content : String) -> Bool {
+  let stdlib_names = [
+    "moonbitlang/core", "moonbitlang/x", "moonbitlang/parser", "moonbitlang/lexer",
+  ]
+  for line in mod_content.split("\n") {
+    let trimmed = line.to_owned().trim(chars=" \t\r")
+    if trimmed.has_prefix("name") && trimmed.contains("=") {
+      for name in stdlib_names {
+        if trimmed.contains(name) {
+          return true
+        }
+      }
+    }
+  }
+  false
 }
 
 ///|
