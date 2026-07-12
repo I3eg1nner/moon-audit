@@ -36,15 +36,18 @@ jobs:
           moon update
 
       - name: moon check
-        run: moon check --target all
+        run: moon check --deny-warn
 
       - name: moon build
         run: moon build --target all
 
-      - name: moon test
-        run: moon test --target all
+      - name: moon fmt
+        run: moon fmt --check
 
-      - name: lint
+      - name: moon info
         run: |
-          moon fmt && git diff --exit-code
-          moon info && git diff --exit-code
+          moon info
+          git diff --exit-code
+
+      - name: moon test
+        run: moon test --deny-warn
