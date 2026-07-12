@@ -266,7 +266,12 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
       }
     None => @audit.Warning
   }
-  let mut config = @audit.load_config(config_path)
+  let resolved_config_path = if config_path == ".moon-audit.json" {
+    @path.Path(path).join(@path.Path(config_path)).0
+  } else {
+    config_path
+  }
+  let mut config = @audit.load_config(resolved_config_path)
   config = { ..config, min_severity: severity_filter }
   let rule_filter = match matches.values.get("rule") {
     Some(arr) => if arr.length() > 0 { Some(arr[0]) } else { None }
@@ -289,7 +294,8 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     println("moon-audit: error: path not found or not a directory: " + path)
     return
   }
-  if !quiet {
+  let machine_output = format == "json" || format == "sarif"
+  if !quiet && !machine_output {
     println("moon-audit v0.1.0 - Static security scanner for MoonBit\n")
     println("Scanning: " + path)
     println("")
@@ -313,15 +319,18 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
   match output_file {
     Some(out_path) => {
       @fs.write_string_to_file(out_path, output) catch {
-        _ => println("Error writing output file")
+        err => {
+          let _ = err
+          println("moon-audit: error: failed to write output file: " + out_path)
+        }
       }
-      if !quiet {
+      if !quiet && !machine_output {
         println("Output written to: " + out_path)
       }
     }
     None => println(output)
   }
-  if result.errors.length() > 0 && !quiet {
+  if result.errors.length() > 0 && !quiet && !machine_output {
     println("")
     println(
       "Scan completed with " +
@@ -355,6 +364,16 @@ fn get_opt(matches : @argparse.Matches, key : String) -> String? {
 }
 
 ///|
+fn write_pipeline_file(path : String, content : String) -> Unit {
+  @fs.write_string_to_file(path, content) catch {
+    err => {
+      let _ = err
+      println("moon-audit: error: failed to write " + path)
+    }
+  }
+}
+
+///|
 fn write_output(content : String, output_file : String?) -> Unit {
   match output_file {
     Some(out_path) => {
@@ -376,7 +395,12 @@ fn do_scan(matches : @argparse.Matches) -> @audit.ScanResult? {
     return None
   }
   let config_path = get_val(matches, "config", ".moon-audit.json")
-  let config = @audit.load_config(config_path)
+  let resolved_config = if config_path == ".moon-audit.json" {
+    @path.Path(path).join(@path.Path(config_path)).0
+  } else {
+    config_path
+  }
+  let config = @audit.load_config(resolved_config)
   Some(@audit.scan_project(path, config))
 }
 
@@ -568,6 +592,11 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
   let path = get_val(matches, "path", ".")
   let out_dir = get_val(matches, "output-dir", "moon-audit-report")
   let config_path = get_val(matches, "config", ".moon-audit.json")
+  let resolved_config = if config_path == ".moon-audit.json" {
+    @path.Path(path).join(@path.Path(config_path)).0
+  } else {
+    config_path
+  }
   println("=".repeat(60))
   println("  moon-audit Full Analysis Pipeline")
   println("=".repeat(60))
@@ -581,9 +610,15 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
     return
   }
   @fs.create_dir(out_dir) catch {
-    _ => ()
+    err => {
+      let _ = err
+      println(
+        "moon-audit: error: failed to create output directory: " + out_dir,
+      )
+      return
+    }
   }
-  let config = @audit.load_config(config_path)
+  let config = @audit.load_config(resolved_config)
   // Phase 1: Static scan
   println("[1/6] Static scan...")
   let result = @audit.scan_project(path, config)
@@ -596,22 +631,19 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
   )
   let scan_text = @audit.format_text(result, true)
   let scan_path = @path.Path(out_dir).join(@path.Path("scan-results.txt")).0
-  @fs.write_string_to_file(scan_path, scan_text) catch {
-    _ => ()
-  }
+  write_pipeline_file(scan_path, scan_text)
   let sarif = @audit.format_sarif(result)
   let sarif_path = @path.Path(out_dir).join(@path.Path("scan-results.sarif")).0
-  @fs.write_string_to_file(sarif_path, sarif) catch {
-    _ => ()
-  }
+  write_pipeline_file(sarif_path, sarif)
   let json_out = @audit.format_json(result)
   let json_path = @path.Path(out_dir).join(@path.Path("scan-results.json")).0
-  @fs.write_string_to_file(json_path, json_out) catch {
-    _ => ()
-  }
+  write_pipeline_file(json_path, json_out)
   if result.findings.length() == 0 {
     println("")
-    println("No findings detected. Pipeline complete.")
+    println(
+      "No findings detected. Scan results written to " + out_dir + "/",
+    )
+    println("Pipeline complete (phases 2-6 skipped: no findings to analyze).")
     return
   }
   // Phase 2: Taint analysis
@@ -634,9 +666,7 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
   }
   let taint_report = @audit.format_taint_report(all_flows)
   let taint_path = @path.Path(out_dir).join(@path.Path("taint-analysis.txt")).0
-  @fs.write_string_to_file(taint_path, taint_report) catch {
-    _ => ()
-  }
+  write_pipeline_file(taint_path, taint_report)
   println("      " + all_flows.length().to_string() + " taint flow(s) traced")
   // Phase 3: LLM analysis script
   println("[3/6] LLM analysis script...")
@@ -649,9 +679,7 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
   )
   let script = @audit.generate_llm_script(llm_config, requests)
   let script_path = @path.Path(out_dir).join(@path.Path("llm_analyze.py")).0
-  @fs.write_string_to_file(script_path, script) catch {
-    _ => ()
-  }
+  write_pipeline_file(script_path, script)
   if llm_config.api_key.length() > 0 {
     println("      Generated: " + script_path)
     println("      Run: python3 " + script_path)
@@ -664,9 +692,7 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
   if pocs.length() > 0 {
     let poc_report = @audit.format_poc_report(pocs)
     let poc_path = @path.Path(out_dir).join(@path.Path("poc-scripts.md")).0
-    @fs.write_string_to_file(poc_path, poc_report) catch {
-      _ => ()
-    }
+    write_pipeline_file(poc_path, poc_report)
     println("      " + pocs.length().to_string() + " PoC template(s)")
   } else {
     println("      No PoC templates for detected finding types")
@@ -676,9 +702,7 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
   let rems = @audit.get_all_remediations(result.findings)
   let rem_report = @audit.format_remediation_report(rems)
   let rem_path = @path.Path(out_dir).join(@path.Path("remediation.md")).0
-  @fs.write_string_to_file(rem_path, rem_report) catch {
-    _ => ()
-  }
+  write_pipeline_file(rem_path, rem_report)
   println("      " + rems.length().to_string() + " fix guide(s)")
   // Phase 6: Summary
   println("[6/6] Summary report...")
@@ -688,14 +712,10 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
   let level = @audit.risk_level(score)
   let summary_text = @audit.format_summary_text(summary)
   let summary_path = @path.Path(out_dir).join(@path.Path("summary.txt")).0
-  @fs.write_string_to_file(summary_path, summary_text) catch {
-    _ => ()
-  }
+  write_pipeline_file(summary_path, summary_text)
   let summary_json = @audit.format_summary_json(summary)
   let summary_json_path = @path.Path(out_dir).join(@path.Path("summary.json")).0
-  @fs.write_string_to_file(summary_json_path, summary_json) catch {
-    _ => ()
-  }
+  write_pipeline_file(summary_json_path, summary_json)
   // Final output
   println("")
   println("=".repeat(60))

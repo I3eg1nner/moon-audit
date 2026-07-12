@@ -53,6 +53,12 @@ fn extract_import_strings(content : String) -> Array[String] {
     let trimmed = line.to_owned().trim(chars=" \t\r")
     if trimmed.has_prefix("import") && trimmed.contains("{") {
       in_import_block = true
+      // Handle single-line: import { "pkg" }
+      if trimmed.contains("}") {
+        in_import_block = false
+        extract_quoted_imports(trimmed.to_owned(), results)
+        continue
+      }
       continue
     }
     if in_import_block {
@@ -75,6 +81,27 @@ fn extract_import_strings(content : String) -> Array[String] {
     }
   }
   results
+}
+
+///|
+fn extract_quoted_imports(line : String, results : Array[String]) -> Unit {
+  let chars = line.to_array()
+  let mut i = 0
+  while i < chars.length() {
+    if chars[i] == '"' {
+      let buf = StringBuilder::new()
+      i += 1
+      while i < chars.length() && chars[i] != '"' {
+        buf.write_char(chars[i])
+        i += 1
+      }
+      let pkg = buf.to_string()
+      if pkg.length() > 0 {
+        results.push(pkg)
+      }
+    }
+    i += 1
+  }
 }
 
 ///|

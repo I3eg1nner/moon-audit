@@ -183,9 +183,13 @@ fn extract_source_context(
 }
 
 ///|
-pub fn format_prompt_as_json(req : LLMAnalysisRequest) -> String {
+pub fn format_prompt_as_json(
+  req : LLMAnalysisRequest,
+  model? : String,
+) -> String {
+  let model_name = model.unwrap_or("claude-sonnet-4-20250514")
   let obj : Json = {
-    "model": Json::string("claude-sonnet-4-20250514"),
+    "model": Json::string(model_name),
     "system": Json::string(req.system_prompt),
     "messages": Json::array([
       { "role": Json::string("user"), "content": Json::string(req.prompt) },

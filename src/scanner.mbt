@@ -15,7 +15,10 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
           continue
         }
       }
-      let (impls, _reports) = @parser.parse_string(source, name=file)
+      let (impls, reports) = @parser.parse_string(source, name=file)
+      for report in reports {
+        errors.push("Parse error in " + file + ": " + report.to_string())
+      }
       run_all_rules(impls, file, source, findings, imports, config)
     }
   })

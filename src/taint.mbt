@@ -276,8 +276,10 @@ impl @syntax.IterVisitor for TaintVisitor with fn visit_Expr_DotApply(
     Some(source) => {
       let var_name = expr_to_var_name(self)
       match var_name {
-        Some(name) =>
+        Some(name) => {
           env.state.add_tainted_var(name + "." + mname, source, loc.start.lnum)
+          env.state.add_tainted_var(name, source, loc.start.lnum)
+        }
         None => ()
       }
     }
@@ -309,6 +311,83 @@ impl @syntax.IterVisitor for TaintVisitor with fn visit_Expr_DotApply(
     None => ()
   }
   env.base().visit_Expr_DotApply(self~, method_name~, args~, return_self~, loc~)
+}
+
+///|
+impl @syntax.IterVisitor for TaintVisitor with fn visit_Expr_Let(
+  env,
+  pattern~,
+  expr~,
+  body~,
+  loc~,
+) {
+  let var_name = pattern_to_var_name(pattern)
+  match var_name {
+    Some(name) => {
+      let source = expr_to_source(expr)
+      match source {
+        Some(s) => env.state.add_tainted_var(name, s, loc.start.lnum)
+        None => {
+          let rhs_var = expr_to_var_name(expr)
+          match rhs_var {
+            Some(from) => env.state.propagate(from, name, loc.start.lnum)
+            None => ()
+          }
+        }
+      }
+    }
+    None => ()
+  }
+  env.base().visit_Expr_Let(pattern~, expr~, body~, loc~)
+}
+
+///|
+impl @syntax.IterVisitor for TaintVisitor with fn visit_Expr_LetMut(
+  env,
+  binder~,
+  ty~,
+  expr~,
+  body~,
+  loc~,
+) {
+  let name = binder.name
+  let source = expr_to_source(expr)
+  match source {
+    Some(s) => env.state.add_tainted_var(name, s, loc.start.lnum)
+    None => {
+      let rhs_var = expr_to_var_name(expr)
+      match rhs_var {
+        Some(from) => env.state.propagate(from, name, loc.start.lnum)
+        None => ()
+      }
+    }
+  }
+  env.base().visit_Expr_LetMut(binder~, ty~, expr~, body~, loc~)
+}
+
+///|
+fn pattern_to_var_name(pat : @syntax.Pattern) -> String? {
+  match pat {
+    Var(binder) => Some(binder.name)
+    _ => None
+  }
+}
+
+///|
+fn expr_to_source(expr : @syntax.Expr) -> TaintSource? {
+  match expr {
+    DotApply(method_name~, ..) => classify_source_method(method_name.name)
+    Apply(func~, ..) =>
+      match func {
+        Ident(id~, ..) =>
+          match id.name {
+            Ident(name~) => classify_source_method(name)
+            _ => None
+          }
+        _ => None
+      }
+    _ => None
+  }
 }
 
 ///|
