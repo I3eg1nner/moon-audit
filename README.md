@@ -45,19 +45,27 @@ MoonBit 生态安全静态分析工具。基于 AST 语法树分析，检测 Moo
 
 ## 真实项目扫描效果
 
-对 MoonBit 生态 7 个开源项目的扫描结果：
+对 MoonBit 生态 15 个开源项目（总计 2,438 个文件）的全流程扫描结果：
 
-| 项目 | 扫描文件数 | 检出数 | 检出类型 |
-|---|---|---|---|
-| [mocket](https://github.com/aspect-build/mocket) | 50 | 11 | XSS 模板注入、CRLF 注入、Cookie 属性缺失、DoS |
-| [crescent](https://github.com/aspect-build/crescent) | 70 | 9 | CORS 凭据泄露、Cookie 属性缺失、DoS |
-| [cmark](https://github.com/nicball/cmark) | 51 | 4 | cmark unsafe render（XSS） |
-| [liquid](https://github.com/aspect-build/liquid) | - | 2 | `replace()` 转义不完整（XSS 绕过） |
-| pug | - | 0 | - |
-| xml | - | 0 | - |
-| async | - | 0 | - |
+| 项目 | Stars | 扫描文件 | 检出数 | 检出类型 |
+|---|---|---|---|---|
+| [moonbitlang/core](https://github.com/moonbitlang/core) | 1154 | 436 | 0 | - |
+| [mizchi/luna.mbt](https://github.com/mizchi/luna.mbt) | 162 | 466 | 15 | CRLF 注入 (CWE-113) |
+| [moonbit-community/rabbita](https://github.com/moonbit-community/rabbita) | 119 | 155 | 0 | - |
+| [mizchi/markdown.mbt](https://github.com/mizchi/markdown.mbt) | 97 | 82 | 0 | - |
+| [oboard/mocket](https://github.com/oboard/mocket) | 94 | 48 | 8 | CRLF 注入、Cookie 属性缺失、DoS |
+| [mizchi/js.mbt](https://github.com/mizchi/js.mbt) | 74 | 196 | 0 | - |
+| [moonbitlang/async](https://github.com/moonbitlang/async) | 65 | 187 | 0 | - |
+| [mizchi/tornado](https://github.com/mizchi/tornado) | 62 | 26 | 0 | - |
+| [mizchi/pkfire](https://github.com/mizchi/pkfire) | 48 | 18 | 0 | - |
+| [moonbitlang/maria](https://github.com/moonbitlang/maria) | 43 | 266 | 0 | - |
+| [moonbit-community/selene](https://github.com/moonbit-community/selene) | 41 | 368 | 0 | - |
+| [justjavac/moonbit-webview](https://github.com/justjavac/moonbit-webview) | 39 | 31 | 0 | - |
+| [extism/moonbit-pdk](https://github.com/extism/moonbit-pdk) | 38 | 19 | 0 | - |
+| [moonbit-community/cmark.mbt](https://github.com/moonbit-community/cmark.mbt) | 34 | 51 | 4 | cmark unsafe render (XSS) |
+| [bobzhang/crescent](https://github.com/bobzhang/crescent) | 5 | 69 | 5 | Cookie 属性缺失、DoS |
 
-无 Web 框架依赖的项目（pug、xml、async）自动跳过 Web 相关规则，零误报。
+11 个无 Web 框架依赖的项目全部零检出零误报，Import 门控机制验证有效。
 
 ### 已提交的安全修复 PR
 
