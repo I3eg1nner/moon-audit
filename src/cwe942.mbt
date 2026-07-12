@@ -1,4 +1,4 @@
-// CWE-942: CORS credentials=true without explicit origin allows credential theft.
+// CWE-942: CORS misconfiguration — wildcard origin or credentials without origin restriction.
 // Only activated when mocket or crescent is imported.
 
 ///|
@@ -13,9 +13,9 @@ priv struct Cwe942Visitor {
 pub fn cwe942_info() -> RuleInfo {
   {
     id: { cwe: 942, variant: "cors-credentials" },
-    name: "CORS Credentials with Wildcard Origin",
-    description: "handle_cors(credentials=true) without explicit origin reflects any Origin header, enabling credential theft from any website.",
-    default_severity: Error,
+    name: "Permissive CORS Configuration",
+    description: "handle_cors() without explicit origin defaults to '*', allowing any website to read responses. With credentials=true this enables credential theft.",
+    default_severity: Warning,
   }
 }
 
@@ -37,9 +37,11 @@ fn is_cors_func(func : @syntax.Expr) -> Bool {
     Ident(id~, ..) =>
       match id.name {
         Ident(name="handle_cors")
-        | Ident(name="append_cors_preflight_headers") => true
+        | Ident(name="append_cors_preflight_headers")
+        | Ident(name="append_cors_headers") => true
         Dot(id="handle_cors", ..)
-        | Dot(id="append_cors_preflight_headers", ..) => true
+        | Dot(id="append_cors_preflight_headers", ..)
+        | Dot(id="append_cors_headers", ..) => true
         _ => false
       }
     _ => false
@@ -54,20 +56,33 @@ impl @syntax.IterVisitor for Cwe942Visitor with fn visit_Expr_Apply(
   loc~,
 ) {
   if is_cors_func(func) {
-    let has_credentials_true = has_labelled_bool_arg(args, "credentials", true)
-    if has_credentials_true {
-      let has_explicit_origin = match
-        get_labelled_string_value(args, "origin") {
-        Some(v) => v != "*"
-        None => false
-      }
-      if !has_explicit_origin {
+    let has_explicit_origin = match get_labelled_string_value(args, "origin") {
+      Some(v) => v != "*"
+      None => false
+    }
+    if !has_explicit_origin {
+      let has_credentials_true = has_labelled_bool_arg(
+        args, "credentials", true,
+      )
+      if has_credentials_true {
+        env.findings.push(
+          make_finding(
+            { cwe: 942, variant: "cors-credentials" },
+            Error,
+            High,
+            "CORS with credentials=true and wildcard origin allows any website to make authenticated requests and read responses. Specify an explicit origin.",
+            env.file,
+            env.source,
+            loc,
+          ),
+        )
+      } else {
         env.findings.push(
           make_finding(
             { cwe: 942, variant: "cors-credentials" },
             env.severity,
             Medium,
-            "CORS with credentials=true and default/wildcard origin reflects any Origin header. Specify an explicit origin to prevent credential theft.",
+            "CORS configured with default wildcard origin ('*'). Any website can read API responses. Set an explicit origin to restrict access.",
             env.file,
             env.source,
             loc,

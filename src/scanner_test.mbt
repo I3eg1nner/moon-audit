@@ -125,7 +125,7 @@ test "CWE-094: safe extern JS should not trigger" {
 }
 
 // ---------------------------------------------------------------------------
-// CWE-942: CORS credentials=true without explicit origin
+// CWE-942: CORS without explicit origin restriction
 // ---------------------------------------------------------------------------
 
 ///|
@@ -133,16 +133,25 @@ test "CWE-942: handle_cors with credentials=true without origin should trigger" 
   let source = "fn setup() -> Unit { handle_cors(credentials=true) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[Finding] = []
-  run_cwe942(impls, "test.mbt", source, findings, Error)
+  run_cwe942(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() > 0)
 }
 
 ///|
-test "CWE-942: handle_cors with credentials=true and explicit origin should not trigger" {
+test "CWE-942: handle_cors with no args (wildcard default) should trigger" {
+  let source = "fn setup() -> Unit { handle_cors() }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe942(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "CWE-942: handle_cors with explicit origin should not trigger" {
   let source = "fn setup() -> Unit { handle_cors(credentials=true, origin=\"https://example.com\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[Finding] = []
-  run_cwe942(impls, "test.mbt", source, findings, Error)
+  run_cwe942(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 

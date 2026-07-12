@@ -56,7 +56,14 @@
 - [x] 更新 README 定位为通用安全分析工具
 - [x] 49/49 测试通过 (all targets)
 
-### 3.3 待改进的 Web 规则
-- [ ] CWE-770: mocket 无 body limit API，当前规则对该框架不可操作
-- [ ] CWE-942: 当前仅检测 `credentials=true`，漏检默认 `handle_cors()` 配置
-- [ ] CWE-22: 当前仅检测字符串拼接，漏检 `static_assets` + 通配符路由模式
+### 3.3 Web 规则精度改进
+- [x] CWE-770: 仅对 crescent 启用（有 `max_request_body_bytes`），mocket 无此 API 跳过
+- [x] CWE-942: 增强检测 `handle_cors()` 无显式 origin（默认 `*`），credentials=true 升级为 Error
+- [x] CWE-22: 保持现有检测。mocket `static_assets` 已内置 `..` 过滤，无需额外规则
+
+### 3.4 LLM Triage 结果 (mocket)
+- 37 findings → 9 TP, 28 FP (FP rate 76%)
+- Web 规则: 9/10 TP (90% precision) — CWE-113, CWE-614, CWE-79, CWE-942
+- CWE-248 (panic): 5/5 FP — guard 模式和平台桩代码中的 panic 属于预期行为
+- CWE-704 (cast): 22/22 FP — JS FFI 中 .cast() 是唯一的类型转换手段
+- 结论: 通用规则在 FFI 重度项目上误报率高，需后续增加上下文感知过滤

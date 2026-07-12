@@ -1,5 +1,6 @@
 // CWE-770: Server started without body size limit.
-// Only activated when mocket or crescent is imported.
+// Only activated for crescent (which has max_request_body_bytes param).
+// mocket's listen() has no body limit API — findings would be unactionable.
 
 ///|
 priv struct Cwe770Visitor {

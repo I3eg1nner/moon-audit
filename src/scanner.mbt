@@ -116,16 +116,6 @@ fn run_all_rules(
         config.get_severity(cwe614_id, cwe614_info().default_severity),
       )
     }
-    let cwe770_id = "CWE-770/no-body-limit"
-    if config.is_enabled(cwe770_id) {
-      run_cwe770(
-        impls,
-        file,
-        source,
-        findings,
-        config.get_severity(cwe770_id, cwe770_info().default_severity),
-      )
-    }
     let cwe346_id = "CWE-346/ws-origin"
     if config.is_enabled(cwe346_id) {
       run_cwe346(
@@ -134,6 +124,19 @@ fn run_all_rules(
         source,
         findings,
         config.get_severity(cwe346_id, cwe346_info().default_severity),
+      )
+    }
+  }
+  // CWE-770 only for crescent (has max_request_body_bytes); mocket has no body limit API
+  if imports.has_crescent {
+    let cwe770_id = "CWE-770/no-body-limit"
+    if config.is_enabled(cwe770_id) {
+      run_cwe770(
+        impls,
+        file,
+        source,
+        findings,
+        config.get_severity(cwe770_id, cwe770_info().default_severity),
       )
     }
   }
