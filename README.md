@@ -14,16 +14,17 @@ moon-audit 用 MoonBit 官方 parser 直接解析 AST，在语法树上匹配 14
 
 ## 真实效果
 
-对 MoonBit 生态 21 个开源项目（3,676 个文件）扫描，4 个项目检出漏洞，其余 17 个零检出：
+对 MoonBit 生态 21 个开源项目（3,676 个文件）扫描，5 个项目检出漏洞，均已提交修复 PR：
 
 | 项目 | 检出 | 类型 | 修复 PR |
 |---|---|---|---|
 | [mizchi/luna.mbt](https://github.com/mizchi/luna.mbt) | 14 | CRLF 注入 | [#103](https://github.com/mizchi/luna.mbt/pull/103) |
 | [oboard/mocket](https://github.com/oboard/mocket) | 8 | XSS、CRLF 注入、Cookie、CORS、目录穿越 | [#12](https://github.com/oboard/mocket/pull/12) |
 | [bobzhang/crescent](https://github.com/bobzhang/crescent) | 8 | Cookie、DoS、CORS | [#44](https://github.com/bobzhang/crescent/pull/44) |
+| [moonbitlang/async](https://github.com/moonbitlang/async) | 3 | CRLF 注入 | [#494](https://github.com/moonbitlang/async/pull/494) |
 | [moonbit-community/cmark.mbt](https://github.com/moonbit-community/cmark.mbt) | 1 | XSS（已由上游修复为 safe=true） | [#137](https://github.com/moonbit-community/cmark.mbt/pull/137) |
 
-另提交 async CRLF 注入修复 [moonbitlang/async#494](https://github.com/moonbitlang/async/pull/494)。
+其余 16 个项目未检出问题（未引入 Web 框架依赖，Import 门控自动跳过 Web 规则）。
 
 静态扫描的价值在于发现——它能在代码合入前低成本地扫出可疑模式，但不可避免地会有误报（luna.mbt 的 14 个 CRLF 检出中 11 个是 config 驱动的固定 header 值）。所以 moon-audit 在静态扫描之上还提供了 PoC 动态验证脚本生成和 LLM 辅助分析，用于在本地部署的靶机上实际复现，区分真正的漏洞和噪音。目前所有提交 PR 的漏洞均经过本地运行时验证确认。
 
@@ -105,12 +106,12 @@ jobs:
 
 扫描结果自动出现在 **Security → Code scanning alerts**。
 
-可选配置：
+**默认不会导致 CI 失败**——moon-audit 默认以信息模式运行（exit 0），扫描结果仅上报到 GitHub Security 面板，不阻断构建和合并流程。只有显式设置 `fail-on-findings: 'true'` 时，发现漏洞才会让 CI 返回非零退出码。
 
 ```yaml
 - uses: I3eg1nner/moon-audit@main
   with:
-    fail-on-findings: 'true'    # 发现漏洞时阻断 CI
+    fail-on-findings: 'true'    # 显式启用：发现漏洞时阻断 CI
     severity: 'error'           # 最低报告级别
     upload-sarif: 'true'        # 上传到 GitHub Security
 ```
