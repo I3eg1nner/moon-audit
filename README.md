@@ -56,7 +56,7 @@ MoonBit 安全 linter，提供框架级规则包。基于 AST 语法树分析，
 | [moonbit-community/selene](https://github.com/moonbit-community/selene) | 41 | 368 | 0 | - |
 | [justjavac/moonbit-webview](https://github.com/justjavac/moonbit-webview) | 39 | 31 | 0 | - |
 | [extism/moonbit-pdk](https://github.com/extism/moonbit-pdk) | 38 | 19 | 0 | - |
-| [moonbit-community/cmark.mbt](https://github.com/moonbit-community/cmark.mbt) | 34 | 51 | 4 | cmark unsafe render (XSS) |
+| [moonbit-community/cmark.mbt](https://github.com/moonbit-community/cmark.mbt) | 34 | 51 | 1 | cmark explicit safe=false (XSS) |
 | [bobzhang/crescent](https://github.com/bobzhang/crescent) | 5 | 69 | 5 | Cookie 属性缺失、DoS |
 
 11 个无 Web 框架依赖的项目全部零检出零误报，Import 门控机制验证有效。
@@ -65,7 +65,7 @@ MoonBit 安全 linter，提供框架级规则包。基于 AST 语法树分析，
 
 | 项目 | 漏洞 | PR |
 |---|---|---|
-| cmark.mbt | 存储型 XSS (CWE-79) — render() 默认 safe=false | [moonbit-community/cmark.mbt#137](https://github.com/moonbit-community/cmark.mbt/pull/137) |
+| cmark.mbt | 存储型 XSS (CWE-79) — render() 默认 safe=false（已由上游修复为 safe=true） | [moonbit-community/cmark.mbt#137](https://github.com/moonbit-community/cmark.mbt/pull/137) |
 | crescent | CORS 凭证窃取 (CWE-942) + 会话劫持 (CWE-614) + 资源耗尽 DoS (CWE-770) | [bobzhang/crescent#44](https://github.com/bobzhang/crescent/pull/44) |
 | mocket | 反射型 XSS (CWE-79) + 目录穿越 (CWE-22) | [oboard/mocket#12](https://github.com/oboard/mocket/pull/12) |
 | async | CRLF 注入 (CWE-113) | [moonbitlang/async#494](https://github.com/moonbitlang/async/pull/494) |
@@ -74,19 +74,20 @@ MoonBit 安全 linter，提供框架级规则包。基于 AST 语法树分析，
 
 - **11 条安全检测规则**，覆盖 OWASP Top 10 中的注入、访问控制、安全配置错误等类别
 - **Import 门控**：根据项目依赖自动激活相关规则，降低误报率
-- **多格式输出**：支持 Text、JSON、SARIF 2.1.0（兼容 GitHub Code Scanning）
-- **LLM 辅助分析**：读取 `.env` 配置，自动调用 LLM API 验证 Finding 真伪
-- **PoC 动态验证**：根据检测结果生成 PoC 验证脚本，部署到目标环境确认漏洞可达性
-- **修复建议引擎**：提供每种 CWE 的修复方案，含 Before/After 代码示例
+- **Confidence 分级**：每条 Finding 标注 High/Medium/Low 置信度，区分确定性检测与启发式检测
+- **稳定 Fingerprint**：基于 rule_id + 代码片段的 FNV-1a 哈希，不因行号变动产生重复告警
+- **多格式输出**：支持 Text、JSON、SARIF 2.1.0（兼容 GitHub Code Scanning `partialFingerprints`）
+- **CI 友好**：默认 exit 0（信息模式），`--fail-on-error` 显式启用 CI 阻断
 - **污点追踪**：追踪用户输入从 Source 到 Sink 的数据流
 - **扫描报告统计**：按规则、文件、CWE、OWASP 分类聚合分析结果
+- **可选辅助子命令**：LLM 辅助分析、PoC 验证脚本生成、修复建议引擎
 
 ## 检测规则
 
 | 规则 ID | 描述 | 默认规则 |
 |---|---|---|
 | CWE-116/replace-escaping | `String::replace()` 仅替换首次出现，HTML 转义不完整 | 是 |
-| CWE-79/cmark-unsafe | cmark 渲染 Markdown 时默认 `safe=false`，允许注入 | 是 |
+| CWE-79/cmark-unsafe | cmark 渲染时显式 `safe=false`，允许原始 HTML 注入 | 是 |
 | CWE-79/inner-html | `inner_html()` 接收动态内容，DOM XSS | 否 |
 | CWE-79/template-injection | HTML 响应中使用字符串插值，反射型 XSS | 是 |
 | CWE-94/eval-extern | extern JS 中使用 `eval()`/`new Function()` | 否 |
@@ -126,22 +127,21 @@ moon add minie135/moon-audit
 moon-audit pipeline /path/to/project
 ```
 
-一条命令完成全部 6 个分析阶段，只扫描一次，输出到 `moon-audit-report/` 目录：
+一条命令完成核心分析，输出到 `moon-audit-report/` 目录：
 
 ```
-[1/6] Static scan...        → scan-results.txt / .json / .sarif
-[2/6] Taint analysis...     → taint-analysis.txt
-[3/6] LLM analysis script...→ llm_analyze.py
-[4/6] PoC verification...   → poc-scripts.md
-[5/6] Remediation guide...  → remediation.md
-[6/6] Summary report...     → summary.txt / .json
+[1/3] Static scan...        → scan-results.txt / .json / .sarif
+[2/3] Taint analysis...     → taint-analysis.txt
+[3/3] Summary report...     → summary.txt / .json
 ```
 
-LLM 验证需要 API 调用，pipeline 生成脚本后提示手动执行：
+完成后提示可选的下一步操作：
 
-```bash
-# 配置 .env 后运行 LLM 验证
-python3 moon-audit-report/llm_analyze.py
+```
+Next steps (optional):
+    moon-audit llm-analyze /path/to/project   # LLM-assisted triage
+    moon-audit generate-poc /path/to/project   # PoC exploit templates
+    moon-audit remediate /path/to/project      # Fix guide
 ```
 
 指定输出目录：
@@ -180,6 +180,12 @@ moon-audit summary /path/to/project
 
 ```bash
 moon-audit /path/to/moonbit-project
+```
+
+默认 exit 0（信息模式），不阻断 CI。使用 `--fail-on-error` 在发现 Error 级别漏洞时退出 1：
+
+```bash
+moon-audit --fail-on-error /path/to/project
 ```
 
 ### 指定输出格式
