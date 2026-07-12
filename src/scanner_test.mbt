@@ -242,3 +242,87 @@ test "CWE-022: path + constant string should not trigger" {
   run_cwe022(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
+
+// ---------------------------------------------------------------------------
+// CWE-676: unsafe_* function calls
+// ---------------------------------------------------------------------------
+
+///|
+test "CWE-676: unsafe_to_char should trigger" {
+  let source = "fn foo(n : Int) -> Char { n.unsafe_to_char() }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe676(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "CWE-676: safe method should not trigger" {
+  let source = "fn foo(n : Int) -> Char { Char::from_int(n) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe676(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-676: unsafe_new as function call should trigger" {
+  let source = "fn foo() -> Unit { let p = Promise::unsafe_new(op) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe676(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() > 0)
+}
+
+// ---------------------------------------------------------------------------
+// CWE-248: panic/abort in library code
+// ---------------------------------------------------------------------------
+
+///|
+test "CWE-248: panic() should trigger" {
+  let source = "fn foo(x : Int) -> Int { if x < 0 { panic() }; x }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "CWE-248: abort() should trigger" {
+  let source = "fn foo() -> Unit { abort(\"unreachable\") }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "CWE-248: normal function should not trigger" {
+  let source = "fn foo(x : Int) -> Int { x + 1 }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+// ---------------------------------------------------------------------------
+// CWE-704: unchecked .cast() type coercion
+// ---------------------------------------------------------------------------
+
+///|
+test "CWE-704: .cast() should trigger" {
+  let source = "fn foo(v : Value) -> String { v.cast() }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe704(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "CWE-704: .to_string() should not trigger" {
+  let source = "fn foo(v : Int) -> String { v.to_string() }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe704(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}

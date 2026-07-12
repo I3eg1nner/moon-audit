@@ -1,6 +1,6 @@
 # moon-audit
 
-MoonBit 安全 linter，提供框架级规则包。基于 AST 语法树分析，检测 MoonBit Web 应用中的已知漏洞模式。
+MoonBit 静态安全分析工具。基于 AST 语法树分析，检测通用安全问题（unsafe 调用、未受控 panic、类型强转）和 Web 框架漏洞模式（XSS、CORS、CRLF 注入等）。
 
 ## 工作原理
 
@@ -18,7 +18,7 @@ MoonBit 安全 linter，提供框架级规则包。基于 AST 语法树分析，
                     └──────┬──────┘
                            │
               ┌────────────▼────────────┐
-              │  11 条 CWE 规则匹配      │ ← Import 门控过滤
+              │  14 条 CWE 规则匹配      │ ← Import 门控过滤
               └────────────┬────────────┘
                            │
                     ┌──────▼──────┐
@@ -43,23 +43,23 @@ MoonBit 安全 linter，提供框架级规则包。基于 AST 语法树分析，
 
 | 项目 | Stars | 扫描文件 | 检出数 | 检出类型 |
 |---|---|---|---|---|
-| [moonbitlang/core](https://github.com/moonbitlang/core) | 1154 | 436 | 0 | - |
+| [moonbitlang/core](https://github.com/moonbitlang/core) | 1154 | 438 | 813 | unsafe 调用 (623)、panic/abort (190) |
 | [mizchi/luna.mbt](https://github.com/mizchi/luna.mbt) | 162 | 466 | 15 | CRLF 注入 (CWE-113) |
-| [moonbit-community/rabbita](https://github.com/moonbit-community/rabbita) | 119 | 155 | 0 | - |
+| [moonbit-community/rabbita](https://github.com/moonbit-community/rabbita) | 119 | 155 | 46 | unsafe cast (25)、panic/abort (21) |
 | [mizchi/markdown.mbt](https://github.com/mizchi/markdown.mbt) | 97 | 82 | 0 | - |
-| [oboard/mocket](https://github.com/oboard/mocket) | 94 | 48 | 8 | CRLF 注入、Cookie 属性缺失、DoS |
+| [oboard/mocket](https://github.com/oboard/mocket) | 94 | 50 | 38 | unsafe cast、panic、CRLF 注入、Cookie、DoS |
 | [mizchi/js.mbt](https://github.com/mizchi/js.mbt) | 74 | 196 | 0 | - |
-| [moonbitlang/async](https://github.com/moonbitlang/async) | 65 | 187 | 0 | - |
+| [moonbitlang/async](https://github.com/moonbitlang/async) | 65 | 188 | 149 | unsafe 调用 (100)、panic/abort (47)、unsafe cast (2) |
 | [mizchi/tornado](https://github.com/mizchi/tornado) | 62 | 26 | 0 | - |
 | [mizchi/pkfire](https://github.com/mizchi/pkfire) | 48 | 18 | 0 | - |
 | [moonbitlang/maria](https://github.com/moonbitlang/maria) | 43 | 266 | 0 | - |
 | [moonbit-community/selene](https://github.com/moonbit-community/selene) | 41 | 368 | 0 | - |
 | [justjavac/moonbit-webview](https://github.com/justjavac/moonbit-webview) | 39 | 31 | 0 | - |
 | [extism/moonbit-pdk](https://github.com/extism/moonbit-pdk) | 38 | 19 | 0 | - |
-| [moonbit-community/cmark.mbt](https://github.com/moonbit-community/cmark.mbt) | 34 | 51 | 1 | cmark explicit safe=false (XSS) |
-| [bobzhang/crescent](https://github.com/bobzhang/crescent) | 5 | 69 | 5 | Cookie 属性缺失、DoS |
+| [moonbit-community/cmark.mbt](https://github.com/moonbit-community/cmark.mbt) | 34 | 51 | 47 | unsafe_to_char、panic/abort、cmark safe=false |
+| [bobzhang/crescent](https://github.com/bobzhang/crescent) | 5 | 70 | 13 | unsafe 调用、panic、Cookie、CORS、DoS |
 
-11 个无 Web 框架依赖的项目全部零检出零误报，Import 门控机制验证有效。
+通用安全规则（CWE-676/248/704）覆盖所有 MoonBit 项目；Web 框架规则通过 Import 门控仅在相关依赖存在时激活。core/async 等基础库的 unsafe 调用属于预期使用，应用项目可通过 `.moon-audit.json` 按需配置。
 
 ### 已提交的安全修复 PR
 
@@ -72,7 +72,7 @@ MoonBit 安全 linter，提供框架级规则包。基于 AST 语法树分析，
 
 ## 功能特性
 
-- **11 条安全检测规则**，覆盖 OWASP Top 10 中的注入、访问控制、安全配置错误等类别
+- **14 条安全检测规则**，覆盖通用安全（unsafe 调用、panic、类型强转）和 OWASP Top 10（注入、访问控制、安全配置错误）
 - **Import 门控**：根据项目依赖自动激活相关规则，降低误报率
 - **Confidence 分级**：每条 Finding 标注 High/Medium/Low 置信度，区分确定性检测与启发式检测
 - **稳定 Fingerprint**：基于 rule_id + 代码片段的 FNV-1a 哈希，不因行号变动产生重复告警
@@ -84,19 +84,29 @@ MoonBit 安全 linter，提供框架级规则包。基于 AST 语法树分析，
 
 ## 检测规则
 
-| 规则 ID | 描述 | 默认规则 |
+### 通用安全规则（无 Import 门控）
+
+| 规则 ID | 描述 | 严重级别 |
 |---|---|---|
-| CWE-116/replace-escaping | `String::replace()` 仅替换首次出现，HTML 转义不完整 | 是 |
-| CWE-79/cmark-unsafe | cmark 渲染时显式 `safe=false`，允许原始 HTML 注入 | 是 |
-| CWE-79/inner-html | `inner_html()` 接收动态内容，DOM XSS | 否 |
-| CWE-79/template-injection | HTML 响应中使用字符串插值，反射型 XSS | 是 |
-| CWE-94/eval-extern | extern JS 中使用 `eval()`/`new Function()` | 否 |
-| CWE-113/crlf-injection | HTTP 响应头注入动态值，CRLF 注入 | 是 |
-| CWE-942/cors-credentials | CORS `credentials=true` 且未限制 Origin | 是 |
-| CWE-614/cookie-attrs | Cookie 缺少 HttpOnly/Secure/SameSite 属性 | 是 |
-| CWE-770/no-body-limit | 服务器无请求体大小限制，DoS 风险 | 是 |
-| CWE-346/ws-origin | WebSocket 无 Origin 校验 | 是 |
-| CWE-22/path-concat | 路径拼接可能导致目录穿越 | 否 |
+| CWE-676/unsafe-call | `unsafe_*` 函数绕过运行时安全检查（如 `unsafe_to_char`） | Warning |
+| CWE-248/panic-reachable | 库代码中 `panic()`/`abort()` 使调用者无法恢复 | Warning |
+| CWE-704/unsafe-cast | `.cast()` 绕过类型系统，运行时可能产生无效值 | Warning |
+| CWE-116/replace-escaping | `String::replace()` 仅替换首次出现，HTML 转义不完整 | Error |
+| CWE-94/eval-extern | extern JS 中使用 `eval()`/`new Function()` | Error |
+| CWE-22/path-concat | 路径拼接可能导致目录穿越 | Warning |
+
+### Web 框架规则（Import 门控）
+
+| 规则 ID | 描述 | 门控 |
+|---|---|---|
+| CWE-79/cmark-unsafe | cmark 渲染时显式 `safe=false`，允许原始 HTML 注入 | cmark |
+| CWE-79/inner-html | `inner_html()` 接收动态内容，DOM XSS | rabbita |
+| CWE-79/template-injection | HTML 响应中使用字符串插值，反射型 XSS | mocket/crescent |
+| CWE-113/crlf-injection | HTTP 响应头注入动态值，CRLF 注入 | 通用 |
+| CWE-942/cors-credentials | CORS `credentials=true` 且未限制 Origin | mocket/crescent |
+| CWE-614/cookie-attrs | Cookie 缺少 HttpOnly/Secure/SameSite 属性 | mocket/crescent |
+| CWE-770/no-body-limit | 服务器无请求体大小限制，DoS 风险 | mocket/crescent |
+| CWE-346/ws-origin | WebSocket 无 Origin 校验 | mocket/crescent |
 
 ## 快速开始
 

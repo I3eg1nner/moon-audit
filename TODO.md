@@ -48,14 +48,15 @@
 - [x] 规则应仅在显式 `safe=false` 时报告
 - [x] 扩展检测 `renderer()`/`xhtml_renderer()`/`from_doc()` 的 `safe=false`
 
-### 3.2 CWE-770 改进
-- [ ] mocket 无 body limit API，当前规则对该框架不可操作
-- [ ] 根据框架实际 API 调整门控条件
+### 3.2 扩展为通用安全 linter
+- [x] CWE-676/unsafe-call: 检测 `unsafe_*` 函数调用 (High confidence)
+- [x] CWE-248/panic-reachable: 检测库代码中的 `panic()`/`abort()` (Medium)
+- [x] CWE-704/unsafe-cast: 检测 `.cast()` 类型强转 (Medium)
+- [x] 支持 `Type::method` 静态调用模式 (`Method` AST 节点)
+- [x] 更新 README 定位为通用安全分析工具
+- [x] 49/49 测试通过 (all targets)
 
-### 3.3 CWE-942/CORS 检测增强
-- [ ] 当前仅检测 `credentials=true`，漏检默认 `handle_cors()` 配置
-- [ ] 应报告无显式 origin 限制的 CORS 配置
-
-### 3.4 CWE-22 路径穿越检测增强
-- [ ] 当前仅检测字符串拼接，漏检 `static_assets` + 通配符路由模式
-- [ ] 需增加框架级路径穿越检测
+### 3.3 待改进的 Web 规则
+- [ ] CWE-770: mocket 无 body limit API，当前规则对该框架不可操作
+- [ ] CWE-942: 当前仅检测 `credentials=true`，漏检默认 `handle_cors()` 配置
+- [ ] CWE-22: 当前仅检测字符串拼接，漏检 `static_assets` + 通配符路由模式

@@ -169,6 +169,37 @@ fn run_all_rules(
       )
     }
   }
+  // General-purpose rules (no import gating)
+  let cwe676_id = "CWE-676/unsafe-call"
+  if config.is_enabled(cwe676_id) {
+    run_cwe676(
+      impls,
+      file,
+      source,
+      findings,
+      config.get_severity(cwe676_id, cwe676_info().default_severity),
+    )
+  }
+  let cwe248_id = "CWE-248/panic-reachable"
+  if config.is_enabled(cwe248_id) {
+    run_cwe248(
+      impls,
+      file,
+      source,
+      findings,
+      config.get_severity(cwe248_id, cwe248_info().default_severity),
+    )
+  }
+  let cwe704_id = "CWE-704/unsafe-cast"
+  if config.is_enabled(cwe704_id) {
+    run_cwe704(
+      impls,
+      file,
+      source,
+      findings,
+      config.get_severity(cwe704_id, cwe704_info().default_severity),
+    )
+  }
 }
 
 ///|
@@ -254,5 +285,8 @@ pub fn list_all_rules() -> Array[RuleInfo] {
     cwe770_info(),
     cwe346_info(),
     cwe022_info(),
+    cwe676_info(),
+    cwe248_info(),
+    cwe704_info(),
   ]
 }
