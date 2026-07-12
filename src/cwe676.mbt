@@ -1,5 +1,9 @@
 // CWE-676: Use of potentially dangerous unsafe_* functions that bypass MoonBit's safety guarantees.
-// Filter: skip when call is inside a guard body — the guard validates input before the unsafe call.
+// Filters:
+//   - Skip performance-oriented unsafe ops (get/set/blit/reinterpret/read/write/pop)
+//     that only skip bounds checks but don't produce potentially invalid values.
+//   - Skip when call is inside a guard body — the guard validates input before the unsafe call.
+// Only report type-conversion unsafe ops (to_*/from_*/new/cast) that can produce invalid values.
 
 ///|
 priv struct Cwe676Visitor {
@@ -39,8 +43,15 @@ pub fn run_cwe676(
 }
 
 ///|
-fn is_unsafe_method_name(name : String) -> Bool {
-  name.has_prefix("unsafe_")
+fn is_dangerous_unsafe(name : String) -> Bool {
+  if !name.has_prefix("unsafe_") {
+    return false
+  }
+  let suffix = name[7:].to_owned()
+  if suffix.has_prefix("to_") || suffix.has_prefix("from_") {
+    return true
+  }
+  suffix == "new" || suffix == "cast"
 }
 
 ///|
@@ -72,7 +83,7 @@ impl @syntax.IterVisitor for Cwe676Visitor with fn visit_Expr_DotApply(
   return_self~,
   loc~,
 ) {
-  if is_unsafe_method_name(method_name.name) && !env.in_guard_body {
+  if is_dangerous_unsafe(method_name.name) && !env.in_guard_body {
     env.findings.push(
       make_finding(
         { cwe: 676, variant: "unsafe-call" },
@@ -95,16 +106,16 @@ impl @syntax.IterVisitor for Cwe676Visitor with fn visit_Expr_Apply(
   args~,
   loc~,
 ) {
-  let is_unsafe = match func {
+  let unsafe_name = match func {
     Ident(id~, ..) =>
       match id.name {
-        Ident(name=n) => is_unsafe_method_name(n)
-        Dot(id=n, ..) => is_unsafe_method_name(n)
+        Ident(name=n) => n
+        Dot(id=n, ..) => n
       }
-    Method(method_name~, ..) => is_unsafe_method_name(method_name.name)
-    _ => false
+    Method(method_name~, ..) => method_name.name
+    _ => ""
   }
-  if is_unsafe && !env.in_guard_body {
+  if is_dangerous_unsafe(unsafe_name) && !env.in_guard_body {
     env.findings.push(
       make_finding(
         { cwe: 676, variant: "unsafe-call" },

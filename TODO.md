@@ -70,6 +70,6 @@
 
 ### 3.5 上下文感知过滤 (通用规则降误报)
 - [x] CWE-704: 跳过含 `extern "js"` 或 `#external` 的 FFI 文件 (22 FP → 0)
-- [x] CWE-248: 跳过 guard...else{panic/abort}、平台桩文件 (.wasm.mbt/.js.mbt)、abort("unreachable"/"unimplemented")
-- [x] CWE-676: 跳过 guard body 内的 unsafe_* 调用 (guard 已验证输入)
-- mocket 重新扫描: 37 → 9 findings (CWE-704: 22→0, CWE-248: 5→3, Web 规则不变)
+- [x] CWE-248: 跳过 guard...else、平台桩文件、abort("unreachable")、裸 panic()
+- [x] CWE-676: 仅报告危险类型转换 (to_*/from_*/new)，跳过性能操作 (get/set/blit/reinterpret)；guard body 内跳过
+- 最终扫描结果: mocket 37→8, rabbita 46→6, async 149→15

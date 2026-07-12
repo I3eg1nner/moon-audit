@@ -275,6 +275,33 @@ test "CWE-676: safe method should not trigger" {
 }
 
 ///|
+test "CWE-676: unsafe_get (perf optimization) should not trigger" {
+  let source = "fn foo(arr : FixedArray[Int]) -> Int { arr.unsafe_get(0) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe676(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-676: unsafe_reinterpret_as_bytes should not trigger" {
+  let source = "fn foo(buf : FixedArray[Byte]) -> Bytes { buf.unsafe_reinterpret_as_bytes() }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe676(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-676: unsafe_from_int should trigger" {
+  let source = "fn foo(n : Int) -> MyEnum { MyEnum::unsafe_from_int(n) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe676(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() > 0)
+}
+
+///|
 test "CWE-676: unsafe_new as function call should trigger" {
   let source = "fn foo() -> Unit { let p = Promise::unsafe_new(op) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
@@ -288,12 +315,12 @@ test "CWE-676: unsafe_new as function call should trigger" {
 // ---------------------------------------------------------------------------
 
 ///|
-test "CWE-248: panic() should trigger" {
+test "CWE-248: bare panic() should not trigger (match exhaustiveness sentinel)" {
   let source = "fn foo(x : Int) -> Int { if x < 0 { panic() }; x }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[Finding] = []
   run_cwe248(impls, "test.mbt", source, findings, Warning)
-  assert_true(findings.length() > 0)
+  assert_true(findings.length() == 0)
 }
 
 ///|

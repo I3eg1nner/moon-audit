@@ -3,6 +3,7 @@
 //   - guard...else{panic/abort}: logically unreachable, standard MoonBit pattern
 //   - Platform stub files (.wasm.mbt, .js.mbt): platform-specific, won't execute on other targets
 //   - abort("unreachable") / abort("unimplemented"): developer-annotated dead code
+//   - Bare panic() with no arguments: typically a match-exhaustiveness sentinel, not a real error
 
 ///|
 priv struct Cwe248Visitor {
@@ -52,14 +53,15 @@ fn is_platform_stub_file(file : String) -> Bool {
 }
 
 ///|
-fn is_panic_func(func : @syntax.Expr) -> Bool {
+fn get_panic_kind(func : @syntax.Expr) -> String {
   match func {
     Ident(id~, ..) =>
       match id.name {
-        Ident(name="panic") | Ident(name="abort") => true
-        _ => false
+        Ident(name="panic") => "panic"
+        Ident(name="abort") => "abort"
+        _ => ""
       }
-    _ => false
+    _ => ""
   }
 }
 
@@ -72,6 +74,11 @@ fn is_unreachable_abort(args : @list.List[@syntax.Argument]) -> Bool {
       _ => false
     }
   })
+}
+
+///|
+fn is_bare_panic(kind : String, args : @list.List[@syntax.Argument]) -> Bool {
+  kind == "panic" && args.is_empty()
 }
 
 ///|
@@ -103,7 +110,11 @@ impl @syntax.IterVisitor for Cwe248Visitor with fn visit_Expr_Apply(
   args~,
   loc~,
 ) {
-  if is_panic_func(func) && !env.in_guard_else && !is_unreachable_abort(args) {
+  let kind = get_panic_kind(func)
+  if kind != "" &&
+    !env.in_guard_else &&
+    !is_unreachable_abort(args) &&
+    !is_bare_panic(kind, args) {
     env.findings.push(
       make_finding(
         { cwe: 248, variant: "panic-reachable" },
