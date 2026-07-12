@@ -40,3 +40,22 @@
 - [x] `moon fmt` 格式稳定
 - [x] 推送到 GitHub (origin) — CI 通过 (ubuntu/macos/windows)
 - [ ] 推送到 GitLink — SSH 服务端不可达，待恢复后重试
+
+## Phase 3: 规则精度改进
+
+### 3.1 修复 CWE-79/cmark 误报
+- [x] cmark `render()` 默认已改为 `safe=true`，当前规则前提过时
+- [x] 规则应仅在显式 `safe=false` 时报告
+- [x] 扩展检测 `renderer()`/`xhtml_renderer()`/`from_doc()` 的 `safe=false`
+
+### 3.2 CWE-770 改进
+- [ ] mocket 无 body limit API，当前规则对该框架不可操作
+- [ ] 根据框架实际 API 调整门控条件
+
+### 3.3 CWE-942/CORS 检测增强
+- [ ] 当前仅检测 `credentials=true`，漏检默认 `handle_cors()` 配置
+- [ ] 应报告无显式 origin 限制的 CORS 配置
+
+### 3.4 CWE-22 路径穿越检测增强
+- [ ] 当前仅检测字符串拼接，漏检 `static_assets` + 通配符路由模式
+- [ ] 需增加框架级路径穿越检测

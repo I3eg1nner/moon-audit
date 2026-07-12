@@ -23,12 +23,30 @@ test "CWE-116: replace_all should not trigger" {
 }
 
 // ---------------------------------------------------------------------------
-// CWE-79/cmark: render()/from_doc() without safe=true
+// CWE-79/cmark: render()/from_doc() with explicit safe=false
 // ---------------------------------------------------------------------------
 
 ///|
-test "CWE-079/cmark: render without safe=true should trigger" {
+test "CWE-079/cmark: render without safe arg should not trigger (defaults true)" {
   let source = "fn foo(md : String) -> String { render(md) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe079_cmark(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-079/cmark: render with safe=true should not trigger" {
+  let source = "fn foo(md : String) -> String { render(md, safe=true) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe079_cmark(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-079/cmark: render with safe=false should trigger" {
+  let source = "fn foo(md : String) -> String { render(safe=false, md) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[Finding] = []
   run_cwe079_cmark(impls, "test.mbt", source, findings, Error)
@@ -36,8 +54,17 @@ test "CWE-079/cmark: render without safe=true should trigger" {
 }
 
 ///|
-test "CWE-079/cmark: render with safe=true should not trigger" {
-  let source = "fn foo(md : String) -> String { render(md, safe=true) }"
+test "CWE-079/cmark: from_doc with safe=false should trigger" {
+  let source = "fn foo(doc : Doc) -> String { from_doc(safe=false, doc) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe079_cmark(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "CWE-079/cmark: from_doc with safe=true should not trigger" {
+  let source = "fn foo(doc : Doc) -> String { from_doc(safe=true, doc) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[Finding] = []
   run_cwe079_cmark(impls, "test.mbt", source, findings, Error)
