@@ -18,7 +18,7 @@ pub fn LLMConfig::default() -> LLMConfig {
 
 ///|
 pub fn load_env(dir : String) -> Map[String, String] {
-  let env : Map[String, String] = {}
+  let env : Map[String, String] = Map([])
   let env_path = @path.Path(dir).join(@path.Path(".env")).0
   let content = @fs.read_file_to_string(env_path) catch { _ => return env }
   parse_env_content(content, env)

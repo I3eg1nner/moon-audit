@@ -46,7 +46,12 @@ impl @syntax.IterVisitor for Cwe094Visitor with fn visit_Impl_TopFuncDef(
   loc~,
 ) {
   env.current_loc = Some(loc)
-  env.base().visit_Impl_TopFuncDef(fun_decl~, decl_body~, where_clause~, loc~)
+  @syntax.IterVisitor::base(env).visit_Impl_TopFuncDef(
+    fun_decl~,
+    decl_body~,
+    where_clause~,
+    loc~,
+  )
   env.current_loc = None
 }
 
@@ -97,5 +102,5 @@ impl @syntax.IterVisitor for Cwe094Visitor with fn visit_FuncStubs_Embedded(
       )
     }
   }
-  env.base().visit_FuncStubs_Embedded(language~, code~)
+  @syntax.IterVisitor::base(env).visit_FuncStubs_Embedded(language~, code~)
 }

@@ -64,7 +64,7 @@ pub fn build_summary(
     .iter()
     .filter(fn(f) { f.severity == Info })
     .count()
-  let file_set : Map[String, Bool] = {}
+  let file_set : Map[String, Bool] = Map([])
   for f in result.findings {
     file_set[f.file] = true
   }
@@ -92,7 +92,7 @@ fn build_rule_stats(
   findings : Array[Finding],
   rules : Array[RuleInfo],
 ) -> Array[RuleStat] {
-  let counts : Map[String, Int] = {}
+  let counts : Map[String, Int] = Map([])
   for f in findings {
     let id = rule_id_str(f.rule_id)
     let cur = match counts.get(id) {
@@ -123,7 +123,7 @@ fn build_rule_stats(
 
 ///|
 fn build_file_stats(findings : Array[Finding]) -> Array[FileStat] {
-  let file_map : Map[String, FileStat] = {}
+  let file_map : Map[String, FileStat] = Map([])
   for f in findings {
     match file_map.get(f.file) {
       Some(fs) => {
@@ -164,7 +164,7 @@ fn build_file_stats(findings : Array[Finding]) -> Array[FileStat] {
 
 ///|
 fn build_cwe_stats(findings : Array[Finding]) -> Array[CWEStat] {
-  let cwe_counts : Map[Int, Int] = {}
+  let cwe_counts : Map[Int, Int] = Map([])
   for f in findings {
     let cur = match cwe_counts.get(f.rule_id.cwe) {
       Some(c) => c
@@ -235,7 +235,7 @@ fn cwe_to_owasp(cwe_id : Int) -> String {
 
 ///|
 fn build_owasp_stats(findings : Array[Finding]) -> Array[OwaspStat] {
-  let owasp_map : Map[String, OwaspStat] = {}
+  let owasp_map : Map[String, OwaspStat] = Map([])
   for f in findings {
     let cat = cwe_to_owasp(f.rule_id.cwe)
     match owasp_map.get(cat) {

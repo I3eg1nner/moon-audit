@@ -120,20 +120,22 @@ impl @syntax.IterVisitor for Cwe248Visitor with fn visit_Expr_Guard(
   cond~,
   otherwise~,
   body~,
+  exclamation~,
+  guard_loc~,
   loc~,
 ) {
-  let _ = loc
-  env.base().visit_Expr(cond)
+  let _ = (loc, exclamation, guard_loc)
+  @syntax.IterVisitor::base(env).visit_Expr(cond)
   match otherwise {
     Some(else_expr) => {
       let prev = env.in_guard_else
       env.in_guard_else = true
-      env.base().visit_Expr(else_expr)
+      @syntax.IterVisitor::base(env).visit_Expr(else_expr)
       env.in_guard_else = prev
     }
     None => ()
   }
-  env.base().visit_Expr(body)
+  @syntax.IterVisitor::base(env).visit_Expr(body)
 }
 
 ///|
@@ -161,5 +163,5 @@ impl @syntax.IterVisitor for Cwe248Visitor with fn visit_Expr_Apply(
       ),
     )
   }
-  env.base().visit_Expr_Apply(func~, args~, loc~)
+  @syntax.IterVisitor::base(env).visit_Expr_Apply(func~, args~, loc~)
 }

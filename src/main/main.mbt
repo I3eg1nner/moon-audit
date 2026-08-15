@@ -313,7 +313,7 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
   }
   let machine_output = format == "json" || format == "sarif"
   if !quiet && !machine_output {
-    println("moon-audit v0.1.0 - Static security scanner for MoonBit\n")
+    println("moon-audit v0.2.0 - Static security scanner for MoonBit\n")
     println("Scanning: " + path)
     println("")
   }
@@ -465,7 +465,7 @@ fn cmd_llm_analyze(matches : @argparse.Matches) -> Unit {
     println("  API Key:  (not set - configure LLM_API_KEY in .env)")
   }
   println("")
-  let sources : Map[String, String] = {}
+  let sources : Map[String, String] = Map([])
   for f in result.findings {
     if !sources.contains(f.file) {
       let content = @fs.read_file_to_string(f.file) catch { _ => "" }
@@ -675,7 +675,7 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
   }
   // Phase 2: Taint analysis
   println("[2/3] Taint analysis...")
-  let sources : Map[String, String] = {}
+  let sources : Map[String, String] = Map([])
   for f in result.findings {
     if !sources.contains(f.file) {
       let content = @fs.read_file_to_string(f.file) catch { _ => "" }

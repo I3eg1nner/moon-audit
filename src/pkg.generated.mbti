@@ -386,4 +386,3 @@ pub(all) struct TaintedVar {
 // Type aliases
 
 // Traits
-

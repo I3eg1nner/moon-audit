@@ -68,5 +68,11 @@ impl @syntax.IterVisitor for Cwe770Visitor with fn visit_Expr_DotApply(
       )
     }
   }
-  env.base().visit_Expr_DotApply(self~, method_name~, args~, return_self~, loc~)
+  @syntax.IterVisitor::base(env).visit_Expr_DotApply(
+    self~,
+    method_name~,
+    args~,
+    return_self~,
+    loc~,
+  )
 }

@@ -42,7 +42,7 @@ pub fn get_remediation(finding : Finding) -> Remediation {
 
 ///|
 pub fn get_all_remediations(findings : Array[Finding]) -> Array[Remediation] {
-  let seen : Map[String, Bool] = {}
+  let seen : Map[String, Bool] = Map([])
   let result : Array[Remediation] = []
   for f in findings {
     let id = rule_id_str(f.rule_id)

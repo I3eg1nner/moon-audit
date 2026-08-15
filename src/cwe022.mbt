@@ -114,5 +114,5 @@ impl @syntax.IterVisitor for Cwe022Visitor with fn visit_Expr_Infix(
     }
     _ => ()
   }
-  env.base().visit_Expr_Infix(op~, lhs~, rhs~, loc~)
+  @syntax.IterVisitor::base(env).visit_Expr_Infix(op~, lhs~, rhs~, loc~)
 }

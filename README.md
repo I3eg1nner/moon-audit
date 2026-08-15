@@ -14,17 +14,18 @@ moon-audit 用 MoonBit 官方 parser 直接解析 AST，在语法树上匹配 14
 
 ## 真实效果
 
-对 MoonBit 生态 21 个开源项目（3,676 个文件）扫描，5 个项目检出漏洞，均已提交修复 PR：
+对 MoonBit 生态 21 个开源项目（3,676 个文件）扫描，6 个项目检出漏洞，均已提交修复 PR，其中 4 个已被上游合并：
 
-| 项目 | 检出 | 类型 | 修复 PR |
-|---|---|---|---|
-| [mizchi/luna.mbt](https://github.com/mizchi/luna.mbt) | 14 | CRLF 注入 | [#103](https://github.com/mizchi/luna.mbt/pull/103) |
-| [oboard/mocket](https://github.com/oboard/mocket) | 8 | XSS、CRLF 注入、Cookie、CORS、目录穿越 | [#12](https://github.com/oboard/mocket/pull/12) |
-| [bobzhang/crescent](https://github.com/bobzhang/crescent) | 8 | Cookie、DoS、CORS | [#44](https://github.com/bobzhang/crescent/pull/44) |
-| [moonbitlang/async](https://github.com/moonbitlang/async) | 3 | CRLF 注入 | [#494](https://github.com/moonbitlang/async/pull/494) |
-| [moonbit-community/cmark.mbt](https://github.com/moonbit-community/cmark.mbt) | 1 | XSS（已由上游修复为 safe=true） | [#137](https://github.com/moonbit-community/cmark.mbt/pull/137) |
+| 项目 | 检出 | 类型 | 修复 PR | 状态 |
+|---|---|---|---|---|
+| [mizchi/luna.mbt](https://github.com/mizchi/luna.mbt) | 14 | CRLF 注入 | [#103](https://github.com/mizchi/luna.mbt/pull/103) | ✅ 已合并 |
+| [oboard/mocket](https://github.com/oboard/mocket) | 8 | XSS、CRLF 注入、Cookie、CORS、目录穿越 | [#12](https://github.com/oboard/mocket/pull/12) | ✅ 已合并 |
+| [moonbit-community/crescent](https://github.com/moonbit-community/crescent) | 8 | Cookie、DoS、CORS | [#44](https://github.com/moonbit-community/crescent/pull/44) | 🔵 Open |
+| [moonbitlang/async](https://github.com/moonbitlang/async) | 3 | CRLF 注入 | [#494](https://github.com/moonbitlang/async/pull/494) | ✅ 已合并 |
+| [moonbit-community/rabbita](https://github.com/moonbit-community/rabbita) | 2 | 目录穿越 | [#126](https://github.com/moonbit-community/rabbita/pull/126) | ✅ 已合并 |
+| [moonbit-community/cmark.mbt](https://github.com/moonbit-community/cmark.mbt) | 1 | XSS（已由上游修复为 safe=true） | [#137](https://github.com/moonbit-community/cmark.mbt/pull/137) | 🔵 Open |
 
-其余 16 个项目未检出问题（未引入 Web 框架依赖，Import 门控自动跳过 Web 规则）。
+其余 15 个项目未检出问题（未引入 Web 框架依赖，Import 门控自动跳过 Web 规则）。
 
 静态扫描的价值在于发现——它能在代码合入前低成本地扫出可疑模式，但不可避免地会有误报（luna.mbt 的 14 个 CRLF 检出中 11 个是 config 驱动的固定 header 值）。所以 moon-audit 在静态扫描之上还提供了 PoC 动态验证脚本生成和 LLM 辅助分析，用于在本地部署的靶机上实际复现，区分真正的漏洞和噪音。目前所有提交 PR 的漏洞均经过本地运行时验证确认。
 

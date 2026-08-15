@@ -89,7 +89,7 @@ pub fn ImportContext::empty() -> ImportContext {
 
 ///|
 pub fn Config::default() -> Config {
-  let rules : Map[String, RuleConfig] = {}
+  let rules : Map[String, RuleConfig] = Map([])
   rules["CWE-94/eval-extern"] = { enabled: false, severity: None }
   rules["CWE-79/inner-html"] = { enabled: false, severity: None }
   rules["CWE-22/path-concat"] = { enabled: false, severity: None }

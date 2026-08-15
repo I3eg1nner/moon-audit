@@ -310,7 +310,13 @@ impl @syntax.IterVisitor for TaintVisitor with fn visit_Expr_DotApply(
       }
     None => ()
   }
-  env.base().visit_Expr_DotApply(self~, method_name~, args~, return_self~, loc~)
+  @syntax.IterVisitor::base(env).visit_Expr_DotApply(
+    self~,
+    method_name~,
+    args~,
+    return_self~,
+    loc~,
+  )
 }
 
 ///|
@@ -338,7 +344,7 @@ impl @syntax.IterVisitor for TaintVisitor with fn visit_Expr_Let(
     }
     None => ()
   }
-  env.base().visit_Expr_Let(pattern~, expr~, body~, loc~)
+  @syntax.IterVisitor::base(env).visit_Expr_Let(pattern~, expr~, body~, loc~)
 }
 
 ///|
@@ -362,7 +368,13 @@ impl @syntax.IterVisitor for TaintVisitor with fn visit_Expr_LetMut(
       }
     }
   }
-  env.base().visit_Expr_LetMut(binder~, ty~, expr~, body~, loc~)
+  @syntax.IterVisitor::base(env).visit_Expr_LetMut(
+    binder~,
+    ty~,
+    expr~,
+    body~,
+    loc~,
+  )
 }
 
 ///|

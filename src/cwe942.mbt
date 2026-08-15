@@ -91,5 +91,5 @@ impl @syntax.IterVisitor for Cwe942Visitor with fn visit_Expr_Apply(
       }
     }
   }
-  env.base().visit_Expr_Apply(func~, args~, loc~)
+  @syntax.IterVisitor::base(env).visit_Expr_Apply(func~, args~, loc~)
 }

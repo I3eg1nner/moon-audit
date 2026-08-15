@@ -1,7 +1,7 @@
 ///|
 pub fn format_sarif(result : ScanResult) -> String {
   let rule_descriptors : Array[Json] = []
-  let seen_rules : Map[String, Bool] = {}
+  let seen_rules : Map[String, Bool] = Map([])
   for f in result.findings {
     let id = rule_id_str(f.rule_id)
     if !seen_rules.contains(id) {
