@@ -1,6 +1,6 @@
 name = "minie135/moon-audit"
 
-version = "0.2.0"
+version = "0.2.1"
 
 license = "MulanPSL-2.0"
 

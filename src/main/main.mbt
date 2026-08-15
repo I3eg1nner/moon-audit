@@ -313,7 +313,7 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
   }
   let machine_output = format == "json" || format == "sarif"
   if !quiet && !machine_output {
-    println("moon-audit v0.2.0 - Static security scanner for MoonBit\n")
+    println("moon-audit v0.2.1 - Static security scanner for MoonBit\n")
     println("Scanning: " + path)
     println("")
   }
