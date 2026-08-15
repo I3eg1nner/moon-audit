@@ -1,6 +1,6 @@
-# moon-audit
+# MoonBit Native Audit
 
-MoonBit Native Audit — MoonBit 原生静态安全扫描器。
+MoonBit 原生静态安全扫描器。
 
 ## 为什么需要 moon-audit？
 
