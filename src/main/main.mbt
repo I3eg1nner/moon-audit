@@ -55,6 +55,11 @@ fn main {
         long="rule",
         about="Only run specific rule(s)",
       ),
+      @argparse.OptionArg(
+        "changed-files",
+        long="changed-files",
+        about="File containing changed file paths (one per line) for incremental scanning",
+      ),
     ],
     positionals=[
       @argparse.PositionArg("path", about="Project path to scan", default_values=[
@@ -290,6 +295,14 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
   }
   let mut config = @audit.load_config(resolved_config_path)
   config = { ..config, min_severity: severity_filter }
+  let changed_files_path = get_opt(matches, "changed-files")
+  match changed_files_path {
+    Some(cf_path) => {
+      let changed = @audit.load_changed_files(cf_path)
+      config = { ..config, changed_files: changed }
+    }
+    None => ()
+  }
   let rule_filter = match matches.values.get("rule") {
     Some(arr) => if arr.length() > 0 { Some(arr[0]) } else { None }
     None => None
@@ -315,6 +328,13 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
   if !quiet && !machine_output {
     println("moon-audit v0.2.1 - Static security scanner for MoonBit\n")
     println("Scanning: " + path)
+    if config.changed_files.length() > 0 {
+      println(
+        "Incremental mode: " +
+        config.changed_files.length().to_string() +
+        " changed file(s)",
+      )
+    }
     println("")
   }
   let result = @audit.scan_project(path, config)

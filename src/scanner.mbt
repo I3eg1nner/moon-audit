@@ -6,6 +6,13 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
   let mod_imports = analyze_mod_imports(root)
   let interproc_ctx = InterProceduralContext::new()
   let mut has_web = false
+  let incremental = config.changed_files.length() > 0
+  let changed_set : Map[String, Bool] = Map([])
+  if incremental {
+    for f in config.changed_files {
+      changed_set[f] = true
+    }
+  }
   // Phase 1: Regular rules + collect function summaries
   walk_packages(root, config, fn(pkg_dir, mbt_files) {
     let pkg_imports = analyze_imports(pkg_dir)
@@ -14,7 +21,6 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
       has_web = true
     }
     for file in mbt_files {
-      files_scanned += 1
       let source = @fs.read_file_to_string(file) catch {
         _ => {
           errors.push("Failed to read " + file)
@@ -25,8 +31,16 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
       for report in reports {
         errors.push("Parse error in " + file + ": " + report.to_string())
       }
-      run_all_rules(impls, file, source, findings, imports, config)
       collect_func_summaries(source, file, interproc_ctx)
+      let should_scan = if incremental {
+        is_changed_file(file, changed_set)
+      } else {
+        true
+      }
+      if should_scan {
+        files_scanned += 1
+        run_all_rules(impls, file, source, findings, imports, config)
+      }
     }
   })
   // Phase 2: Cross-function taint analysis (only for web projects)
@@ -36,6 +50,9 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
       let imports = merge_imports(mod_imports, pkg_imports)
       if imports.has_mocket || imports.has_crescent || imports.has_rabbita {
         for file in mbt_files {
+          if incremental && !is_changed_file(file, changed_set) {
+            continue
+          }
           let source = @fs.read_file_to_string(file) catch { _ => continue }
           let (impls, _) = @parser.parse_string(source, name=file)
           run_cross_func_taint(
@@ -298,6 +315,32 @@ fn should_exclude_file(name : String, config : Config) -> Bool {
     }
   }
   false
+}
+
+///|
+fn is_changed_file(file : String, changed_set : Map[String, Bool]) -> Bool {
+  if changed_set.contains(file) {
+    return true
+  }
+  for entry in changed_set {
+    if file.has_suffix(entry.0) || entry.0.has_suffix(file) {
+      return true
+    }
+  }
+  false
+}
+
+///|
+pub fn load_changed_files(path : String) -> Array[String] {
+  let content = @fs.read_file_to_string(path) catch { _ => return [] }
+  let files : Array[String] = []
+  for line in content.split("\n") {
+    let trimmed = line.to_owned().trim().to_owned()
+    if trimmed.length() > 0 && trimmed.has_suffix(".mbt") {
+      files.push(trimmed)
+    }
+  }
+  files
 }
 
 ///|

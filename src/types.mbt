@@ -66,6 +66,7 @@ pub(all) struct Config {
   includes : Array[String]
   output_format : String
   min_severity : Severity
+  changed_files : Array[String]
 }
 
 ///|
@@ -102,6 +103,7 @@ pub fn Config::default() -> Config {
     includes: [],
     output_format: "text",
     min_severity: Warning,
+    changed_files: [],
   }
 }
 
