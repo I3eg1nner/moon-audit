@@ -4,9 +4,15 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
   let errors : Array[String] = []
   let mut files_scanned = 0
   let mod_imports = analyze_mod_imports(root)
+  let interproc_ctx = InterProceduralContext::new()
+  let mut has_web = false
+  // Phase 1: Regular rules + collect function summaries
   walk_packages(root, config, fn(pkg_dir, mbt_files) {
     let pkg_imports = analyze_imports(pkg_dir)
     let imports = merge_imports(mod_imports, pkg_imports)
+    if imports.has_mocket || imports.has_crescent || imports.has_rabbita {
+      has_web = true
+    }
     for file in mbt_files {
       files_scanned += 1
       let source = @fs.read_file_to_string(file) catch {
@@ -20,8 +26,25 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
         errors.push("Parse error in " + file + ": " + report.to_string())
       }
       run_all_rules(impls, file, source, findings, imports, config)
+      collect_func_summaries(source, file, interproc_ctx)
     }
   })
+  // Phase 2: Cross-function taint analysis (only for web projects)
+  if has_web && interproc_ctx.summaries.length() > 0 {
+    walk_packages(root, config, fn(pkg_dir, mbt_files) {
+      let pkg_imports = analyze_imports(pkg_dir)
+      let imports = merge_imports(mod_imports, pkg_imports)
+      if imports.has_mocket || imports.has_crescent || imports.has_rabbita {
+        for file in mbt_files {
+          let source = @fs.read_file_to_string(file) catch { _ => continue }
+          let (impls, _) = @parser.parse_string(source, name=file)
+          run_cross_func_taint(
+            impls, file, source, findings, interproc_ctx, imports,
+          )
+        }
+      }
+    })
+  }
   { findings: dedup_findings(findings), files_scanned, errors }
 }
 
