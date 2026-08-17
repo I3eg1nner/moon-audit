@@ -60,6 +60,11 @@ fn main {
         long="changed-files",
         about="File containing changed file paths (one per line) for incremental scanning",
       ),
+      @argparse.OptionArg(
+        "baseline",
+        long="baseline",
+        about="Baseline file to exclude known findings",
+      ),
     ],
     positionals=[
       @argparse.PositionArg("path", about="Project path to scan", default_values=[
@@ -210,6 +215,31 @@ fn main {
           ]),
         ],
       ),
+      @argparse.Command(
+        "generate-baseline",
+        about="Generate a baseline file from current scan findings",
+        options=[
+          @argparse.OptionArg(
+            "output",
+            short='o',
+            long="output",
+            about="Baseline output file path",
+            default_values=[".moon-audit-baseline.json"],
+          ),
+          @argparse.OptionArg(
+            "config",
+            short='c',
+            long="config",
+            about="Config file path",
+            default_values=[".moon-audit.json"],
+          ),
+        ],
+        positionals=[
+          @argparse.PositionArg("path", about="Project path to scan", default_values=[
+            ".",
+          ]),
+        ],
+      ),
     ],
   )
   let matches = cmd.parse() catch {
@@ -227,6 +257,7 @@ fn main {
     Some(("remediate", sub)) => cmd_remediate(sub)
     Some(("pipeline", sub)) => cmd_pipeline(sub)
     Some(("summary", sub)) => cmd_summary(sub)
+    Some(("generate-baseline", sub)) => cmd_generate_baseline(sub)
     _ => cmd_scan(matches)
   }
 }
@@ -338,7 +369,21 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     println("")
   }
   let result = @audit.scan_project(path, config)
-  let filtered_findings = result.findings.filter(fn(f) {
+  let baseline_path = get_opt(matches, "baseline")
+  let baseline = match baseline_path {
+    Some(bp) => @audit.load_baseline(bp)
+    None => Map([])
+  }
+  let after_baseline = @audit.filter_baseline(result.findings, baseline)
+  let baseline_filtered = result.findings.length() - after_baseline.length()
+  if baseline_filtered > 0 && !quiet && !machine_output {
+    println(
+      "Baseline: filtered " +
+      baseline_filtered.to_string() +
+      " known finding(s)",
+    )
+  }
+  let filtered_findings = after_baseline.filter(fn(f) {
     @audit.severity_level(f.severity) >= @audit.severity_level(severity_filter)
   })
   let filtered_result : @audit.ScanResult = {
@@ -756,4 +801,40 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
       @sys.exit(1)
     }
   }
+}
+
+///|
+fn cmd_generate_baseline(matches : @argparse.Matches) -> Unit {
+  let path = get_val(matches, "path", ".")
+  let config_path = get_val(matches, "config", ".moon-audit.json")
+  let output_path = get_val(matches, "output", ".moon-audit-baseline.json")
+  let resolved_config = if config_path == ".moon-audit.json" {
+    @path.Path(path).join(@path.Path(config_path)).0
+  } else {
+    config_path
+  }
+  let config = @audit.load_config(resolved_config)
+  let path_ok = @fs.is_dir(path) catch { _ => false }
+  if !path_ok {
+    println("moon-audit: error: path not found or not a directory: " + path)
+    return
+  }
+  println("moon-audit: generating baseline from: " + path)
+  let result = @audit.scan_project(path, config)
+  let baseline = @audit.generate_baseline(result.findings)
+  @fs.write_string_to_file(output_path, baseline) catch {
+    err => {
+      let _ = err
+      println("moon-audit: error: failed to write baseline to " + output_path)
+      return
+    }
+  }
+  println(
+    "Baseline written to: " +
+    output_path +
+    " (" +
+    result.findings.length().to_string() +
+    " findings)",
+  )
+  println("Use --baseline " + output_path + " to filter these in future scans")
 }
