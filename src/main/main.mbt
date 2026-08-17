@@ -240,6 +240,31 @@ fn main {
           ]),
         ],
       ),
+      @argparse.Command(
+        "deep-audit",
+        about="Generate LLM-powered deep security audit script (static + AI code review)",
+        options=[
+          @argparse.OptionArg(
+            "output",
+            short='o',
+            long="output",
+            about="Output script file path",
+            default_values=["deep_audit.py"],
+          ),
+          @argparse.OptionArg(
+            "config",
+            short='c',
+            long="config",
+            about="Config file path",
+            default_values=[".moon-audit.json"],
+          ),
+        ],
+        positionals=[
+          @argparse.PositionArg("path", about="Project path to scan", default_values=[
+            ".",
+          ]),
+        ],
+      ),
     ],
   )
   let matches = cmd.parse() catch {
@@ -258,6 +283,7 @@ fn main {
     Some(("pipeline", sub)) => cmd_pipeline(sub)
     Some(("summary", sub)) => cmd_summary(sub)
     Some(("generate-baseline", sub)) => cmd_generate_baseline(sub)
+    Some(("deep-audit", sub)) => cmd_deep_audit(sub)
     _ => cmd_scan(matches)
   }
 }
@@ -837,4 +863,68 @@ fn cmd_generate_baseline(matches : @argparse.Matches) -> Unit {
     " findings)",
   )
   println("Use --baseline " + output_path + " to filter these in future scans")
+}
+
+///|
+fn cmd_deep_audit(matches : @argparse.Matches) -> Unit {
+  let path = get_val(matches, "path", ".")
+  let output_path = get_val(matches, "output", "deep_audit.py")
+  let config_path = get_val(matches, "config", ".moon-audit.json")
+  let resolved_config = if config_path == ".moon-audit.json" {
+    @path.Path(path).join(@path.Path(config_path)).0
+  } else {
+    config_path
+  }
+  let config = @audit.load_config(resolved_config)
+  let path_ok = @fs.is_dir(path) catch { _ => false }
+  if !path_ok {
+    println("moon-audit: error: path not found: " + path)
+    return
+  }
+  println("moon-audit Deep Audit\n")
+  println("Scanning: " + path)
+  let result = @audit.scan_project(path, config)
+  println(
+    "Static findings: " + result.findings.length().to_string(),
+  )
+  let source_files = @audit.collect_audit_files(path, config)
+  println(
+    "Source files collected: " + source_files.length().to_string(),
+  )
+  let llm_config = @audit.load_llm_config(path)
+  println("LLM: " + llm_config.model + " @ " + llm_config.base_url)
+  if llm_config.api_key.length() == 0 {
+    println(
+      "\nWarning: No API key configured. Set LLM_API_KEY in .env",
+    )
+  }
+  println("")
+  let script = @audit.generate_deep_audit_script(
+    llm_config,
+    result.findings,
+    source_files,
+  )
+  @fs.write_string_to_file(output_path, script) catch {
+    _ => {
+      println("Error writing script: " + output_path)
+      return
+    }
+  }
+  println("Generated: " + output_path)
+  println("")
+  println("Run the deep audit:")
+  println("  python3 " + output_path)
+  println("")
+  println("The script will:")
+  println(
+    "  1. Verify " +
+    result.findings.length().to_string() +
+    " static findings with LLM (true/false positive)",
+  )
+  println(
+    "  2. Send " +
+    source_files.length().to_string() +
+    " source files for deep security review",
+  )
+  println("  3. Save combined report to deep_audit_report.json")
 }

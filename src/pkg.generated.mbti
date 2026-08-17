@@ -14,6 +14,8 @@ pub fn analyze_mod_imports(String) -> ImportContext
 
 pub fn build_summary(ScanResult, Array[RuleInfo]) -> ScanSummary
 
+pub fn collect_func_summaries(String, String, InterProceduralContext) -> Unit
+
 pub fn compute_fingerprint(RuleId, String) -> String
 
 pub fn confidence_from_str(String) -> Confidence
@@ -120,6 +122,8 @@ pub fn risk_score(ScanSummary) -> Double
 
 pub fn rule_id_str(RuleId) -> String
 
+pub fn run_cross_func_taint(@list.List[@syntax.Impl], String, String, Array[Finding], InterProceduralContext, ImportContext) -> Unit
+
 pub fn run_cwe022(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
 pub fn run_cwe079_cmark(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
@@ -207,6 +211,14 @@ pub(all) struct Finding {
   fingerprint : String
 } derive(@debug.Debug)
 
+pub(all) struct FuncTaintSummary {
+  name : String
+  file : String
+  line : Int
+  params : Array[String]
+  param_sinks : Map[String, Array[TaintSink]]
+}
+
 pub(all) struct ImportContext {
   has_cmark : Bool
   has_rabbita : Bool
@@ -217,6 +229,11 @@ pub(all) struct ImportContext {
   is_stdlib : Bool
 }
 pub fn ImportContext::empty() -> Self
+
+pub(all) struct InterProceduralContext {
+  summaries : Map[String, FuncTaintSummary]
+}
+pub fn InterProceduralContext::new() -> Self
 
 pub(all) struct LLMAnalysisRequest {
   finding : Finding
