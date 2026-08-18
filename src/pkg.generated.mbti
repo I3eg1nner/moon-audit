@@ -14,6 +14,8 @@ pub fn analyze_mod_imports(String) -> ImportContext
 
 pub fn build_summary(ScanResult, Array[RuleInfo]) -> ScanSummary
 
+pub fn collect_audit_files(String, Config) -> Array[(String, String)]
+
 pub fn collect_func_summaries(String, String, InterProceduralContext) -> Unit
 
 pub fn compute_fingerprint(RuleId, String) -> String
@@ -50,6 +52,8 @@ pub fn cwe770_info() -> RuleInfo
 
 pub fn cwe942_info() -> RuleInfo
 
+pub fn filter_baseline(Array[Finding], Map[String, Bool]) -> Array[Finding]
+
 pub fn filter_by_llm_results(Array[LLMAnalysisResult], Double) -> Array[LLMAnalysisResult]
 
 pub fn format_json(ScanResult) -> String
@@ -78,7 +82,11 @@ pub fn generate_all_pocs(Array[Finding], ImportContext) -> Array[PoCTemplate]
 
 pub fn generate_analysis_prompt(Finding, String, ImportContext) -> LLMAnalysisRequest
 
+pub fn generate_baseline(Array[Finding]) -> String
+
 pub fn generate_batch_prompts(Array[Finding], Map[String, String], ImportContext) -> Array[LLMAnalysisRequest]
+
+pub fn generate_deep_audit_script(LLMConfig, Array[Finding], Array[(String, String)]) -> String
 
 pub fn generate_llm_script(LLMConfig, Array[LLMAnalysisRequest]) -> String
 
@@ -101,6 +109,10 @@ pub fn is_any_constant(@syntax.Expr) -> Bool
 pub fn is_constant_string(@syntax.Expr) -> Bool
 
 pub fn list_all_rules() -> Array[RuleInfo]
+
+pub fn load_baseline(String) -> Map[String, Bool]
+
+pub fn load_changed_files(String) -> Array[String]
 
 pub fn load_config(String) -> Config
 
@@ -185,6 +197,7 @@ pub(all) struct Config {
   includes : Array[String]
   output_format : String
   min_severity : Severity
+  changed_files : Array[String]
 }
 pub fn Config::default() -> Self
 pub fn Config::get_severity(Self, String, Severity) -> Severity
