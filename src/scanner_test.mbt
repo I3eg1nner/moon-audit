@@ -138,12 +138,22 @@ test "CWE-942: handle_cors with credentials=true without origin should trigger" 
 }
 
 ///|
-test "CWE-942: handle_cors with no args (wildcard default) should trigger" {
+test "CWE-942: handle_cors with no args (wildcard default, no credentials) should not trigger" {
   let source = "fn setup() -> Unit { handle_cors() }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[Finding] = []
   run_cwe942(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-942: handle_cors with credentials=true and wildcard should trigger" {
+  let source = "fn setup() -> Unit { handle_cors(credentials=true) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe942(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() > 0)
+  assert_true(findings[0].severity == Error)
 }
 
 ///|

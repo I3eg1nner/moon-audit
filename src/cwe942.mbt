@@ -6,7 +6,6 @@ priv struct Cwe942Visitor {
   findings : Array[Finding]
   file : String
   source : String
-  severity : Severity
 }
 
 ///|
@@ -27,7 +26,8 @@ pub fn run_cwe942(
   findings : Array[Finding],
   severity : Severity,
 ) -> Unit {
-  let visitor : Cwe942Visitor = { findings, file, source, severity }
+  let _ = severity
+  let visitor : Cwe942Visitor = { findings, file, source }
   impls.each(fn(impl_) { @syntax.IterVisitor::visit_Impl(visitor, impl_) })
 }
 
@@ -64,6 +64,8 @@ impl @syntax.IterVisitor for Cwe942Visitor with fn visit_Expr_Apply(
       let has_credentials_true = has_labelled_bool_arg(
         args, "credentials", true,
       )
+      // Only flag when credentials=true with wildcard — that's the real attack vector.
+      // Wildcard without credentials is standard for public APIs.
       if has_credentials_true {
         env.findings.push(
           make_finding(
@@ -71,18 +73,6 @@ impl @syntax.IterVisitor for Cwe942Visitor with fn visit_Expr_Apply(
             Error,
             High,
             "CORS with credentials=true and wildcard origin allows any website to make authenticated requests and read responses. Specify an explicit origin.",
-            env.file,
-            env.source,
-            loc,
-          ),
-        )
-      } else {
-        env.findings.push(
-          make_finding(
-            { cwe: 942, variant: "cors-credentials" },
-            env.severity,
-            Medium,
-            "CORS configured with default wildcard origin ('*'). Any website can read API responses. Set an explicit origin to restrict access.",
             env.file,
             env.source,
             loc,
