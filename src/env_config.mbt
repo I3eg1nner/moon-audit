@@ -88,24 +88,28 @@ pub fn load_llm_config(dir : String) -> LLMConfig {
 }
 
 ///|
+fn env_get_any(env : Map[String, String], keys : Array[String]) -> String {
+  for key in keys {
+    match env.get(key) {
+      Some(v) => if v.length() > 0 { return v }
+      None => ()
+    }
+  }
+  ""
+}
+
+///|
 fn build_llm_config(env : Map[String, String]) -> LLMConfig {
   let base = LLMConfig::default()
-  let base_url = match env.get("LLM_BASE_URL") {
-    Some(v) => if v.length() > 0 { v } else { base.base_url }
-    None => base.base_url
-  }
-  let model = match env.get("LLM_MODEL") {
-    Some(v) => if v.length() > 0 { v } else { base.model }
-    None => base.model
-  }
-  let api_key = match env.get("LLM_API_KEY") {
-    Some(v) => v
-    None =>
-      match env.get("ANTHROPIC_API_KEY") {
-        Some(v) => v
-        None => base.api_key
-      }
-  }
+  let url = env_get_any(env, ["LLM_BASE_URL", "Base_URL", "BASE_URL"])
+  let base_url = if url.length() > 0 { url } else { base.base_url }
+  let m = env_get_any(env, ["LLM_MODEL", "Model", "MODEL"])
+  let model = if m.length() > 0 { m } else { base.model }
+  let k = env_get_any(
+    env,
+    ["LLM_API_KEY", "API_KEY", "ANTHROPIC_API_KEY"],
+  )
+  let api_key = if k.length() > 0 { k } else { base.api_key }
   { base_url, model, api_key }
 }
 
