@@ -28,7 +28,9 @@ test "Incremental: load_changed_files parses file list" {
   assert_true(files.length() == 2)
   assert_true(files[0] == "src/foo.mbt")
   assert_true(files[1] == "src/bar.mbt")
-  @fs.remove_file(test_path) catch { _ => () }
+  @fs.remove_file(test_path) catch {
+    _ => ()
+  }
 }
 
 ///|

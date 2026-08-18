@@ -274,7 +274,8 @@ fn walk_dir(
     let is_dir = @fs.is_dir(full) catch { _ => false }
     if is_dir {
       subdirs.push(full)
-    } else if entry.has_suffix(".mbt") && !entry.has_suffix("_test.mbt") &&
+    } else if entry.has_suffix(".mbt") &&
+      !entry.has_suffix("_test.mbt") &&
       !entry.has_suffix("_wbtest.mbt") {
       if !should_exclude_file(entry, config) {
         mbt_files.push(full)

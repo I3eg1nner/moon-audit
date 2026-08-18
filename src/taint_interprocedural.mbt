@@ -130,7 +130,7 @@ fn ip_between_parens(s : String) -> String {
     } else if s[i] == close {
       depth -= 1
       if depth == 0 && start >= 0 {
-        return s[start + 1 : i].to_owned()
+        return s[start + 1:i].to_owned()
       }
     }
   }
@@ -148,7 +148,11 @@ fn ip_parse_params(params_str : String) -> Array[String] {
     if seg.length() == 0 || seg.has_prefix("self") {
       continue
     }
-    let clean = if seg.has_prefix("~") { seg[1:].to_owned() } else { seg.to_owned() }
+    let clean = if seg.has_prefix("~") {
+      seg[1:].to_owned()
+    } else {
+      seg.to_owned()
+    }
     let name = ip_extract_ident(clean)
     if name.length() > 0 && name != "self" {
       names.push(name)
@@ -289,11 +293,7 @@ fn ip_find_sinks_for_var(body : String, var_name : String) -> Array[TaintSink] {
 }
 
 ///|
-fn ip_var_in_call_args(
-  body : String,
-  var_name : String,
-  meth : String,
-) -> Bool {
+fn ip_var_in_call_args(body : String, var_name : String, meth : String) -> Bool {
   let search = meth + "("
   let mut pos = 0
   while pos < body.length() {
@@ -391,7 +391,11 @@ impl @syntax.IterVisitor for CrossFuncVisitor with fn visit_Expr_DotApply(
     None => ()
   }
   @syntax.IterVisitor::base(env).visit_Expr_DotApply(
-    self~, method_name~, args~, return_self~, loc~,
+    self~,
+    method_name~,
+    args~,
+    return_self~,
+    loc~,
   )
 }
 
@@ -553,7 +557,11 @@ impl @syntax.IterVisitor for CrossFuncVisitor with fn visit_Expr_LetMut(
     }
   }
   @syntax.IterVisitor::base(env).visit_Expr_LetMut(
-    binder~, ty~, expr~, body~, loc~,
+    binder~,
+    ty~,
+    expr~,
+    body~,
+    loc~,
   )
 }
 
@@ -609,7 +617,8 @@ fn ip_has_word(text : String, word : String) -> Bool {
     }
     let before_ok = idx == 0 || !ip_is_ident_ch(text[idx - 1])
     let after_idx = idx + word.length()
-    let after_ok = after_idx >= text.length() || !ip_is_ident_ch(text[after_idx])
+    let after_ok = after_idx >= text.length() ||
+      !ip_is_ident_ch(text[after_idx])
     if before_ok && after_ok {
       return true
     }

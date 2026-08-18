@@ -105,10 +105,7 @@ fn build_llm_config(env : Map[String, String]) -> LLMConfig {
   let base_url = if url.length() > 0 { url } else { base.base_url }
   let m = env_get_any(env, ["LLM_MODEL", "Model", "MODEL"])
   let model = if m.length() > 0 { m } else { base.model }
-  let k = env_get_any(
-    env,
-    ["LLM_API_KEY", "API_KEY", "ANTHROPIC_API_KEY"],
-  )
+  let k = env_get_any(env, ["LLM_API_KEY", "API_KEY", "ANTHROPIC_API_KEY"])
   let api_key = if k.length() > 0 { k } else { base.api_key }
   { base_url, model, api_key }
 }

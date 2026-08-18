@@ -19,11 +19,15 @@ test "Baseline: generate and load round-trip" {
   ]
   let json = generate_baseline(findings)
   let path = "/tmp/moon_audit_test_baseline.json"
-  @fs.write_string_to_file(path, json) catch { _ => return }
+  @fs.write_string_to_file(path, json) catch {
+    _ => return
+  }
   let baseline = load_baseline(path)
   assert_true(baseline.length() > 0)
   assert_true(baseline.contains("CWE-116/replace-escaping:12345"))
-  @fs.remove_file(path) catch { _ => () }
+  @fs.remove_file(path) catch {
+    _ => ()
+  }
 }
 
 ///|
@@ -89,10 +93,14 @@ test "Baseline: load_baseline handles missing file" {
 ///|
 test "Baseline: load_baseline handles invalid JSON" {
   let path = "/tmp/moon_audit_bad_baseline.json"
-  @fs.write_string_to_file(path, "not json at all") catch { _ => return }
+  @fs.write_string_to_file(path, "not json at all") catch {
+    _ => return
+  }
   let baseline = load_baseline(path)
   assert_true(baseline.length() == 0)
-  @fs.remove_file(path) catch { _ => () }
+  @fs.remove_file(path) catch {
+    _ => ()
+  }
 }
 
 ///|

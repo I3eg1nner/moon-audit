@@ -884,19 +884,13 @@ fn cmd_deep_audit(matches : @argparse.Matches) -> Unit {
   println("moon-audit Deep Audit\n")
   println("Scanning: " + path)
   let result = @audit.scan_project(path, config)
-  println(
-    "Static findings: " + result.findings.length().to_string(),
-  )
+  println("Static findings: " + result.findings.length().to_string())
   let source_files = @audit.collect_audit_files(path, config)
-  println(
-    "Source files collected: " + source_files.length().to_string(),
-  )
+  println("Source files collected: " + source_files.length().to_string())
   let llm_config = @audit.load_llm_config(path)
   println("LLM: " + llm_config.model + " @ " + llm_config.base_url)
   if llm_config.api_key.length() == 0 {
-    println(
-      "\nWarning: No API key configured. Set LLM_API_KEY in .env",
-    )
+    println("\nWarning: No API key configured. Set LLM_API_KEY in .env")
   }
   println("")
   let script = @audit.generate_deep_audit_script(
