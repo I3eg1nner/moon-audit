@@ -99,7 +99,7 @@ pub fn Config::default() -> Config {
   rules["CWE-704/unsafe-cast"] = { enabled: false, severity: None }
   {
     rules,
-    exclude: ["_build", ".mooncakes"],
+    exclude: ["_build", ".mooncakes", "examples", "benchmarks"],
     includes: [],
     output_format: "text",
     min_severity: Warning,
