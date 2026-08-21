@@ -33,6 +33,10 @@ pub fn run_cwe022(
 
 ///|
 fn is_path_like_var(name : String) -> Bool {
+  if name.contains("url") || name.contains("route") || name.contains("uri") ||
+    name.contains("endpoint") || name.contains("href") {
+    return false
+  }
   name.contains("path") ||
   name.contains("file") ||
   name.contains("dir") ||

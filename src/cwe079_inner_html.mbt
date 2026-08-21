@@ -32,6 +32,34 @@ pub fn run_cwe079_inner_html(
 }
 
 ///|
+fn is_constant_ident(name : @syntax.LongIdent) -> Bool {
+  let n = match name {
+    Ident(name~) => name
+    Dot(id~, ..) => id
+  }
+  if n.length() == 0 {
+    return false
+  }
+  let first = n[0]
+  let upper_a : UInt16 = 65
+  let upper_z : UInt16 = 90
+  if first >= upper_a && first <= upper_z {
+    return true
+  }
+  let underscore : UInt16 = 95
+  let all_upper_or_underscore = fn() -> Bool {
+    for i = 0; i < n.length(); i = i + 1 {
+      let c = n[i]
+      if !((c >= upper_a && c <= upper_z) || c == underscore || (c >= 48 && c <= 57)) {
+        return false
+      }
+    }
+    true
+  }
+  all_upper_or_underscore()
+}
+
+///|
 impl @syntax.IterVisitor for Cwe079InnerHtmlVisitor with fn visit_Expr_DotApply(
   env,
   self~,
@@ -41,11 +69,13 @@ impl @syntax.IterVisitor for Cwe079InnerHtmlVisitor with fn visit_Expr_DotApply(
   loc~,
 ) {
   if method_name.name == "inner_html" {
-    let first_arg_is_constant = match args {
+    let first_arg_is_safe = match args {
       More({ value: Constant(c=String(_), ..), .. }, ..) => true
+      More({ value: Ident(id~, ..), .. }, ..) =>
+        is_constant_ident(id.name)
       _ => false
     }
-    if !first_arg_is_constant {
+    if !first_arg_is_safe {
       env.findings.push(
         make_finding(
           { cwe: 79, variant: "inner-html" },

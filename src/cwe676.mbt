@@ -48,6 +48,9 @@ fn is_dangerous_unsafe(name : String) -> Bool {
     return false
   }
   let suffix = name[7:].to_owned()
+  if suffix == "to_char" || suffix == "to_byte" {
+    return false
+  }
   if suffix.has_prefix("to_") || suffix.has_prefix("from_") {
     return true
   }

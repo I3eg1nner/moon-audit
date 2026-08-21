@@ -14,6 +14,7 @@ priv struct Cwe248Visitor {
   source : String
   severity : Severity
   mut in_guard_else : Bool
+  mut in_unwrap_fn : Bool
 }
 
 ///|
@@ -43,6 +44,7 @@ pub fn run_cwe248(
     source,
     severity,
     in_guard_else: false,
+    in_unwrap_fn: false,
   }
   impls.each(fn(impl_) { @syntax.IterVisitor::visit_Impl(visitor, impl_) })
 }
@@ -65,6 +67,14 @@ fn get_panic_kind(func : @syntax.Expr) -> String {
       }
     _ => ""
   }
+}
+
+///|
+fn is_unwrap_function(name : String) -> Bool {
+  name == "unwrap" ||
+  name == "unwrap_or_error" ||
+  name == "get_exn" ||
+  name == "exn"
 }
 
 ///|
@@ -115,6 +125,25 @@ fn is_contract_assertion(
 }
 
 ///|
+impl @syntax.IterVisitor for Cwe248Visitor with fn visit_Impl_TopFuncDef(
+  env,
+  fun_decl~,
+  decl_body~,
+  where_clause~,
+  loc~,
+) {
+  let prev = env.in_unwrap_fn
+  env.in_unwrap_fn = is_unwrap_function(fun_decl.name.name)
+  @syntax.IterVisitor::base(env).visit_Impl_TopFuncDef(
+    fun_decl~,
+    decl_body~,
+    where_clause~,
+    loc~,
+  )
+  env.in_unwrap_fn = prev
+}
+
+///|
 impl @syntax.IterVisitor for Cwe248Visitor with fn visit_Expr_Guard(
   env,
   cond~,
@@ -148,6 +177,7 @@ impl @syntax.IterVisitor for Cwe248Visitor with fn visit_Expr_Apply(
   let kind = get_panic_kind(func)
   if kind != "" &&
     !env.in_guard_else &&
+    !env.in_unwrap_fn &&
     !is_unreachable_abort(args) &&
     !is_bare_panic(kind, args) &&
     !is_contract_assertion(kind, args) {

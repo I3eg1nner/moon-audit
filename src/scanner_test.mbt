@@ -267,8 +267,17 @@ test "CWE-022: path + constant string should not trigger" {
 // ---------------------------------------------------------------------------
 
 ///|
-test "CWE-676: unsafe_to_char should trigger" {
+test "CWE-676: unsafe_to_char should not trigger (common safe conversion)" {
   let source = "fn foo(n : Int) -> Char { n.unsafe_to_char() }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe676(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-676: unsafe_from_int via dot-apply should trigger" {
+  let source = "fn foo(n : Int) -> Byte { n.unsafe_from_int() }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[Finding] = []
   run_cwe676(impls, "test.mbt", source, findings, Warning)
