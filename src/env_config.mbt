@@ -172,7 +172,7 @@ pub fn generate_llm_script(
   buf.write_string("_dotenv = load_dotenv()\n")
   buf.write_string("def _cfg(key, default=''):\n")
   buf.write_string(
-    "    return os.environ.get(key) or _dotenv.get(key) or default\n\n",
+    "    return _dotenv.get(key) or os.environ.get(key) or default\n\n",
   )
   buf.write_string(
     "# ── Configuration (.env → env var → default) ──\n",
@@ -184,7 +184,7 @@ pub fn generate_llm_script(
   buf.write_string(escape_py_str(llm_config.model))
   buf.write_string("')\n")
   buf.write_string(
-    "API_KEY  = _cfg('LLM_API_KEY') or _cfg('ANTHROPIC_API_KEY')\n\n",
+    "API_KEY  = _cfg('LLM_API_KEY') or _cfg('API_KEY') or _cfg('ANTHROPIC_API_KEY')\n\n",
   )
   buf.write_string("if not API_KEY:\n")
   buf.write_string("    print('ERROR: No API key configured.')\n")
