@@ -50,7 +50,9 @@ fn is_constant_ident(name : @syntax.LongIdent) -> Bool {
   let all_upper_or_underscore = fn() -> Bool {
     for i = 0; i < n.length(); i = i + 1 {
       let c = n[i]
-      if !((c >= upper_a && c <= upper_z) || c == underscore || (c >= 48 && c <= 57)) {
+      if !((c >= upper_a && c <= upper_z) ||
+        c == underscore ||
+        (c >= 48 && c <= 57)) {
         return false
       }
     }
@@ -71,8 +73,7 @@ impl @syntax.IterVisitor for Cwe079InnerHtmlVisitor with fn visit_Expr_DotApply(
   if method_name.name == "inner_html" {
     let first_arg_is_safe = match args {
       More({ value: Constant(c=String(_), ..), .. }, ..) => true
-      More({ value: Ident(id~, ..), .. }, ..) =>
-        is_constant_ident(id.name)
+      More({ value: Ident(id~, ..), .. }, ..) => is_constant_ident(id.name)
       _ => false
     }
     if !first_arg_is_safe {
