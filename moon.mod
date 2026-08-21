@@ -15,7 +15,7 @@ repository = "https://github.com/I3eg1nner/moon-audit"
 preferred_target = "native"
 
 import {
-  "moonbitlang/parser@0.3.15",
-  "moonbitlang/lexer@0.3.14",
-  "moonbitlang/x@0.4.50",
+  "moonbitlang/parser@0.3.18",
+  "moonbitlang/lexer@0.3.15",
+  "moonbitlang/x@0.5.1",
 }
