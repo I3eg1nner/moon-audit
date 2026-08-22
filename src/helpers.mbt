@@ -73,6 +73,173 @@ pub fn is_any_constant(expr : @syntax.Expr) -> Bool {
 }
 
 ///|
+pub fn is_constant_ident(name : @syntax.LongIdent) -> Bool {
+  let n = match name {
+    Ident(name~) => name
+    Dot(id~, ..) => id
+  }
+  if n.length() == 0 {
+    return false
+  }
+  let first = n[0]
+  let upper_a : UInt16 = 65
+  let upper_z : UInt16 = 90
+  if first >= upper_a && first <= upper_z {
+    return true
+  }
+  let underscore : UInt16 = 95
+  let all_upper_or_underscore = fn() -> Bool {
+    for i = 0; i < n.length(); i = i + 1 {
+      let c = n[i]
+      if !((c >= upper_a && c <= upper_z) ||
+        c == underscore ||
+        (c >= 48 && c <= 57)) {
+        return false
+      }
+    }
+    true
+  }
+  all_upper_or_underscore()
+}
+
+///|
+fn is_sanitize_call_name(name : String) -> Bool {
+  name.contains("sanitize") ||
+  name.contains("escape") ||
+  name.contains("encode")
+}
+
+///|
+fn is_crlf_like(s : String) -> Bool {
+  s == "\\r" ||
+  s == "\\n" ||
+  s == "\\r\\n" ||
+  s == "\r" ||
+  s == "\n" ||
+  s == "\r\n"
+}
+
+///|
+fn is_crlf_stripping_chain(expr : @syntax.Expr) -> Bool {
+  match expr {
+    DotApply(self~, method_name~, args~, ..) =>
+      if method_name.name == "replace_all" || method_name.name == "replace" {
+        let old_val = get_labelled_string_value(args, "old")
+        match old_val {
+          Some(s) =>
+            if is_crlf_like(s) {
+              is_crlf_stripping_chain(self)
+            } else {
+              false
+            }
+          _ => false
+        }
+      } else {
+        false
+      }
+    Ident(..) | Field(..) | Constant(..) => true
+    _ => false
+  }
+}
+
+///|
+fn apply_func_name(func : @syntax.Expr) -> String? {
+  match func {
+    Ident(id~, ..) =>
+      match id.name {
+        Ident(name~) => Some(name)
+        Dot(id~, ..) => Some(id)
+      }
+    _ => None
+  }
+}
+
+///|
+fn any_arg_is_sanitized(args : @list.List[@syntax.Argument]) -> Bool {
+  let mut result = false
+  args.each(fn(arg) {
+    if is_sanitized_expr(arg.value) || is_safe_value(arg.value) {
+      result = true
+    }
+  })
+  result
+}
+
+///|
+pub fn is_sanitized_expr(expr : @syntax.Expr) -> Bool {
+  match expr {
+    Apply(func~, args~, ..) =>
+      match apply_func_name(func) {
+        Some(name) =>
+          if is_sanitize_call_name(name) {
+            true
+          } else {
+            any_arg_is_sanitized(args)
+          }
+        _ => false
+      }
+    DotApply(method_name~, ..) =>
+      if is_sanitize_call_name(method_name.name) {
+        true
+      } else {
+        is_crlf_stripping_chain(expr)
+      }
+    _ => is_crlf_stripping_chain(expr)
+  }
+}
+
+///|
+fn is_safe_source_text(s : String) -> Bool {
+  if s.length() == 0 {
+    return true
+  }
+  let first = s[0]
+  let upper_a : UInt16 = 65
+  let upper_z : UInt16 = 90
+  if first >= upper_a && first <= upper_z {
+    return true
+  }
+  false
+}
+
+///|
+fn interp_elems_are_safe(elems : @list.List[@syntax.InterpElem]) -> Bool {
+  let mut safe = true
+  elems.each(fn(elem) {
+    match elem {
+      Literal(..) => ()
+      Expr(expr~, ..) => if !is_safe_value(expr) { safe = false }
+      Source(src) => if !is_safe_source_text(src.source) { safe = false }
+    }
+  })
+  safe
+}
+
+///|
+fn match_branches_all_constant(cases : @list.List[@syntax.Case]) -> Bool {
+  let mut all_const = true
+  cases.each(fn(case) {
+    match case {
+      { body, .. } => if !is_safe_value(body) { all_const = false }
+    }
+  })
+  all_const
+}
+
+///|
+pub fn is_safe_value(expr : @syntax.Expr) -> Bool {
+  match expr {
+    Constant(..) => true
+    Constr(..) => true
+    Ident(id~, ..) => is_constant_ident(id.name)
+    Interp(elems~, ..) => interp_elems_are_safe(elems)
+    Field(..) => true
+    Match(cases~, ..) => match_branches_all_constant(cases)
+    _ => is_sanitized_expr(expr)
+  }
+}
+
+///|
 pub fn get_source_line(source : String, line_num : Int) -> String {
   let idx = line_num - 1
   let mut i = 0

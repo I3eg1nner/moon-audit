@@ -31,6 +31,82 @@ test "CWE-113: add_header with dynamic value should trigger" {
   assert_true(findings.length() > 0)
 }
 
+///|
+test "CWE-113: sanitize_header_value wrapping should not trigger" {
+  let source = "fn foo(resp : Response, val : String) -> Unit { resp.set_header(\"X-Custom\", sanitize_header_value(val)) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-113: replace_all CRLF stripping should not trigger" {
+  let source = "fn foo(resp : Response, val : String) -> Unit { resp.set_header(\"X-Custom\", val.replace_all(old=\"\\r\", new=\"\").replace_all(old=\"\\n\", new=\"\")) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-113: config field access should not trigger" {
+  let source = "fn foo(ctx : Context, config : Config) -> Unit { ctx.set_header(\"Cache-Control\", config.cache_control) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-113: CamelCase identifier should not trigger" {
+  let source = "fn foo(resp : Response) -> Unit { resp.set_header(\"Content-Type\", ContentType) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-113: interpolation with constant identifier should not trigger" {
+  let source =
+    #|fn foo(ctx : Context) -> Unit { ctx.set_header("Cache-Control", "s-maxage=\{MaxAge}") }
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-113: let-bound sanitized value should not trigger" {
+  let source =
+    #|fn foo(resp : Response, val : String) -> Unit { let safe = sanitize_header_value(val); resp.set_header("X-Custom", safe) }
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-113: let-bound replace_all chain should not trigger" {
+  let source =
+    #|fn foo(resp : Response, val : String) -> Unit { let clean = val.replace_all(old="\r", new="").replace_all(old="\n", new=""); resp.set_header("X-Custom", clean) }
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-113: string interpolation with dynamic value should trigger" {
+  let source =
+    #|fn foo(ctx : Context, user_input : String) -> Unit { ctx.set_header("X-Data", "value=\{user_input}") }
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
 // ---------------------------------------------------------------------------
 // CWE-79/template: HTML response with string interpolation
 // ---------------------------------------------------------------------------
