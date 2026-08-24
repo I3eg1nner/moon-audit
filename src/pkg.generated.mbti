@@ -106,7 +106,13 @@ pub fn has_labelled_bool_arg(@list.List[@syntax.Argument], String, Bool) -> Bool
 
 pub fn is_any_constant(@syntax.Expr) -> Bool
 
+pub fn is_constant_ident(@syntax.LongIdent) -> Bool
+
 pub fn is_constant_string(@syntax.Expr) -> Bool
+
+pub fn is_safe_value(@syntax.Expr) -> Bool
+
+pub fn is_sanitized_expr(@syntax.Expr) -> Bool
 
 pub fn list_all_rules() -> Array[RuleInfo]
 
