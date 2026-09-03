@@ -216,6 +216,23 @@ fn main {
         ],
       ),
       @argparse.Command(
+        "ir-stats",
+        about="M1 IR spike: measure type-reconstruction call-site resolution rate",
+        flags=[
+          @argparse.FlagArg(
+            "details",
+            short='d',
+            long="details",
+            about="List unresolved call sites",
+          ),
+        ],
+        positionals=[
+          @argparse.PositionArg("path", about="Project path to analyze", default_values=[
+            ".",
+          ]),
+        ],
+      ),
+      @argparse.Command(
         "generate-baseline",
         about="Generate a baseline file from current scan findings",
         options=[
@@ -283,6 +300,7 @@ fn main {
     Some(("pipeline", sub)) => cmd_pipeline(sub)
     Some(("summary", sub)) => cmd_summary(sub)
     Some(("generate-baseline", sub)) => cmd_generate_baseline(sub)
+    Some(("ir-stats", sub)) => cmd_ir_stats(sub)
     Some(("deep-audit", sub)) => cmd_deep_audit(sub)
     _ => cmd_scan(matches)
   }
@@ -921,4 +939,86 @@ fn cmd_deep_audit(matches : @argparse.Matches) -> Unit {
     " source files for deep security review",
   )
   println("  3. Save combined report to deep_audit_report.json")
+}
+
+///|
+fn cmd_ir_stats(matches : @argparse.Matches) -> Unit {
+  let path = get_val(matches, "path", ".")
+  let details = match matches.flags.get("details") {
+    Some(v) => v
+    None => false
+  }
+  println("moon-audit ir-stats (M1 type-reconstruction spike)")
+  println("target: " + path)
+  println("")
+  let config = @audit.load_config(".moon-audit.json")
+  let stats = @audit.run_ir_stats(path, config)
+  println("files scanned:  " + stats.files_scanned.to_string())
+  println("funcs scanned:  " + stats.funcs_scanned.to_string())
+  println("call sites:     " + stats.total_calls.to_string())
+  println("")
+  println(
+    "static calls:   " +
+    stats.static_calls.to_string() +
+    "  resolved " +
+    stats.static_resolved.to_string() +
+    " (" +
+    pct(stats.static_resolved, stats.static_calls) +
+    ")",
+  )
+  println(
+    "receiver calls: " +
+    stats.receiver_calls.to_string() +
+    "  concrete " +
+    stats.receiver_resolved.to_string() +
+    " (" +
+    pct(stats.receiver_resolved, stats.receiver_calls) +
+    ")  dispatch " +
+    stats.receiver_dispatch.to_string() +
+    "  unknown " +
+    stats.receiver_unknown.to_string(),
+  )
+  println(
+    "higher-order:   " +
+    stats.higher_calls.to_string() +
+    "  (closure/callback callees — M2/M4 scope)",
+  )
+  println("")
+  println(
+    "combined resolution: " +
+    stats.combined_resolution().to_string() +
+    "%  (" +
+    (stats.static_resolved + stats.receiver_resolved).to_string() +
+    "/" +
+    stats.total_calls.to_string() +
+    ")",
+  )
+  if details {
+    println("")
+    println("unresolved sites:")
+    for site in stats.sites {
+      if !site.resolved {
+        println(
+          "  [" +
+          site.kind +
+          "] " +
+          site.file +
+          ":" +
+          site.line.to_string() +
+          "  target=" +
+          site.target +
+          "  recv=" +
+          site.recv_ty,
+        )
+      }
+    }
+  }
+}
+
+///|
+fn pct(num : Int, den : Int) -> String {
+  if den == 0 {
+    return "0%"
+  }
+  (num * 100 / den).to_string() + "%"
 }
