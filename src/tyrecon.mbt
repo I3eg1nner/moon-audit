@@ -401,7 +401,7 @@ fn scan_params_body(
         bind_param_hinted(binder.name, ty, i, hint_arr, ctx, saved)
       Labelled(binder~, ty~) =>
         bind_param_hinted(binder.name, ty, i, hint_arr, ctx, saved)
-      Optional(binder~, ty~) =>
+      Optional(binder~, ty~, ..) =>
         bind_param_hinted(binder.name, ty, i, hint_arr, ctx, saved)
       QuestionOptional(binder~, ty~) =>
         bind_param_hinted(binder.name, ty, i, hint_arr, ctx, saved)
@@ -577,7 +577,7 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
     }
     Apply(func~, args~, ..) => {
       let ret = infer_apply(func, ctx)
-      let key = callee_key(func, ctx)
+      let key = callee_key(func)
       visit_args(args, key, ctx, 0)
       ret
     }
@@ -676,7 +676,7 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
             bind_param_hinted(binder.name, ty, i, hints, ctx, saved)
           Labelled(binder~, ty~) =>
             bind_param_hinted(binder.name, ty, i, hints, ctx, saved)
-          Optional(binder~, ty~) =>
+          Optional(binder~, ty~, ..) =>
             bind_param_hinted(binder.name, ty, i, hints, ctx, saved)
           QuestionOptional(binder~, ty~) =>
             bind_param_hinted(binder.name, ty, i, hints, ctx, saved)
@@ -701,7 +701,7 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
       let _ = infer_expr(expr, ctx)
       IRConcrete("Bool", [])
     }
-    RegexMatch(expr~, bindings~) => {
+    RegexMatch(expr~, bindings~, ..) => {
       let t = infer_expr(expr, ctx)
       // regex captures and `after=` remainders are strings
       for binding in bindings {
@@ -799,7 +799,7 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
       let t = infer_expr(record, ctx)
       match (t, accessor) {
         (IRConcrete(name, _), Label(l)) =>
-          match ctx.symbols.struct_fields.get(name) {
+          match get_struct_fields(ctx.symbols, name) {
             Some(fields) =>
               match fields.get(l.name) {
                 Some(ft) => ft
@@ -936,12 +936,6 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
 }
 
 ///|
-fn dummy_loc() -> @basic.Location {
-  {
-    start: { fname: "", lnum: 0, bol: 0, cnum: 0 },
-    end: { fname: "", lnum: 0, bol: 0, cnum: 0 },
-  }
-}
 
 ///|
 fn const_type(c : @syntax.Constant) -> IRType {
@@ -985,12 +979,26 @@ fn bind_pattern(pat : @syntax.Pattern, ty : IRType, ctx : ScanCtx) -> Unit {
       for p in pats {
         bind_pattern(p, IRUnresolved, ctx)
       }
-    Constr(args~, ..) =>
+    Constr(constr~, args~, ..) =>
       match args {
-        Some(list) =>
-          for arg in list {
-            bind_pattern(arg.pat, IRUnresolved, ctx)
+        Some(list) => {
+          // payload types: local enum decl first, then builtin Some/Ok/Err
+          let payload : Array[IRType] = match
+            ctx.symbols.constr_params.get(constr.name.name) {
+            Some(tys) => tys
+            None => builtin_constr_payload(constr.name.name, ty)
           }
+          let mut i = 0
+          for arg in list {
+            let pt = if i < payload.length() {
+              payload[i]
+            } else {
+              IRUnresolved
+            }
+            bind_pattern(arg.pat, pt, ctx)
+            i += 1
+          }
+        }
         None => ()
       }
     SpecialConstr(binder~, args~, ..) => {
@@ -1044,7 +1052,7 @@ fn bind_array_pat(ap : @syntax.ArrayPattern, ctx : ScanCtx) -> Unit {
 // ── Call-site classification ──────────────────────────────────────────────
 
 ///|
-fn callee_key(func : @syntax.Expr, ctx : ScanCtx) -> String {
+fn callee_key(func : @syntax.Expr) -> String {
   match func {
     Method(type_name~, method_name~, ..) =>
       type_name_str(type_name) + "::" + method_name.name
@@ -1106,7 +1114,7 @@ fn infer_apply(func : @syntax.Expr, ctx : ScanCtx) -> IRType {
         None => or_unresolved(get_fn_ret(ctx.symbols, key))
       }
     }
-    Constr(constr~) => {
+    Constr(constr~, ..) => {
       // `Map([...])` etc.: constructor-style application
       let name = constr.name.name
       ctx.stats.total_calls += 1
@@ -1312,17 +1320,6 @@ fn elem_type(t : IRType) -> IRType {
 }
 
 ///|
-fn value_type(t : IRType) -> IRType {
-  match t {
-    IRConcrete("Option", args) =>
-      if args.length() >= 1 {
-        args[0]
-      } else {
-        IRUnresolved
-      }
-    _ => t
-  }
-}
 
 ///|
 fn is_stringy(t : IRType) -> Bool {
@@ -1425,7 +1422,6 @@ fn builtin_method_ret(recv : String, mname : String) -> IRType? {
       | "to_camel_case"
       | "replace"
       | "get_unsafe"
-      | "hash"
       | "pad_left"
       | "pad_right"
       | "pad_start"
@@ -1442,7 +1438,6 @@ fn builtin_method_ret(recv : String, mname : String) -> IRType? {
       | "contains"
       | "starts_with"
       | "ends_with"
-      | "view"
       | "charCodeAt"
       | "get_char_or_zero"
       | "find"
@@ -1465,17 +1460,6 @@ fn builtin_method_ret(recv : String, mname : String) -> IRType? {
     ("Buffer", "length" | "size") => Some(IRConcrete("Int", []))
     ("Map", "keys" | "values") => Some(IRConcrete("Array", []))
     ("Map", "iter" | "iter2") => Some(IRConcrete("Iter", []))
-    (
-      "Map",
-      "size"
-      | "length"
-      | "each"
-      | "eachi"
-      | "contains"
-      | "set"
-      | "remove"
-      | "clear",
-    ) => Some(IRUnit)
     ("Array", "to_array" | "copy" | "iter" | "rev_inplace") =>
       Some(IRConcrete("__arraymap__", []))
     ("String", "view") => Some(IRConcrete("StringView", []))

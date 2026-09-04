@@ -22,7 +22,21 @@
 - [x] CONTEXT.md 真实数字落盘（含 5 轮迭代记录）
 - [ ] M1 完成线（接收者 ≥90%）：依赖 M2 的闭包提升 + 依赖类型表（排期到 M2 一起验收）
 
-## Phase M2：流敏感污点引擎（2026-09-03 核心完成）
+## Phase M2.5：稳定化（2026-09-04 完成，评审驱动）
+- [x] moon check/test --deny-warn 全绿（0 警告；修复 String.view 不可达分支等指标 bug）
+- [x] sanitizer 收紧：仅 replace_all 链且需覆盖 \\r+\\n（或复合 \\r\\n）；单次 replace 不算
+- [x] guard 极性修正：仅"白名单通过/危险缺席(取反)"清洁 then 分支；
+      正向 contains(危险) 不再错误清污（新增对抗测试覆盖）
+- [x] AST 事实记录：parser Constant String 存原始转义文本（非控制字节），匹配需双形式
+- [x] If/Match 表达式污点 join（let v = if/match ... 不再漏报）
+- [x] 摘要精确参数映射（仅记录实际到达 sink 的参数）+ 嵌套 sink 统一事件（flow() 内递归记录）
+- [x] taint_or 混合溯源降级为 Tainted（保守）
+- [x] 验收：122/122 × 4 targets；deny-warn 全绿；mocket/petgraph/自举 0 FP 持平
+- [ ] pipeline 双引擎统一（cmd_pipeline 仍用旧 run_taint_analysis）→ M4 前处理
+- [ ] 循环不动点（当前单遍）→ 显式 IR/CFG 时实现
+- [ ] 21 项目全量语料 precision/recall 回归 → 推送前跑（本地仅 3 目标 0 FP）
+
+## Phase M2：流敏感污点引擎（2026-09-03 核心完成，M2.5 后视为完成 ~70%）
 - [x] 依赖类型表：.mooncakes 依赖源码符号摄取（+2% 解析率）+ short_key 归一化
 - [x] 流敏感污点引擎（taint_flow.mbt）：结构化 CFG 遍历、分支 fork/join 合并、
       guard/校验精化（validated var → Clean）、消毒器/CRLF 剥离、插值 Source 孔

@@ -416,3 +416,70 @@ test "Helpers: get_source_line extracts correct line" {
   let source = "line1\nline2\nline3\n"
   assert_true(get_source_line(source, 2) == "line2")
 }
+
+// ---------------------------------------------------------------------------
+// M2.5 adversarial: sanitizer strictness + guard polarity
+// ---------------------------------------------------------------------------
+
+///|
+test "M2.5: positive contains(danger) must still trigger" {
+  let source = "fn foo(resp : Response, x : String) -> Unit { if x.contains(\"\\r\\n\") { resp.set_header(\"X\", x) } }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "M2.5: negated contains(danger) cleans then-branch" {
+  let source = "fn foo(resp : Response, x : String) -> Unit { if !x.contains(\"\\r\\n\") { resp.set_header(\"X\", x) } else { abort(\"\") } }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "M2.5: negated whitelist is NOT clean" {
+  let source = "fn foo(resp : Response, x : String) -> Unit { if !x.is_ascii() { abort(\"\") } else { resp.set_header(\"X\", x) } }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "M2.5: single replace (not replace_all) is not a sanitizer" {
+  let source = "fn foo(resp : Response, val : String) -> Unit { resp.set_header(\"X-Custom\", val.replace(old=\"\\r\\n\", new=\"\")) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "M2.5: replace_all of only \\r alone is not a sanitizer" {
+  let source = "fn foo(resp : Response, val : String) -> Unit { resp.set_header(\"X-Custom\", val.replace_all(old=\"\\r\", new=\"\")) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "M2.5: if-expression taint joins to let" {
+  let source = "fn foo(resp : Response, cond : Bool, dirty : String) -> Unit { let v = if cond { dirty } else { \"safe\" }; resp.set_header(\"X\", v) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "M2.5: match-expression taint joins to let" {
+  let source = "fn foo(resp : Response, n : Int, dirty : String) -> Unit { let v = match n { 0 => \"safe\"; _ => dirty }; resp.set_header(\"X\", v) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}

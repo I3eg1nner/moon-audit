@@ -18,8 +18,14 @@ fn taint_or(a : Taint, b : Taint) -> Taint {
   match (a, b) {
     (Clean, b) => b
     (a, Clean) => a
-    (TaintedParam(p), _) => TaintedParam(p)
+    (TaintedParam(p), TaintedParam(q)) =>
+      if p == q {
+        TaintedParam(p)
+      } else {
+        Tainted // mixed provenance: keep taint, drop single-param attribution
+      }
     (_, TaintedParam(p)) => TaintedParam(p)
+    (TaintedParam(p), _) => TaintedParam(p)
     _ => Tainted
   }
 }
@@ -195,7 +201,8 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
           report_cwe113(ctx, expr, value_taint)
         }
         Clean
-      } else if is_sanitize_call_name(mname) || is_crlf_strip_call(mname, args) {
+      } else if is_sanitize_call_name(mname) ||
+        is_crlf_strip_chain(mname, args, self) {
         Clean
       } else {
         match classify_source_method(mname) {
@@ -281,11 +288,14 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
         Some(name) => then_ctx.env[name] = Clean
         None => ()
       }
-      let _ = flow(ifso, then_ctx)
+      let then_t = flow(ifso, then_ctx)
       let else_ctx = ctx.copy()
-      let _ = ifnot.map(fn(e) { flow(e, else_ctx) })
+      let else_t = match ifnot {
+        Some(e) => flow(e, else_ctx)
+        None => Clean
+      }
       merge_env(ctx, then_ctx, else_ctx)
-      Clean
+      taint_or(then_t, else_t)
     }
     Guard(cond~, body~, ..) => {
       // guard COND else OTHERWISE; BODY runs when cond holds
@@ -377,16 +387,17 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
     Match(expr~, cases~, ..) => {
       let scrut = flow(expr, ctx)
       let branch_envs : Array[FlowCtx] = []
+      let mut result = Clean
       for case in cases {
         let case_ctx = ctx.copy()
         bind_pattern_taint(case.pattern, scrut, case_ctx)
         // constant patterns refine: `x is Some(...)`, literals
         let _ = case.guard_.map(fn(e) { flow(e, case_ctx) })
-        let _ = flow(case.body, case_ctx)
+        result = taint_or(result, flow(case.body, case_ctx))
         branch_envs.push(case_ctx)
       }
       merge_envs(ctx, branch_envs)
-      Clean
+      result
     }
     LexMatch(expr~, cases~, ..) => {
       let t = flow(expr, ctx)
@@ -650,21 +661,56 @@ fn header_value_taint(
 // `x.replace_all(old="\r", new="")` strips CRLF: a sanitizer
 
 ///|
-fn is_crlf_strip_call(
+fn is_crlf_strip_chain(
   mname : String,
   args : @list.List[@syntax.Argument],
+  recv : @syntax.Expr,
 ) -> Bool {
-  if mname != "replace_all" && mname != "replace" && mname != "remove" {
-    return false
+  let (cr, lf, crlf) = crlf_strip_coverage(mname, args, recv)
+  crlf || (cr && lf)
+}
+
+// coverage triples of a strip chain: (removed
+
+///|
+fn crlf_strip_coverage(
+  mname : String,
+  args : @list.List[@syntax.Argument],
+  recv : @syntax.Expr,
+) -> (Bool, Bool, Bool) {
+  if mname != "replace_all" {
+    return (false, false, false)
   }
-  let mut has_crlf_arg = false
+  let mut has_cr = false
+  let mut has_lf = false
+  let mut has_crlf = false
   for arg in args {
     match arg.value {
-      Constant(c=String(s), ..) => if is_crlf_like(s) { has_crlf_arg = true }
+      Constant(c=String(s), ..) => {
+        if s == "\\r\\n" || s == "\r\n" {
+          has_crlf = true
+        }
+        if s == "\\r" || s == "\r" {
+          has_cr = true
+        }
+        if s == "\\n" || s == "\n" {
+          has_lf = true
+        }
+      }
       _ => ()
     }
   }
-  has_crlf_arg
+  match recv {
+    DotApply(self~, method_name~, args~, ..) => {
+      let (r_cr, r_lf, r_crlf) = crlf_strip_coverage(
+        method_name.name,
+        args,
+        self,
+      )
+      (has_cr || r_cr, has_lf || r_lf, has_crlf || r_crlf)
+    }
+    _ => (has_cr, has_lf, has_crlf)
+  }
 }
 
 // ── guard/validation refinement ───────────────────────────────────────────
@@ -682,71 +728,108 @@ fn is_false_const(e : @syntax.Expr) -> Bool {
 
 ///|
 fn validated_var(cond : @syntax.Expr) -> String? {
+  // STRICT polarity: the taken branch is clean ONLY when the condition
+  // asserts safety:
+  //   - whitelist validator holds:      x.is_ascii(), x =~ re"[...]"
+  //   - dangerous content ABSENT:       !x.contains(CRLF), x.contains(CRLF) == false
+  // `x.contains(CRLF)` (positive) = danger IS present: not clean.
+  // `!x.is_ascii()` (negated whitelist): not clean.
   match cond {
-    Unary(expr~, ..) => validated_var_positive(expr)
-    // `x.contains(...) == false` style
-    Infix(lhs~, rhs~, ..) => {
-      // `x.contains(..) == false` / `false == x.contains(..)`
-      let lfalse = is_false_const(lhs)
-      let rfalse = is_false_const(rhs)
-      if lfalse {
-        validated_var_positive(rhs)
-      } else if rfalse {
-        validated_var_positive(lhs)
+    Unary(op~, expr~, ..) =>
+      if is_not_op(op) {
+        dangerous_contains_var(expr)
       } else {
-        validated_var_positive(cond)
+        None
       }
-    }
-    _ => validated_var_positive(cond)
+    Infix(op~, lhs~, rhs~, ..) =>
+      if is_eq_op(op) {
+        if is_false_const(lhs) {
+          dangerous_contains_var(rhs)
+        } else if is_false_const(rhs) {
+          dangerous_contains_var(lhs)
+        } else {
+          None
+        }
+      } else {
+        None
+      }
+    RegexMatch(expr~, ..) => flow_var_name(expr)
+    DotApply(self~, method_name~, ..) =>
+      if is_whitelist_validator(method_name.name) {
+        flow_var_name(self)
+      } else {
+        None
+      }
+    _ => None
   }
 }
 
-// positive validation form: the tested variable is the receiver/arg
+// `x.contains(CRLF literal)`: var whose DANGEROUS content is tested
+// (clean only under negation)
 
 ///|
-fn validated_var_positive(expr : @syntax.Expr) -> String? {
+fn dangerous_contains_var(expr : @syntax.Expr) -> String? {
   match expr {
     DotApply(self~, method_name~, ..) => {
       let m = method_name.name
-      if is_validation_method(m) || m == "view" {
+      if (m == "contains" || m == "has_prefix" || m == "has_suffix") &&
+        args_have_crlf_literal(expr) {
         flow_var_name(self)
       } else {
         None
       }
     }
-    Apply(func~, args~, ..) =>
-      match apply_func_name(func) {
-        Some(name) =>
-          if is_validation_method(name) {
-            let mut found : String? = None
-            for arg in args {
-              match flow_var_name(arg.value) {
-                Some(n) => {
-                  found = Some(n)
-                  break
-                }
-                None => ()
-              }
-            }
-            found
-          } else {
-            None
-          }
-        None => None
-      }
-    RegexMatch(expr~, ..) => flow_var_name(expr)
-    Is(expr~, ..) => flow_var_name(expr)
     _ => None
   }
 }
 
 ///|
-fn is_validation_method(name : String) -> Bool {
+fn args_have_crlf_literal(e : @syntax.Expr) -> Bool {
+  match e {
+    DotApply(args~, ..) => {
+      let mut found = false
+      for arg in args {
+        match arg.value {
+          // NOTE: parser Constant strings hold RAW source text, so CRLF
+          // appears as the 2-char escape sequences, not control bytes
+          Constant(c=String(s), ..) =>
+            if s.contains("\\r") ||
+              s.contains("\\n") ||
+              s.contains("\r") ||
+              s.contains("\n") {
+              found = true
+            }
+          _ => ()
+        }
+      }
+      found
+    }
+    _ => false
+  }
+}
+
+///|
+fn is_not_op(v : @syntax.Var) -> Bool {
+  match v.name {
+    Ident(name~) => name == "not" || name == "!"
+    Dot(..) => false
+  }
+}
+
+///|
+fn is_eq_op(v : @syntax.Var) -> Bool {
+  match v.name {
+    Ident(name~) => name == "=="
+    Dot(..) => false
+  }
+}
+
+// whitelist validators: passing implies the value is safe for headers
+
+///|
+fn is_whitelist_validator(name : String) -> Bool {
   match name {
-    "contains"
-    | "has_prefix"
-    | "has_suffix"
-    | "is_ascii"
+    "is_ascii"
     | "is_alnum"
     | "is_digit"
     | "is_lower"
@@ -754,14 +837,13 @@ fn is_validation_method(name : String) -> Bool {
     | "is_whitespace"
     | "is_valid"
     | "validate"
-    | "check"
     | "sanitized"
-    | "is_safe"
-    | "starts_with"
-    | "ends_with" => true
+    | "is_safe" => true
     _ => false
   }
 }
+
+// positive validation form: the tested variable is the receiver/arg
 
 ///|
 fn flow_var_name(expr : @syntax.Expr) -> String? {
@@ -783,6 +865,15 @@ fn report_cwe113(ctx : FlowCtx, expr : @syntax.Expr, t : Taint) -> Unit {
   let origin = match t {
     TaintedParam(p) => " (via parameter `" + p + "`)"
     _ => ""
+  }
+  // M3 summary event: record which parameter reached a header sink
+  match t {
+    TaintedParam(p) =>
+      match ctx.record_sinks {
+        Some(arr) => if !arr.contains(p) { arr.push(p) }
+        None => ()
+      }
+    _ => ()
   }
   ctx.findings.push(
     make_finding(
@@ -919,18 +1010,21 @@ fn collect_summary_func(
   }
   record_param_sinks(body, ctx, sinks)
   if sinks.length() > 0 {
+    // precise mapping: ONLY parameters that actually reached a sink
     let param_sinks : Map[String, Array[TaintSink]] = Map([])
-    // header sinks recorded for every param that reached a sink
-    let header_arr : Array[TaintSink] = [HeaderValue]
-    for pn in param_names {
-      param_sinks[pn] = header_arr.copy()
+    for pn in sinks {
+      if param_names.contains(pn) && !param_sinks.contains(pn) {
+        param_sinks[pn] = [HeaderValue]
+      }
     }
-    ictx.summaries[name] = {
-      name,
-      file,
-      line,
-      params: param_names,
-      param_sinks,
+    if param_sinks.length() > 0 {
+      ictx.summaries[name] = {
+        name,
+        file,
+        line,
+        params: param_names,
+        param_sinks,
+      }
     }
   }
 }
@@ -944,56 +1038,7 @@ fn record_param_sinks(
   ctx : FlowCtx,
   sinks : Array[String],
 ) -> Unit {
-  // reuse flow(), side-recording param->sink on header reports
   ctx.record_sinks = Some(sinks)
-  let _ = flow_with_sink_recording(expr, ctx)
-}
-
-///|
-fn flow_with_sink_recording(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
-  match expr {
-    DotApply(self~, method_name~, args~) => {
-      if is_header_setter(method_name.name) {
-        let value_taint = header_value_taint(args, ctx)
-        match value_taint {
-          TaintedParam(p) =>
-            match ctx.record_sinks {
-              Some(arr) => {
-                let key = p + "|HeaderValue"
-                if !arr.contains(key) {
-                  arr.push(key)
-                }
-              }
-              None => ()
-            }
-          _ => ()
-        }
-      }
-      flow(expr, ctx)
-    }
-    Apply(func~, args~) => {
-      match apply_func_name(func) {
-        Some(name) =>
-          if is_header_setter(name) {
-            let value_taint = header_value_taint(args, ctx)
-            match value_taint {
-              TaintedParam(p) =>
-                match ctx.record_sinks {
-                  Some(arr) => {
-                    let key = p + "|HeaderValue"
-                    if !arr.contains(key) {
-                      arr.push(key)
-                    }
-                  }
-                  None => ()
-                }
-              _ => ()
-            }
-          }
-        None => ()
-      }
-      flow(expr, ctx)
-    }
-    _ => flow(expr, ctx)
-  }
+  let _ = flow(expr, ctx)
+  ctx.record_sinks = None
 }

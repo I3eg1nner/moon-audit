@@ -101,4 +101,20 @@ impl 枚举去虚化 + 闭包分配点建模 + call graph + （若可行）Ander
 - 语义迁移必须先写对齐测试（旧规则的 6 个 CWE-113 用例全部保留为回归）
 - AST 细节靠 dbg 打印实证，不靠猜：Source 插值孔、decl_params vs Function body
 
+## 2026-09-04 · M2.5 稳定化（外部评审驱动，全部整改）
+
+评审指出的 6 类问题全部处理：
+1. deny-warn：0 警告（修复 2 处不可达分支——String.view 误归类 Int 影响指标、
+   Map/方法表重复组）；moon check/test --deny-warn 全绿
+2. sanitizer 语义收紧：链式覆盖累积（\\r+\\n 双覆盖或复合序列），replace 单次不算
+3. guard 极性：正向 contains(危险) 不清洁；!白名单 不清洁；== false/取反仅清洁危险缺席
+4. 摘要：精确参数映射 + flow() 内统一 sink 事件（嵌套覆盖）+ 混合溯源保守降级
+5. If/Match 表达式污点 join
+6. 关键 AST 事实：parser Constant String = 原始转义文本（len("\r\n")==4），
+   所有字面量匹配需双形式（转义串 + 控制字节）
+
+验收：新增 7 个对抗测试；122/122 × 4 targets；deny-warn 全绿；
+mocket/petgraph/自举 0 FP；解析率 69%/86%/67%（指标 bug 修复后自举 +2%）
+未竟（记录于 TODO）：pipeline 双引擎统一、循环不动点、21 项目全量回归
+
 ## 待续（M4 起）

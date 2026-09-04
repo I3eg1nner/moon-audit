@@ -84,12 +84,3 @@ fn is_header_setter(method_name : String) -> Bool {
   method_name == "append_header" ||
   method_name == "set_response_header"
 }
-
-///|
-fn extract_pattern_name(pat : @syntax.Pattern) -> String? {
-  match pat {
-    Var(binder) => Some(binder.name)
-    Constraint(pat~, ..) => extract_pattern_name(pat)
-    _ => None
-  }
-}
