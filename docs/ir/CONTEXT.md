@@ -72,4 +72,33 @@
 
 ---
 
-## 待续（M2 起）
+## 2026-09-03 · M2 + M3 切片（同一会话续）
+
+**M2 产出与验收**
+- src/taint_flow.mbt（~950 行）：流敏感污点引擎。结构化 CFG 遍历（If/Match/Try
+  fork+join 合并、Guard/While/ForEach），Taint = Clean | Tainted | TaintedParam(param)
+  （参数溯源，供 M3 摘要），guard/校验精化（validated_var → then 分支 Clean），
+  消毒器 + replace_all CRLF 剥离识别，插值 Source 孔（词法级标识符）动态判定
+- cwe113.mbt 迁移至流引擎；旧 IterVisitor visitor 删除
+- 语义对齐中发现的 MoonBit AST 事实：`fn foo` 的 body 在 DeclBody 中是裸表达式
+  （非 Function 包裹），签名参数在 fun_decl.decl_params —— tyrecon 与 cwe113 均按此修正
+- 验收：mocket（已修复克隆）0 FP 持平旧规则；ft1（config 字段）0 FP；
+  ft2（插值污点）1 TP；115/115 × 4 targets
+- ir-stats 解析率：65% → 69%（mocket）/ 84%（自举），增量来自依赖类型表 +
+  Show::output 预置 + Option/Result 模式 payload + Map/Array 恒等方法表
+
+**M3 切片产出与验收**
+- collect_func_summaries_flow：流引擎结构化摘要（param → HeaderValue sink），
+  替换 taint_interprocedural.mbt 的文本扫描 Phase 1；scanner 调用点一行切换
+- 端到端测试：handler 污点参数 → set_custom 摘要命中 → finding ✓
+
+**M4 状态：未启动编码**（本会话预算耗尽）。设计已定稿于 PLAN.md/TODO.md：
+impl 枚举去虚化 + 闭包分配点建模 + call graph + （若可行）Andersen 约束图；
+动态真值验收（moonbitlang/coverage）标准已写入 TODO。
+剩余 M2/M3 尾项（接收者 ≥90%、return/field 摘要）依赖 M4 的闭包与去虚化，合并验收。
+
+**教训**
+- 语义迁移必须先写对齐测试（旧规则的 6 个 CWE-113 用例全部保留为回归）
+- AST 细节靠 dbg 打印实证，不靠猜：Source 插值孔、decl_params vs Function body
+
+## 待续（M4 起）

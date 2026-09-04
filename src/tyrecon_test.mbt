@@ -137,3 +137,25 @@ test "combined_resolution_math" {
   stats.receiver_resolved = 3
   inspect(stats.combined_resolution(), content="80")
 }
+
+///|
+test "m3_structural_summary_cross_function" {
+  let src = "fn set_custom(res : Response, val : String) -> Unit { res.set_header(\"X-Custom\", val) } pub fn handler(res : Response, req : Request) -> Unit { let v = req.query(\"q\"); set_custom(res, v) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let ictx = InterProceduralContext::new()
+  collect_func_summaries_flow(impls, "t.mbt", ictx)
+  // summary must record val -> HeaderValue for set_custom
+  inspect(ictx.summaries.contains("set_custom"), content="true")
+  let findings : Array[Finding] = []
+  let imports : ImportContext = {
+    has_cmark: false,
+    has_rabbita: false,
+    has_mocket: true,
+    has_crescent: false,
+    has_liquid: false,
+    has_pug: false,
+    is_stdlib: false,
+  }
+  run_cross_func_taint(impls, "t.mbt", src, findings, ictx, imports)
+  inspect(findings.length() > 0, content="true")
+}

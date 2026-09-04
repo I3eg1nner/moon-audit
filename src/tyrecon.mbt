@@ -29,7 +29,7 @@ pub(all) struct PkgSymbols {
 
 ///|
 pub fn PkgSymbols::new() -> PkgSymbols {
-  {
+  let symbols : PkgSymbols = {
     fn_exists: Map([]),
     fn_ret: Map([]),
     impl_methods: Map([]),
@@ -41,6 +41,10 @@ pub fn PkgSymbols::new() -> PkgSymbols {
     alias_arrows: Map([]),
     type_params: Map([]),
   }
+  // core trait method signatures (Show etc.) for impl param backfill
+  let show_params : Array[IRType?] = [None, Some(IRConcrete("Logger", []))]
+  symbols.trait_params["Show::output"] = show_params
+  symbols
 }
 
 ///|
@@ -569,7 +573,7 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
     Ident(id~, ..) => lookup_ident(id.name, ctx)
     Method(type_name~, method_name~, ..) => {
       let key = type_name_str(type_name) + "::" + method_name.name
-      or_unresolved(ctx.symbols.fn_ret.get(key))
+      or_unresolved(get_fn_ret(ctx.symbols, key))
     }
     Apply(func~, args~, ..) => {
       let ret = infer_apply(func, ctx)
@@ -709,7 +713,8 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
         }
       }
       match t {
-        IRConcrete("String", []) => IRConcrete("Bool", [])
+        IRConcrete("String", _) | IRConcrete("StringView", _) =>
+          IRConcrete("Bool", [])
         _ => IRUnresolved
       }
     }
@@ -1087,8 +1092,9 @@ fn infer_apply(func : @syntax.Expr, ctx : ScanCtx) -> IRType {
   match func {
     Method(type_name~, method_name~, ..) => {
       let key = type_name_str(type_name) + "::" + method_name.name
-      let confirmed = ctx.symbols.impl_methods.contains(key) ||
-        ctx.symbols.fn_exists.contains(key)
+      let confirmed = get_impl_method(ctx.symbols, key) != None ||
+        ctx.symbols.fn_exists.contains(key) ||
+        ctx.symbols.fn_exists.contains(short_key(key))
       record_site(ctx, func, "static", confirmed, key)
       ctx.stats.total_calls += 1
       ctx.stats.static_calls += 1
@@ -1097,7 +1103,7 @@ fn infer_apply(func : @syntax.Expr, ctx : ScanCtx) -> IRType {
       }
       match builtin_static_ret(key) {
         Some(t) => t
-        None => or_unresolved(ctx.symbols.fn_ret.get(key))
+        None => or_unresolved(get_fn_ret(ctx.symbols, key))
       }
     }
     Constr(constr~) => {
@@ -1145,7 +1151,7 @@ fn infer_apply(func : @syntax.Expr, ctx : ScanCtx) -> IRType {
           }
           match builtin_ctor_ret(name) {
             Some(t) => t
-            None => or_unresolved(ctx.symbols.fn_ret.get(name))
+            None => or_unresolved(get_fn_ret(ctx.symbols, name))
           }
         }
       }
@@ -1173,11 +1179,11 @@ fn infer_dot_apply(
     IRConcrete(name, _) => {
       let key = name + "::" + mname
       ctx.last_key = key
-      let confirmed = ctx.symbols.impl_methods.contains(key)
+      let confirmed = get_impl_method(ctx.symbols, key) != None
       record_site_recv(ctx, recv, true, key, name)
       ctx.stats.receiver_resolved += 1
       let base = if confirmed {
-        or_unresolved(ctx.symbols.fn_ret.get(key))
+        or_unresolved(get_fn_ret(ctx.symbols, key))
       } else {
         or_unresolved(builtin_method_ret(name, mname))
       }
@@ -1327,6 +1333,26 @@ fn is_stringy(t : IRType) -> Bool {
 }
 
 ///|
+fn builtin_constr_payload(name : String, scrut : IRType) -> Array[IRType] {
+  // `Some(x)` on Option[T] binds x : T; `Ok(x)` on Result[T, E] binds x : T
+  match (name, scrut) {
+    ("Some", IRConcrete("Option", args)) | ("Ok", IRConcrete("Result", args)) =>
+      if args.length() >= 1 {
+        [args[0]]
+      } else {
+        []
+      }
+    ("Err", IRConcrete("Result", args)) =>
+      if args.length() >= 2 {
+        [args[1]]
+      } else {
+        []
+      }
+    _ => []
+  }
+}
+
+///|
 fn builtin_static_ret(key : String) -> IRType? {
   // `Type::method` statics on builtin/container types
   match key {
@@ -1438,6 +1464,41 @@ fn builtin_method_ret(recv : String, mname : String) -> IRType? {
       Some(IRConcrete("String", []))
     ("Buffer", "length" | "size") => Some(IRConcrete("Int", []))
     ("Map", "keys" | "values") => Some(IRConcrete("Array", []))
+    ("Map", "iter" | "iter2") => Some(IRConcrete("Iter", []))
+    (
+      "Map",
+      "size"
+      | "length"
+      | "each"
+      | "eachi"
+      | "contains"
+      | "set"
+      | "remove"
+      | "clear",
+    ) => Some(IRUnit)
+    ("Array", "to_array" | "copy" | "iter" | "rev_inplace") =>
+      Some(IRConcrete("__arraymap__", []))
+    ("String", "view") => Some(IRConcrete("StringView", []))
+    (
+      "StringView",
+      "to_owned"
+      | "to_string"
+      | "copy"
+      | "trim"
+      | "trim_start"
+      | "trim_end",
+    ) => Some(IRConcrete("String", []))
+    (
+      "StringView",
+      "length"
+      | "size"
+      | "is_empty"
+      | "hash"
+      | "char_length"
+      | "codeunit_size",
+    ) => Some(IRConcrete("Int", []))
+    ("StringView", "split" | "split_char" | "chars" | "graphemes") =>
+      Some(IRConcrete("Array", []))
     ("Map", "get" | "get_or_default" | "get_unsafe" | "at" | "get_or_init") =>
       Some(IRConcrete("__mapval__", [])) // marker: receiver-parametric below
     ("Map", "set" | "remove" | "clear" | "each" | "contains" | "length" | "size"
@@ -1453,6 +1514,15 @@ fn builtin_method_ret(recv : String, mname : String) -> IRType? {
     ("StringBuilder", "length" | "size") => Some(IRConcrete("Int", []))
     ("Iter", "to_array" | "collect" | "filter" | "map" | "rev" | "take" | "skip"
     ) => Some(IRConcrete("__arraymap__", []))
+    (
+      "Logger",
+      "write_string"
+      | "write_char"
+      | "write_byte"
+      | "log_str"
+      | "log_char"
+      | "log_byte",
+    ) => Some(IRUnit)
     (_, "to_string" | "to_debug_string") => Some(IRConcrete("String", []))
     _ => None
   }
@@ -1488,6 +1558,8 @@ pub fn run_ir_stats(root : String, config : Config) -> IRStatsResult {
       collect_symbols(impls.to_array(), symbols)
     }
   })
+  // Phase 1.5: ingest dependency sources (.mooncakes) into the same table
+  collect_dep_symbols(root, symbols)
   // Phase 2: per-function inference with the merged table
   walk_packages(root, config, fn(_pkg_dir, mbt_files) {
     for file in mbt_files {
@@ -1498,4 +1570,102 @@ pub fn run_ir_stats(root : String, config : Config) -> IRStatsResult {
     }
   })
   stats
+}
+
+// ── M2: dependency symbol tables (.mooncakes ingestion) ───────────────────
+
+///|
+fn short_key(k : String) -> String {
+  // "pkg::Type::method" -> "Type::method"; "pkg::Type" -> "Type"
+  let segs : Array[String] = []
+  let cur = StringBuilder::new()
+  for ch in k {
+    if ch == ':' {
+      if cur.to_string() != "" {
+        segs.push(cur.to_string())
+        cur.reset()
+      }
+    } else {
+      cur.write_char(ch)
+    }
+  }
+  if cur.to_string() != "" {
+    segs.push(cur.to_string())
+  }
+  let n = segs.length()
+  if n >= 2 {
+    segs[n - 2] + "::" + segs[n - 1]
+  } else if n == 1 {
+    segs[0]
+  } else {
+    k
+  }
+}
+
+///|
+fn get_impl_method(symbols : PkgSymbols, key : String) -> String? {
+  match symbols.impl_methods.get(key) {
+    Some(t) => Some(t)
+    None => symbols.impl_methods.get(short_key(key))
+  }
+}
+
+///|
+fn get_struct_fields(
+  symbols : PkgSymbols,
+  tyname : String,
+) -> Map[String, IRType]? {
+  match symbols.struct_fields.get(tyname) {
+    Some(m) => Some(m)
+    None => symbols.struct_fields.get(short_key(tyname))
+  }
+}
+
+///|
+fn get_fn_ret(symbols : PkgSymbols, key : String) -> IRType? {
+  match symbols.fn_ret.get(key) {
+    Some(t) => Some(t)
+    None => symbols.fn_ret.get(short_key(key))
+  }
+}
+
+///|
+fn collect_dep_symbols(root : String, symbols : PkgSymbols) -> Unit {
+  let deps = root + "/.mooncakes"
+  let is_dir = @fs.is_dir(deps) catch { _ => false }
+  if !is_dir {
+    return
+  }
+  walk_dep_dir(deps, symbols)
+}
+
+///|
+fn walk_dep_dir(dir : String, symbols : PkgSymbols) -> Unit {
+  let entries = @fs.read_dir(dir) catch { _ => return }
+  let mbt_files : Array[String] = []
+  let subdirs : Array[String] = []
+  for entry in entries {
+    if entry.has_prefix(".") ||
+      entry == "_build" ||
+      entry.has_suffix("_test.mbt") {
+      continue
+    }
+    let full = @path.Path(dir).join(@path.Path(entry)).0
+    let child_is_dir = @fs.is_dir(full) catch { _ => false }
+    if child_is_dir {
+      subdirs.push(full)
+    } else if entry.has_suffix(".mbt") &&
+      !entry.has_suffix("_test.mbt") &&
+      !entry.has_suffix("_wbtest.mbt") {
+      mbt_files.push(full)
+    }
+  }
+  for file in mbt_files {
+    let source = @fs.read_file_to_string(file) catch { _ => continue }
+    let (impls, _) = @parser.parse_string(source, name=file)
+    collect_symbols(impls.to_array(), symbols)
+  }
+  for subdir in subdirs {
+    walk_dep_dir(subdir, symbols)
+  }
 }

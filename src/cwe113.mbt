@@ -3,15 +3,6 @@
 // without CRLF sanitization.
 
 ///|
-priv struct Cwe113Visitor {
-  findings : Array[Finding]
-  file : String
-  source : String
-  severity : Severity
-  safe_vars : Map[String, Bool]
-}
-
-///|
 pub fn cwe113_info() -> RuleInfo {
   {
     id: { cwe: 113, variant: "crlf-injection" },
@@ -29,14 +20,61 @@ pub fn run_cwe113(
   findings : Array[Finding],
   severity : Severity,
 ) -> Unit {
-  let visitor : Cwe113Visitor = {
-    findings,
-    file,
-    source,
-    severity,
-    safe_vars: {},
+  // M2: flow-sensitive engine replaces the IterVisitor heuristic walk.
+  // Taint state is threaded through control flow with branch merging and
+  // guard refinement (see taint_flow.mbt); the old textual safe-vars
+  // heuristic is retained below only for the legacy summary path.
+  for item in impls {
+    match item {
+      TopFuncDef(fun_decl~, decl_body~, ..) =>
+        match decl_body {
+          DeclBody(expr=Function(func~, ..)) =>
+            run_flow_taint_func(
+              Some(func.parameters),
+              func.body,
+              file,
+              source,
+              severity,
+              findings,
+            )
+          DeclBody(expr=body) =>
+            run_flow_taint_func(
+              fun_decl.decl_params,
+              body,
+              file,
+              source,
+              severity,
+              findings,
+            )
+          _ => ()
+        }
+      TopImpl(params~, body~, ..) =>
+        match body {
+          DeclBody(expr=Function(func~, ..)) =>
+            run_flow_taint_func(
+              Some(func.parameters),
+              func.body,
+              file,
+              source,
+              severity,
+              findings,
+            )
+          DeclBody(expr=body) =>
+            run_flow_taint_func(
+              Some(params),
+              body,
+              file,
+              source,
+              severity,
+              findings,
+            )
+          _ => ()
+        }
+      TopExpr(expr~, ..) =>
+        run_flow_taint_func_top(expr, file, source, severity, findings)
+      _ => ()
+    }
   }
-  impls.each(fn(impl_) { @syntax.IterVisitor::visit_Impl(visitor, impl_) })
 }
 
 ///|
@@ -48,101 +86,10 @@ fn is_header_setter(method_name : String) -> Bool {
 }
 
 ///|
-fn is_safe_for_header(env : Cwe113Visitor, expr : @syntax.Expr) -> Bool {
-  if is_safe_value(expr) {
-    return true
-  }
-  match expr {
-    Ident(id~, ..) => {
-      let name = match id.name {
-        Ident(name~) => name
-        Dot(id~, ..) => id
-      }
-      env.safe_vars.contains(name)
-    }
-    _ => false
-  }
-}
-
-///|
-fn has_dynamic_header_value(
-  env : Cwe113Visitor,
-  args : @list.List[@syntax.Argument],
-) -> Bool {
-  let mut pos_idx = 0
-  let mut result = false
-  args.each(fn(arg) {
-    match arg.kind {
-      Labelled(label) =>
-        if label.name == "value" && !is_safe_for_header(env, arg.value) {
-          result = true
-        }
-      LabelledPun(_) | LabelledOption(..) | LabelledOptionPun(..) => ()
-      _ => {
-        if pos_idx == 1 && !is_safe_for_header(env, arg.value) {
-          result = true
-        }
-        pos_idx += 1
-      }
-    }
-  })
-  result
-}
-
-///|
 fn extract_pattern_name(pat : @syntax.Pattern) -> String? {
   match pat {
     Var(binder) => Some(binder.name)
     Constraint(pat~, ..) => extract_pattern_name(pat)
     _ => None
   }
-}
-
-///|
-impl @syntax.IterVisitor for Cwe113Visitor with fn visit_Expr_Let(
-  env,
-  pattern~,
-  expr~,
-  body~,
-  loc~,
-) {
-  match extract_pattern_name(pattern) {
-    Some(name) =>
-      if is_safe_value(expr) || is_sanitized_expr(expr) {
-        env.safe_vars.set(name, true)
-      }
-    None => ()
-  }
-  @syntax.IterVisitor::base(env).visit_Expr_Let(pattern~, expr~, body~, loc~)
-}
-
-///|
-impl @syntax.IterVisitor for Cwe113Visitor with fn visit_Expr_DotApply(
-  env,
-  self~,
-  method_name~,
-  args~,
-  return_self~,
-  loc~,
-) {
-  if is_header_setter(method_name.name) && has_dynamic_header_value(env, args) {
-    env.findings.push(
-      make_finding(
-        { cwe: 113, variant: "crlf-injection" },
-        env.severity,
-        Medium,
-        "Response header set with dynamic value without CRLF sanitization. Attacker can inject \\r\\n to split the HTTP response, enabling session fixation or XSS.",
-        env.file,
-        env.source,
-        loc,
-      ),
-    )
-  }
-  @syntax.IterVisitor::base(env).visit_Expr_DotApply(
-    self~,
-    method_name~,
-    args~,
-    return_self~,
-    loc~,
-  )
 }

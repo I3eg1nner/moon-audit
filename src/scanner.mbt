@@ -31,7 +31,7 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
       for report in reports {
         errors.push("Parse error in " + file + ": " + report.to_string())
       }
-      collect_func_summaries(source, file, interproc_ctx)
+      collect_func_summaries_flow(impls, file, interproc_ctx)
       let should_scan = if incremental {
         is_changed_file(file, changed_set)
       } else {
