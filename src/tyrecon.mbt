@@ -49,6 +49,7 @@ pub fn PkgSymbols::new() -> PkgSymbols {
 
 ///|
 pub(all) struct CallSiteStat {
+  caller : String
   file : String
   line : Int
   kind : String // "static" | "receiver" | "higher"
@@ -281,6 +282,7 @@ priv struct ScanCtx {
   // call-site closure backfill channel: set before visiting a Function arg
   pending_closure_hints : Array[IRType?]
   mut last_key : String // receiver key recorded by infer_dot_apply
+  mut cur_fn : String // enclosing function name (call graph caller)
 }
 
 ///|
@@ -298,10 +300,12 @@ pub fn scan_package_calls(
     stats,
     pending_closure_hints: [],
     last_key: "?",
+    cur_fn: "<top>",
   }
   for item in impls {
     match item {
-      TopFuncDef(fun_decl~, decl_body~, ..) =>
+      TopFuncDef(fun_decl~, decl_body~, ..) => {
+        ctx.cur_fn = fun_decl.name.name
         match decl_body {
           DeclBody(expr=Function(func~, ..)) => {
             stats.funcs_scanned += 1
@@ -318,7 +322,12 @@ pub fn scan_package_calls(
           }
           _ => ()
         }
+      }
       TopImpl(self_ty~, trait_~, method_name~, params~, body~, ..) => {
+        ctx.cur_fn = match self_ty {
+          Some(t) => type_to_string(t) + "::" + method_name.name
+          None => method_name.name
+        }
         // trait-declared signature: backfill unannotated impl params
         let tkey = longident_str(trait_.name) + "::" + method_name.name
         let declared = ctx.symbols.trait_params.get(tkey)
@@ -1254,6 +1263,7 @@ fn record_site(
   target : String,
 ) -> Unit {
   ctx.stats.sites.push({
+    caller: ctx.cur_fn,
     file: ctx.file,
     line: expr.loc().start.lnum,
     kind,
@@ -1272,6 +1282,7 @@ fn record_site_recv(
   recv_ty : String,
 ) -> Unit {
   ctx.stats.sites.push({
+    caller: ctx.cur_fn,
     file: ctx.file,
     line: expr.loc().start.lnum,
     kind: "receiver",
@@ -1652,4 +1663,111 @@ fn walk_dep_dir(dir : String, symbols : PkgSymbols) -> Unit {
   for subdir in subdirs {
     walk_dep_dir(subdir, symbols)
   }
+}
+
+// ── M4 slice: closed-world call graph (CHA + devirtualization index) ─────
+
+///|
+
+///|
+fn last_segment(s : String) -> String {
+  let idx = find_last(s, "::")
+  if idx >= 0 {
+    Show::to_string(s[idx + 2:])
+  } else {
+    s
+  }
+}
+
+///|
+fn find_last(s : String, sep : String) -> Int {
+  let mut best = -1
+  let mut i = 0
+  while i <= s.length() - sep.length() {
+    if s[i:i + sep.length()] == sep {
+      best = i
+    }
+    i += 1
+  }
+  best
+}
+
+///|
+pub(all) struct CallGraph {
+  edges : Array[String] // "caller -> callee" resolved edges
+  dispatch_edges : Array[String] // devirtualized: one per impl target
+  unresolved : Array[String] // callers with unknown targets
+}
+
+///|
+pub fn run_call_graph(root : String, config : Config) -> CallGraph {
+  // symbols: module + deps (closed world over available sources)
+  let symbols = PkgSymbols::new()
+  walk_packages(root, config, fn(_pkg_dir, mbt_files) {
+    for file in mbt_files {
+      let source = @fs.read_file_to_string(file) catch { _ => return }
+      let (impls, _) = @parser.parse_string(source, name=file)
+      collect_symbols(impls.to_array(), symbols)
+    }
+  })
+  collect_dep_symbols(root, symbols)
+  // method -> self types index (devirtualization table)
+  let method_index : Map[String, Array[String]] = Map([])
+  symbols.impl_methods.each(fn(key, _trait) {
+    // key = "SelfTy::method"
+    let idx = find_last(key, "::")
+    if idx > 0 {
+      let mname = Show::to_string(key[idx + 2:])
+      let self_ty = Show::to_string(key[:idx])
+      match method_index.get(mname) {
+        Some(arr) => if !arr.contains(self_ty) { arr.push(self_ty) }
+        None => method_index[mname] = [self_ty]
+      }
+    }
+  })
+  // call sites -> edges
+  let stats = IRStatsResult::new()
+  walk_packages(root, config, fn(_pkg_dir, mbt_files) {
+    for file in mbt_files {
+      stats.files_scanned += 1
+      let source = @fs.read_file_to_string(file) catch { _ => return }
+      let (impls, _) = @parser.parse_string(source, name=file)
+      scan_package_calls(impls.to_array(), file, symbols, stats)
+    }
+  })
+  let edges : Array[String] = []
+  let dispatch_edges : Array[String] = []
+  let unresolved : Array[String] = []
+  for site in stats.sites {
+    let clean_target = site.target
+      .replace(old=" (unconfirmed)", new="")
+      .replace(old="?", new="")
+    if site.resolved {
+      if site.kind == "receiver" && site.target.has_prefix("dyn ") {
+        // trait-object dispatch: enumerate all impls of this method
+        let mname = last_segment(clean_target)
+        match method_index.get(mname) {
+          Some(self_tys) =>
+            for st in self_tys {
+              dispatch_edges.push(site.caller + " -> " + st + "::" + mname)
+            }
+          None => unresolved.push(site.caller + " -> ?" + mname)
+        }
+      } else {
+        edges.push(site.caller + " -> " + clean_target)
+      }
+    } else if site.kind == "receiver" && site.recv_ty.has_prefix("trait:") {
+      let mname = last_segment(clean_target)
+      match method_index.get(mname) {
+        Some(self_tys) =>
+          for st in self_tys {
+            dispatch_edges.push(site.caller + " -> " + st + "::" + mname)
+          }
+        None => unresolved.push(site.caller + " -> ?" + mname)
+      }
+    } else {
+      unresolved.push(site.caller + " -> ?")
+    }
+  }
+  { edges, dispatch_edges, unresolved }
 }

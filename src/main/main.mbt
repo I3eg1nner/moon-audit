@@ -216,6 +216,23 @@ fn main {
         ],
       ),
       @argparse.Command(
+        "call-graph",
+        about="M4 slice: closed-world call graph (CHA + devirtualization)",
+        flags=[
+          @argparse.FlagArg(
+            "details",
+            short='d',
+            long="details",
+            about="List all edges",
+          ),
+        ],
+        positionals=[
+          @argparse.PositionArg("path", about="Project path to analyze", default_values=[
+            ".",
+          ]),
+        ],
+      ),
+      @argparse.Command(
         "ir-stats",
         about="M1 IR spike: measure type-reconstruction call-site resolution rate",
         flags=[
@@ -301,6 +318,7 @@ fn main {
     Some(("summary", sub)) => cmd_summary(sub)
     Some(("generate-baseline", sub)) => cmd_generate_baseline(sub)
     Some(("ir-stats", sub)) => cmd_ir_stats(sub)
+    Some(("call-graph", sub)) => cmd_call_graph(sub)
     Some(("deep-audit", sub)) => cmd_deep_audit(sub)
     _ => cmd_scan(matches)
   }
@@ -1021,4 +1039,46 @@ fn pct(num : Int, den : Int) -> String {
     return "0%"
   }
   (num * 100 / den).to_string() + "%"
+}
+
+///|
+fn cmd_call_graph(matches : @argparse.Matches) -> Unit {
+  let path = get_val(matches, "path", ".")
+  let details = match matches.flags.get("details") {
+    Some(v) => v
+    None => false
+  }
+  println("moon-audit call-graph (M4 closed-world slice)")
+  println("target: " + path)
+  println("")
+  let config = @audit.load_config(".moon-audit.json")
+  let cg = @audit.run_call_graph(path, config)
+  println("direct edges:      " + cg.edges.length().to_string())
+  println(
+    "dispatch edges:    " +
+    cg.dispatch_edges.length().to_string() +
+    "  (devirtualized via impl enumeration)",
+  )
+  println("unresolved edges:  " + cg.unresolved.length().to_string())
+  let total = cg.edges.length() +
+    cg.dispatch_edges.length() +
+    cg.unresolved.length()
+  println(
+    "edge coverage:     " +
+    ((cg.edges.length() + cg.dispatch_edges.length()) *
+    100 /
+    (if total == 0 { 1 } else { total })).to_string() +
+    "%",
+  )
+  if details {
+    println("")
+    println("edges:")
+    for e in cg.edges {
+      println("  " + e)
+    }
+    println("dispatch edges:")
+    for e in cg.dispatch_edges {
+      println("  " + e)
+    }
+  }
 }

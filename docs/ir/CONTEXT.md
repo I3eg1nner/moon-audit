@@ -117,4 +117,12 @@ impl 枚举去虚化 + 闭包分配点建模 + call graph + （若可行）Ander
 mocket/petgraph/自举 0 FP；解析率 69%/86%/67%（指标 bug 修复后自举 +2%）
 未竟（记录于 TODO）：pipeline 双引擎统一、循环不动点、21 项目全量回归
 
-## 待续（M4 起）
+## 2026-09-04 · M4 首切片 + 文档同步
+- call-graph 子命令落地：run_call_graph（闭世界符号 + method→impl 索引 + caller 追踪）
+- mocket：1,454 direct edges，69% edge coverage（与 ir-stats 合并解析率一致，交叉验证）
+- 文档失真修复：README 122 测试/版本 0.3.2/pipeline+call-graph 说明；开发报告同步
+- pipeline 双引擎核查结论：安全 findings 一致（均出流引擎）；旧 TaintVisitor 仅存于
+  taint-analysis.txt 辅助 trace，标注遗留
+- 状态修正（对齐外部评审口径）：M1 ~70%、M2 ~70%（M2.5 后）、M3 ~30%、M4 切片
+
+## 待续（M4 完整验收：dispatch 边、闭包建模、Andersen 或轻量替代、coverage 动态真值）

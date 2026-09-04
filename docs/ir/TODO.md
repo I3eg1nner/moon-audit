@@ -32,7 +32,8 @@
 - [x] 摘要精确参数映射（仅记录实际到达 sink 的参数）+ 嵌套 sink 统一事件（flow() 内递归记录）
 - [x] taint_or 混合溯源降级为 Tainted（保守）
 - [x] 验收：122/122 × 4 targets；deny-warn 全绿；mocket/petgraph/自举 0 FP 持平
-- [ ] pipeline 双引擎统一（cmd_pipeline 仍用旧 run_taint_analysis）→ M4 前处理
+- [x] pipeline 核查：安全 findings 全部来自 phase1 流引擎（一致）；
+      taint-analysis.txt 为辅助 trace（旧 TaintVisitor，仅报告用），已标注
 - [ ] 循环不动点（当前单遍）→ 显式 IR/CFG 时实现
 - [ ] 21 项目全量语料 precision/recall 回归 → 推送前跑（本地仅 3 目标 0 FP）
 
@@ -73,6 +74,13 @@
 - [ ] 2-obj 上下文敏感
 - [ ] source/sink/transfer/sanitizer JSON 配置
 - [ ] 数据流规则全部配置化
+
+## Phase M4 切片（2026-09-04）
+- [x] call-graph 子命令：闭世界 CHA（模块+依赖符号）+ 去虚化索引
+      （method → impl self types），caller 追踪入 CallSiteStat
+- [x] mocket 实测：1,454 direct edges / edge coverage 69%
+- [ ] dispatch 边产出（trait: 前缀路径接入 method_index）与 M1 完成线（≥90%）同源
+- [ ] Andersen 约束图 / 闭包分配点建模 / coverage 动态真值验收（M4 完整验收）
 
 ## 上游机会（随时可做，独立于主线）
 - [ ] 向 moonbit-compiler 提 PR：moonc build-package --dump-core-sexp（复用 dump_serialized_from_t）

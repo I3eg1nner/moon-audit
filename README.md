@@ -48,6 +48,9 @@ moon install && moon build --target native
 # 全流程 pipeline（scan + 跨函数污点分析 + summary）
 ./moon-audit pipeline /path/to/project
 
+# 调用图（M4 切片：闭世界 CHA + 去虚化索引）
+moon-audit call-graph /path/to/project --details
+
 # 增量扫描（只扫描变更文件，适合 CI）
 git diff --name-only HEAD~1 > changed.txt
 ./moon-audit --changed-files changed.txt /path/to/project
@@ -257,14 +260,14 @@ fn check_security(project_path : String) -> Unit {
 1. **Import 分析**：解析 `moon.pkg`/`moon.mod` 依赖，构建 `ImportContext`，决定激活哪些 Web 规则
 2. **AST 遍历**：每条规则实现 `IterVisitor` trait，遍历语法树匹配漏洞模式
 3. **上下文过滤**：识别 FFI 绑定、guard 校验、平台桩、unwrap 函数等安全上下文，抑制误报
-4. **跨函数污点追踪**：构建函数调用图，追踪跨函数的 source → sink 数据流路径
+4. **跨函数污点追踪**：流敏感污点引擎生成函数摘要（参数→sink），调用点匹配摘要传播 source → sink 路径；`call-graph` 子命令提供闭世界 CHA 调用图（M4 将升级为指针分析驱动）
 5. **输出**：Text / JSON / SARIF 2.1.0，每条 Finding 含 confidence 分级和稳定 fingerprint
 
 ## 开发
 
 ```bash
 moon check     # 编译检查
-moon test      # 运行测试（92 个用例 × 4 编译目标）
+moon test      # 运行测试（122 个用例 × 4 编译目标，--deny-warn 全绿）
 moon fmt       # 格式化
 ```
 
