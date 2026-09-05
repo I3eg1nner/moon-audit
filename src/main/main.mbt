@@ -969,7 +969,9 @@ fn cmd_ir_stats(matches : @argparse.Matches) -> Unit {
   println("moon-audit ir-stats (M1 type-reconstruction spike)")
   println("target: " + path)
   println("")
-  let config = @audit.load_config(".moon-audit.json")
+  // measurement tools use the standard exclude set (examples/benchmarks
+  // are not product code) instead of inheriting the tool repo's config
+  let config = @audit.Config::default()
   let stats = @audit.run_ir_stats(path, config)
   println("files scanned:  " + stats.files_scanned.to_string())
   println("funcs scanned:  " + stats.funcs_scanned.to_string())
@@ -1051,7 +1053,7 @@ fn cmd_call_graph(matches : @argparse.Matches) -> Unit {
   println("moon-audit call-graph (M4 closed-world slice)")
   println("target: " + path)
   println("")
-  let config = @audit.load_config(".moon-audit.json")
+  let config = @audit.Config::default()
   let cg = @audit.run_call_graph(path, config)
   println("direct edges:      " + cg.edges.length().to_string())
   println(

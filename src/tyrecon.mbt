@@ -177,6 +177,12 @@ pub fn collect_symbols(
             None => ()
           }
         }
+      TopUsing(names~, ..) =>
+        // `using @pkg.{name, ...}`: unqualified aliases resolve statically
+        for pair in names {
+          let alias_name = pair.0.binder.name
+          symbols.fn_exists[alias_name] = true
+        }
       TopTypeDef(decl) => collect_type_decl(decl, symbols)
       _ => ()
     }
@@ -1755,6 +1761,15 @@ pub fn run_call_graph(root : String, config : Config) -> CallGraph {
         }
       } else {
         edges.push(site.caller + " -> " + clean_target)
+      }
+    } else if site.target.has_prefix("dyn ") {
+      let mname = last_segment(Show::to_string(site.target[4:]))
+      match method_index.get(mname) {
+        Some(self_tys) =>
+          for st in self_tys {
+            dispatch_edges.push(site.caller + " -> " + st + "::" + mname)
+          }
+        None => unresolved.push(site.caller + " -> ?" + mname)
       }
     } else if site.kind == "receiver" && site.recv_ty.has_prefix("trait:") {
       let mname = last_segment(clean_target)

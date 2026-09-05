@@ -125,4 +125,10 @@ mocket/petgraph/自举 0 FP；解析率 69%/86%/67%（指标 bug 修复后自举
   taint-analysis.txt 辅助 trace，标注遗留
 - 状态修正（对齐外部评审口径）：M1 ~70%、M2 ~70%（M2.5 后）、M3 ~30%、M4 切片
 
-## 待续（M4 完整验收：dispatch 边、闭包建模、Andersen 或轻量替代、coverage 动态真值）
+## 2026-09-04 · 终局冲刺：测量口径 + using + dispatch
+- 根因（重要教训）：测量子命令继承了工具仓库自身 .moon-audit.json 的 exclude
+  （['_build','.mooncakes','*_test.mbt']），examples/benchmarks 混入分母 14%
+- 修正后诚实基线：mocket 72%（1906 调用点）/ 自举 86% / petgraph 67%
+- using 导入摄取 + dispatch 边路径（dyn → impl 枚举）落地；deny-warn + 122/122 保持
+
+## 待续（M4 完整验收：闭包分配点建模、Andersen 或轻量替代、coverage 动态真值、FFI stub 摄取）

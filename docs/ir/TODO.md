@@ -79,7 +79,12 @@
 - [x] call-graph 子命令：闭世界 CHA（模块+依赖符号）+ 去虚化索引
       （method → impl self types），caller 追踪入 CallSiteStat
 - [x] mocket 实测：1,454 direct edges / edge coverage 69%
-- [ ] dispatch 边产出（trait: 前缀路径接入 method_index）与 M1 完成线（≥90%）同源
+- [x] 测量口径修正：ir-stats/call-graph 改用标准 exclude（examples/benchmarks 出分母）
+      —— mocket 69%→72% 为诚实基线；根因：工具仓库自身 .moon-audit.json 的 exclude 覆盖
+- [x] using 导入摄取（TopUsing → fn_exists 非限定别名）
+- [x] dispatch 边路径接入（dyn 前缀 → method_index 枚举；mocket 仅 2 个 dispatch 位点，
+      method 未入 impl 表时保守计 unresolved）
+- [ ] M1 完成线（接收者 ≥90%）：剩余 = 闭包二级传播 + FFI（extern stub 签名摄取可部分救回）
 - [ ] Andersen 约束图 / 闭包分配点建模 / coverage 动态真值验收（M4 完整验收）
 
 ## 上游机会（随时可做，独立于主线）
