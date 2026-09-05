@@ -20,7 +20,7 @@
 - [x] **验收**：mocket 65% / 自举 81%（门槛 ≥60% ✅）
 - [x] moon test --target all 114/114 × 4
 - [x] CONTEXT.md 真实数字落盘（含 5 轮迭代记录）
-- [x] M1 完成线（接收者 ≥90%）：依赖 M2 的闭包提升 + 依赖类型表（排期到 M2 一起验收） — 已完成（p4clos）：var 绑定闭包分配点解析（详见 CONTEXT.md M4-lite 条目）
+- [ ] M1 完成线（接收者 ≥90%）：p4clos 完成闭包分配点切片，但 ≥90% 未达（mocket 74%）——剩余主缺口 FFI（~41% unknown）与跨包级联，下一杠杆 extern stub 摄取
 
 ## Phase M2.5：稳定化（2026-09-04 完成，评审驱动）
 - [x] moon check/test --deny-warn 全绿（0 警告；修复 String.view 不可达分支等指标 bug）

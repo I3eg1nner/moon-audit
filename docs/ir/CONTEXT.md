@@ -293,7 +293,7 @@ FP 三目标持平全零。
   （target="$closure:h@line"），Apply 臂消费 pending_closure 做懒回填重扫；
   实参类型计算用 stats 快照/恢复（visit_args 已计一次，避免双计）
 - 指标（三目标）：mocket 74%（higher 43→38）、自举 86%（→1）、petgraph 67→**69%**
-  （higher 38、concrete 745/939=79%）；FP 三目标 0 持平；148/148 × native
+  （higher 38、concrete 745/939=79%；注：745/939 与 Phase-2+3 集成值相同，67→69% 的 delta 来自 p2b——gate2 口径修正）；FP 三目标 0 持平；148/148 × native
 - **诚实结论**：var 绑定闭包在当前语料中占比小（mocket 仅 5 位点），
   ≥80%/≥90% 目标未达——剩余缺口主体是 FFI 文件（mocket.native/js ~41%）与
   跨包深层级联，闭包直传参数已被 visit_args hints 覆盖
