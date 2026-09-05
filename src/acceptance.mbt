@@ -265,7 +265,7 @@ pub fn analysis_cache_key(
 
 ///|
 /// Fingerprint of a PkgSymbols table (insertion-order independent:
-/// sorts key/value strings before hashing).
+/// sorts key names only (values not in fingerprint — same-name type change will NOT invalidate; must include values before wiring to cache) before hashing).
 pub fn symbols_fingerprint(symbols : PkgSymbols) -> String {
   let parts : Array[String] = []
   let keys : Array[String] = []

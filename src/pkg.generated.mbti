@@ -8,6 +8,10 @@ import {
 }
 
 // Values
+pub const PARSER_VERSION_KEY : String = "moonbitlang/parser@0.3.18"
+
+pub fn analysis_cache_key(String, String) -> String
+
 pub fn analyze_imports(String) -> ImportContext
 
 pub fn analyze_mod_imports(String) -> ImportContext
@@ -17,6 +21,14 @@ pub fn build_summary(ScanResult, Array[RuleInfo]) -> ScanSummary
 pub fn collect_audit_files(String, Config) -> Array[(String, String)]
 
 pub fn collect_func_summaries(String, String, InterProceduralContext) -> Unit
+
+pub fn collect_func_summaries_flow(@list.List[@syntax.Impl], String, InterProceduralContext) -> Unit
+
+pub fn collect_mbti_dir(String, PkgSymbols) -> Unit
+
+pub fn collect_mbti_file(String, PkgSymbols) -> Unit
+
+pub fn collect_symbols(Array[@syntax.Impl], PkgSymbols) -> Unit
 
 pub fn compute_fingerprint(RuleId, String) -> String
 
@@ -52,11 +64,17 @@ pub fn cwe770_info() -> RuleInfo
 
 pub fn cwe942_info() -> RuleInfo
 
+pub fn diff_findings(Array[Finding], Array[PrevFinding]) -> BaselineDiff
+
 pub fn filter_baseline(Array[Finding], Map[String, Bool]) -> Array[Finding]
 
 pub fn filter_by_llm_results(Array[LLMAnalysisResult], Double) -> Array[LLMAnalysisResult]
 
+pub fn format_baseline_diff(BaselineDiff) -> String
+
 pub fn format_json(ScanResult) -> String
+
+pub fn format_json_with_diff(ScanResult, BaselineDiff) -> String
 
 pub fn format_llm_report(Array[LLMAnalysisResult]) -> String
 
@@ -93,6 +111,8 @@ pub fn generate_llm_script(LLMConfig, Array[LLMAnalysisRequest]) -> String
 pub fn generate_poc(Finding, ImportContext) -> PoCTemplate?
 
 pub fn get_all_remediations(Array[Finding]) -> Array[Remediation]
+
+pub fn get_impl_method(PkgSymbols, String) -> String?
 
 pub fn get_labelled_string_value(@list.List[@syntax.Argument], String) -> String?
 
@@ -132,6 +152,8 @@ pub fn merge_imports(ImportContext, ImportContext) -> ImportContext
 
 pub fn parse_llm_response(Finding, String) -> LLMAnalysisResult?
 
+pub fn parse_report_findings(String) -> Array[PrevFinding]
+
 pub fn poc_type_str(PoCType) -> String
 
 pub fn risk_level(Double) -> String
@@ -139,6 +161,8 @@ pub fn risk_level(Double) -> String
 pub fn risk_score(ScanSummary) -> Double
 
 pub fn rule_id_str(RuleId) -> String
+
+pub fn run_call_graph(String, Config) -> CallGraph
 
 pub fn run_cross_func_taint(@list.List[@syntax.Impl], String, String, Array[Finding], InterProceduralContext, ImportContext) -> Unit
 
@@ -152,7 +176,7 @@ pub fn run_cwe079_template(@list.List[@syntax.Impl], String, String, Array[Findi
 
 pub fn run_cwe094(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
-pub fn run_cwe113(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
+pub fn run_cwe113(@list.List[@syntax.Impl], String, String, Array[Finding], Severity, ictx? : InterProceduralContext) -> Unit
 
 pub fn run_cwe116(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
@@ -170,7 +194,15 @@ pub fn run_cwe770(@list.List[@syntax.Impl], String, String, Array[Finding], Seve
 
 pub fn run_cwe942(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
+pub fn run_flow_taint_func(@list.List[@syntax.Parameter]?, @syntax.Expr, String, String, Severity, Array[Finding], ictx? : InterProceduralContext) -> Unit
+
+pub fn run_flow_taint_func_top(@syntax.Expr, String, String, Severity, Array[Finding]) -> Unit
+
+pub fn run_ir_stats(String, Config) -> IRStatsResult
+
 pub fn run_taint_analysis(@list.List[@syntax.Impl], String, String, ImportContext) -> TaintState
+
+pub fn scan_package_calls(Array[@syntax.Impl], String, PkgSymbols, IRStatsResult) -> Unit
 
 pub fn scan_project(String, Config) -> ScanResult
 
@@ -180,15 +212,43 @@ pub fn severity_level(Severity) -> Int
 
 pub fn severity_str(Severity) -> String
 
+pub fn symbols_fingerprint(PkgSymbols) -> String
+
 pub fn taint_flows_to_findings(Array[TaintFlow], Severity) -> Array[Finding]
+
+pub fn type_to_ir(@syntax.Type, PkgSymbols) -> IRType
 
 // Errors
 
 // Types and methods
+pub(all) struct BaselineDiff {
+  new_findings : Array[Finding]
+  resolved : Array[PrevFinding]
+  unchanged : Array[Finding]
+  prev_total : Int
+  current_total : Int
+}
+
 pub(all) struct CWEStat {
   cwe_id : Int
   name : String
   count : Int
+}
+
+pub(all) struct CallGraph {
+  edges : Array[String]
+  dispatch_edges : Array[String]
+  unresolved : Array[String]
+}
+
+pub(all) struct CallSiteStat {
+  caller : String
+  file : String
+  line : Int
+  kind : String
+  resolved : Bool
+  target : String
+  recv_ty : String
 }
 
 pub(all) enum Confidence {
@@ -236,7 +296,36 @@ pub(all) struct FuncTaintSummary {
   line : Int
   params : Array[String]
   param_sinks : Map[String, Array[TaintSink]]
+  ret_from : Array[String]
+  field_taint : Map[String, Array[(String, String)]]
 }
+
+pub(all) struct IRStatsResult {
+  mut files_scanned : Int
+  mut funcs_scanned : Int
+  mut total_calls : Int
+  mut static_calls : Int
+  mut static_resolved : Int
+  mut receiver_calls : Int
+  mut receiver_resolved : Int
+  mut receiver_dispatch : Int
+  mut receiver_unknown : Int
+  mut higher_calls : Int
+  sites : Array[CallSiteStat]
+}
+pub fn IRStatsResult::combined_resolution(Self) -> Int
+pub fn IRStatsResult::new() -> Self
+
+pub(all) enum IRType {
+  IRUnresolved
+  IRConcrete(String, Array[IRType])
+  IRTraitObj(String)
+  IRTypeParam(String)
+  IRFn
+  IRUnit
+} derive(Eq, @debug.Debug)
+pub fn IRType::display(Self) -> String
+pub fn IRType::is_concrete(Self) -> Bool
 
 pub(all) struct ImportContext {
   has_cmark : Bool
@@ -290,6 +379,22 @@ pub(all) struct OwaspStat {
   cwe_ids : Array[Int]
 }
 
+pub(all) struct PkgSymbols {
+  fn_exists : Map[String, Bool]
+  fn_ret : Map[String, IRType]
+  impl_methods : Map[String, String]
+  constructors : Map[String, String]
+  struct_fields : Map[String, Map[String, IRType]]
+  constr_params : Map[String, Array[IRType]]
+  trait_params : Map[String, Array[IRType?]]
+  fn_param_arrows : Map[String, Array[Array[IRType?]]]
+  alias_arrows : Map[String, Array[IRType?]]
+  value_types : Map[String, IRType]
+  trait_names : Map[String, Bool]
+  type_params : Map[String, Bool]
+}
+pub fn PkgSymbols::new() -> Self
+
 pub(all) struct PoCTemplate {
   finding : Finding
   poc_type : PoCType
@@ -308,6 +413,14 @@ pub(all) enum PoCType {
   BrowserBased
   CLICommand
 }
+
+pub(all) struct PrevFinding {
+  fingerprint : String
+  rule_id : String
+  file : String
+  line : Int
+  message : String
+} derive(@debug.Debug)
 
 pub(all) struct Remediation {
   rule_id : String
