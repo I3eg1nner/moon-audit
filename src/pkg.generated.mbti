@@ -202,7 +202,7 @@ pub fn run_ir_stats(String, Config) -> IRStatsResult
 
 pub fn run_taint_analysis(@list.List[@syntax.Impl], String, String, ImportContext) -> TaintState
 
-pub fn scan_package_calls(Array[@syntax.Impl], String, PkgSymbols, IRStatsResult) -> Unit
+pub fn scan_package_calls(Array[@syntax.Impl], String, PkgSymbols, IRStatsResult, pkg_alias? : Map[String, String]) -> Unit
 
 pub fn scan_project(String, Config) -> ScanResult
 
