@@ -700,6 +700,8 @@ test "taint_dsl_custom_source_and_sink" {
     sanitizers: [],
     fn_types: [],
     callbacks: [],
+    cb_timing: [],
+    trait_edges: [],
     extends: [],
   }
   let findings2 : Array[Finding] = []
@@ -717,6 +719,8 @@ test "taint_dsl_custom_sanitizer" {
     sanitizers: [{ method_name: "cleanse", kind: "", value_slot: 0, }],
     fn_types: [],
     callbacks: [],
+    cb_timing: [],
+    trait_edges: [],
     extends: [],
   }
   let findings : Array[Finding] = []
@@ -735,6 +739,8 @@ test "taint_dsl_value_slot" {
     sanitizers: [],
     fn_types: [],
     callbacks: [],
+    cb_timing: [],
+    trait_edges: [],
     extends: [],
   }
   let findings : Array[Finding] = []
@@ -1053,4 +1059,39 @@ test "gate4_scan_project_level_e2e" {
   }
   let result = scan_project(dir, Config::default())
   inspect(result.findings.length() > 0, content="true")
+}
+
+///|
+test "libmodel_v2_callback_timing_and_trait_edges_parse" {
+  // v2 object-form callbacks (deferred timing) + trait re-entry edges
+  // are parsed into the ruleset (minimal read path; solving is M5)
+  let dir = test_tmp("libmodel_v2_test")
+  @fs.create_dir(dir) catch {
+    _ => ()
+  }
+  let f = dir + "/taint-rules.json"
+  @fs.write_string_to_file(
+    f, "{ \"callbacks\": { \"Array::map\": [\"T\"], \"Iter::map\": { \"slots\": [\"T\"], \"timing\": \"deferred\" } }, \"trait_edges\": [ { \"method\": \"Map::get\", \"trait_method\": \"hash\", \"note\": \"lookup calls key Hash/Eq impls\" } ] }",
+  ) catch {
+    _ => ()
+  }
+  let (rs, source) = load_taint_rules(dir)
+  inspect(source, content=f)
+  // v1 array form stays v1-compatible: callback registered, timing defaults Immediate
+  inspect(rs.callbacks.length(), content="2")
+  inspect(rs.cb_timing.length(), content="1") // only v2 object form records timing
+  let mut deferred_found = false
+  for pair in rs.cb_timing {
+    let (name, timing) = pair
+    if name == "Iter::map" {
+      deferred_found = timing == Deferred
+    }
+  }
+  inspect(deferred_found, content="true")
+  // trait edge parsed with lib_method/trait_method/note
+  inspect(rs.trait_edges.length(), content="1")
+  let edge = rs.trait_edges[0]
+  inspect(edge.lib_method, content="Map::get")
+  inspect(edge.trait_method, content="hash")
+  inspect(edge.note, content="lookup calls key Hash/Eq impls")
 }

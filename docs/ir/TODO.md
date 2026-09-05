@@ -214,7 +214,16 @@
 - [x] 验收：评审 6 样例 4 漏报转告警 + 1 误报转静默 + 对照保持；180/180 × 4；
       FP 三目标 0；deny-warn/fmt/info 门全绿
 - [ ] Match scrutinee 元组解构的分量绑定（当前保守整体，方向为过报不漏报）
-- [ ] 函数效应契约（正常/错误/回调三出口摘要）与 IRFn 参数化——评审第 3 节设计
+- [x] 函数效应契约与值结构契约**设计**落盘（docs/ir/CONTRACTS.md，评审第 3 节）：
+      契约一（值结构：已实现条目均附测试锚点）+ 契约二（函数效应三出口，
+      含"抛错前堆副作用不丢弃"红线）；IRFn 参数化列 M5 路线图
+- [x] 库模型 v2 草案（docs/ir/libmodels/SCHEMA-v2.md）：回调三分类
+      （immediate[现行语义]/deferred[Iter::map]/trait 再入边[Map::get→hash]）；
+      引擎最小读取路径：TaintRuleset.cb_timing + trait_edges（v1/v2 双形式解析，
+      向后兼容无配置=行为不变），单测锁定；完整求解标注 M5
+- [x] PLAN 修正：撤回"parser 唯一耦合点"→ 版本化语义适配层；
+      组合验收路径（输入→Result 载荷→解构→容器→闭包→sink + 三负对照）
+      写入 HIR/CFG 阶段完成标准
 
 ## 上游机会（随时可做，独立于主线）
 - [x] 上游 PR 准备完成：dump-core-sexp.patch（2 文件 +18/-1，静态核对全部签名）+

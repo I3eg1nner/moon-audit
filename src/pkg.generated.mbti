@@ -263,6 +263,11 @@ pub(all) struct CallSiteStat {
   recv_ty : String
 }
 
+pub(all) enum CallbackTiming {
+  Immediate
+  Deferred
+} derive(Eq, @debug.Debug)
+
 pub(all) enum Confidence {
   High
   Medium
@@ -379,6 +384,12 @@ pub(all) struct LLMConfig {
   api_key : String
 }
 pub fn LLMConfig::default() -> Self
+
+pub(all) struct LibModelCallback {
+  name : String
+  placeholders : Array[String]
+  timing : CallbackTiming
+} derive(@debug.Debug)
 
 pub(all) struct Location {
   file : String
@@ -520,6 +531,8 @@ pub(all) struct TaintRuleset {
   fn_types : Array[(String, String)]
   callbacks : Array[(String, Array[String])]
   extends : Array[String]
+  cb_timing : Array[(String, CallbackTiming)]
+  trait_edges : Array[TraitCallbackEdge]
 } derive(@debug.Debug)
 pub fn TaintRuleset::apply_to_symbols(Self, PkgSymbols) -> Unit
 pub fn TaintRuleset::empty() -> Self
@@ -571,6 +584,12 @@ pub(all) struct TaintedVar {
   file : String
   line : Int
 }
+
+pub(all) struct TraitCallbackEdge {
+  lib_method : String
+  trait_method : String
+  note : String
+} derive(@debug.Debug)
 
 // Type aliases
 

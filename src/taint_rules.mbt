@@ -13,6 +13,31 @@ pub(all) struct TaintMethodRule {
 } derive(Debug)
 
 ///|
+pub(all) enum CallbackTiming {
+  Immediate // executed during the call (Array::map, raise? polymorphic)
+  Deferred // stored, executed on later advance (Iter::map)
+} derive(Eq, Debug)
+
+///|
+/// Callback model v2 (docs/ir/libmodels/SCHEMA-v2.md). v1 tuple
+/// `(name, placeholders)` remains the engine-facing form; v2 records timing
+/// and trait-callback edges for the M5 effect solver (parsed now, solved then).
+pub(all) struct LibModelCallback {
+  name : String
+  placeholders : Array[String]
+  timing : CallbackTiming // default Immediate (v1 semantics)
+} derive(Debug)
+
+///|
+/// Trait-callback edge: calling `method` re-enters user code via the
+/// `trait_method` of the receiver's key/elem type (e.g. Map::get -> hash).
+pub(all) struct TraitCallbackEdge {
+  lib_method : String // library method ("Map::get")
+  trait_method : String // user-implementable method ("hash")
+  note : String // conservative-approximation declaration
+} derive(Debug)
+
+///|
 pub(all) struct TaintRuleset {
   sources : Array[TaintMethodRule]
   sinks : Array[TaintMethodRule]
@@ -22,6 +47,9 @@ pub(all) struct TaintRuleset {
   fn_types : Array[(String, String)]
   callbacks : Array[(String, Array[String])]
   extends : Array[String] // model names to merge (resolved post-parse)
+  // library-model v2 (minimal read path; full solving deferred to M5)
+  cb_timing : Array[(String, CallbackTiming)] // name -> timing (parsed)
+  trait_edges : Array[TraitCallbackEdge] // declared re-entry edges
 } derive(Debug)
 
 ///|
@@ -33,6 +61,8 @@ pub fn TaintRuleset::empty() -> TaintRuleset {
     fn_types: [],
     callbacks: [],
     extends: [],
+    cb_timing: [],
+    trait_edges: [],
   }
 }
 
@@ -171,9 +201,55 @@ fn parse_taint_section(node : Json?) -> TaintRuleset {
                 }
                 rs.callbacks.push((k, placeholders))
               }
+              // v2 object form: { "slots": [...], "timing": "deferred" }
+              Object(cb) => {
+                let placeholders : Array[String] = []
+                match cb.get("slots") {
+                  Some(Array(sl)) =>
+                    for item in sl {
+                      match item {
+                        String(s) => placeholders.push(s)
+                        _ => ()
+                      }
+                    }
+                  _ => ()
+                }
+                let timing : CallbackTiming = match cb.get("timing") {
+                  Some(String("deferred")) => Deferred
+                  _ => Immediate
+                }
+                rs.callbacks.push((k, placeholders))
+                rs.cb_timing.push((k, timing))
+              }
               _ => ()
             }
           })
+        _ => ()
+      }
+      match obj.get("trait_edges") {
+        Some(Array(arr)) =>
+          for item in arr {
+            match item {
+              Object(edge) => {
+                let lib_method = match edge.get("method") {
+                  Some(String(s)) => s
+                  _ => ""
+                }
+                let trait_method = match edge.get("trait_method") {
+                  Some(String(s)) => s
+                  _ => ""
+                }
+                let note = match edge.get("note") {
+                  Some(String(s)) => s
+                  _ => ""
+                }
+                if lib_method != "" && trait_method != "" {
+                  rs.trait_edges.push({ lib_method, trait_method, note, })
+                }
+              }
+              _ => ()
+            }
+          }
         _ => ()
       }
       match obj.get("extends") {
@@ -282,7 +358,9 @@ pub fn TaintRuleset::size(self : TaintRuleset) -> Int {
   self.sanitizers.length() +
   self.extends.length() +
   self.fn_types.length() +
-  self.callbacks.length()
+  self.callbacks.length() +
+  self.cb_timing.length() +
+  self.trait_edges.length()
 }
 
 ///|
