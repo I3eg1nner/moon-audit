@@ -1192,10 +1192,21 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
       let _ = infer_expr(body, ctx)
       IRUnit
     }
-    Try(body~, catch_~, ..) => {
+    Try(body~, catch_~, try_else~, ..) => {
       let t = infer_expr(body, ctx)
       for case in catch_ {
         let _ = infer_expr(case.body, ctx)
+      }
+      // noraise arm: runs on success; its pattern binds the SUCCESS value —
+      // without this, calls inside the success branch never enter the call
+      // graph (third review)
+      match try_else {
+        Some(arms) =>
+          for case in arms {
+            bind_pattern(case.pattern, t, ctx)
+            let _ = infer_expr(case.body, ctx)
+          }
+        None => ()
       }
       t
     }

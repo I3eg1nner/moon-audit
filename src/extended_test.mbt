@@ -541,3 +541,70 @@ test "P3: defer expression observes body writes (exit-path order)" {
   run_cwe113(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() > 0)
 }
+
+// ---------------------------------------------------------------------------
+// V1: error-flow & value-structure contracts (third review)
+// ---------------------------------------------------------------------------
+
+///|
+fn v1_may_fail() -> String {
+  "fn may_fail(x : String, flag : Bool) -> String raise Bad { if flag { raise Bad(x) } x }"
+}
+
+///|
+test "v1_control_param_direct_header_reports" {
+  let source = "fn foo(resp : Response, x : String) -> Unit { resp.set_header(\"X\", x) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "v1_try_normal_branch_taint_reports" {
+  let source = v1_may_fail() +
+    " pub fn foo(resp : Response, x : String, flag : Bool) -> Unit { let value = try may_fail(x, flag) catch { _ => \"safe\" }; resp.set_header(\"X\", value) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "v1_error_payload_taint_reports" {
+  let source = v1_may_fail() +
+    " pub fn foo(resp : Response, x : String, flag : Bool) -> Unit { try { ignore(may_fail(x, flag)) } catch { Bad(value) => resp.set_header(\"X\", value) } }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "v1_noraise_success_arm_reports" {
+  let source = v1_may_fail() +
+    " pub fn foo(resp : Response, x : String, flag : Bool) -> Unit { try may_fail(x, flag) catch { _ => () } noraise { value => resp.set_header(\"X\", value) } }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "v1_catch_only_cleanup_still_reports" {
+  let source = v1_may_fail() +
+    " pub fn foo(resp : Response, x : String, flag : Bool) -> Unit { let mut value = x; try { ignore(may_fail(x, flag)) } catch { _ => value = \"safe\" }; resp.set_header(\"X\", value) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "v1_tuple_component_clean_no_report" {
+  let source = "pub fn foo(resp : Response, x : String) -> Unit { let (_dirty, clean) = (x, \"safe\"); resp.set_header(\"X\", clean) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}

@@ -490,3 +490,22 @@ petgraph 69% 持平。FP 三目标 0；156/156 × 4 targets deny-warn 绿；moon
 
 关键工具突破：gh 凭据在 ~/.config/gh/hosts.yml → 认证 API 可读 CI 失败日志（此前 403/限流盲修）。
 新教训入库：① CI 与本地的三重差异=工具链版本/绝对路径/OS 语义，"本地绿"不构成推送依据，新鲜克隆+最新工具链+全序列复刻才是；② moon 测试的 fs 沙箱里 create_dir 非递归且对已存在目录 raise。
+
+## 2026-09-05 · V1 错误流 + 值结构契约（第三轮评审整改，commit 见 git log）
+
+**评审复现实证**：6 样例重建为单测后 1 过 5 败（4 漏报 + 1 误报），与评审完全一致。
+
+**修复**
+- Try 语义重写（taint_flow）：body_ctx/catch 副本/noraise 副本三出口 fork+merge_envs，
+  返回值 join；catch 基环境 = 入口 ∪ body 后状态（raise 前副作用可见）
+- 错误载荷保守近似：err_t = taint_or(body_t, env_any_taint(body_ctx))——干净 body
+  不误报，污点 body 的错误路径必报
+- noraise（try_else~ 字段实证，非 TryOperator——后者仅 `!`）：双侧接入，
+  petgraph 调用点 +35 / 自举 +25（成功分支调用此前不进调用图）
+- 元组逐位绑定 bind_let_taint：形状匹配逐分量 flow，不匹配保守整体
+
+**验收数字**：180/180 × 4 targets；FP mocket/自举/petgraph 全零；解析率
+mocket 78% 持平 / 自举 89%（3733/4177）/ petgraph 69%（1011/1449，调用点 +35）
+
+**评审第 2/3/4 节（库模型回调语义/效应契约/规划修正）**：记入 TODO 待办，
+PLAN.md "parser 是唯一语言耦合点" 声明需修正为"语义适配层"——归入下一里程碑。

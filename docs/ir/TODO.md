@@ -201,6 +201,21 @@
       mocket 78%（+3）；FP 三目标 0；166/166 × 4 targets；deny-warn 全绿
 - [ ] 剩余 FFI unknown ~39（mocket）：跨依赖级联与 dyn 分派，属 M4 域；模型杠杆已尽
 
+## Phase V1：错误流 + 值结构契约（2026-09-05 第三轮评审整改）
+- [x] Try 分支合并：body/catches/noraise 三类出口状态 fork+merge，返回值 join
+      （修"正常返回污点丢失"漏报）
+- [x] 错误载荷：catch 模式绑定错误值，保守近似 = body 结果污点 ∪ body 状态任意污点
+      （修"错误携带污点"漏报；干净 body 的错误路径不误报）
+- [x] noraise 成功分支：taint_flow + tyrecon 双侧接入（成功值绑定 + 调用图纳入；
+      petgraph 解析率 69% 不变但调用点 +35，自举 +25）
+- [x] 异常分支清洗陷阱：catch 副本环境内清洗，正常路径污点保留于合并（负对照锁定）
+- [x] 元组分量绑定：Tuple 模式 × Tuple 右侧逐位绑定（修 (tainted, "safe") 误报；
+      形状不匹配保守回退整体绑定）
+- [x] 验收：评审 6 样例 4 漏报转告警 + 1 误报转静默 + 对照保持；180/180 × 4；
+      FP 三目标 0；deny-warn/fmt/info 门全绿
+- [ ] Match scrutinee 元组解构的分量绑定（当前保守整体，方向为过报不漏报）
+- [ ] 函数效应契约（正常/错误/回调三出口摘要）与 IRFn 参数化——评审第 3 节设计
+
 ## 上游机会（随时可做，独立于主线）
 - [x] 上游 PR 准备完成：dump-core-sexp.patch（2 文件 +18/-1，静态核对全部签名）+
       upstream/README.md（动机/用法/验证步骤/PR 草稿）——待有 OCaml 环境编译验证后提交 PR

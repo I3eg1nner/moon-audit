@@ -574,8 +574,9 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       taint_or(t, flow(body, ctx))
     }
     Let(pattern~, expr~, body~, ..) => {
-      let t = flow(expr, ctx)
-      bind_pattern_taint(pattern, t, ctx)
+      // value-structure contract: tuple destructuring binds positionally so
+      // (tainted, "safe") keeps the second component clean (third review)
+      bind_let_taint(pattern, expr, ctx)
       bind_site_to_pattern(pattern, resolve_binding_site(expr, ctx), ctx)
       flow(body, ctx)
     }
@@ -791,12 +792,39 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       flow_to_fixpoint(body, ctx)
       Clean
     }
-    Try(body~, catch_~, ..) => {
-      let _ = flow(body, ctx)
+    Try(body~, catch_~, try_else~, ..) => {
+      // Error-flow contract: body, catches, and the noraise arm are separate
+      // exit states that MERGE (third review). Catches observe the pre-raise
+      // state (approximated by the post-body env); the error payload may
+      // carry body-derived data (conservative: body result ∪ any body taint).
+      let body_ctx = ctx.copy()
+      let body_t = flow(body, body_ctx)
+      let err_t = taint_or(body_t, env_any_taint(body_ctx))
+      let branch_envs : Array[FlowCtx] = [body_ctx]
+      let mut result = body_t
       for case in catch_ {
-        let _ = flow(case.body, ctx)
+        let case_ctx = ctx.copy()
+        merge_env(case_ctx, body_ctx, case_ctx) // entry ∪ post-body state
+        bind_pattern_taint(case.pattern, err_t, case_ctx)
+        let t = flow(case.body, case_ctx)
+        result = taint_or(result, t)
+        branch_envs.push(case_ctx)
       }
-      Clean
+      match try_else {
+        Some(arms) =>
+          for case in arms {
+            // noraise arm binds the SUCCESS value and runs on the happy path
+            let arm_ctx = ctx.copy()
+            merge_env(arm_ctx, body_ctx, arm_ctx)
+            bind_pattern_taint(case.pattern, body_t, arm_ctx)
+            let t = flow(case.body, arm_ctx)
+            result = taint_or(result, t)
+            branch_envs.push(arm_ctx)
+          }
+        None => ()
+      }
+      merge_envs(ctx, branch_envs)
+      result
     }
     TryOperator(body~, ..) => flow(body, ctx)
     Map(elems~, ..) => {
@@ -929,6 +957,49 @@ fn bind_pattern_taint(pat : @syntax.Pattern, t : Taint, ctx : FlowCtx) -> Unit {
 }
 
 // union-merge branch states back into ctx
+
+///|
+// Positional tuple binding: (tainted, "safe") binds per component so the
+// clean component stays clean; mismatched shapes fall back to whole-taint
+
+///|
+fn bind_let_taint(
+  pattern : @syntax.Pattern,
+  expr : @syntax.Expr,
+  ctx : FlowCtx,
+) -> Unit {
+  match (pattern, expr) {
+    (Tuple(pats~, ..), Tuple(exprs~, ..)) => {
+      let parr = pats.to_array()
+      let earr = exprs.to_array()
+      if parr.length() == earr.length() {
+        let mut i = 0
+        while i < parr.length() {
+          let ct = flow(earr[i], ctx)
+          bind_pattern_taint(parr[i], ct, ctx)
+          i += 1
+        }
+      } else {
+        let t = flow(expr, ctx)
+        bind_pattern_taint(pattern, t, ctx)
+      }
+    }
+    _ => {
+      let t = flow(expr, ctx)
+      bind_pattern_taint(pattern, t, ctx)
+    }
+  }
+}
+
+// conservative aggregate: Tainted if any tracked var is tainted in the state
+// (used for error payloads that may carry body-derived data)
+
+///|
+fn env_any_taint(ctx : FlowCtx) -> Taint {
+  let mut any = Clean
+  ctx.env.each(fn(_k, v) { if v != Clean { any = Tainted } })
+  any
+}
 
 ///|
 fn merge_env(ctx : FlowCtx, a : FlowCtx, b : FlowCtx) -> Unit {
