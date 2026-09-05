@@ -6,7 +6,11 @@ fn test_tmp(sub : String) -> String {
   // try /tmp first; on Windows that fails, fall back to a relative dir
   // under the test working directory (writable in CI sandboxes)
   // side-effect-free probe: read_dir succeeds iff /tmp exists & readable
-  ignore(@fs.read_dir("/tmp") catch { _ => return "./moon_audit_test_tmp/" + sub })
+  ignore(
+    @fs.read_dir("/tmp") catch {
+      _ => return "./moon_audit_test_tmp/" + sub
+    },
+  )
   "/tmp/" + sub
 }
 
