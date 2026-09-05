@@ -83,6 +83,17 @@ moon-audit --fail-on-error /path/to/project         # 有 Error 级别漏洞时 
 | CWE-248/panic-reachable | 库代码中 `abort("message")` 使调用者无法恢复 | 关闭 | 裸 panic、guard-else、平台桩、契约断言、`unwrap`/`get_exn` 函数跳过 |
 | CWE-704/unsafe-cast | `.cast()` 绕过类型系统 | 关闭 | FFI 绑定文件跳过 |
 | CWE-116/replace-escaping | `String::replace()` 仅替换首次出现，HTML 转义不完整 | 开启 | — |
+| CWE-116/tainted-output | DSL/库模型 Output sink 接收污点数据（如 FFI 网络输出） | 开启* | 需 taint 规则/`extends` 库模型 |
+
+*仅在项目配置了 taint 规则或 `extends` 库模型时产生发现（如 mongoose FFI 模型）。
+
+污点规则 DSL（`taint-rules.json` 或 `.moon-audit.json` 的 `taint` 节）：
+
+```json
+{ "taint": { "extends": ["mongoose"], "sources": [{"method": "body"}] } }
+```
+
+内置库模型：`mongoose`（mocket 原生绑定，类型 + taint 行为）；自定义模型放 `libmodels/<name>.json`。详见 `docs/ir/RULES-DSL.md`。
 | CWE-94/eval-extern | extern JS 中使用 `eval()`/`new Function()` | 关闭 | — |
 | CWE-22/path-concat | 路径拼接可能导致目录穿越 | 关闭 | URL/route/URI 变量跳过 |
 

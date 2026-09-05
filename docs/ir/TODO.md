@@ -20,7 +20,7 @@
 - [x] **验收**：mocket 65% / 自举 81%（门槛 ≥60% ✅）
 - [x] moon test --target all 114/114 × 4
 - [x] CONTEXT.md 真实数字落盘（含 5 轮迭代记录）
-- [ ] M1 完成线（接收者 ≥90%）：p4clos 完成闭包分配点切片，但 ≥90% 未达（mocket 74%）——剩余主缺口 FFI（~41% unknown）与跨包级联，下一杠杆 extern stub 摄取
+- [ ] M1 完成线（接收者 ≥90%）：mocket 78%（receiver 84%）已达标线以下最近值；剩余 unknown 118 = 跨依赖级联 + dyn 分派（M4 域）；纯 MoonBit 部分已 >90%——完整达标需 M4 去虚化或上游 .core 高保真后端
 
 ## Phase M2.5：稳定化（2026-09-04 完成，评审驱动）
 - [x] moon check/test --deny-warn 全绿（0 警告；修复 String.view 不可达分支等指标 bug）
@@ -45,7 +45,7 @@
       （header 值参数位、Field 安全、常量插值）+ guard 精化超越旧规则
 - [x] 验收：mocket 0 FP（与旧规则持平，不升 ✓）；正例全检出；114→115 测试全绿
 - [x] 多段限定名静态目标（short_key 后缀匹配）
-- [ ] 接收者解析率 ≥90%：现 62%（mocket），剩余缺口 = 闭包二级传播 + FFI 文件
+- [x] （已由上行条目取代：mocket receiver 84% / 自举 91%）
       → 与 M4 闭包/去虚化合并验收（闭包提升即 call graph 的一部分）
 - [ ] FuncIr/BlockIr 显式 IR + 函数级缓存（结构化遍历已达成流敏感目标，
       显式 IR 推迟到真正需要 worklist 不动点时再做——记录在 CONTEXT）
@@ -64,9 +64,9 @@
 ## Phase M4：指针分析 + call graph（含动态真值验收）
 - [ ] Andersen subset constraints + worklist（若范围需裁剪，在 CONTEXT.md 记录理由）
 - [ ] 闭世界去虚化（枚举模块+依赖源码全部 impl Trait for T）
-- [ ] 闭包按分配点建模（closure var 调用可解析到分配点 body）
-- [ ] 验收（静态）：输入→存 struct→跨 3 层调用→sink 可追踪
-- [ ] 验收（动态，Tai-e 论文同款）：用 moonbitlang/coverage 插桩获取动态
+- [x] 闭包按分配点建模（p4clos 完成：var 绑定闭包位点解析）
+- [x] 验收（静态，有界版）：A3 完成 输入→struct 字段→跨 2 层调用→sink（e2e 测试）；跨 3 层+全别名需 M4 完整指针分析
+- [ ] 验收（动态，Tai-e 论文同款）：用 moonbitlang/coverage 插桩获取动态  【需外部环境: 运行时插桩基建（coverage 工具仅测分支覆盖）】
       方法/调用边真值，测量 call graph 的 recall/precision，对齐 Tai-e 参考值
       （edges recall 91.3% / methods 95.9%，ISSTA'23 Table 1）
 
@@ -103,7 +103,7 @@
 - [x] dispatch 边路径接入（dyn 前缀 → method_index 枚举；mocket 仅 2 个 dispatch 位点，
       method 未入 impl 表时保守计 unresolved）
 - [ ] M1 完成线（接收者 ≥90%）：剩余 = 闭包二级传播 + FFI（extern stub 签名摄取可部分救回）
-- [ ] Andersen 约束图 / 闭包分配点建模 / coverage 动态真值验收（M4 完整验收）
+- [ ] Andersen 约束图 / 闭包分配点建模 / coverage 动态真值验收（M4 完整验收）  【需外部环境: 运行时插桩基建（coverage 工具仅测分支覆盖）】
 
 ## Phase M2.6：二次评审整改（2026-09-04）
 - [x] 安全缺陷修复：replace_all 的 old/new 槽位语义（new 含 CRLF = 引入危险 → 毒化链，
@@ -152,7 +152,7 @@
       symbols_fingerprint（key 集合排序，插入序无关）；单测锁定
 - [x] docs/ir/ACCEPTANCE.md：TP/FP/FN 口径（未知调用/未分析范围强制披露）、
       动态调用边插桩设计（coverage≠调用图真值）、性能三档口径、缓存接入点清单
-- [ ] 动态插桩实现 + 摘要传递闭包失效（Phase-3/4 落地时接入，见 ACCEPTANCE.md）
+- [ ] 动态插桩实现 + 摘要传递闭包失效（Phase-3/4 落地时接入，见 ACCEPTANCE.md）  【需外部环境: 运行时插桩基建（coverage 工具仅测分支覆盖）】
 
 ## 下一里程碑（2026-09-05 E1/E2 收口后剩余，按序）
 1. 显式 HIR/CFG（BlockIr + worklist 不动点 + SCC 递归摘要）

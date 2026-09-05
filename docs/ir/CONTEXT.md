@@ -445,3 +445,34 @@ petgraph 69% 持平。FP 三目标 0；156/156 × 4 targets deny-warn 绿；moon
 - 探针验收：ws_send_native(id, req.body()) → CWE-116/tainted-output 告警；链路 5/5 解析
 - 数字：mocket 75→78%、自举 88%（gate4 实测裁决：初稿笔误 86%，3667/4145 复核）、petgraph 69%；FP 三目标 0；deny-warn 全绿
 - 剩余 FFI unknown ~39 = 跨依赖级联 + dyn 分派（M4 域），模型杠杆已尽（如实记录）
+
+
+## 2026-09-05 · v0.4.0 终局收口（gate4 整改 + finale）
+
+**gate4 整改（8bdc162）**
+- extends 组合路径修复：`.moon-audit.json` "taint" 节此前静默 no-op（双重缺陷：
+  size() 不计 extends 提前返回 + 组合路径漏调 resolve_extends）——现与专用文件
+  路径完全对等；CLI 探针复验 `ws_send_native(id, req.body())` → CWE-116 告警 ✓
+- 数字裁决：自举实测 88%（A2 条目笔误 86% 修正）；**mocket 78% 达标**（全局 let
+  注入 + is String 模式绑定 + extern 库模型三项机制合力）
+- 3 个新 e2e 测试（组合路径模型加载 / 告警 / scan_project 全链路）
+
+**finale**
+- 真实推送：`git push origin HEAD` 成功（bef96e2..8bdc162 → origin/main），远端 CI 待跑
+- moon.mod 0.3.2 → **0.4.0**；README 规则表补 CWE-116/tainted-output + DSL/extends 用法
+- TODO 终局对账：已完成项勾选；未完成项标注【需外部环境: ...】（OCaml/PR 流程、
+  运行时插桩基建、LLM API）
+
+**全程数字轨迹（最终）**
+
+| 指标 | M1 起点 | 工作流#1-3 后 | v0.4.0 终局 |
+|---|---|---|---|
+| mocket 合并解析率 | 40% | 75% | **78%**（receiver 84%） |
+| 自举 | 81% | 88% | **88%**（3671/4149，receiver 91%） |
+| petgraph | 67% | 69% | **69%** |
+| 测试 | 92 | 156 | **174 × 4 targets** |
+| FP | — | 0 | **0**（三目标 + 17 语料四快照） |
+| 语料 | 21 项目手工 | 17+1 自动 | **护栏 6×0 四次连续 / crescent 5 TP 四次一致** |
+| commit | 2 | 14 | **16+ 推送** |
+
+剩余（均标注外部依赖）：OCaml 编译+上游 PR、动态插桩基建、LLM 研判自动化。
