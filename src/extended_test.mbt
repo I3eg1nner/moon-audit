@@ -483,3 +483,21 @@ test "M2.5: match-expression taint joins to let" {
   run_cwe113(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() > 0)
 }
+
+///|
+test "M2.6: replace_all INTRODUCING CRLF via new= must trigger" {
+  let source = "fn foo(resp : Response, val : String) -> Unit { resp.set_header(\"X\", val.replace_all(old=\"a\", new=\"\\r\\n\")) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "M2.6: old-slot CRLF strip chain still sanitizes" {
+  let source = "fn foo(resp : Response, val : String) -> Unit { resp.set_header(\"X\", val.replace_all(old=\"\\r\", new=\"\").replace_all(old=\"\\n\", new=\"\")) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}

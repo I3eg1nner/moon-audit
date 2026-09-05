@@ -684,21 +684,46 @@ fn crlf_strip_coverage(
   let mut has_cr = false
   let mut has_lf = false
   let mut has_crlf = false
+  // STRICT argument roles: only the OLD slot (labelled `old` or positional
+  // 0) removes content; CRLF in the NEW slot INTRODUCES the danger and
+  // poisons the chain (never a sanitizer).
+  let mut pos = 0
+  let mut poisoned = false
   for arg in args {
+    let is_old_slot = match arg.kind {
+      Labelled(label) => label.name == "old"
+      _ => pos == 0 // positional: first arg is the searched pattern
+    }
+    let is_new_slot = match arg.kind {
+      Labelled(label) => label.name == "new"
+      _ => pos == 1
+    }
     match arg.value {
       Constant(c=String(s), ..) => {
-        if s == "\\r\\n" || s == "\r\n" {
-          has_crlf = true
+        let cr = s == "\\r" || s == "\r"
+        let lf = s == "\\n" || s == "\n"
+        let crlf = s == "\\r\\n" || s == "\r\n"
+        if is_new_slot && (cr || lf || crlf) {
+          poisoned = true
         }
-        if s == "\\r" || s == "\r" {
-          has_cr = true
-        }
-        if s == "\\n" || s == "\n" {
-          has_lf = true
+        if is_old_slot {
+          if crlf {
+            has_crlf = true
+          }
+          if cr {
+            has_cr = true
+          }
+          if lf {
+            has_lf = true
+          }
         }
       }
       _ => ()
     }
+    pos += 1
+  }
+  if poisoned {
+    return (false, false, false)
   }
   match recv {
     DotApply(self~, method_name~, args~, ..) => {

@@ -87,5 +87,15 @@
 - [ ] M1 完成线（接收者 ≥90%）：剩余 = 闭包二级传播 + FFI（extern stub 签名摄取可部分救回）
 - [ ] Andersen 约束图 / 闭包分配点建模 / coverage 动态真值验收（M4 完整验收）
 
+## Phase M2.6：二次评审整改（2026-09-04）
+- [x] 安全缺陷修复：replace_all 的 old/new 槽位语义（new 含 CRLF = 引入危险 → 毒化链，
+      永不判安全）；对抗测试锁定（引入型必报 / old 槽双覆盖链仍安全）
+- [x] regex-positive 精化禁用（re"^ok-" 前缀不排除后续 CRLF，非可靠性质）
+- [x] PLAN 撤回"M2 超前"表述；COMPARISON 纠正所有权假设；路线按五步重排
+- [ ] 已知漏报（记录为 M3 显式 HIR 验收用例）：字段传播、两轮循环传播、&Trait 接收者
+- [ ] .mbti 摄取（parser 内置 mbti_parser/mbti_ast）→ 替代 builtin_method_ret 硬编码
+- [ ] 完整符号身份（包/类型/trait 身份 ID），取消 short_key 后缀匹配作正式依据
+- [ ] 指标口径分离：解析率（类型重建）vs 调用图准确率（方法绑定）
+
 ## 上游机会（随时可做，独立于主线）
 - [ ] 向 moonbit-compiler 提 PR：moonc build-package --dump-core-sexp（复用 dump_serialized_from_t）
