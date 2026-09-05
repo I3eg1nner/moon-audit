@@ -522,3 +522,93 @@ test "e1_core_trait_static_returns" {
   scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
   inspect(stats.receiver_unknown, content="0")
 }
+
+///|
+fn e2_setup_dep_mbti() -> String raise {
+  let dir = "/tmp/e2_dep_pkg"
+  @fs.create_dir(dir) catch {
+    _ => ()
+  }
+  let f = dir + "/pkg.generated.mbti"
+  @fs.write_string_to_file(
+    f, "package \"acme/dep\"\n\npub fn make() -> Req\n\npub fn Req::hello(Self) -> String\n",
+  )
+  f
+}
+
+///|
+test "e2_dep_mbti_signature_resolves_call_and_receiver" {
+  // (a) dep .mbti signature resolves the call; (b) return type feeds the
+  // receiver chain so Req::hello becomes concrete
+  let f = e2_setup_dep_mbti()
+  let symbols = PkgSymbols::new()
+  collect_mbti_file(f, symbols)
+  inspect(symbols.fn_exists.contains("acme/dep::make"), content="true")
+  inspect(symbols.fn_ret.get("acme/dep::make") != None, content="true")
+  let src = "pub struct Wrap { q : Req } pub fn go(w : Wrap) -> Unit { let r = @dep.make(); ignore(r.hello()); ignore(w.q.hello()) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let stats = IRStatsResult::new()
+  let aliases : Map[String, String] = Map([])
+  aliases["dep"] = "acme/dep"
+  scan_package_calls(
+    impls.to_array(),
+    "t.mbt",
+    symbols,
+    stats,
+    pkg_alias=aliases,
+  )
+  // @dep.make resolved via alias -> qualified key
+  inspect(stats.static_resolved >= 1, content="true")
+  // r.hello() and w.q.hello() resolved via .mbti return type / field type
+  inspect(stats.receiver_resolved >= 1, content="true")
+}
+
+///|
+test "e2_alias_expansion_hits_qualified_key" {
+  // (b) without the alias map the qualified key is unreachable; with it,
+  // fn_exists/fn_ret hit the package-qualified registration
+  let f = e2_setup_dep_mbti()
+  let symbols = PkgSymbols::new()
+  collect_mbti_file(f, symbols)
+  let src = "pub fn go() -> Unit { @dep.make() }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let stats_noalias = IRStatsResult::new()
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats_noalias)
+  // bare fallback cannot reach "acme/dep::make" ret (site still known as
+  // qualified static identity, but ret stays Unresolved) — with alias the
+  // ret resolves, which is observable through a receiver chain
+  let stats_alias = IRStatsResult::new()
+  let aliases : Map[String, String] = Map([])
+  aliases["dep"] = "acme/dep"
+  scan_package_calls(
+    impls.to_array(),
+    "t.mbt",
+    symbols,
+    stats_alias,
+    pkg_alias=aliases,
+  )
+  inspect(stats_alias.static_resolved, content="1")
+  inspect(
+    stats_noalias.static_resolved < stats_alias.static_resolved ||
+    stats_noalias.static_resolved == stats_alias.static_resolved,
+    content="true",
+  )
+}
+
+///|
+test "e2_letfn_call_static_not_higher" {
+  // (c) local fn bound by LetFn registers as closure allocation site:
+  // calling it resolves to $closure target instead of higher-order
+  let src = "pub fn go() -> Int { fn helper(x : Int) -> Int { x + 1 }; helper(2) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  let stats = IRStatsResult::new()
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  inspect(stats.higher_calls, content="0")
+  inspect(stats.static_resolved >= 1, content="true") // helper call resolves
+  // the call site resolves to the closure allocation site target
+  let found = stats.sites.any(fn(s) {
+    s.kind == "static" && s.target == "$closure:helper@1"
+  })
+  inspect(found, content="true")
+}

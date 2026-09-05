@@ -340,3 +340,26 @@ FP 三目标持平全零。
 
 **下一里程碑**（TODO 已收口）：显式 HIR/CFG+SCC、源码侧包身份、规则配置化、
 指针分析协同（先比较不预设）、动态插桩、21 项目网络全量、推送+发布 v0.3.x、上游 PR。
+
+
+## 2026-09-05 · Phase E2（工作流 #3，dep .mbti + 别名身份 + LetFn）
+
+**改动**（全部 tyrecon.mbt + tyrecon_test.mbt）：
+- walk_dep_dir 增 .mbti 收集（依赖接口文件 74 个，mocket）；包身份从路径推导
+  （.mooncakes/<owner>/<repo>/<path>），源码符号同步注册限定键
+- pkg_alias_map：moon.pkg import 块 → 别名映射（显式 @alias 与默认尾段双注册）；
+  scan_package_calls 增 pkg_alias? 参数；Ident(Dot) 调用先查展开限定键再回退
+- LetFn 镜像 LetAnd 注册 closure_sites（未标注体延迟首调用）；数值 Infix 类型传播
+
+**指标（前 → 后）**
+| 目标 | 前 | 后 | 说明 |
+|---|---|---|---|
+| mocket | 74% (1422/1905) | 75% (1436/1905) | 剩余 unknown 185：FFI ~79、dyn ~30、级联 |
+| 自举 | 86% (3307/3824) | **88%** (3435/3868) | 达标；分母 +144（LetFn 延迟扫描计入 helper 体） |
+| petgraph | 69% | 69% | 依赖单一，.mbti 增益饱和 |
+
+FP 三目标 0；155/155 × native；check --target all --deny-warn 绿。
+
+**验收判定**：自举 ≥88% ✅；mocket ≥78% ❌（75%——E2 杠杆已尽，FFI+dyn 是下一域，
+诚实记录）。测试教训：期望值必须从机制推导（helper 体内无调用 → static_resolved=1），
+先写对断言再怀疑实现——本次机制本身一次通过（$closure:helper@1 即证）。

@@ -144,6 +144,21 @@
 6. 21 项目语料网络全量 + 推送远端 CI + mooncakes 发布 v0.3.x
 7. 上游 PR 提交（patch 已备，待 OCaml 编译验证）
 
+## Phase E2：dep .mbti 摄取 + moon.pkg 别名身份 + LetFn 闭包位点（2026-09-05）
+- [x] walk_dep_dir 摄取 .mooncakes 内 74 个 .mbti（mocket 依赖：async/x/mimetype），
+      源码优先原则保持（.mbti 仅补源码未注册符号）；限定键注册复用 p2a 的 qkey 机制
+- [x] moon.pkg 别名身份：pkg_alias_map 解析 import 块（显式 @alias + 默认尾段别名），
+      调用点 Ident(Dot) 经 ScanCtx.pkg_alias 展开为 "pkgpath::fn" 限定键（先限定后短键回退）
+- [x] 源码侧限定键：register_qualified_symbols 按路径推导包身份（.mooncakes/<owner>/<repo>/...）
+- [x] LetFn 注册 closure_sites（镜像 LetAnd 延迟模式；未标注体延迟到首调用点回填）
+- [x] 数值 Infix 传播（Int/Double/UInt 算术防级联）
+- [x] 测试 +3：dep .mbti 签名解析+接收者链 / 别名展开限定键 / LetFn higher→static
+      （$closure:helper@1 目标验证）→ 155/155
+- [x] 指标：mocket 74→75%（FFI/dyn 占剩余主体）、自举 86→**88%**（达标 ≥88）、
+      petgraph 69% 持平；FP 三目标 0
+- [ ] mocket ≥78% 未达：剩余 unknown 185 中 FFI native/js ~79 + dyn trait 分派 ~30
+      （M4 去虚化域）+ 深层级联——E2 三杠杆已尽，下一杠杆为去虚化/指针分析
+
 ## Phase E1：extern stub + FFI 文件三模式（2026-09-05）
 - [x] 调研结论：extern 声明（DeclStubs）签名**本就注册**（探针证实 fn_ret=Conn ✓）；
       FFI 文件 238 个未解析的真实根因是文件内普通代码的三类模式：

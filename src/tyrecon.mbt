@@ -300,6 +300,8 @@ priv struct ScanCtx {
   // M4-lite: var-name -> closure allocation site (params/body reference)
   closure_sites : Map[String, ClosureSite]
   mut pending_closure : String? // set by infer_apply, consumed by Apply arm
+  // E2: moon.pkg import aliases (alias -> qualified package path)
+  pkg_alias : Map[String, String]
 }
 
 ///|
@@ -317,6 +319,7 @@ pub fn scan_package_calls(
   file : String,
   symbols : PkgSymbols,
   stats : IRStatsResult,
+  pkg_alias? : Map[String, String],
 ) -> Unit {
   collect_symbols(impls, symbols)
   let ctx : ScanCtx = {
@@ -330,6 +333,10 @@ pub fn scan_package_calls(
     cur_fn: "<top>",
     closure_sites: Map([]),
     pending_closure: None,
+    pkg_alias: match pkg_alias {
+      Some(m) => m
+      None => Map([])
+    },
   }
   for item in impls {
     match item {
@@ -793,7 +800,23 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
       if is_stringy(lt) || is_stringy(rt) {
         IRConcrete("String", [])
       } else {
-        IRUnresolved
+        // numeric arithmetic: Int/Double/UInt operands propagate their type
+        // (prevents cascades like `(h1 * 16 + h2).to_byte()` losing Int)
+        match (lt, rt) {
+          (IRConcrete(n, _), _) =>
+            if is_numeric_ty(n) {
+              lt
+            } else {
+              numeric_join(lt, rt)
+            }
+          (_, IRConcrete(n, _)) =>
+            if is_numeric_ty(n) {
+              rt
+            } else {
+              numeric_join(lt, rt)
+            }
+          _ => IRUnresolved
+        }
       }
     }
     Unary(expr~, ..) => infer_expr(expr, ctx)
@@ -924,8 +947,13 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
       infer_expr(body, ctx)
     }
     LetFn(name~, func~, body~, ..) => {
-      scan_func_ctx(func, ctx)
+      // E2: register local fn as closure allocation site (mirror LetAnd):
+      // unannotated bodies defer to first call site for param backfill
       let nm = name.name
+      let defer_body = register_closure(nm, func, ctx)
+      if !defer_body {
+        scan_func_ctx(func, ctx)
+      }
       let saved : Array[(String, IRType)] = []
       saved.push((nm, or_unresolved(ctx.env.get(nm))))
       ctx.env[nm] = IRFn
@@ -1476,8 +1504,19 @@ fn infer_apply(func : @syntax.Expr, ctx : ScanCtx) -> IRType {
             Dot(..) => true // `@pkg.fn` — fully qualified static identity
             Ident(..) => false
           }
+          // E2: moon.pkg alias identity — expand `@alias.fn` to the real
+          // package-qualified key so dep .mbti signatures can be found
+          let full_key = match id.name {
+            Dot(pkg~, id~) =>
+              match ctx.pkg_alias.get(pkg) {
+                Some(full_pkg) => full_pkg + "::" + id
+                None => name
+              }
+            Ident(..) => name
+          }
           let known = qualified ||
             ctx.symbols.fn_exists.contains(name) ||
+            ctx.symbols.fn_exists.contains(full_key) ||
             is_builtin_fn(name)
           record_site(ctx, func, "static", known, name)
           ctx.stats.total_calls += 1
@@ -1487,7 +1526,12 @@ fn infer_apply(func : @syntax.Expr, ctx : ScanCtx) -> IRType {
           }
           match builtin_ctor_ret(name) {
             Some(t) => t
-            None => or_unresolved(get_fn_ret(ctx.symbols, name))
+            None =>
+              // qualified key first (dep .mbti), bare/short fallback
+              match get_fn_ret(ctx.symbols, full_key) {
+                Some(t) => t
+                None => or_unresolved(get_fn_ret(ctx.symbols, name))
+              }
           }
         }
       }
@@ -1889,15 +1933,76 @@ pub fn run_ir_stats(root : String, config : Config) -> IRStatsResult {
   // Phase 1.6: ingest official interface files (.mbti) when present
   collect_mbti_dir(root, symbols)
   // Phase 2: per-function inference with the merged table
-  walk_packages(root, config, fn(_pkg_dir, mbt_files) {
+  // (per-package moon.pkg aliases are passed so `@alias.fn` call sites can
+  // expand to the real package-qualified keys)
+  walk_packages(root, config, fn(pkg_dir, mbt_files) {
+    let aliases = pkg_alias_map(pkg_dir)
     for file in mbt_files {
       stats.files_scanned += 1
       let source = @fs.read_file_to_string(file) catch { _ => return }
       let (impls, _) = @parser.parse_string(source, name=file)
-      scan_package_calls(impls.to_array(), file, symbols, stats)
+      scan_package_calls(
+        impls.to_array(),
+        file,
+        symbols,
+        stats,
+        pkg_alias=aliases,
+      )
     }
   })
   stats
+}
+
+///|
+// Parse a package's moon.pkg import block into alias -> package-path map.
+// Both explicit aliases (`"a/b/c" @c`) and the default alias (last path
+// segment) are registered.
+fn pkg_alias_map(pkg_dir : String) -> Map[String, String] {
+  let result : Map[String, String] = Map([])
+  let pkg_path = @path.Path(pkg_dir).join(@path.Path("moon.pkg")).0
+  let content = @fs.read_file_to_string(pkg_path) catch { _ => return result }
+  let lines = content.split("\n")
+  let mut in_import = false
+  for line in lines {
+    let trimmed = line.to_owned().trim(chars=" \t\r")
+    if trimmed.has_prefix("import") && trimmed.contains("{") {
+      in_import = true
+      if trimmed.contains("}") {
+        in_import = false
+      }
+      continue
+    }
+    if in_import {
+      if trimmed.contains("}") {
+        in_import = false
+        continue
+      }
+      if trimmed.has_prefix("//") {
+        continue
+      }
+      let pkg = extract_quoted(trimmed.to_owned())
+      if pkg.length() > 0 {
+        // default alias: last path segment ("a/b/c" -> "c")
+        let seg_idx = find_last(pkg, "/")
+        let default_alias = if seg_idx >= 0 {
+          Show::to_string(pkg[seg_idx + 1:])
+        } else {
+          pkg
+        }
+        result[default_alias] = pkg
+        // explicit alias: `"a/b/c" @c,`
+        let at_idx = find_last(trimmed.to_owned(), "@")
+        if at_idx >= 0 {
+          let after = Show::to_string(trimmed[at_idx + 1:])
+          let alias_name = after.trim(chars=" ,\t\r").to_owned()
+          if alias_name.length() > 0 {
+            result[alias_name] = pkg
+          }
+        }
+      }
+    }
+  }
+  result
 }
 
 // ── M2: dependency symbol tables (.mooncakes ingestion) ───────────────────
@@ -1978,6 +2083,7 @@ fn collect_dep_symbols(root : String, symbols : PkgSymbols) -> Unit {
 fn walk_dep_dir(dir : String, symbols : PkgSymbols) -> Unit {
   let entries = @fs.read_dir(dir) catch { _ => return }
   let mbt_files : Array[String] = []
+  let mbti_files : Array[String] = []
   let subdirs : Array[String] = []
   for entry in entries {
     if entry.has_prefix(".") ||
@@ -1993,15 +2099,85 @@ fn walk_dep_dir(dir : String, symbols : PkgSymbols) -> Unit {
       !entry.has_suffix("_test.mbt") &&
       !entry.has_suffix("_wbtest.mbt") {
       mbt_files.push(full)
+    } else if entry.has_suffix(".mbti") {
+      // E2: dependency interface files carry authoritative signatures
+      // (package name comes from the .mbti content itself)
+      mbti_files.push(full)
+    }
+  }
+  // E2: derive the package identity from the .mooncakes path
+  // (<root>/.mooncakes/<owner>/<repo>/<path..> -> owner/repo/path..)
+  let pkg_name = if dir.has_suffix(".mooncakes") {
+    ""
+  } else {
+    let idx = find_last(dir, "/.mooncakes/")
+    if idx >= 0 {
+      Show::to_string(dir[idx + "/.mooncakes/".length():])
+    } else {
+      ""
     }
   }
   for file in mbt_files {
     let source = @fs.read_file_to_string(file) catch { _ => continue }
     let (impls, _) = @parser.parse_string(source, name=file)
     collect_symbols(impls.to_array(), symbols)
+    if pkg_name != "" {
+      register_qualified_symbols(impls.to_array(), symbols, pkg_name)
+    }
+  }
+  for file in mbti_files {
+    collect_mbti_file(file, symbols)
   }
   for subdir in subdirs {
     walk_dep_dir(subdir, symbols)
+  }
+}
+
+///|
+// Register fn/method symbols under package-qualified keys
+// ("owner/repo::fname" / "owner/repo::SelfTy::method") so that call sites
+// with moon.pkg alias expansion can reach dep signatures.
+fn register_qualified_symbols(
+  impls : Array[@syntax.Impl],
+  symbols : PkgSymbols,
+  pkg : String,
+) -> Unit {
+  for item in impls {
+    match item {
+      TopFuncDef(fun_decl~, ..) => {
+        let qkey = pkg + "::" + fun_decl.name.name
+        symbols.fn_exists[qkey] = true
+        match fun_decl.return_type {
+          Some(ty) => symbols.fn_ret[qkey] = type_to_ir(ty, symbols)
+          None => ()
+        }
+        match fun_decl.type_name {
+          Some(tn) => {
+            let mq = pkg + "::" + type_name_str(tn) + "::" + fun_decl.name.name
+            symbols.fn_exists[mq] = true
+            match fun_decl.return_type {
+              Some(ty) => symbols.fn_ret[mq] = type_to_ir(ty, symbols)
+              None => ()
+            }
+          }
+          None => ()
+        }
+      }
+      TopImpl(self_ty~, method_name~, ret_ty~, ..) => {
+        let self_ty_name = match self_ty {
+          Some(t) => type_to_string(t)
+          None => "?"
+        }
+        let qkey = pkg + "::" + self_ty_name + "::" + method_name.name
+        symbols.impl_methods[qkey] = "?"
+        symbols.fn_exists[qkey] = true
+        match ret_ty {
+          Some(ty) => symbols.fn_ret[qkey] = type_to_ir(ty, symbols)
+          None => ()
+        }
+      }
+      _ => ()
+    }
   }
 }
 
@@ -2348,5 +2524,23 @@ pub fn collect_mbti_dir(dir : String, symbols : PkgSymbols) -> Unit {
     } else if entry.has_suffix(".mbti") {
       collect_mbti_file(full, symbols)
     }
+  }
+}
+
+///|
+fn is_numeric_ty(name : String) -> Bool {
+  match name {
+    "Int" | "UInt" | "Int64" | "UInt64" | "Double" | "Float" | "Byte" => true
+    _ => false
+  }
+}
+
+///|
+fn numeric_join(a : IRType, b : IRType) -> IRType {
+  // Double dominates Int in mixed arithmetic; otherwise Unresolved
+  match (a, b) {
+    (IRConcrete("Double", []), _) | (_, IRConcrete("Double", [])) =>
+      IRConcrete("Double", [])
+    _ => IRUnresolved
   }
 }
