@@ -65,6 +65,11 @@ fn main {
         long="baseline",
         about="Baseline file to exclude known findings",
       ),
+      @argparse.OptionArg(
+        "baseline-report",
+        long="baseline-report",
+        about="Previous scan report (JSON) to diff against: classifies findings as new/resolved/unchanged by fingerprint",
+      ),
     ],
     positionals=[
       @argparse.PositionArg("path", about="Project path to scan", default_values=[
@@ -453,8 +458,26 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     files_scanned: result.files_scanned,
     errors: result.errors,
   }
+  // Acceptance mode: diff against a previous scan report (TP/FP/FN tracking)
+  let baseline_report_path = get_opt(matches, "baseline-report")
+  let diff = match baseline_report_path {
+    Some(brp) => {
+      let content = @fs.read_file_to_string(brp) catch {
+        _ => {
+          println("moon-audit: error: cannot read baseline report: " + brp)
+          return
+        }
+      }
+      let prev = @audit.parse_report_findings(content)
+      Some(@audit.diff_findings(filtered_findings, prev))
+    }
+    None => None
+  }
   let output = if format == "json" {
-    @audit.format_json(filtered_result)
+    match diff {
+      Some(d) => @audit.format_json_with_diff(filtered_result, d)
+      None => @audit.format_json(filtered_result)
+    }
   } else if format == "sarif" {
     @audit.format_sarif(filtered_result)
   } else {
@@ -473,6 +496,11 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
       }
     }
     None => println(output)
+  }
+  // text mode: print the baseline-diff summary after the report
+  match (diff, machine_output, quiet) {
+    (Some(d), false, false) => println(@audit.format_baseline_diff(d))
+    _ => ()
   }
   if result.errors.length() > 0 && !quiet && !machine_output {
     println("")

@@ -121,6 +121,15 @@
       · 残留：源码收集侧包身份（需 moon.pkg）；声明晚于使用点的字段类型首收集
 - [ ] 指标口径分离：解析率（类型重建）vs 调用图准确率（方法绑定）
 
+## Phase ACCEPT：验收体系（2026-09-04 完成，评审第 4 部分）
+- [x] --baseline-report <prev.json>：fingerprint 级 new/resolved/unchanged 分类
+      （text 汇总 + json comparison 节）；E2E 实测（修复→resolved / 新增→TP 候选）
+- [x] analysis_cache_key(source + symbols_fingerprint + parser 版本常量) +
+      symbols_fingerprint（key 集合排序，插入序无关）；单测锁定
+- [x] docs/ir/ACCEPTANCE.md：TP/FP/FN 口径（未知调用/未分析范围强制披露）、
+      动态调用边插桩设计（coverage≠调用图真值）、性能三档口径、缓存接入点清单
+- [ ] 动态插桩实现 + 摘要传递闭包失效（Phase-3/4 落地时接入，见 ACCEPTANCE.md）
+
 ## 上游机会（随时可做，独立于主线）
 - [x] 上游 PR 准备完成：dump-core-sexp.patch（2 文件 +18/-1，静态核对全部签名）+
       upstream/README.md（动机/用法/验证步骤/PR 草稿）——待有 OCaml 环境编译验证后提交 PR

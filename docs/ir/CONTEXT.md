@@ -256,3 +256,15 @@ FP 三目标持平全零。
    缓存失效 key 扩展（接口/后端/解析器版本/库模型/被调摘要）
 6. 21 项目语料全量回归 + 推送远端 CI + mooncakes 发布 v0.3.x
 7. 上游 PR：docs/ir/upstream/dump-core-sexp.patch（已起草，待 OCaml 环境编译验证）
+
+## 2026-09-04 · Phase ACCEPT（验收体系落地）
+- src/acceptance.mbt：parse_report_findings / diff_findings /
+  format_baseline_diff / format_json_with_diff / analysis_cache_key /
+  symbols_fingerprint（FNV1a，分隔符防拼接歧义）
+- CLI：scan 增加 --baseline-report（与既有 --baseline 过滤正交）
+- E2E：f1 消毒→RESOLVED，f3 新漏洞→NEW(TP 候选)，UNCHANGED 计数正确
+- 测试：+5（分类/空输入/json 状态标记/缓存 key 组合/符号指纹序稳定）→ 141/141
+- 证据口径：deny-warn 唯一失败点在并行 lane 的 taint_flow.mbt WIP（非本任务文件），
+  本任务文件 0 警告；全树 moon test 141/141 通过
+- 教训追加：format_baseline_diff 的 message[0:60] 越界 abort——任何字符串截断
+  必须先判长度（truncate_str 已固化）
