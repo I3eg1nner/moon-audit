@@ -22,7 +22,7 @@ pub fn collect_audit_files(String, Config) -> Array[(String, String)]
 
 pub fn collect_func_summaries(String, String, InterProceduralContext) -> Unit
 
-pub fn collect_func_summaries_flow(@list.List[@syntax.Impl], String, InterProceduralContext) -> Unit
+pub fn collect_func_summaries_flow(@list.List[@syntax.Impl], String, InterProceduralContext, rules? : TaintRuleset) -> Unit
 
 pub fn collect_mbti_dir(String, PkgSymbols) -> Unit
 
@@ -150,6 +150,8 @@ pub fn load_env_merged(String) -> Map[String, String]
 
 pub fn load_llm_config(String) -> LLMConfig
 
+pub fn load_taint_rules(String) -> (TaintRuleset, String)
+
 pub fn merge_imports(ImportContext, ImportContext) -> ImportContext
 
 pub fn parse_llm_response(Finding, String) -> LLMAnalysisResult?
@@ -178,7 +180,7 @@ pub fn run_cwe079_template(@list.List[@syntax.Impl], String, String, Array[Findi
 
 pub fn run_cwe094(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
-pub fn run_cwe113(@list.List[@syntax.Impl], String, String, Array[Finding], Severity, ictx? : InterProceduralContext) -> Unit
+pub fn run_cwe113(@list.List[@syntax.Impl], String, String, Array[Finding], Severity, ictx? : InterProceduralContext, rules? : TaintRuleset) -> Unit
 
 pub fn run_cwe116(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
@@ -196,9 +198,9 @@ pub fn run_cwe770(@list.List[@syntax.Impl], String, String, Array[Finding], Seve
 
 pub fn run_cwe942(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
-pub fn run_flow_taint_func(@list.List[@syntax.Parameter]?, @syntax.Expr, String, String, Severity, Array[Finding], ictx? : InterProceduralContext) -> Unit
+pub fn run_flow_taint_func(@list.List[@syntax.Parameter]?, @syntax.Expr, String, String, Severity, Array[Finding], ictx? : InterProceduralContext, rules? : TaintRuleset) -> Unit
 
-pub fn run_flow_taint_func_top(@syntax.Expr, String, String, Severity, Array[Finding]) -> Unit
+pub fn run_flow_taint_func_top(@syntax.Expr, String, String, Severity, Array[Finding], rules? : TaintRuleset) -> Unit
 
 pub fn run_ir_stats(String, Config) -> IRStatsResult
 
@@ -492,6 +494,24 @@ pub(all) struct TaintFlow {
   sink_location : Location
   path : Array[String]
 }
+
+pub(all) struct TaintMethodRule {
+  method_name : String
+  kind : String
+  value_slot : Int
+} derive(@debug.Debug)
+
+pub(all) struct TaintRuleset {
+  sources : Array[TaintMethodRule]
+  sinks : Array[TaintMethodRule]
+  sanitizers : Array[TaintMethodRule]
+} derive(@debug.Debug)
+pub fn TaintRuleset::empty() -> Self
+pub fn TaintRuleset::header_sink_hit(Self, String) -> Bool
+pub fn TaintRuleset::sanitizer_hit(Self, String) -> Bool
+pub fn TaintRuleset::sink_value_slot(Self, String) -> Int?
+pub fn TaintRuleset::size(Self) -> Int
+pub fn TaintRuleset::source_hit(Self, String) -> Bool
 
 pub(all) enum TaintSink {
   HtmlOutput

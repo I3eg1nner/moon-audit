@@ -70,10 +70,15 @@
       方法/调用边真值，测量 call graph 的 recall/precision，对齐 Tai-e 参考值
       （edges recall 91.3% / methods 95.9%，ISSTA'23 Table 1）
 
-## Phase M5：上下文敏感 + 污点 DSL
+## Phase M5：上下文敏感 + 污点 DSL（DSL 切片 2026-09-05 完成）
 - [ ] 2-obj 上下文敏感
 - [ ] source/sink/transfer/sanitizer JSON 配置
-- [ ] 数据流规则全部配置化
+- [x] 污点 DSL 切片（A1，2026-09-05）：taint-rules.json / .moon-audit.json "taint" 节，
+      sources/sinks(value_slot)/sanitizers 增量叠加内置表（无配置=行为完全一致，
+      156 既有测试零改动验证）；引擎接线 source_hit/header_sink_hit/sanitizer_hit/
+      sink_value_slot；list-rules 显示配置来源；5 个新单测（含 value_slot 槽位语义）；
+      FP 三目标 0 持平；见 docs/ir/RULES-DSL.md（transfer/其他 sink kind 的边界已记录）
+- [ ] 数据流规则全部配置化（剩余：transfer 规则、其他 sink kind——依赖显式 IR）
 
 ## Phase M4 切片（2026-09-04）
 - [x] call-graph 子命令：闭世界 CHA（模块+依赖符号）+ 去虚化索引

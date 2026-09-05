@@ -21,6 +21,7 @@ fn call_flow(
   severity : Severity,
   findings : Array[Finding],
   ictx : InterProceduralContext?,
+  rules : TaintRuleset,
 ) -> Unit {
   match ictx {
     Some(i) =>
@@ -32,8 +33,18 @@ fn call_flow(
         severity,
         findings,
         ictx=i,
+        rules~,
       )
-    None => run_flow_taint_func(params, body, file, source, severity, findings)
+    None =>
+      run_flow_taint_func(
+        params,
+        body,
+        file,
+        source,
+        severity,
+        findings,
+        rules~,
+      )
   }
 }
 
@@ -45,12 +56,18 @@ pub fn run_cwe113(
   findings : Array[Finding],
   severity : Severity,
   ictx? : InterProceduralContext,
+  rules? : TaintRuleset,
 ) -> Unit {
   // M2: flow-sensitive engine replaces the IterVisitor heuristic walk.
   // Taint state is threaded through control flow with branch merging and
   // guard refinement (see taint_flow.mbt); the old textual safe-vars
   // heuristic is retained below only for the legacy summary path.
   // P3: ictx enables field-write summary consumption at call sites.
+  // DSL: project taint ruleset ADD to built-ins (empty = built-ins only)
+  let rules = match rules {
+    Some(r) => r
+    None => TaintRuleset::empty()
+  }
   for item in impls {
     match item {
       TopFuncDef(fun_decl~, decl_body~, ..) =>
@@ -64,6 +81,7 @@ pub fn run_cwe113(
               severity,
               findings,
               ictx,
+              rules,
             )
           DeclBody(expr=body) =>
             call_flow(
@@ -74,6 +92,7 @@ pub fn run_cwe113(
               severity,
               findings,
               ictx,
+              rules,
             )
           _ => ()
         }
@@ -88,6 +107,7 @@ pub fn run_cwe113(
               severity,
               findings,
               ictx,
+              rules,
             )
           DeclBody(expr=body) =>
             call_flow(
@@ -98,11 +118,12 @@ pub fn run_cwe113(
               severity,
               findings,
               ictx,
+              rules,
             )
           _ => ()
         }
       TopExpr(expr~, ..) =>
-        run_flow_taint_func_top(expr, file, source, severity, findings)
+        run_flow_taint_func_top(expr, file, source, severity, findings, rules~)
       _ => ()
     }
   }

@@ -345,6 +345,25 @@ fn cmd_list_rules() -> Unit {
   }
   println("Rules marked (off) require project-level context and have higher")
   println("false-positive risk. Enable them in .moon-audit.json when needed.")
+  // Taint rule DSL: show the effective taint vocabulary source
+  let (rs, source) = @audit.load_taint_rules(".")
+  println("")
+  println("Taint rule vocabulary:")
+  println("  source:      " + source)
+  println(
+    "  custom entries: " +
+    rs.size().to_string() +
+    " (sources " +
+    rs.sources.length().to_string() +
+    ", sinks " +
+    rs.sinks.length().to_string() +
+    ", sanitizers " +
+    rs.sanitizers.length().to_string() +
+    ")",
+  )
+  println(
+    "  (built-in tables always apply; custom entries ADD — see docs/ir/RULES-DSL.md)",
+  )
 }
 
 ///|

@@ -88,6 +88,7 @@ priv struct FlowCtx {
   mut record_returns : Array[String]? // P3: params flowing to return value
   mut record_fields : Array[String]? // P3: "r|field|src-param" field writes
   ictx : InterProceduralContext? // P3: summaries consumed at call sites
+  taint_rules : TaintRuleset // project DSL entries (ADD to built-ins)
 }
 
 ///|
@@ -108,6 +109,7 @@ pub fn run_flow_taint_func(
   severity : Severity,
   findings : Array[Finding],
   ictx? : InterProceduralContext,
+  rules? : TaintRuleset,
 ) -> Unit {
   let ctx : FlowCtx = {
     env: Map([]),
@@ -119,6 +121,10 @@ pub fn run_flow_taint_func(
     record_returns: None,
     record_fields: None,
     ictx,
+    taint_rules: match rules {
+      Some(r) => r
+      None => TaintRuleset::empty()
+    },
   }
   // fn parameters carry param provenance: direct param flow reaches
   // sinks (report), but field access on a param is a config-like read
@@ -147,6 +153,7 @@ pub fn run_flow_taint_func_top(
   source : String,
   severity : Severity,
   findings : Array[Finding],
+  rules? : TaintRuleset,
 ) -> Unit {
   let ctx : FlowCtx = {
     env: Map([]),
@@ -158,6 +165,10 @@ pub fn run_flow_taint_func_top(
     record_returns: None,
     record_fields: None,
     ictx: None,
+    taint_rules: match rules {
+      Some(r) => r
+      None => TaintRuleset::empty()
+    },
   }
   let _ = flow(body, ctx)
 }
@@ -230,18 +241,26 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       apply_field_taint_side_effect(func, args, ctx, arg_taint_arr)
       let ret = match apply_func_name(func) {
         Some(name) => {
-          if is_header_setter(name) {
-            let value_taint = header_value_taint(args, ctx)
+          let is_sink = is_header_setter(name) ||
+            ctx.taint_rules.header_sink_hit(name)
+          if is_sink {
+            let slot = or_slot(ctx.taint_rules.sink_value_slot(name))
+            let value_taint = header_value_taint(args, ctx, slot)
             if is_tainted(value_taint) {
               report_cwe113(ctx, expr, value_taint)
             }
           }
-          if is_sanitize_call_name(name) {
+          if is_sanitize_call_name(name) || ctx.taint_rules.sanitizer_hit(name) {
             Clean
           } else {
             match classify_source_method(name) {
               Some(_) => Tainted
-              None => arg_taint
+              None =>
+                if ctx.taint_rules.source_hit(name) {
+                  Tainted
+                } else {
+                  arg_taint
+                }
             }
           }
         }
@@ -255,22 +274,31 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       let arg_taint = flow_args(args, ctx)
       let combined = taint_or(recv_taint, arg_taint)
       let mname = method_name.name
-      let ret = if is_header_setter(mname) {
-        // only the header VALUE (positional 1 / labelled `value`) matters;
-        // the header NAME slot and the response receiver are expected to
-        // carry request-derived state
-        let value_taint = header_value_taint(args, ctx)
+      let is_sink = is_header_setter(mname) ||
+        ctx.taint_rules.header_sink_hit(mname)
+      let ret = if is_sink {
+        // only the header VALUE (positional 1 / labelled `value`, or the
+        // DSL value_slot) matters; the header NAME slot and the response
+        // receiver are expected to carry request-derived state
+        let slot = or_slot(ctx.taint_rules.sink_value_slot(mname))
+        let value_taint = header_value_taint(args, ctx, slot)
         if is_tainted(value_taint) {
           report_cwe113(ctx, expr, value_taint)
         }
         Clean
       } else if is_sanitize_call_name(mname) ||
+        ctx.taint_rules.sanitizer_hit(mname) ||
         is_crlf_strip_chain(mname, args, self) {
         Clean
       } else {
         match classify_source_method(mname) {
           Some(_) => Tainted
-          None => combined
+          None =>
+            if ctx.taint_rules.source_hit(mname) {
+              Tainted
+            } else {
+              combined
+            }
         }
       }
       ret
@@ -746,6 +774,7 @@ fn merge_envs(ctx : FlowCtx, branches : Array[FlowCtx]) -> Unit {
 fn header_value_taint(
   args : @list.List[@syntax.Argument],
   ctx : FlowCtx,
+  value_slot : Int,
 ) -> Taint {
   let mut pos_idx = 0
   let mut result = Clean
@@ -768,7 +797,7 @@ fn header_value_taint(
           result = taint_or(result, flow(arg.value, ctx))
         }
       _ => {
-        if pos_idx == 1 {
+        if pos_idx == value_slot {
           result = taint_or(result, flow(arg.value, ctx))
         }
         pos_idx += 1
@@ -1174,7 +1203,9 @@ pub fn collect_func_summaries_flow(
   impls : @list.List[@syntax.Impl],
   file : String,
   ictx : InterProceduralContext,
+  rules? : TaintRuleset,
 ) -> Unit {
+  ignore(rules) // summaries use built-in classification; DSL affects rule scan only
   for item in impls {
     match item {
       TopFuncDef(fun_decl~, decl_body~, ..) => {
@@ -1270,6 +1301,7 @@ fn collect_summary_func(
     record_returns: None,
     record_fields: None,
     ictx: None,
+    taint_rules: TaintRuleset::empty(),
   }
   match params {
     Some(ps) =>

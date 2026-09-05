@@ -409,3 +409,14 @@ FP 三目标 0；155/155 × native；check --target all --deny-warn 绿。
 **数字（前 → 后）**：mocket 75%(1436)→75%(1438)；自举 88%→88%(3453)；
 petgraph 69% 持平。FP 三目标 0；156/156 × 4 targets deny-warn 绿；moon info
 有 diff（dep_canonical_pkg 转 pub）→ 本次一并再生提交。
+
+
+## 2026-09-05 · A1 污点规则 JSON 配置化（第 4 工作流）
+- 新增 src/taint_rules.mbt（TaintRuleset：增量 ADD 语义，无配置=内置行为逐位一致）
+- 引擎接线：taint_flow 三处成员判定 + header_value_taint 槽位参数化；run_cwe113/
+  run_flow_taint_func(_top) 增加 rules? 可选参（既有调用零改动）
+- scan_project 根目录一次性加载；list-rules 显示来源与条目计数
+- 验证：161/161（+5：自定义 source/sink 检出、sanitizer 清污、value_slot=0 槽位、
+  文件加载往返、缺失文件=内置）；deny-warn 绿；FP mocket/自举/petgraph 三目标 0 持平
+- 边界（RULES-DSL.md）：kind 仅 HeaderValue 产生 CWE-113；CRLF 链判定不开放配置；
+  transfer 待显式 IR

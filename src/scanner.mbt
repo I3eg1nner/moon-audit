@@ -4,6 +4,9 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
   let errors : Array[String] = []
   let mut files_scanned = 0
   let mod_imports = analyze_mod_imports(root)
+  // Taint rule DSL: project-root taint-rules.json (or .moon-audit.json
+  // "taint" section) ADDs sources/sinks/sanitizers to the built-in tables
+  let (taint_rules, _taint_source) = load_taint_rules(root)
   let interproc_ctx = InterProceduralContext::new()
   let mut has_web = false
   let incremental = config.changed_files.length() > 0
@@ -59,7 +62,7 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
       if should_scan {
         files_scanned += 1
         run_all_rules(
-          impls, file, source, findings, imports, config, interproc_ctx,
+          impls, file, source, findings, imports, config, interproc_ctx, taint_rules,
         )
       }
     }
@@ -109,6 +112,7 @@ fn run_all_rules(
   imports : ImportContext,
   config : Config,
   ictx : InterProceduralContext,
+  taint_rules : TaintRuleset,
 ) -> Unit {
   let cwe116_id = "CWE-116/replace-escaping"
   if config.is_enabled(cwe116_id) {
@@ -221,6 +225,7 @@ fn run_all_rules(
       findings,
       config.get_severity(cwe113_id, cwe113_info().default_severity),
       ictx~,
+      rules=taint_rules,
     )
   }
   if imports.has_mocket || imports.has_crescent {

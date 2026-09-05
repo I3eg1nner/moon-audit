@@ -640,3 +640,86 @@ test "gate3_p2_1_dep_canonical_pkg_strips_source_layout" {
   // outside .mooncakes: empty
   inspect(dep_canonical_pkg("/data/my/moon-audit/src"), content="")
 }
+
+// ---------------------------------------------------------------------------
+// Taint rule DSL (A1)
+// ---------------------------------------------------------------------------
+
+///|
+test "taint_dsl_custom_source_and_sink" {
+  let src = "pub fn go(env : Env) -> Unit { let v = env.fetch_input(); env.custom_set(\"X\", v) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let findings : Array[Finding] = []
+  // no rules: neither fetch_input (source) nor custom_set (sink) is known
+  run_cwe113(impls, "t.mbt", src, findings, Error)
+  inspect(findings.length(), content="0")
+  // with DSL: fetch_input is a source, custom_set is a header sink
+  let rules : TaintRuleset = {
+    sources: [{ method_name: "fetch_input", kind: "QueryParam", value_slot: 1 }],
+    sinks: [{ method_name: "custom_set", kind: "HeaderValue", value_slot: 1 }],
+    sanitizers: [],
+  }
+  let findings2 : Array[Finding] = []
+  run_cwe113(impls, "t.mbt", src, findings2, Error, rules~)
+  inspect(findings2.length(), content="1")
+}
+
+///|
+test "taint_dsl_custom_sanitizer" {
+  let src = "pub fn go(env : Env, val : String) -> Unit { env.custom_set(\"X\", env.cleanse(val)) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let rules : TaintRuleset = {
+    sources: [],
+    sinks: [{ method_name: "custom_set", kind: "HeaderValue", value_slot: 1 }],
+    sanitizers: [{ method_name: "cleanse", kind: "", value_slot: 0 }],
+  }
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "t.mbt", src, findings, Error, rules~)
+  inspect(findings.length(), content="0")
+}
+
+///|
+test "taint_dsl_value_slot" {
+  // custom sink whose value is the FIRST positional arg
+  let src = "pub fn go(env : Env, val : String) -> Unit { env.h(\"danger\", val) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let rules : TaintRuleset = {
+    sources: [],
+    sinks: [{ method_name: "h", kind: "HeaderValue", value_slot: 0 }],
+    sanitizers: [],
+  }
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "t.mbt", src, findings, Error, rules~)
+  // slot 0 = "danger" (constant) => no finding from val at slot 1
+  inspect(findings.length(), content="0")
+}
+
+///|
+test "taint_dsl_load_from_file" {
+  let dir = "/tmp/taint_dsl_test"
+  @fs.create_dir(dir) catch {
+    _ => ()
+  }
+  let f = dir + "/taint-rules.json"
+  @fs.write_string_to_file(
+    f, "{ \"sources\": [{ \"method\": \"fetch_input\", \"kind\": \"QueryParam\" }], \"sinks\": [{ \"method\": \"custom_set\", \"kind\": \"HeaderValue\", \"value_slot\": 1 }], \"sanitizers\": [{ \"method\": \"cleanse\" }] }",
+  ) catch {
+    _ => ()
+  }
+  let (rs, source) = load_taint_rules(dir)
+  inspect(source, content=f)
+  inspect(rs.sources.length(), content="1")
+  inspect(rs.sinks.length(), content="1")
+  inspect(rs.sanitizers.length(), content="1")
+  inspect(rs.source_hit("fetch_input"), content="true")
+  inspect(rs.header_sink_hit("custom_set"), content="true")
+  inspect(rs.sanitizer_hit("cleanse"), content="true")
+  inspect(rs.sink_value_slot("custom_set") == Some(1), content="true")
+}
+
+///|
+test "taint_dsl_no_file_is_builtin" {
+  let (rs, source) = load_taint_rules("/tmp/definitely_missing_dir_xyz")
+  inspect(source, content="built-in defaults")
+  inspect(rs.size(), content="0")
+}
