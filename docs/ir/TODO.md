@@ -35,7 +35,7 @@
 - [x] pipeline 核查：安全 findings 全部来自 phase1 流引擎（一致）；
       taint-analysis.txt 为辅助 trace（旧 TaintVisitor，仅报告用），已标注
 - [ ] 循环不动点（当前单遍）→ 显式 IR/CFG 时实现
-- [ ] 21 项目全量语料 precision/recall 回归 → 推送前跑（本地仅 3 目标 0 FP）
+- [x] 21 项目语料扩容（scout21，2026-09-05）：15 新克隆成功、4 仓无 moon.mod 排除、"mio"未定位（疑改名）→ 17 语料 + 1 本地第四次快照；护栏 6×0 四次连续、crescent 5 TP 四次一致、新 11 项目全 clean、mars.mbt 9 条新检出已分诊（5 TP 候选 / 4 FP 嫌疑，详见 regression-baseline.md 第四次快照节）
 
 ## Phase M2：流敏感污点引擎（2026-09-03 核心完成，M2.5 后视为完成 ~70%）
 - [x] 依赖类型表：.mooncakes 依赖源码符号摄取（+2% 解析率）+ short_key 归一化

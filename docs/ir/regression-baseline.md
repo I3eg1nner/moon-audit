@@ -87,3 +87,45 @@ bash scripts/regression.sh
    moon.pkg 别名展开 + LetFn 注册）；语料最大增益 cmark/rabbita（依赖接口密集型）
 4. 主线三目标：mocket 74→75%（unknown 469→185 中 FFI ~79/dyn ~30）、自举 86→**88%**、
    petgraph 持平 69%（依赖单一，杠杆饱和）
+
+## 第四次快照（2026-09-05，scout21 语料扩容：17 语料 + 1 本地 = 18 项目）
+
+新增克隆 15 仓（全部成功）；其中 4 仓无 `moon.mod`（regexp.mbt / tree-sitter-moonbit /
+moonbit-native-runtime / python.mbt 为非标准布局）→ 排除扫描，实际入表 **17 语料 + 1 本地**。
+TODO 记录的 "mio" 在 GitHub/mooncakes 均未定位（疑改名/删除），以替补项目补足。
+
+| 项目 | findings | 文件 | 解析率 | 边覆盖 | vs 第三次 | 状态 |
+|---|---|---|---|---|---|---|
+| mizchi/actrun | 0 | 62 | **87%** | 87% | 新增 | clean ✅ |
+| mizchi/crater | 0 | 611 | 78% | 78% | 新增 | clean ✅ |
+| mizchi/luna.mbt | 0 | 91 | 84% | 84% | = / +1 | clean ✅ |
+| mizchi/mars.mbt | **9** | 67 | 83% | 83% | 新增 | findings（见分诊） |
+| mizchi/numbt | 0 | 3 | 84% | 84% | 新增 | clean ✅ |
+| mizchi/tui.mbt | 0 | 95 | **87%** | 87% | 新增 | clean ✅ |
+| moonbit-community/cmark.mbt | 0 | 46 | 82% | 82% | = / = | clean ✅ |
+| moonbit-community/crescent | **5** | 53 | 61% | 64% | = / +1 | findings（TP 四次一致） |
+| moonbit-community/rabbita | 0 | 144 | 70% | 71% | = / +2 | clean ✅ |
+| moonbitlang/async | 0 | 170 | 71% | 71% | = / = | clean ✅ |
+| moonbitlang/mooncakes.io | 0 | 54 | 76% | 76% | 新增 | clean ✅ |
+| moonbitlang/moonyacc | 0 | 63 | 70% | 70% | 新增 | clean ✅ |
+| moonbitlang/openseek | 0 | 909 | 71% | 71% | 新增 | clean ✅ |
+| moonbitlang/quickcheck | 0 | 28 | 57% | 57% | 新增 | clean ✅ |
+| moonbitlang/wasm5 | 0 | 87 | 77% | 77% | 新增 | clean ✅ |
+| moonbitlang/x | 0 | 74 | 77% | 77% | 新增 | clean ✅ |
+| oboard/mocket | 0 | 42 | 74% | 74% | = / = | clean ✅ |
+| 本地 moonbit-petgraph | 0 | 56 | 69% | 69% | = / = | clean ✅ |
+
+**对比结论**：
+1. **修复护栏不破**：6 已修复项目 0 findings（**第四次连续**，扩容后新代码路径零 FP 回归）
+2. **TP 语料稳定**：crescent 5 条（CORS:6 / Cookie:35,48,49 / DoS:99）第四次逐行一致
+3. **新项目全部 clean**：11 个新增项目 0 findings（其中 openseek 909 文件为最大语料）
+4. **mars.mbt 9 条新检出（Hono 风格框架，未适配规则）人工分诊**：
+   - **TP 候选 ×5**：redirect.mbt:118/133/159（Location ← `ctx.path()` 用户输入经变换）、
+     trailing_slash.mbt:163（Location ← 用户路径规范化）、
+     request_id.mbt:53（`use_existing` 模式将用户请求头值直接回写响应头——回显向量）
+   - **FP 嫌疑 ×4**：basic_auth.mbt:84（realm 为服务端配置）、etag.mbt:152（内容哈希派生、
+     格式受控）、compress.mbt:197（内部枚举→header 映射）、cache_control.mbt:192（内部构造）
+   - TP 候选率 5/9 ≈ 56%，与 lint 型 SAST 在未适配框架上的历史表现一致（mocket 首扫 8/8）
+   - **后续动作**：redirect/trailing_slash/request_id 三类模式值得纳入 mars 适配规则或
+     上游报告（上游 github.com/mizchi/mars.mbt）
+5. 解析率全距 57-87%，中位 ~76%；平均较第三次无回退（旧 7 项目全部 ≥ 持平）

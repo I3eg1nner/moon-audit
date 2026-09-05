@@ -420,3 +420,15 @@ petgraph 69% 持平。FP 三目标 0；156/156 × 4 targets deny-warn 绿；moon
   文件加载往返、缺失文件=内置）；deny-warn 绿；FP mocket/自举/petgraph 三目标 0 持平
 - 边界（RULES-DSL.md）：kind 仅 HeaderValue 产生 CWE-113；CRLF 链判定不开放配置；
   transfer 待显式 IR
+
+
+## 2026-09-05 · scout21 语料扩容（第四次快照）
+- 15 仓克隆全部成功（网络超时纪律：timeout 包裹，单仓 <1min）；4 仓无 moon.mod 排除
+  （regexp.mbt/tree-sitter-moonbit/moonbit-native-runtime/python.mbt 非标准布局）；
+  "mio" 未在 GitHub/mooncakes 定位（疑改名/删除），以 mars.mbt 等高价值项目替补
+- 17 语料 + 1 本地：护栏 6×0 **四次连续**；crescent 5 TP **四次逐行一致**；
+  11 新项目全 clean（最大 openseek 909 文件）
+- mars.mbt（Hono 风格新框架）9 条检出人工分诊：5 TP 候选（redirect×3 ← ctx.path()、
+  trailing_slash ← 用户路径、request_id use_existing 回显）+ 4 FP 嫌疑（realm 配置/
+  etag 哈希/枚举映射/内部构造）；TP 率 56% 符合未适配框架历史表现
+- 解析率全距 57-87%（中位 ~76%），旧 7 项目零回退
