@@ -1,5 +1,21 @@
 # CONTEXT — 会话日志与决策记录
 
+## 2026-09-04 · P3sum：返回值流 + 字段写摘要 + 两遍收集（subagent 执行）
+- FuncTaintSummary 扩展：ret_from / field_taint（Map[r, Array[(field, src-param)>]）
+- 记录通道：Return 显式返回 + 尾表达式（flow 返回值）→ ret_from；Mutate(r.f = TaintedParam(p))
+  → field_taint（近似：仅基变量名，无别名/字段路径）
+- 消费通道：run_cwe113(ictx~) → FlowCtx.ictx → Apply 调用点 apply_field_taint_side_effect
+  （单次 flow 的实参污点数组复用，避免双重访问副作用；接收者实参污点化为源级 Tainted，
+  使溯源感知 Field 规则传播）
+- 设计决策：ret_from 只记录不 refining——callee 内部 source 产生 Tainted 非 TaintedParam，
+  若按 ret_from 精化返回值会漏报（get_q(req) 反例），保守传播保持
+- 两遍收集：scanner 预收集 pass（web 项目门控）+ 扫描 pass 内重收集 = SCC 不动点的保守替代；
+  当前收集不消费其他摘要故两遍幂等，为未来消费型收集预留收敛结构
+- 验收：145/145 × 4 targets（新增 4 测试：摘要单元 ×2、端到端 a/b、负对照）；
+  mocket/自举/petgraph 0 FP 持平
+- 阻塞解除：前序 acceptance lane 遗留未跟踪损坏文件（多行字符串），单行化修复；
+  并行 lane 随后提交（359837e/b0998ff）——多 agent 写同一仓库时禁用 git add -A
+
 ## 格式
 每条：日期 / 阶段 / 事实或决策 / 证据。数字类结论必须可复现（命令+目标）。
 

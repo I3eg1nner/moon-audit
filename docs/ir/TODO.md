@@ -54,7 +54,12 @@
 - [x] 结构化摘要：collect_func_summaries_flow（流引擎驱动，TaintedParam 溯源）
       替换文本扫描 Phase 1，InterProceduralContext API 不变，scanner 零改动
 - [x] 验收：跨函数路径（handler→set_custom 污点参数→sink）端到端测试通过
-- [ ] 摘要扩展：return/field 流（HeaderValue 之外），依赖 M4 call graph 定位 callee body
+- [x] 摘要扩展（P3sum，2026-09-04）：ret_from（参数→返回值，Return 显式 + 尾表达式）、
+      field_taint（r|field|src-param 字段写近似，无别名追踪——文档注明）、
+      两遍收集作 SCC 不动点保守替代（scanner 预收集 pass）；调用点消费：field_taint
+      → 接收者实参污点化（run_cwe113 可选 ictx，FlowCtx 携带）；
+      验收：wrap 返回值流告警 + fill 字段写跨函数告警 + 负对照（无摘要=0），
+      145/145 × 4 targets，三目标 0 FP 持平
 
 ## Phase M4：指针分析 + call graph（含动态真值验收）
 - [ ] Andersen subset constraints + worklist（若范围需裁剪，在 CONTEXT.md 记录理由）

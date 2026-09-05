@@ -85,6 +85,9 @@ priv struct FlowCtx {
   source : String
   severity : Severity
   mut record_sinks : Array[String]? // M3 summary recording channel
+  mut record_returns : Array[String]? // P3: params flowing to return value
+  mut record_fields : Array[String]? // P3: "r|field|src-param" field writes
+  ictx : InterProceduralContext? // P3: summaries consumed at call sites
 }
 
 ///|
@@ -104,6 +107,7 @@ pub fn run_flow_taint_func(
   source : String,
   severity : Severity,
   findings : Array[Finding],
+  ictx? : InterProceduralContext,
 ) -> Unit {
   let ctx : FlowCtx = {
     env: Map([]),
@@ -112,6 +116,9 @@ pub fn run_flow_taint_func(
     source,
     severity,
     record_sinks: None,
+    record_returns: None,
+    record_fields: None,
+    ictx,
   }
   // fn parameters carry param provenance: direct param flow reaches
   // sinks (report), but field access on a param is a config-like read
@@ -148,6 +155,9 @@ pub fn run_flow_taint_func_top(
     source,
     severity,
     record_sinks: None,
+    record_returns: None,
+    record_fields: None,
+    ictx: None,
   }
   let _ = flow(body, ctx)
 }
@@ -208,7 +218,16 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
     }
     Method(..) => Clean
     Apply(func~, args~, ..) => {
-      let arg_taint = flow_args(args, ctx)
+      let arg_taint_arr = flow_args_taints(args, ctx)
+      let mut arg_taint = Clean
+      for t in arg_taint_arr {
+        arg_taint = taint_or(arg_taint, t)
+      }
+      // P3: consume field-write summaries — if the callee writes a tainted
+      // param into a field of another param, the receiver argument becomes
+      // tainted in the caller (source-derived provenance so later field
+      // reads propagate per the provenance-aware Field rule)
+      apply_field_taint_side_effect(func, args, ctx, arg_taint_arr)
       let ret = match apply_func_name(func) {
         Some(name) => {
           if is_header_setter(name) {
@@ -435,9 +454,27 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       }
     }
     As(expr~, ..) => flow(expr, ctx)
-    Mutate(record~, field~, ..) => {
+    Mutate(record~, accessor~, field~, ..) => {
+      // P3: field-write summary event — `r.f = value` where value carries
+      // param provenance p records "r|f|p" (approximation: base var only,
+      // no alias tracking — documented in CONTEXT)
+      let base = flow_var_name(record)
+      let ft = flow(field, ctx)
+      match (base, ft) {
+        (Some(r), TaintedParam(p)) =>
+          match ctx.record_fields {
+            Some(arr) => {
+              let entry = r + "|" + accessor_label(accessor) + "|" + p
+              if !arr.contains(entry) {
+                arr.push(entry)
+              }
+            }
+            None => ()
+          }
+        _ => ()
+      }
       let _ = flow(record, ctx)
-      flow(field, ctx)
+      ft
     }
     Match(expr~, cases~, ..) => {
       let scrut = flow(expr, ctx)
@@ -476,7 +513,21 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       Clean
     }
     Return(return_value~, ..) => {
-      let _ = return_value.map(fn(e) { flow(e, ctx) })
+      match return_value {
+        Some(e) => {
+          let t = flow(e, ctx)
+          // P3: record param provenance flowing into the return value
+          match t {
+            TaintedParam(p) =>
+              match ctx.record_returns {
+                Some(arr) => if !arr.contains(p) { arr.push(p) }
+                None => ()
+              }
+            _ => ()
+          }
+        }
+        None => ()
+      }
       Clean
     }
     Raise(err_value~, ..) => {
@@ -569,6 +620,20 @@ fn flow_args(args : @list.List[@syntax.Argument], ctx : FlowCtx) -> Taint {
     t = taint_or(t, flow(arg.value, ctx))
   }
   t
+}
+
+// per-argument taints in argument order (single flow pass, no re-visits)
+
+///|
+fn flow_args_taints(
+  args : @list.List[@syntax.Argument],
+  ctx : FlowCtx,
+) -> Array[Taint] {
+  let arr : Array[Taint] = []
+  for arg in args {
+    arr.push(flow(arg.value, ctx))
+  }
+  arr
 }
 
 ///|
@@ -941,6 +1006,135 @@ fn flow_var_name(expr : @syntax.Expr) -> String? {
 // ── sink reporting ────────────────────────────────────────────────────────
 
 ///|
+// field label of a Mutate accessor ("?" for non-label forms)
+
+///|
+fn accessor_label(accessor : @syntax.Accessor) -> String {
+  match accessor {
+    Label(l) => l.name
+    _ => "?"
+  }
+}
+
+///|
+fn param_index(params : Array[String], name : String) -> Int? {
+  let mut found : Int? = None
+  for i in 0..<params.length() {
+    if params[i] == name && found == None {
+      found = Some(i)
+    }
+  }
+  found
+}
+
+// P3: call-site consumption of field-write summaries.
+// If summary says callee writes taint from param p into a field of param r,
+// and the caller passes a tainted value at p's position, then the variable
+// passed at r's position becomes tainted (source-derived provenance).
+// arg_taints are the single-pass flow results in argument order.
+
+///|
+fn apply_field_taint_side_effect(
+  func : @syntax.Expr,
+  args : @list.List[@syntax.Argument],
+  ctx : FlowCtx,
+  arg_taints : Array[Taint],
+) -> Unit {
+  let ictx = match ctx.ictx {
+    Some(i) => i
+    None => return
+  }
+  let name = match apply_func_name(func) {
+    Some(n) => n
+    None => return
+  }
+  let summary = match ictx.summaries.get(name) {
+    Some(s) => s
+    None => return
+  }
+  if summary.field_taint.length() == 0 {
+    return
+  }
+  // argument-order index -> param index (labelled match by name,
+  // positional by param order)
+  let arg_param_idx : Array[Int?] = []
+  let mut pos = 0
+  let mut i = 0
+  for arg in args {
+    let pidx = match arg.kind {
+      Labelled(l) | LabelledPun(l) => param_index(summary.params, l.name)
+      _ => if pos < summary.params.length() { Some(pos) } else { None }
+    }
+    arg_param_idx.push(pidx)
+    match arg.kind {
+      Labelled(_)
+      | LabelledPun(_)
+      | LabelledOption(..)
+      | LabelledOptionPun(..) => ()
+      _ => pos += 1
+    }
+    i += 1
+  }
+  ignore(i)
+  // taint per param position (from the precomputed single-pass taints)
+  let taint_at : Array[Taint] = []
+  let var_at : Array[String?] = []
+  let mut n = 0
+  while n < summary.params.length() {
+    taint_at.push(Clean)
+    var_at.push(None)
+    n += 1
+  }
+  let mut ai = 0
+  for arg in args {
+    match arg_param_idx[ai] {
+      Some(pi) =>
+        if pi < taint_at.length() && ai < arg_taints.length() {
+          taint_at[pi] = arg_taints[ai]
+          var_at[pi] = flow_var_name(arg.value)
+        }
+      None => ()
+    }
+    ai += 1
+  }
+  summary.field_taint.each(fn(recv_param, entries) {
+    match param_index(summary.params, recv_param) {
+      Some(ri) => {
+        // any tainted source-param argument triggers the field write
+        let mut triggered = false
+        for entry in entries {
+          match param_index(summary.params, entry.1) {
+            Some(si) =>
+              if si < taint_at.length() && is_tainted(taint_at[si]) {
+                triggered = true
+              }
+            None => ()
+          }
+        }
+        if triggered && ri < var_at.length() {
+          match var_at[ri] {
+            Some(var_name) => {
+              let cur = or_clean_taint(ctx.env.get(var_name))
+              ctx.env[var_name] = taint_or(cur, Tainted)
+            }
+            None => ()
+          }
+        }
+      }
+      None => ()
+    }
+  })
+}
+
+///|
+fn or_clean_taint(t : Taint?) -> Taint {
+  match t {
+    Some(v) => v
+    None => Clean
+  }
+}
+
+///|
 fn report_cwe113(ctx : FlowCtx, expr : @syntax.Expr, t : Taint) -> Unit {
   let origin = match t {
     TaintedParam(p) => " (via parameter `" + p + "`)"
@@ -1064,6 +1258,8 @@ fn collect_summary_func(
 ) -> Unit {
   let param_names : Array[String] = []
   let sinks : Array[String] = []
+  let returns : Array[String] = []
+  let fields : Array[String] = []
   let ctx : FlowCtx = {
     env: Map([]),
     findings: [],
@@ -1071,6 +1267,9 @@ fn collect_summary_func(
     source: "",
     severity: Info,
     record_sinks: None,
+    record_returns: None,
+    record_fields: None,
+    ictx: None,
   }
   match params {
     Some(ps) =>
@@ -1088,37 +1287,103 @@ fn collect_summary_func(
       }
     None => ()
   }
-  record_param_sinks(body, ctx, sinks)
-  if sinks.length() > 0 {
-    // precise mapping: ONLY parameters that actually reached a sink
-    let param_sinks : Map[String, Array[TaintSink]] = Map([])
-    for pn in sinks {
-      if param_names.contains(pn) && !param_sinks.contains(pn) {
-        param_sinks[pn] = [HeaderValue]
+  let final_taint = record_param_sinks(body, ctx, sinks, returns, fields)
+  // final-expression return taint (expression-oriented bodies): a body
+  // whose value carries param provenance means "param flows to return"
+  match final_taint {
+    TaintedParam(p) =>
+      if param_names.contains(p) && !returns.contains(p) {
+        returns.push(p)
+      }
+    _ => ()
+  }
+  // dedup return channel against param set
+  let ret_from : Array[String] = []
+  for p in returns {
+    if param_names.contains(p) && !ret_from.contains(p) {
+      ret_from.push(p)
+    }
+  }
+  // precise sink mapping: ONLY parameters that actually reached a sink
+  let param_sinks : Map[String, Array[TaintSink]] = Map([])
+  for pn in sinks {
+    if param_names.contains(pn) && !param_sinks.contains(pn) {
+      param_sinks[pn] = [HeaderValue]
+    }
+  }
+  // field writes: recorded as "r|field|src-param" strings
+  let field_taint : Map[String, Array[(String, String)]] = Map([])
+  for entry in fields {
+    let first_bar = find_bar(entry)
+    let second_bar = find_bar_from(entry, first_bar + 1)
+    if first_bar > 0 && second_bar > first_bar {
+      let r = Show::to_string(entry[:first_bar])
+      let fname = Show::to_string(entry[first_bar + 1:second_bar])
+      let src = Show::to_string(entry[second_bar + 1:])
+      if param_names.contains(r) && param_names.contains(src) {
+        match field_taint.get(r) {
+          Some(arr) => {
+            let pair = (fname, src)
+            if !arr.contains(pair) {
+              arr.push(pair)
+            }
+          }
+          None => field_taint[r] = [(fname, src)]
+        }
       }
     }
-    if param_sinks.length() > 0 {
-      ictx.summaries[name] = {
-        name,
-        file,
-        line,
-        params: param_names,
-        param_sinks,
-      }
+  }
+  if param_sinks.length() > 0 ||
+    ret_from.length() > 0 ||
+    field_taint.length() > 0 {
+    ictx.summaries[name] = {
+      name,
+      file,
+      line,
+      params: param_names,
+      param_sinks,
+      ret_from,
+      field_taint,
     }
   }
 }
 
 // walk collecting which params reach header sinks (M3 slice: HeaderValue;
-// M4 extends to return/field flows)
+// P3 adds return-value and field-write recording channels)
 
 ///|
 fn record_param_sinks(
   expr : @syntax.Expr,
   ctx : FlowCtx,
   sinks : Array[String],
-) -> Unit {
+  returns : Array[String],
+  fields : Array[String],
+) -> Taint {
   ctx.record_sinks = Some(sinks)
-  let _ = flow(expr, ctx)
+  ctx.record_returns = Some(returns)
+  ctx.record_fields = Some(fields)
+  let final_taint = flow(expr, ctx)
   ctx.record_sinks = None
+  ctx.record_returns = None
+  ctx.record_fields = None
+  final_taint
+}
+
+// byte offset helpers for "r|field|p" entries
+
+///|
+fn find_bar(s : String) -> Int {
+  find_bar_from(s, 0)
+}
+
+///|
+fn find_bar_from(s : String, from : Int) -> Int {
+  let mut i = from
+  while i < s.length() {
+    if s[i] == '|' {
+      return i
+    }
+    i += 1
+  }
+  -1
 }

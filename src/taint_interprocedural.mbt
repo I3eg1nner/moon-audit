@@ -9,6 +9,11 @@ pub(all) struct FuncTaintSummary {
   line : Int
   params : Array[String]
   param_sinks : Map[String, Array[TaintSink]]
+  // P3: params whose taint flows into the return value
+  ret_from : Array[String]
+  // P3: field-write side effects — param r -> [(field, source-param)]
+  // (approximation: field name only, no alias/handler precision)
+  field_taint : Map[String, Array[(String, String)]]
 }
 
 ///|
@@ -218,7 +223,15 @@ fn ip_build_summary(
       param_sinks[param] = sinks
     }
   }
-  { name: sig.name, file, line: sig.line, params: sig.params, param_sinks }
+  {
+    name: sig.name,
+    file,
+    line: sig.line,
+    params: sig.params,
+    param_sinks,
+    ret_from: [],
+    field_taint: Map([]),
+  }
 }
 
 ///|

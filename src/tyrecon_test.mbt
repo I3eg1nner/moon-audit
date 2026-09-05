@@ -356,3 +356,76 @@ test "phase2b_qualified_keys_no_cross_package_overwrite" {
   inspect(s2.fn_exists.contains("Foo::act"), content="true")
   inspect(s2.fn_exists.contains("alpha/dep::Foo::act"), content="true")
 }
+
+// ---------------------------------------------------------------------------
+// P3 summaries: return-value flow + field writes
+// ---------------------------------------------------------------------------
+
+///|
+test "p3_summary_return_flow_recorded" {
+  let src = "fn wrap(s : String) -> String { s }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let ictx = InterProceduralContext::new()
+  collect_func_summaries_flow(impls, "t.mbt", ictx)
+  match ictx.summaries.get("wrap") {
+    Some(s) => {
+      inspect(s.ret_from.length(), content="1")
+      inspect(s.ret_from[0], content="s")
+    }
+    None => inspect(true, content="false")
+  }
+}
+
+///|
+test "p3_summary_field_write_recorded" {
+  let src = "fn fill(b : Box, s : String) -> Unit { b.v = s }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let ictx = InterProceduralContext::new()
+  collect_func_summaries_flow(impls, "t.mbt", ictx)
+  match ictx.summaries.get("fill") {
+    Some(s) => {
+      inspect(s.field_taint.contains("b"), content="true")
+      match s.field_taint.get("b") {
+        Some(entries) => {
+          inspect(entries.length(), content="1")
+          inspect(entries[0].0, content="v")
+          inspect(entries[0].1, content="s")
+        }
+        None => inspect(true, content="false")
+      }
+    }
+    None => inspect(true, content="false")
+  }
+}
+
+///|
+test "p3_return_flow_end_to_end_alerts" {
+  // acceptance (a): tainted value through wrap() into a header sink
+  let src = "fn wrap(s : String) -> String { s } pub fn caller(resp : Response, req : Request) -> Unit { let v = req.query(\"q\"); resp.set_header(\"X\", wrap(v)) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "t.mbt", src, findings, Error)
+  inspect(findings.length() > 0, content="true")
+}
+
+///|
+test "p3_field_write_end_to_end_alerts_via_ictx" {
+  // acceptance (b): fill() writes tainted param into a field of another
+  // param; the caller reads the field into a header sink — the field-write
+  // summary consumed at the call site taints the receiver argument
+  let fill_src = "fn fill(b : Box, s : String) -> Unit { b.v = s }"
+  let (fill_impls, _) = @parser.parse_string(fill_src, name="lib.mbt")
+  let ictx = InterProceduralContext::new()
+  collect_func_summaries_flow(fill_impls, "lib.mbt", ictx)
+  inspect(ictx.summaries.contains("fill"), content="true")
+  let caller_src = "pub fn caller(resp : Response, req : Request) -> Unit { let b = Box::{v: \"\"}; fill(b, req.query(\"q\")); resp.set_header(\"X\", b.v) }"
+  let (caller_impls, _) = @parser.parse_string(caller_src, name="app.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(caller_impls, "app.mbt", caller_src, findings, Error, ictx~)
+  inspect(findings.length() > 0, content="true")
+  // without the summary the field read stays a config-like Clean (known
+  // approximation before P3 — documented); the summary is what closes it
+  let findings2 : Array[Finding] = []
+  run_cwe113(caller_impls, "app.mbt", caller_src, findings2, Error)
+  inspect(findings2.length(), content="0")
+}

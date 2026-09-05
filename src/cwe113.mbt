@@ -13,60 +13,91 @@ pub fn cwe113_info() -> RuleInfo {
 }
 
 ///|
+fn call_flow(
+  params : @list.List[@syntax.Parameter]?,
+  body : @syntax.Expr,
+  file : String,
+  source : String,
+  severity : Severity,
+  findings : Array[Finding],
+  ictx : InterProceduralContext?,
+) -> Unit {
+  match ictx {
+    Some(i) =>
+      run_flow_taint_func(
+        params,
+        body,
+        file,
+        source,
+        severity,
+        findings,
+        ictx=i,
+      )
+    None => run_flow_taint_func(params, body, file, source, severity, findings)
+  }
+}
+
+///|
 pub fn run_cwe113(
   impls : @list.List[@syntax.Impl],
   file : String,
   source : String,
   findings : Array[Finding],
   severity : Severity,
+  ictx? : InterProceduralContext,
 ) -> Unit {
   // M2: flow-sensitive engine replaces the IterVisitor heuristic walk.
   // Taint state is threaded through control flow with branch merging and
   // guard refinement (see taint_flow.mbt); the old textual safe-vars
   // heuristic is retained below only for the legacy summary path.
+  // P3: ictx enables field-write summary consumption at call sites.
   for item in impls {
     match item {
       TopFuncDef(fun_decl~, decl_body~, ..) =>
         match decl_body {
           DeclBody(expr=Function(func~, ..)) =>
-            run_flow_taint_func(
+            call_flow(
               Some(func.parameters),
               func.body,
               file,
               source,
               severity,
               findings,
+              ictx,
             )
           DeclBody(expr=body) =>
-            run_flow_taint_func(
+            call_flow(
               fun_decl.decl_params,
               body,
               file,
               source,
               severity,
               findings,
+              ictx,
             )
           _ => ()
         }
       TopImpl(params~, body~, ..) =>
         match body {
           DeclBody(expr=Function(func~, ..)) =>
-            run_flow_taint_func(
+            call_flow(
               Some(func.parameters),
               func.body,
               file,
               source,
               severity,
               findings,
+              ictx,
             )
           DeclBody(expr=body) =>
-            run_flow_taint_func(
+            call_flow(
               Some(params),
               body,
               file,
               source,
               severity,
               findings,
+              ictx,
             )
           _ => ()
         }
