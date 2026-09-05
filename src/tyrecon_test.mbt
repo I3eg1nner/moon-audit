@@ -615,24 +615,41 @@ test "e2_letfn_call_static_not_higher" {
 
 ///|
 test "gate3_p2_1_dep_canonical_pkg_strips_source_layout" {
-  // physical path -> canonical identity (moonbitlang/async uses source="src")
+  // self-contained fixture (CI has no /data/my checkout): build a
+  // .mooncakes-like tree in /tmp with source="src" layout
+  let root = "/tmp/gate3_p2_1_fixture"
+  let async_src = root + "/.mooncakes/moonbitlang/async/src"
+  // create_dir is not recursive: build the chain level by level (root first)
+  @fs.create_dir(root) catch {
+    _ => ()
+  }
+  let mut cur = root
+  for seg in ["/.mooncakes", "/moonbitlang", "/async", "/src", "/http"] {
+    cur = cur + seg
+    @fs.create_dir(cur) catch {
+      _ => ()
+    }
+  }
+  // dep_canonical_pkg reads the REPO-ROOT moon.mod (like the real async repo)
+  @fs.write_string_to_file(
+    root + "/.mooncakes/moonbitlang/async/moon.mod",
+    "name = \"moonbitlang/async\"\nsource = \"src\"\n",
+  ) catch {
+    _ => ()
+  }
+  // physical path -> canonical identity (source segment stripped)
   inspect(
-    dep_canonical_pkg(
-      "/data/my/moon-audit/.mooncakes/moonbitlang/async/src/http",
-    ),
+    dep_canonical_pkg(async_src + "/http"),
     content="moonbitlang/async/http",
   )
   // repo root package (src itself) -> owner/repo
-  inspect(
-    dep_canonical_pkg("/data/my/moon-audit/.mooncakes/moonbitlang/async/src"),
-    content="moonbitlang/async",
-  )
+  inspect(dep_canonical_pkg(async_src), content="moonbitlang/async")
   // moon.mod unreadable -> conservative: keep physical path (no strip)
   inspect(
     dep_canonical_pkg("/x/.mooncakes/moonbitlang/async/src"),
     content="moonbitlang/async/src",
   )
-  // non-src layout (moonbitlang/x): path preserved untouched
+  // non-src layout: path preserved untouched
   inspect(
     dep_canonical_pkg("/x/.mooncakes/moonbitlang/x/fs"),
     content="moonbitlang/x/fs",
