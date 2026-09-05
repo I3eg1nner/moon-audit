@@ -1,6 +1,8 @@
 import {
   "moonbitlang/parser",
   "moonbitlang/parser/syntax",
+  "moonbitlang/parser/mbti_parser",
+  "moonbitlang/parser/mbti_ast",
   "moonbitlang/lexer/basic",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",

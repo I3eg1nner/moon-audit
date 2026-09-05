@@ -159,3 +159,25 @@ test "m3_structural_summary_cross_function" {
   run_cross_func_taint(impls, "t.mbt", src, findings, ictx, imports)
   inspect(findings.length() > 0, content="true")
 }
+
+///|
+test "phase2_mbti_ingestion" {
+  // official mbti_parser: public signature becomes a resolvable static target
+  let src = "pub fn go() -> Unit { dep_pub(1) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  let stats = IRStatsResult::new()
+  // simulate an interface file
+  let dir = "/tmp/mbti_test_pkg"
+  @fs.create_dir(dir) catch {
+    _ => ()
+  }
+  let f = dir + "/pkg.generated.mbti"
+  @fs.write_string_to_file(f, "package \"x/y\"\n\npub fn dep_pub(Int) -> Int\n") catch {
+    _ => ()
+  }
+  collect_mbti_file(f, symbols)
+  inspect(symbols.fn_exists.contains("dep_pub"), content="true")
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  inspect(stats.static_resolved, content="1")
+}

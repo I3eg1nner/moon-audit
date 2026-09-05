@@ -93,7 +93,11 @@
 - [x] regex-positive 精化禁用（re"^ok-" 前缀不排除后续 CRLF，非可靠性质）
 - [x] PLAN 撤回"M2 超前"表述；COMPARISON 纠正所有权假设；路线按五步重排
 - [ ] 已知漏报（记录为 M3 显式 HIR 验收用例）：字段传播、两轮循环传播、&Trait 接收者
-- [ ] .mbti 摄取（parser 内置 mbti_parser/mbti_ast）→ 替代 builtin_method_ret 硬编码
+- [x] .mbti 摄取切片：mbti_parser 官方解析，FuncSig（含 SelfTy::method）注册
+      fn_exists/fn_ret/fn_param_arrows；递归扫描项目 .mbti（moon info 产物）；
+      单测锁定"接口签名成为可解析静态目标"；自举 3,057→3,067 边
+- [ ] .mbti 完整摄取：Type/Trait/Impl/Const Sig、版本与目标后端匹配检查、
+      逐步替换 builtin_method_ret/struct_fields 硬编码
 - [ ] 完整符号身份（包/类型/trait 身份 ID），取消 short_key 后缀匹配作正式依据
 - [ ] 指标口径分离：解析率（类型重建）vs 调用图准确率（方法绑定）
 

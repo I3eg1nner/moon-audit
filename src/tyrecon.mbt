@@ -1561,6 +1561,8 @@ pub fn run_ir_stats(root : String, config : Config) -> IRStatsResult {
   })
   // Phase 1.5: ingest dependency sources (.mooncakes) into the same table
   collect_dep_symbols(root, symbols)
+  // Phase 1.6: ingest official interface files (.mbti) when present
+  collect_mbti_dir(root, symbols)
   // Phase 2: per-function inference with the merged table
   walk_packages(root, config, fn(_pkg_dir, mbt_files) {
     for file in mbt_files {
@@ -1785,4 +1787,53 @@ pub fn run_call_graph(root : String, config : Config) -> CallGraph {
     }
   }
   { edges, dispatch_edges, unresolved }
+}
+
+// ── Phase 2: .mbti ingestion (official interface files) ──────────────────
+// Parses package interface files (moon info output / pkg.generated.mbti)
+// with the official mbti_parser and registers public signatures into the
+// symbol tables — the first step toward replacing builtin hardcoding.
+
+///|
+pub fn collect_mbti_file(path : String, symbols : PkgSymbols) -> Unit {
+  let source = @fs.read_file_to_string(path) catch { _ => return }
+  let (mbti, reports) = @mbti_parser.parse_string(source, name=path)
+  if reports.length() > 0 {
+    return // unparseable interface: skip conservatively
+  }
+  for pair in mbti.sigs {
+    match pair.0 {
+      Func(func_sig) => {
+        let fname = func_sig.name.name
+        let (ret_ty, _) = func_sig.return_
+        let key = match func_sig.type_name {
+          Some(self_ty) =>
+            // method: register under "SelfTy::method"
+            self_ty.name + "::" + fname
+          None => fname
+        }
+        symbols.fn_exists[key] = true
+        symbols.fn_ret[key] = type_to_ir(ret_ty, symbols)
+        collect_fn_param_arrows(func_sig.params, key, symbols)
+      }
+      _ => ()
+    }
+  }
+}
+
+///|
+pub fn collect_mbti_dir(dir : String, symbols : PkgSymbols) -> Unit {
+  let entries = @fs.read_dir(dir) catch { _ => return }
+  for entry in entries {
+    if entry.has_prefix(".") {
+      continue
+    }
+    let full = @path.Path(dir).join(@path.Path(entry)).0
+    let is_dir = @fs.is_dir(full) catch { _ => false }
+    if is_dir && entry != "_build" {
+      collect_mbti_dir(full, symbols)
+    } else if entry.has_suffix(".mbti") {
+      collect_mbti_file(full, symbols)
+    }
+  }
 }
