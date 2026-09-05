@@ -35,6 +35,30 @@
 - README "21 个项目"的完整清单未在仓库内记录（仅有 6 个确认项目），本基线覆盖
   6+1；扩充语料需补齐清单来源（mooncakes 统计或发布记录）
 
+
+
+## 第二次快照（2026-09-05，工作流 #2 集成：Phase-3 摘要 + p4 闭包分配点 + 验收体系）
+
+二进制含：p3sum（return/field 摘要 + 两遍不动点）、p4clos（闭包分配点解析）、
+accept（--baseline-report / 缓存 key）。148/148 × 4 targets，deny-warn 全绿。
+
+| 项目 | findings | 文件 | 解析率 | 边覆盖 | vs 首次（解析率/边覆盖） | 状态 |
+|---|---|---|---|---|---|---|
+| mizchi/luna.mbt | 0 | 91 | 83% | 83% | = / = | clean ✅ |
+| moonbit-community/cmark.mbt | 0 | 46 | **78%** | **78%** | +3 / +3（.mbti+闭包） | clean ✅ |
+| moonbit-community/crescent | **5** | 53 | 60% | **62%** | = / **+2**（trait 分派边） | findings（TP 稳定） |
+| moonbit-community/rabbita | 0 | 144 | 67% | **68%** | = / **+1**（分派边） | clean ✅ |
+| moonbitlang/async | 0 | 170 | 69% | 69% | = / = | clean ✅ |
+| oboard/mocket | 0 | 42 | 73% | 73% | = / = | clean ✅ |
+| 本地 moonbit-petgraph | 0 | 56 | 69% | 69% | = / = | clean ✅ |
+
+**对比结论**：
+1. **修复后护栏不破**：6 个已修复项目 0 findings（p3sum 的字段/循环语义变更未引入 FP）
+2. **TP 语料稳定**：crescent 5 条（CORS:6 / Cookie:35,48,49 / DoS:99）与首次快照
+   完全一致——语义收紧后无新增漏检信号（摘要传播未改变检出集合）
+3. **精度增益可度量**：cmark +3% 解析率（.mbti + 闭包分配点）；crescent/rabbita
+   边覆盖 +2/+1（`&Trait` 分派边）——三目标画像与主线 mocket 74%/自举 86% 一致
+
 ## 复跑
 
 ```bash

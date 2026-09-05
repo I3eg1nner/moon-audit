@@ -298,3 +298,27 @@ FP 三目标持平全零。
   ≥80%/≥90% 目标未达——剩余缺口主体是 FFI 文件（mocket.native/js ~41%）与
   跨包深层级联，闭包直传参数已被 visit_args hints 覆盖
 - 工程坑：priv struct 不可用 priv(all)（无公开签名）；moonfmt 后模式需复核 `..`
+
+
+## 2026-09-05 · Phase-3/4-lite + 验收体系集成收口（工作流 #2，integrate2）
+
+**验证矩阵**：moon fmt 无 diff；check/test --target all --deny-warn 全绿；
+148/148 × wasm/wasm-gc/js/native；gate2 无阻断（工作树全 commit 进入集成）。
+
+**全量语料第二次快照**（7 项目，与首次对比）：
+- 修复后护栏不破：6 已修复项目 0 findings（p3sum 字段/循环语义零 FP 回归）
+- TP 语料稳定：crescent 5 条与首次完全一致（CORS:6/Cookie:35,48,49/DoS:99）
+- 精度增益：cmark 解析率 75→78（.mbti+闭包）；crescent/rabbita 边覆盖 +2/+1
+  （&Trait 分派边）；mocket 74%（dispatch 39 边）；自举 86%
+
+**里程碑状态判定**：
+- Phase 1（语义修正）✅ 完成；Phase 2（统一程序模型）核心 ✅（.mbti+qualified key+
+  trait 分派；残留：源码侧包身份、mbti 版本 guard）
+- Phase 3（HIR/CFG+摘要）语义层 ✅（字段/循环/defer/return/field 摘要+两遍不动点）；
+  显式 BlockIr/worklist/SCC 未做——结构化遍历已达当前验收，如实记为未竟
+- Phase 4-lite（闭包分配点）✅（诚实结论：var 绑定闭包占比小，≥80/90% 未达，
+  缺口主体是 FFI 与跨包级联）
+- 验收体系 ✅（--baseline-report/缓存 key/ACCEPTANCE.md；动态插桩未实现）
+
+**下一里程碑**（TODO 已收口）：显式 HIR/CFG+SCC、源码侧包身份、规则配置化、
+指针分析协同（先比较不预设）、动态插桩、21 项目网络全量、推送+发布 v0.3.x、上游 PR。
