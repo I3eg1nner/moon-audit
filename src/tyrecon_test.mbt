@@ -1,6 +1,16 @@
 // M1 type-reconstruction spike unit tests (see docs/ir/PLAN.md)
 
 ///|
+fn test_tmp(sub : String) -> String {
+  // cross-platform temp base without @sys (unavailable in lib tests):
+  // try /tmp first; on Windows that fails, fall back to a relative dir
+  // under the test working directory (writable in CI sandboxes)
+  // side-effect-free probe: read_dir succeeds iff /tmp exists & readable
+  ignore(@fs.read_dir("/tmp") catch { _ => return "./moon_audit_test_tmp/" + sub })
+  "/tmp/" + sub
+}
+
+///|
 fn scan_src(src : String) -> (IRStatsResult, PkgSymbols) {
   let (impls, _) = @parser.parse_string(src, name="t.mbt")
   let symbols = PkgSymbols::new()
@@ -168,7 +178,7 @@ test "phase2_mbti_ingestion" {
   let symbols = PkgSymbols::new()
   let stats = IRStatsResult::new()
   // simulate an interface file
-  let dir = "/tmp/mbti_test_pkg"
+  let dir = test_tmp("mbti_test_pkg")
   @fs.create_dir(dir) catch {
     _ => ()
   }
@@ -189,7 +199,7 @@ test "phase2a_mbti_type_trait_impl_ingestion" {
   let src = "pub fn go(h : Holder) -> Int { h.payload.token().length() }"
   let (impls, _) = @parser.parse_string(src, name="t.mbt")
   let symbols = PkgSymbols::new()
-  let dir = "/tmp/mbti_p2a"
+  let dir = test_tmp("mbti_p2a")
   @fs.create_dir(dir) catch {
     _ => ()
   }
@@ -219,7 +229,7 @@ test "phase2a_mbti_trait_backfill_and_const" {
   let src = "pub struct Box3 { v : Int } pub impl Writer2 for Box3 with fn output(self, buf) -> Unit { buf.write_string(self.v.to_string()) } pub fn use_limit() -> String { let x = limit; x.to_string() }"
   let (impls, _) = @parser.parse_string(src, name="t.mbt")
   let symbols = PkgSymbols::new()
-  let dir = "/tmp/mbti_p2b"
+  let dir = test_tmp("mbti_p2b")
   @fs.create_dir(dir) catch {
     _ => ()
   }
@@ -247,7 +257,7 @@ test "phase2a_mbti_source_wins" {
   // pre-seed as the source pass would
   symbols.fn_exists["conflicted"] = true
   symbols.fn_ret["conflicted"] = IRType::IRConcrete("Source", [])
-  let dir = "/tmp/mbti_p2c"
+  let dir = test_tmp("mbti_p2c")
   @fs.create_dir(dir) catch {
     _ => ()
   }
@@ -269,15 +279,16 @@ test "phase2a_mbti_source_wins" {
 test "mbti_trait_params_render_as_types_only" {
   // regression guard: mbti trait methods render params as TYPES ONLY
   // (names are erased in interfaces); named params are a parse error
-  @fs.create_dir("/tmp/mbti_dbg") catch {
+  @fs.create_dir(test_tmp("mbti_dbg")) catch {
     _ => ()
   }
   @fs.write_string_to_file(
-    "/tmp/mbti_dbg/pkg.generated.mbti", "package \"x/y\"\n\npub trait Writer2 {\n  fn output(Self, String) -> Unit\n}\n\npub let limit : Int\n",
+    test_tmp("mbti_dbg/pkg.generated.mbti"),
+    "package \"x/y\"\n\npub trait Writer2 {\n  fn output(Self, String) -> Unit\n}\n\npub let limit : Int\n",
   ) catch {
     _ => ()
   }
-  let source = @fs.read_file_to_string("/tmp/mbti_dbg/pkg.generated.mbti") catch {
+  let source = @fs.read_file_to_string(test_tmp("mbti_dbg/pkg.generated.mbti")) catch {
     _ => ""
   }
   let (_m, reports) = @mbti_parser.parse_string(source, name="probe")
@@ -307,9 +318,9 @@ test "phase2b_amp_trait_receiver_is_dispatch" {
 ///|
 test "phase2b_devirtualized_dispatch_edge" {
   // call-graph: &Alpha receiver yields a dispatch edge f -> B::act
-  let dir = "/tmp/p2b_cg/src"
+  let dir = test_tmp("p2b_cg/src")
   // create both levels: fs.create_dir is not recursive
-  @fs.create_dir("/tmp/p2b_cg") catch {
+  @fs.create_dir(test_tmp("p2b_cg")) catch {
     _ => ()
   }
   @fs.create_dir(dir) catch {
@@ -319,7 +330,7 @@ test "phase2b_devirtualized_dispatch_edge" {
   @fs.write_string_to_file(dir + "/lib.mbt", "// probe\n" + snippet + "\n") catch {
     _ => ()
   }
-  let cg = run_call_graph("/tmp/p2b_cg", Config::default())
+  let cg = run_call_graph(test_tmp("p2b_cg"), Config::default())
   let mut hit = false
   for e in cg.dispatch_edges {
     if e == "f -> B::act" {
@@ -339,8 +350,8 @@ test "phase2b_qualified_keys_no_cross_package_overwrite" {
   assert_true(get_impl_method(symbols, "pkgA::Foo::act") == Some("TraitA"))
   assert_true(get_impl_method(symbols, "pkgB::Foo::act") == Some("TraitB"))
   // mbti ingestion registers qualified identities alongside short keys
-  let f = "/tmp/p2b_mbti/pkg.generated.mbti"
-  @fs.create_dir("/tmp/p2b_mbti") catch {
+  let f = test_tmp("p2b_mbti/pkg.generated.mbti")
+  @fs.create_dir(test_tmp("p2b_mbti")) catch {
     _ => ()
   }
   @fs.remove_file(f) catch {
@@ -525,7 +536,7 @@ test "e1_core_trait_static_returns" {
 
 ///|
 fn e2_setup_dep_mbti() -> String raise {
-  let dir = "/tmp/e2_dep_pkg"
+  let dir = test_tmp("e2_dep_pkg")
   @fs.create_dir(dir) catch {
     _ => ()
   }
@@ -617,7 +628,7 @@ test "e2_letfn_call_static_not_higher" {
 test "gate3_p2_1_dep_canonical_pkg_strips_source_layout" {
   // self-contained fixture (CI has no /data/my checkout): build a
   // .mooncakes-like tree in /tmp with source="src" layout
-  let root = "/tmp/gate3_p2_1_fixture"
+  let root = test_tmp("gate3_p2_1_fixture")
   let async_src = root + "/.mooncakes/moonbitlang/async/src"
   // create_dir is not recursive: build the chain level by level (root first)
   @fs.create_dir(root) catch {
@@ -724,7 +735,7 @@ test "taint_dsl_value_slot" {
 
 ///|
 test "taint_dsl_load_from_file" {
-  let dir = "/tmp/taint_dsl_test"
+  let dir = test_tmp("taint_dsl_test")
   @fs.create_dir(dir) catch {
     _ => ()
   }
@@ -747,7 +758,7 @@ test "taint_dsl_load_from_file" {
 
 ///|
 test "taint_dsl_no_file_is_builtin" {
-  let (rs, source) = load_taint_rules("/tmp/definitely_missing_dir_xyz")
+  let (rs, source) = load_taint_rules(test_tmp("definitely_missing_dir_xyz"))
   inspect(source, content="built-in defaults")
   inspect(rs.size(), content="0")
 }
@@ -946,7 +957,7 @@ test "gate4_extends_combined_path_applies_model" {
   // .moon-audit.json taint section with ONLY {"extends":["mongoose"]} must
   // resolve the model (previously silently no-op: size()==0 early return
   // AND missing resolve_extends on the combined path)
-  let dir = "/tmp/gate4_combined_test"
+  let dir = test_tmp("gate4_combined_test")
   @fs.create_dir(dir) catch {
     _ => ()
   }
@@ -966,7 +977,7 @@ test "gate4_extends_combined_path_alert_e2e" {
   // end-to-end: probe snippet alerts only when the model is applied
   let src = "pub fn handle(req : Req, id : Bytes) -> Unit { ws_send_native(id, req.body()) }"
   let (impls, _) = @parser.parse_string(src, name="t.mbt")
-  let dir = "/tmp/gate4_combined_test"
+  let dir = test_tmp("gate4_combined_test")
   let (rules, _) = load_taint_rules(dir)
   let findings : Array[Finding] = []
   run_cwe113(
@@ -985,7 +996,7 @@ test "gate4_extends_combined_path_alert_e2e" {
 test "gate4_extends_with_extern_decl_e2e" {
   let src = "extern \"c\" fn ws_send_native(a : Bytes, b : Bytes) -> Unit = \"ws_send_native\" pub fn handle(req : Req, id : Bytes) -> Unit { ws_send_native(id, req.body()) }"
   let (impls, _) = @parser.parse_string(src, name="t.mbt")
-  let dir = "/tmp/gate4_combined_test"
+  let dir = test_tmp("gate4_combined_test")
   let (rules, _) = load_taint_rules(dir)
   let findings : Array[Finding] = []
   run_cwe113(
@@ -1003,7 +1014,7 @@ test "gate4_extends_with_extern_decl_e2e" {
 ///|
 test "gate4_scan_project_level_e2e" {
   // full scan_project path (equivalent to CLI): rules from project root
-  let dir = "/tmp/g4_scanproj"
+  let dir = test_tmp("g4_scanproj")
   let src_dir = dir + "/src"
   @fs.create_dir(dir) catch {
     _ => ()

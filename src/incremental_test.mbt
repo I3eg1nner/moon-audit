@@ -20,7 +20,7 @@ test "Incremental: empty changed_files scans all" {
 
 ///|
 test "Incremental: load_changed_files parses file list" {
-  let test_path = "/tmp/moon_audit_test_changed.txt"
+  let test_path = test_tmp("moon_audit_test_changed.txt")
   @fs.write_string_to_file(test_path, "src/foo.mbt\nsrc/bar.mbt\n\nREADME.md\n") catch {
     _ => return
   }
@@ -35,7 +35,7 @@ test "Incremental: load_changed_files parses file list" {
 
 ///|
 test "Incremental: load_changed_files handles missing file" {
-  let files = load_changed_files("/tmp/nonexistent_file_list.txt")
+  let files = load_changed_files(test_tmp("nonexistent_file_list.txt"))
   assert_true(files.length() == 0)
 }
 

@@ -18,7 +18,7 @@ test "Baseline: generate and load round-trip" {
     },
   ]
   let json = generate_baseline(findings)
-  let path = "/tmp/moon_audit_test_baseline.json"
+  let path = test_tmp("moon_audit_test_baseline.json")
   @fs.write_string_to_file(path, json) catch {
     _ => return
   }
@@ -86,13 +86,13 @@ test "Baseline: filter_baseline with empty baseline returns all" {
 
 ///|
 test "Baseline: load_baseline handles missing file" {
-  let baseline = load_baseline("/tmp/no_such_baseline.json")
+  let baseline = load_baseline(test_tmp("no_such_baseline.json"))
   assert_true(baseline.length() == 0)
 }
 
 ///|
 test "Baseline: load_baseline handles invalid JSON" {
-  let path = "/tmp/moon_audit_bad_baseline.json"
+  let path = test_tmp("moon_audit_bad_baseline.json")
   @fs.write_string_to_file(path, "not json at all") catch {
     _ => return
   }
