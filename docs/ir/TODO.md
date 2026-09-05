@@ -144,6 +144,18 @@
 6. 21 项目语料网络全量 + 推送远端 CI + mooncakes 发布 v0.3.x
 7. 上游 PR 提交（patch 已备，待 OCaml 编译验证）
 
+## Phase E1：extern stub + FFI 文件三模式（2026-09-05）
+- [x] 调研结论：extern 声明（DeclStubs）签名**本就注册**（探针证实 fn_ret=Conn ✓）；
+      FFI 文件 238 个未解析的真实根因是文件内普通代码的三类模式：
+      1. Tuple 解构丢类型（for-in Map + let (k,v) = pair）→ 位置化绑定修复
+      2. builtin 高阶方法闭包参数无 hint（Map::each((k,v)=>...)）→
+         builtin_callback_params 表（按接收者参数化类型派生，槽位=实参位置）
+      3. 核心 trait 静态无返回类型（Show::to_string）→ builtin_static_ret 补充
+- [x] 验收：4 个单测（extern 链/Tuple/闭包 hint/trait 静态）；152/152；
+      mocket 1412→1422、petgraph 976→1007；未解析 493→483（FFI 238→228）
+- [ ] 残余：FFI 文件未解析主因转为深层级联（值来自 extern 返回但经 2+ 层包装），
+      与跨包级联同源——E2（.mooncakes 内部 .mbti + moon.pkg 包身份）覆盖
+
 ## 上游机会（随时可做，独立于主线）
 - [x] 上游 PR 准备完成：dump-core-sexp.patch（2 文件 +18/-1，静态核对全部签名）+
       upstream/README.md（动机/用法/验证步骤/PR 草稿）——待有 OCaml 环境编译验证后提交 PR

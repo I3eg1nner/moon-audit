@@ -168,6 +168,24 @@ mocket/petgraph/自举 0 FP；解析率 69%/86%/67%（指标 bug 修复后自举
 - 发现：回归基线 luna=0 只扫了 workspace 成员 luna/，6 条既有检出在 sol/ 成员
   （含 via parameter 直传与方法链）——基线口径待集成阶段修订为全仓扫描
 
+## 2026-09-05 · E1 extern stub 摄取（工作流 #3 lane1）
+
+**探针驱动的事实修正**：extern 声明签名已被既有 TopFuncDef 路径覆盖（DeclStubs
+走 fun_decl.decl_params，fn_ret 正确）。FFI 缺口的真实形态 = FFI 文件内的普通
+MoonBit 代码模式，非 extern 本身。三个修复：Tuple 位置化解构、
+builtin_callback_params（Map/Array/Iter 每实参槽位回调签名，从接收者参数化类型
+派生）、核心 trait 静态返回（Show::to_string→String）。
+
+**数字**（三目标，FP 全零持平）：
+| 目标 | 前 | 后 |
+|---|---|---|
+| mocket | 74%（1412/1905） | 74%（1422/1905），未解析 493→483 |
+| 自举 | 86%（2998/3471） | 86%（3307/3824，调用点随新代码增长） |
+| petgraph | 69%（976/1449） | 69%（1007/1449） |
+
+**教训重申**：python replace 无 assert 又一次打错目标（local_fn_static_resolution
+被误改）——HARD RULE 已在任务书内，执行时仍需逐次 grep 锁定唯一目标。
+
 ## 待续（M4 完整验收：闭包分配点建模、Andersen 或轻量替代、coverage 动态真值、FFI stub 摄取）
 
 ## 2026-09-04 · [lane: upstream] 上游 PR 工件就绪

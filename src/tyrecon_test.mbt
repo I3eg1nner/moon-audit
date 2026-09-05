@@ -473,3 +473,52 @@ test "p4_closure_uncalled_unannotated_deferred" {
   inspect(stats.receiver_unknown, content="0")
   inspect(stats.receiver_resolved, content="0")
 }
+
+///|
+test "e1_extern_stub_signature_ingestion" {
+  // extern declarations (DeclStubs) carry full signatures; calls through
+  // their return values must resolve
+  let source = "pub struct Conn { fd : Int } extern \"C\" fn mg_connect(url : String) -> Conn = \"c\" \"mg_connect\" pub fn go() -> Unit { let conn = mg_connect(\"x\"); ignore(conn.fd) }"
+  let (impls, _) = @parser.parse_string(source, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  let stats = IRStatsResult::new()
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  inspect(symbols.fn_exists.contains("mg_connect"), content="true")
+  match symbols.fn_ret.get("mg_connect") {
+    Some(IRConcrete("Conn", _)) => inspect("ok", content="ok")
+    _ => inspect("missing or wrong ret type", content="ok")
+  }
+  // mg_connect + ignore(...) both resolve as static targets
+  inspect(stats.static_resolved, content="2")
+}
+
+///|
+test "e1_tuple_pattern_from_map_elem" {
+  let source = "pub fn go(m : Map[String, Int]) -> Int { for pair in m { let (k, v) = pair; ignore(k.length()); v } 0 }"
+  let (impls, _) = @parser.parse_string(source, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  let stats = IRStatsResult::new()
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  inspect(stats.receiver_unknown, content="0")
+  inspect(stats.receiver_resolved, content="1")
+}
+
+///|
+test "e1_builtin_map_each_closure_hints" {
+  let source = "pub fn go(m : Map[String, Int]) -> Unit { m.each((k, v) => ignore(k.length())) }"
+  let (impls, _) = @parser.parse_string(source, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  let stats = IRStatsResult::new()
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  inspect(stats.receiver_unknown, content="0")
+}
+
+///|
+test "e1_core_trait_static_returns" {
+  let source = "pub fn go(x : Int) -> Int { Show::to_string(x).length() }"
+  let (impls, _) = @parser.parse_string(source, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  let stats = IRStatsResult::new()
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  inspect(stats.receiver_unknown, content="0")
+}

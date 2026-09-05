@@ -295,6 +295,7 @@ priv struct ScanCtx {
   // call-site closure backfill channel: set before visiting a Function arg
   pending_closure_hints : Array[IRType?]
   mut last_key : String // receiver key recorded by infer_dot_apply
+  mut last_recv_ty : IRType // receiver parametric type (builtin callback hints)
   mut cur_fn : String // enclosing function name (call graph caller)
   // M4-lite: var-name -> closure allocation site (params/body reference)
   closure_sites : Map[String, ClosureSite]
@@ -325,6 +326,7 @@ pub fn scan_package_calls(
     stats,
     pending_closure_hints: [],
     last_key: "?",
+    last_recv_ty: IRUnresolved,
     cur_fn: "<top>",
     closure_sites: Map([]),
     pending_closure: None,
@@ -1198,10 +1200,23 @@ fn bind_pattern(pat : @syntax.Pattern, ty : IRType, ctx : ScanCtx) -> Unit {
     }
     Constraint(pat~, ty~, ..) =>
       bind_pattern(pat, type_to_ir(ty, ctx.symbols), ctx)
-    Tuple(pats~, ..) =>
+    Tuple(pats~, ..) => {
+      // positional destructure from a known Tuple type (e.g. `for pair in map`)
+      let mut i = 0
       for p in pats {
-        bind_pattern(p, IRUnresolved, ctx)
+        let pt = match ty {
+          IRConcrete("Tuple", args) =>
+            if i < args.length() {
+              args[i]
+            } else {
+              IRUnresolved
+            }
+          _ => IRUnresolved
+        }
+        bind_pattern(p, pt, ctx)
+        i += 1
       }
+    }
     Constr(constr~, args~, ..) =>
       match args {
         Some(list) => {
@@ -1292,11 +1307,15 @@ fn visit_args(
   start_index : Int,
 ) -> Unit {
   let arrows = ctx.symbols.fn_param_arrows.get(callee)
+  // builtin higher-order fallback: closure hints from the receiver's
+  // parametric type (Map::each -> (K, V), Array::map -> (elem), ...)
+  let builtin_cb = builtin_callback_params(ctx.last_recv_ty, callee)
   let mut i = start_index
   for arg in args {
     match arg.value {
       Function(..) => {
-        // set closure hints from the callee's declared arrow type
+        // set closure hints from the callee's declared arrow type,
+        // or from the builtin container callback signature
         ctx.pending_closure_hints.clear()
         match arrows {
           Some(per_param) =>
@@ -1304,8 +1323,10 @@ fn visit_args(
               for h in per_param[i] {
                 ctx.pending_closure_hints.push(h)
               }
+            } else {
+              fill_builtin_cb(ctx, builtin_cb, start_index)
             }
-          None => ()
+          None => fill_builtin_cb(ctx, builtin_cb, start_index)
         }
         let _ = infer_expr(arg.value, ctx)
         ctx.pending_closure_hints.clear()
@@ -1315,6 +1336,71 @@ fn visit_args(
       }
     }
     i += 1
+  }
+}
+
+///|
+fn fill_builtin_cb(
+  ctx : ScanCtx,
+  builtin_cb : Array[Array[IRType?]]?,
+  start_index : Int,
+) -> Unit {
+  match builtin_cb {
+    Some(per_param) =>
+      if start_index < per_param.length() {
+        for h in per_param[start_index] {
+          ctx.pending_closure_hints.push(h)
+        }
+      }
+    None => ()
+  }
+}
+
+///|
+fn builtin_callback_params(
+  recv : IRType,
+  callee : String,
+) -> Array[Array[IRType?]]? {
+  // callback signatures of builtin higher-order methods, derived from the
+  // receiver's parametric type. Slot 0 = receiver, so callers index with
+  // the same start_index convention as fn_param_arrows.
+  let mname = last_segment(callee)
+  let ho = match recv {
+    IRConcrete("Map", args) => {
+      let k = if args.length() >= 1 { args[0] } else { IRUnresolved }
+      let v = if args.length() >= 2 { args[1] } else { IRUnresolved }
+      // per-arg-slot callback signatures: slot 0 = receiver, slot 1 = closure
+      match mname {
+        "each" | "eachi" | "map" | "filter" | "any" | "all" | "contains_kv" =>
+          [[None], [Some(k), Some(v)]]
+        "fold" => [[None], [Some(v), Some(k)]]
+        _ => []
+      }
+    }
+    IRConcrete("Array", args) | IRConcrete("Iter", args) => {
+      let e = if args.length() >= 1 { args[0] } else { IRUnresolved }
+      match mname {
+        "each"
+        | "eachi"
+        | "map"
+        | "filter"
+        | "find"
+        | "find_index"
+        | "any"
+        | "all"
+        | "exists"
+        | "collect"
+        | "filter_map" => [[None], [Some(e)]]
+        "fold" | "reduce" | "sort_by" => [[None], [Some(e), Some(e)]]
+        _ => []
+      }
+    }
+    _ => []
+  }
+  if ho.length() > 0 {
+    Some(ho)
+  } else {
+    None
   }
 }
 
@@ -1429,6 +1515,7 @@ fn infer_dot_apply(
     IRConcrete(name, _) => {
       let key = name + "::" + mname
       ctx.last_key = key
+      ctx.last_recv_ty = recv_ty
       record_site_recv(ctx, recv, true, key, name)
       ctx.stats.receiver_resolved += 1
       // symbols first (source + .mbti + dep tables, short_key fallback);
@@ -1467,6 +1554,7 @@ fn infer_dot_apply(
       }
     }
     IRTraitObj(t) => {
+      ctx.last_recv_ty = IRUnresolved
       record_site_recv(
         ctx,
         recv,
@@ -1478,12 +1566,14 @@ fn infer_dot_apply(
       IRUnresolved
     }
     IRTypeParam(p) => {
+      ctx.last_recv_ty = IRUnresolved
       record_site_recv(ctx, recv, false, "T:" + p + "::" + mname, "T:" + p)
       ctx.stats.receiver_dispatch += 1
       IRUnresolved
     }
     _ => {
       ctx.last_key = "?::" + mname
+      ctx.last_recv_ty = IRUnresolved
       record_site_recv(ctx, recv, false, "?::" + mname, "?")
       ctx.stats.receiver_unknown += 1
       IRUnresolved
@@ -1599,13 +1689,17 @@ fn builtin_constr_payload(name : String, scrut : IRType) -> Array[IRType] {
 
 ///|
 fn builtin_static_ret(key : String) -> IRType? {
-  // `Type::method` statics on builtin/container types
+  // `Type::method` statics on builtin/container types + core trait statics
   match key {
     "Buffer::new" | "Buffer::make" => Some(IRConcrete("Buffer", []))
     "Map::new" | "Map::copy" | "Map::create" => Some(IRConcrete("Map", []))
     "StringBuilder::new" => Some(IRConcrete("StringBuilder", []))
     "Iter::new" | "Iter::from_array" | "Iter::range" | "Iter::of" =>
       Some(IRConcrete("Iter", []))
+    // core trait statics (Show/ToString etc. are imported, not local)
+    "Show::to_string" | "Show::to_debug_string" | "ToString::to_string" =>
+      Some(IRConcrete("String", []))
+    "Show::output" | "Show::output_type" => Some(IRUnit)
     _ => None
   }
 }
