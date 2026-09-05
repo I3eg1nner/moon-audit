@@ -917,3 +917,100 @@ test "m4lite_config_field_read_stays_silent" {
   run_cwe113(impls, "t.mbt", src, findings, Error)
   inspect(findings.length(), content="0")
 }
+
+// ---------------------------------------------------------------------------
+// gate4: extends in the combined .moon-audit.json "taint" section
+// ---------------------------------------------------------------------------
+
+///|
+test "gate4_extends_combined_path_applies_model" {
+  // .moon-audit.json taint section with ONLY {"extends":["mongoose"]} must
+  // resolve the model (previously silently no-op: size()==0 early return
+  // AND missing resolve_extends on the combined path)
+  let dir = "/tmp/gate4_combined_test"
+  @fs.create_dir(dir) catch {
+    _ => ()
+  }
+  let f = dir + "/.moon-audit.json"
+  @fs.write_string_to_file(f, "{\"taint\": {\"extends\": [\"mongoose\"]}}") catch {
+    _ => ()
+  }
+  let (rs, source) = load_taint_rules(dir)
+  inspect(source, content=f + " [taint section]")
+  // mongoose model entries are live via the combined path
+  inspect(rs.source_hit("body"), content="true")
+  inspect(rs.output_sink_hit("ws_send_native"), content="true")
+}
+
+///|
+test "gate4_extends_combined_path_alert_e2e" {
+  // end-to-end: probe snippet alerts only when the model is applied
+  let src = "pub fn handle(req : Req, id : Bytes) -> Unit { ws_send_native(id, req.body()) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let dir = "/tmp/gate4_combined_test"
+  let (rules, _) = load_taint_rules(dir)
+  let findings : Array[Finding] = []
+  run_cwe113(
+    impls,
+    "t.mbt",
+    src,
+    findings,
+    Warning,
+    rules~,
+    output_sinks_enabled=true,
+  )
+  inspect(findings.length() > 0, content="true")
+}
+
+///|
+test "gate4_extends_with_extern_decl_e2e" {
+  let src = "extern \"c\" fn ws_send_native(a : Bytes, b : Bytes) -> Unit = \"ws_send_native\" pub fn handle(req : Req, id : Bytes) -> Unit { ws_send_native(id, req.body()) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let dir = "/tmp/gate4_combined_test"
+  let (rules, _) = load_taint_rules(dir)
+  let findings : Array[Finding] = []
+  run_cwe113(
+    impls,
+    "t.mbt",
+    src,
+    findings,
+    Warning,
+    rules~,
+    output_sinks_enabled=true,
+  )
+  inspect(findings.length(), content="1")
+}
+
+///|
+test "gate4_scan_project_level_e2e" {
+  // full scan_project path (equivalent to CLI): rules from project root
+  let dir = "/tmp/g4_scanproj"
+  let src_dir = dir + "/src"
+  @fs.create_dir(dir) catch {
+    _ => ()
+  }
+  @fs.create_dir(src_dir) catch {
+    _ => ()
+  }
+  @fs.write_string_to_file(
+    dir + "/moon.mod",
+    "name = \"g4p\"\nversion = \"0.1.0\"\n",
+  )
+  @fs.write_string_to_file(src_dir + "/moon.pkg", "") catch {
+    _ => ()
+  }
+  @fs.write_string_to_file(
+    src_dir + "/lib.mbt",
+    "extern \"c\" fn ws_send_native(a : Bytes, b : Bytes) -> Unit = \"ws_send_native\"\npub fn handle(req : Req, id : Bytes) -> Unit { ws_send_native(id, req.body()) }\n",
+  ) catch {
+    _ => ()
+  }
+  @fs.write_string_to_file(
+    dir + "/.moon-audit.json",
+    "{\"taint\": {\"extends\": [\"mongoose\"]}}",
+  ) catch {
+    _ => ()
+  }
+  let result = scan_project(dir, Config::default())
+  inspect(result.findings.length() > 0, content="true")
+}

@@ -177,7 +177,7 @@
       （$closure:helper@1 目标验证）→ 155/155
 - [x] 指标：mocket 74→75%（FFI/dyn 占剩余主体）、自举 86→**88%**（达标 ≥88）、
       petgraph 69% 持平；FP 三目标 0
-- [ ] mocket ≥78% 未达：剩余 unknown 185 中 FFI native/js ~79 + dyn trait 分派 ~30
+- [x] mocket ≥78% 已达（A2 全局 let 注入 + is String 模式绑定 + extern 库模型；gate4 复测 1502/1905=78%；剩余 unknown 118 = 跨依赖级联 + dyn 分派 M4 域）
       （M4 去虚化域）+ 深层级联——E2 三杠杆已尽，下一杠杆为去虚化/指针分析
 
 ## Phase E1：extern stub + FFI 文件三模式（2026-09-05）

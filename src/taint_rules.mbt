@@ -65,6 +65,9 @@ pub fn load_taint_rules(root : String) -> (TaintRuleset, String) {
           Some(Object(_)) => {
             let rs = parse_taint_section(obj.get("taint"))
             if rs.size() > 0 {
+              // combined path must resolve extends too (parity with the
+              // dedicated-file path) — gate4 finding
+              resolve_extends(rs, combined)
               return (rs, combined + " [taint section]")
             }
           }
@@ -274,7 +277,12 @@ pub fn TaintRuleset::sanitizer_hit(self : TaintRuleset, mname : String) -> Bool 
 
 ///|
 pub fn TaintRuleset::size(self : TaintRuleset) -> Int {
-  self.sources.length() + self.sinks.length() + self.sanitizers.length()
+  self.sources.length() +
+  self.sinks.length() +
+  self.sanitizers.length() +
+  self.extends.length() +
+  self.fn_types.length() +
+  self.callbacks.length()
 }
 
 ///|

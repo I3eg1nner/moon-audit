@@ -443,5 +443,5 @@ petgraph 69% 持平。FP 三目标 0；156/156 × 4 targets deny-warn 绿；moon
   FFI 绑定文件状态全在带标注的全局里，此前从未进入函数 env
 - DSL 扩展 extends/types/callbacks/Output sink；内置 mongoose 模型（opt-in via extends）
 - 探针验收：ws_send_native(id, req.body()) → CWE-116/tainted-output 告警；链路 5/5 解析
-- 数字：mocket 75→78%、自举 86%、petgraph 69%；FP 三目标 0；166/166 × 4；deny-warn 全绿
+- 数字：mocket 75→78%、自举 88%（gate4 实测裁决：初稿笔误 86%，3667/4145 复核）、petgraph 69%；FP 三目标 0；deny-warn 全绿
 - 剩余 FFI unknown ~39 = 跨依赖级联 + dyn 分派（M4 域），模型杠杆已尽（如实记录）
