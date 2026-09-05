@@ -390,3 +390,22 @@ FP 三目标 0；155/155 × native；check --target all --deny-warn 绿。
 **下一里程碑**（见 TODO 收口）：显式 HIR/CFG+SCC、规则 JSON 配置化、
 指针分析协同（先比较不预设 2-obj）、动态调用边插桩、21 项目网络全量、
 推送+发布 v0.3.x、上游 PR 提交。
+
+
+## 2026-09-05 · gate3 P2 修复（4 项，源码限定身份 + call-graph 口径对齐）
+
+- **P2-1 canonical 包身份**：dep_canonical_pkg——读依赖仓库根 moon.mod 的
+  `source = "src"` 段并剥除（moonbitlang/async、oboard/mimetype 均 src 布局），
+  源码侧限定键与 moon.pkg 导入/.mbti 包名一致（"moonbitlang/async/http"）。
+  实测 mocket +2（1436→1438）：async/mimetype 的公开符号此前已由 .mbti qkey
+  覆盖，本修复价值在无 .mbti/私有符号场景的正确性；moon.mod 不可读时保守
+  保留物理路径（单测锁定 4 种形态，156 测试）
+- **P2-4 run_call_graph 口径对齐**：补 collect_mbti_dir + per-package alias
+  展开（与 run_ir_stats 同杠杆）。自举 86%→88% 对齐；mocket 75%(ir-stats)
+  vs 76%(call-graph) 为 dispatch 边计入 coverage 的口径差（定义性，非漂移）
+- **P2-3** README 测试数 136→156；**P2-7** TODO 对账：.mooncakes .mbti 摄取勾选，
+  版本/后端匹配检查保留未勾
+
+**数字（前 → 后）**：mocket 75%(1436)→75%(1438)；自举 88%→88%(3453)；
+petgraph 69% 持平。FP 三目标 0；156/156 × 4 targets deny-warn 绿；moon info
+有 diff（dep_canonical_pkg 转 pub）→ 本次一并再生提交。

@@ -267,7 +267,7 @@ fn check_security(project_path : String) -> Unit {
 
 ```bash
 moon check     # 编译检查
-moon test      # 运行测试（136 个用例 × 4 编译目标，--deny-warn 全绿）
+moon test      # 运行测试（156 个用例 × 4 编译目标，--deny-warn 全绿）
 moon fmt       # 格式化
 ```
 

@@ -112,8 +112,9 @@
       builtin_method_ret 降为最后回退（符号表先行）
       —— mbti 事实：参数渲染为纯类型（匿名 DiscardPositional），命名参数是解析错误；
       DiscardPositional 类型必须入 trait_params/fn_param_arrows
-- [ ] .mbti 版本与目标后端匹配检查、依赖 .mooncakes 内 .mbti 摄取、
-      struct_fields/constr 硬编码表的进一步替换
+- [x] 依赖 .mooncakes 内 .mbti 摄取（E2 完成，walk_dep_dir 收集 74 个依赖接口；
+      gate3-P2 对账勾选——见上方 [x] 条目）
+- [ ] .mbti 版本与目标后端匹配检查、struct_fields/constr 硬编码表的进一步替换
 - [x] 完整符号身份（2026-09-05，Phase-2b）：
       · qualified key（"pkg::key"）与短 key 并行注册（mbti 来源），
         short_key 降级为最后回退（三个 getter 注释标明解析顺序）

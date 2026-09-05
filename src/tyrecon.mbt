@@ -2107,15 +2107,13 @@ fn walk_dep_dir(dir : String, symbols : PkgSymbols) -> Unit {
   }
   // E2: derive the package identity from the .mooncakes path
   // (<root>/.mooncakes/<owner>/<repo>/<path..> -> owner/repo/path..)
+  // gate3 P2-1: strip the dep repo's `source = "src"` layout segment so the
+  // qualified keys match canonical identities used by moon.pkg imports and
+  // .mbti package names (moonbitlang/async/http, not .../async/src/http)
   let pkg_name = if dir.has_suffix(".mooncakes") {
     ""
   } else {
-    let idx = find_last(dir, "/.mooncakes/")
-    if idx >= 0 {
-      Show::to_string(dir[idx + "/.mooncakes/".length():])
-    } else {
-      ""
-    }
+    dep_canonical_pkg(dir)
   }
   for file in mbt_files {
     let source = @fs.read_file_to_string(file) catch { _ => continue }
@@ -2131,6 +2129,66 @@ fn walk_dep_dir(dir : String, symbols : PkgSymbols) -> Unit {
   for subdir in subdirs {
     walk_dep_dir(subdir, symbols)
   }
+}
+
+///|
+// Canonical dep package identity from a physical .mooncakes path.
+// Repos with `source = "src"` layouts (e.g. moonbitlang/async) keep their
+// packages under <repo>/src/<pkg>, but the canonical identity (as used by
+// moon.pkg imports and .mbti package names) is <owner>/<repo>/<pkg> —
+// the layout segment must be stripped (gate3 P2-1).
+pub fn dep_canonical_pkg(dir : String) -> String {
+  let idx = find_last(dir, "/.mooncakes/")
+  if idx < 0 {
+    return ""
+  }
+  let rest = Show::to_string(dir[idx + "/.mooncakes/".length():])
+  let segs : Array[String] = []
+  for seg in rest.split("/") {
+    segs.push(Show::to_string(seg))
+  }
+  if segs.length() < 3 {
+    return rest // owner or repo level: no tail to strip
+  }
+  let owner = segs[0]
+  let repo = segs[1]
+  // read the dep repo root moon.mod for a `source = "xxx"` layout segment
+  let mod_path = Show::to_string(dir[:idx]) +
+    "/.mooncakes/" +
+    owner +
+    "/" +
+    repo +
+    "/moon.mod"
+  let mod_content = @fs.read_file_to_string(mod_path) catch { _ => "" }
+  let mut layout = ""
+  for line in mod_content.split("\n") {
+    let t = Show::to_string(Show::to_string(line).trim())
+    if t.has_prefix("source") {
+      let eq = find_last(t, "=")
+      if eq >= 0 {
+        let v = Show::to_string(Show::to_string(t[eq + 1:]).trim())
+        let q : UInt16 = 34 // '"'
+        if v.length() >= 2 && v[0] == q {
+          layout = Show::to_string(v[1:v.length() - 1])
+        }
+      }
+    }
+  }
+  let tail : Array[String] = []
+  let mut i = 2
+  let mut dropped = false
+  while i < segs.length() {
+    if layout != "" && !dropped && segs[i] == layout {
+      dropped = true // drop exactly one layout segment
+    } else {
+      tail.push(segs[i])
+    }
+    i += 1
+  }
+  owner +
+  "/" +
+  repo +
+  (if tail.length() > 0 { "/" + tail.join("/") } else { "" })
 }
 
 ///|
@@ -2227,6 +2285,8 @@ pub fn run_call_graph(root : String, config : Config) -> CallGraph {
     }
   })
   collect_dep_symbols(root, symbols)
+  // gate3 P2-4: parity with run_ir_stats — module-level .mbti ingestion
+  collect_mbti_dir(root, symbols)
   // devirtualization index keyed by TRAIT IDENTITY ("Trait::method" ->
   // self types); impl_methods values carry the trait path. A method-name-only
   // index remains as fallback for sites whose trait identity is unknown.
@@ -2250,13 +2310,21 @@ pub fn run_call_graph(root : String, config : Config) -> CallGraph {
     }
   })
   // call sites -> edges
+  // gate3 P2-4: parity with run_ir_stats — per-package alias expansion
   let stats = IRStatsResult::new()
-  walk_packages(root, config, fn(_pkg_dir, mbt_files) {
+  walk_packages(root, config, fn(pkg_dir, mbt_files) {
+    let aliases = pkg_alias_map(pkg_dir)
     for file in mbt_files {
       stats.files_scanned += 1
       let source = @fs.read_file_to_string(file) catch { _ => return }
       let (impls, _) = @parser.parse_string(source, name=file)
-      scan_package_calls(impls.to_array(), file, symbols, stats)
+      scan_package_calls(
+        impls.to_array(),
+        file,
+        symbols,
+        stats,
+        pkg_alias=aliases,
+      )
     }
   })
   let edges : Array[String] = []

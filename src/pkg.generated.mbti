@@ -64,6 +64,8 @@ pub fn cwe770_info() -> RuleInfo
 
 pub fn cwe942_info() -> RuleInfo
 
+pub fn dep_canonical_pkg(String) -> String
+
 pub fn diff_findings(Array[Finding], Array[PrevFinding]) -> BaselineDiff
 
 pub fn filter_baseline(Array[Finding], Map[String, Bool]) -> Array[Finding]

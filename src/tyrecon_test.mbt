@@ -612,3 +612,31 @@ test "e2_letfn_call_static_not_higher" {
   })
   inspect(found, content="true")
 }
+
+///|
+test "gate3_p2_1_dep_canonical_pkg_strips_source_layout" {
+  // physical path -> canonical identity (moonbitlang/async uses source="src")
+  inspect(
+    dep_canonical_pkg(
+      "/data/my/moon-audit/.mooncakes/moonbitlang/async/src/http",
+    ),
+    content="moonbitlang/async/http",
+  )
+  // repo root package (src itself) -> owner/repo
+  inspect(
+    dep_canonical_pkg("/data/my/moon-audit/.mooncakes/moonbitlang/async/src"),
+    content="moonbitlang/async",
+  )
+  // moon.mod unreadable -> conservative: keep physical path (no strip)
+  inspect(
+    dep_canonical_pkg("/x/.mooncakes/moonbitlang/async/src"),
+    content="moonbitlang/async/src",
+  )
+  // non-src layout (moonbitlang/x): path preserved untouched
+  inspect(
+    dep_canonical_pkg("/x/.mooncakes/moonbitlang/x/fs"),
+    content="moonbitlang/x/fs",
+  )
+  // outside .mooncakes: empty
+  inspect(dep_canonical_pkg("/data/my/moon-audit/src"), content="")
+}
