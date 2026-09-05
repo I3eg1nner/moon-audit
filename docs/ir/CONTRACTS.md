@@ -14,7 +14,7 @@
 |---|---|---|---|
 | 元组分量 `.0/.1` | Tuple 模式 × Tuple 字面量右值**逐位绑定**；形状不匹配保守回退整体（过报不漏报） | ✅ | `v1_tuple_component_clean_no_report`（`(tainted, "safe")` 第二分量 Clean） |
 | enum 载荷位置 | catch/Match 的 `Constr` 解构把（错误值/ scrutinee）污点投影到载荷变量；`Err(Bad(x))` 两层投影 | ✅ | `v1_error_payload_taint_reports`（错误载荷→header 告警） |
-| struct 字段 | 对象级字段污点表（field_taint，A3 堆切片）；写入即污染对象槽位 | ✅ | A3 验收测试 `heap_summary_cross_function_reports` |
+| struct 字段 | 对象级字段污点表（field_taint，A3 堆切片）；写入即污染对象槽位 | ✅ | A3 验收测试 `m4lite_source_to_object_cross_2_layers_to_sink` |
 | 容器元素摘要位 | Map/Array 存入污点 → 容器摘要位污染；读取返回该位 | ⬜ M5（需字段敏感堆求解） | — |
 | 闭包捕获槽位 | 捕获环境按槽位携带污点；逃逸分析区分立即/延迟执行 | ⬜ M5（依赖库模型 v2 的 timing 语义） | — |
 | Match scrutinee 元组解构 | scrutinee 形状已知时逐分量绑定 | 🔶（保守整体绑定，方向为过报） | TODO 已挂 |
@@ -47,6 +47,7 @@ FuncEffect = {
 | 正常出口：堆更新 | ✅（A3 `field_taint` 摘要） | 对象级字段写传播 |
 | 错误出口：Try fork/join + 载荷绑定 | ✅（V1） | 三出口状态合并，`err_t = body_t ∪ env_any_taint(body)`（保守近似） |
 | 错误出口：错误类型区分 + 抛错前堆副作用保留 | 🔶 | 当前 err_t 不区分 Suberror 类型；堆副作用靠 catch 基环境=入口∪body后状态 近似保留——精确化在 HIR/CFG |
+| 已知保守界（gate5 P2-b） | ⚠️ 记录在案 | `env_any_taint(body)` 并集计入**全部** TaintedParam 形参：函数有 ≥1 个形参、body 干净、错误载荷为常量时 catch 出口仍视为污点 → 方向为**过报不漏报**；三次语料快照 FP=0 实证未触发；HIR/CFG 阶段以"错误出口按位投影"消解，负对照测试锚点随之补入 |
 | 回调：立即执行（`Array::map` raise?） | ✅（lib_callbacks 占位符回填即此语义） | 占位符 → 形参绑定 |
 | 回调：延迟执行（`Iter::map` 存储待推进） | ⬜ M5 | 需 timing 字段（见 SCHEMA-v2）+ 逃逸分析 |
 | 回调：trait 回调边（`Map::get` → 用户 Hash/Eq impl） | ⬜ M5 | 需闭世界 impl 索引产生调用边 |

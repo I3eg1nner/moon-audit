@@ -523,3 +523,38 @@ PLAN.md "parser 是唯一语言耦合点" 声明需修正为"语义适配层"—
   并入错误处理三要求（前端完整性/过程内正确性/过程间可组合）+ 组合验收路径
   （正例 + 三负对照：安全分量/错误路径不可达/回调未执行）
 - 验收：181/181 × native（+1 v2 解析单测）；deny-warn 绿；无配置=行为不变（v1 兼容）
+
+## 2026-09-05 · 第三轮评审整改（错误流 + 值结构契约）集成收口
+
+**V1 修复（bec81a9）**：评审 6 样例前后对照（样例 /tmp/moon-audit-review-effects-g4g10S/cases.mbt，
+已 1:1 锁定为 v1_* 测试，extended_test.mbt:555-610）
+
+| 样例 | 评审前 | 评审后 |
+|---|---|---|
+| 参数直接进 header（对照） | 告警 | 告警（保持） |
+| try 正常返回污点，catch 返回常量 | **漏报** | **告警**（Try fork/join 合并 + 返回值 join） |
+| 错误携带污点，catch Bad(value) 输出 | **漏报** | **告警**（错误载荷模式绑定） |
+| noraise 成功分支输出 | **漏报** | **告警**（成功值绑定，tyrecon 双侧接线，调用点 +35） |
+| 仅异常分支清洗变量 | （语义陷阱） | 告警（catch 副本环境隔离，正常路径污点保留） |
+| 解构 (污点, "safe") 只输出第二项 | **误报** | **静默**（Tuple 逐位绑定；形状不匹配保守回退） |
+
+**V2 设计落盘（9b7bf73）**：CONTRACTS.md（值结构契约一 + 函数效应契约二三出口，
+含"抛错前堆副作用不丢弃"红线与 gate5 P2-b 已知保守界条目）；libmodels SCHEMA-v2
+（回调三分类 immediate/deferred/trait 再入边，v1/v2 双形式解析向后兼容）；PLAN 撤回
+"parser 唯一耦合点"→版本化语义适配层；组合验收路径写入 HIR/CFG 完成标准。
+
+**gate5 结论**：静态逐行验证（Try 合并 join-半格性质、负对照 7+1、181 测试清点）+ 
+supervisor 代跑运行时门（181/181 × 4 targets、fmt/info 门清、三目标 FP=0）→ PASS。
+
+**第五次语料快照**（scripts/regression.sh，12 语料项目 + 3 本地）：
+- 修复护栏 ✅：luna/mocket/async/rabbita/cmark/mooncakes.io 等 10 项目 findings=0 连续第五次
+- TP 稳定 ✅：crescent 5（四次逐行一致）；mars.mbt 9（与第四快照一致）
+- 三本地目标 FP=0（mocket/自举/petgraph）
+- 数字无漂移：全部项目 findings 与第四快照持平（V1 修复只影响错误流样例，语料中
+  无对应形态，符合预期）
+
+**gate5 P2 修复（本 commit）**：CONTRACTS.md 锚点笔误（heap_summary… → 
+m4lite_source_to_object_cross_2_layers_to_sink）+ 已知保守界条目 + TODO:208 措辞对齐。
+
+**残余**：Match scrutinee 元组解构仍整体绑定（保守，过报方向）；err_t 形参并集
+保守界（HIR/CFG"按位投影"消解）；IRFn 参数化与回调完整求解列 M5。
