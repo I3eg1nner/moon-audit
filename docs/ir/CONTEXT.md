@@ -476,3 +476,17 @@ petgraph 69% 持平。FP 三目标 0；156/156 × 4 targets deny-warn 绿；moon
 | commit | 2 | 14 | **16+ 推送** |
 
 剩余（均标注外部依赖）：OCaml 编译+上游 PR、动态插桩基建、LLM 研判自动化。
+
+## 2026-09-05 · 远端 CI 修复战役（推送后 5 轮迭代全绿）
+
+推送后 CI 三度全红，本地却全绿——逐轮根因与修复（每轮均以失败日志实证）：
+| Commit | 根因 | 修复 |
+|---|---|---|
+| 8bdc162/5dec4e1 | CI 装最新工具链(08-27)，`StringBuilder::new()` 新弃用打爆 deny-warn（本地 08-07 无此警告） | 37 处替换 `StringBuilder()`（0ec7451）；本仓库从此以 ~/.moon-latest(08-27) 为准 |
+| 0ec7451/df78f65 | gate3 测试硬编码 `/data/my/moon-audit/.mooncakes` 本机路径，CI 上 moon.mod 读不到 → 保守不剥除 → 断言失败 | /tmp 自建 fixture；两个坑：create_dir 非递归需逐级建、moon.mod 在仓库根而非 src/（2969c64） |
+| 2969c64 (win) | `/tmp` 在 Windows 不存在（error code 3），mbti 摄取测试挂 | test_tmp 跨平台助手（read_dir 无副作用探测 + 相对路径回退），25 处替换（f4caa7f） |
+| f4caa7f | 提交前漏跑 `moon fmt`（repro 克隆早于提交）→ fmt --check 红 | fmt 后重推（2062136）；教训：fmt 必须跑在最终内容上 |
+| 2062136 (win) | 回退基目录 `moon_audit_test_tmp` 未创建（非递归同款） | test_tmp 内单级预建（7417da0）→ **三平台全绿** |
+
+关键工具突破：gh 凭据在 ~/.config/gh/hosts.yml → 认证 API 可读 CI 失败日志（此前 403/限流盲修）。
+新教训入库：① CI 与本地的三重差异=工具链版本/绝对路径/OS 语义，"本地绿"不构成推送依据，新鲜克隆+最新工具链+全序列复刻才是；② moon 测试的 fs 沙箱里 create_dir 非递归且对已存在目录 raise。
