@@ -17,7 +17,7 @@ priv struct Cwe676Visitor {
 ///|
 pub fn cwe676_info() -> RuleInfo {
   {
-    id: { cwe: 676, variant: "unsafe-call" },
+    id: { cwe: 676, variant: "unsafe-call", },
     name: "Use of Potentially Dangerous unsafe_ Function",
     description: "Calls to unsafe_* functions (unsafe_to_char, unsafe_to_byte, etc.) bypass runtime safety checks and may cause undefined behavior on invalid input.",
     default_severity: Warning,
@@ -91,7 +91,7 @@ impl @syntax.IterVisitor for Cwe676Visitor with fn visit_Expr_DotApply(
   if is_dangerous_unsafe(method_name.name) && !env.in_guard_body {
     env.findings.push(
       make_finding(
-        { cwe: 676, variant: "unsafe-call" },
+        { cwe: 676, variant: "unsafe-call", },
         env.severity,
         High,
         "unsafe_* function bypasses runtime safety checks. Ensure input is validated before this call, or use a safe alternative.",
@@ -129,7 +129,7 @@ impl @syntax.IterVisitor for Cwe676Visitor with fn visit_Expr_Apply(
   if is_dangerous_unsafe(unsafe_name) && !env.in_guard_body {
     env.findings.push(
       make_finding(
-        { cwe: 676, variant: "unsafe-call" },
+        { cwe: 676, variant: "unsafe-call", },
         env.severity,
         High,
         "unsafe_* function bypasses runtime safety checks. Ensure input is validated before this call, or use a safe alternative.",

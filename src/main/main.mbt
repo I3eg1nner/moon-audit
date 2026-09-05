@@ -411,12 +411,12 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     config_path
   }
   let mut config = @audit.load_config(resolved_config_path)
-  config = { ..config, min_severity: severity_filter }
+  config = { ..config, min_severity: severity_filter, }
   let changed_files_path = get_opt(matches, "changed-files")
   match changed_files_path {
     Some(cf_path) => {
       let changed = @audit.load_changed_files(cf_path)
-      config = { ..config, changed_files: changed }
+      config = { ..config, changed_files: changed, }
     }
     None => ()
   }
@@ -430,7 +430,7 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
       for rule in all_rules {
         let id = @audit.rule_id_str(rule.id)
         if id != rule_id {
-          config.rules[id] = { enabled: false, severity: None }
+          config.rules[id] = { enabled: false, severity: None, }
         }
       }
     }
@@ -669,7 +669,7 @@ fn cmd_llm_analyze(matches : @argparse.Matches) -> Unit {
     println("Run the analysis:")
     println("  python3 " + script_file)
   } else if format == "json" {
-    let buf = StringBuilder::new()
+    let buf = StringBuilder()
     buf.write_string("[\n")
     for i, req in requests {
       if i > 0 {
@@ -680,7 +680,7 @@ fn cmd_llm_analyze(matches : @argparse.Matches) -> Unit {
     buf.write_string("\n]")
     write_output(buf.to_string(), output_file)
   } else {
-    let buf = StringBuilder::new()
+    let buf = StringBuilder()
     buf.write_string("# LLM Analysis Prompts\n\n")
     buf.write_string(
       "Use these prompts with Claude or other LLMs to verify findings.\n\n",
@@ -774,7 +774,7 @@ fn cmd_summary(matches : @argparse.Matches) -> Unit {
     @audit.format_summary_json(summary)
   } else {
     let text = @audit.format_summary_text(summary)
-    let buf = StringBuilder::new()
+    let buf = StringBuilder()
     buf.write_string(text)
     buf.write_string("\n  Risk Score: ")
     buf.write_string(score.to_string())

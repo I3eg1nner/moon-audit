@@ -5,7 +5,7 @@
 ///|
 pub fn cwe113_info() -> RuleInfo {
   {
-    id: { cwe: 113, variant: "crlf-injection" },
+    id: { cwe: 113, variant: "crlf-injection", },
     name: "HTTP Response Splitting via CRLF Injection",
     description: "Response header values set from user input without CRLF (\\r\\n) sanitization allow HTTP response splitting, enabling session fixation, XSS, and cache poisoning.",
     default_severity: Error,

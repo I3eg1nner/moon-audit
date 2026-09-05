@@ -2047,7 +2047,7 @@ fn pkg_alias_map(pkg_dir : String) -> Map[String, String] {
 fn short_key(k : String) -> String {
   // "pkg::Type::method" -> "Type::method"; "pkg::Type" -> "Type"
   let segs : Array[String] = []
-  let cur = StringBuilder::new()
+  let cur = StringBuilder()
   for ch in k {
     if ch == ':' {
       if cur.to_string() != "" {
@@ -2424,7 +2424,7 @@ pub fn run_call_graph(root : String, config : Config) -> CallGraph {
       unresolved.push(site.caller + " -> ?")
     }
   }
-  { edges, dispatch_edges, unresolved }
+  { edges, dispatch_edges, unresolved, }
 }
 
 // ── Phase 2: .mbti ingestion (official interface files) ──────────────────

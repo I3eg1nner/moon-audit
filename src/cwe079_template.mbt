@@ -13,7 +13,7 @@ priv struct Cwe079TemplateVisitor {
 ///|
 pub fn cwe079_template_info() -> RuleInfo {
   {
-    id: { cwe: 79, variant: "template-injection" },
+    id: { cwe: 79, variant: "template-injection", },
     name: "XSS via String Interpolation in HTML Response",
     description: "Route handler returns HTML with string interpolation containing user input. Without HTML encoding, this enables reflected XSS.",
     default_severity: Error,
@@ -31,7 +31,7 @@ pub fn run_cwe079_template(
   if !source.contains("text/html") && !source.contains("html(") {
     return
   }
-  let visitor : Cwe079TemplateVisitor = { findings, file, source, severity }
+  let visitor : Cwe079TemplateVisitor = { findings, file, source, severity, }
   impls.each(fn(impl_) { @syntax.IterVisitor::visit_Impl(visitor, impl_) })
 }
 
@@ -68,7 +68,7 @@ impl @syntax.IterVisitor for Cwe079TemplateVisitor with fn visit_Expr_Apply(
     if has_dynamic {
       env.findings.push(
         make_finding(
-          { cwe: 79, variant: "template-injection" },
+          { cwe: 79, variant: "template-injection", },
           env.severity,
           Medium,
           "HTML response contains string interpolation with potentially user-controlled values. Apply HTML encoding to prevent reflected XSS.",
@@ -96,7 +96,7 @@ impl @syntax.IterVisitor for Cwe079TemplateVisitor with fn visit_Expr_DotApply(
     if has_dynamic {
       env.findings.push(
         make_finding(
-          { cwe: 79, variant: "template-injection" },
+          { cwe: 79, variant: "template-injection", },
           env.severity,
           Medium,
           "HTML response contains string interpolation with potentially user-controlled values. Apply HTML encoding to prevent reflected XSS.",

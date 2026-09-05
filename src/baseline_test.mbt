@@ -4,7 +4,7 @@
 test "Baseline: generate and load round-trip" {
   let findings : Array[Finding] = [
     {
-      rule_id: { cwe: 116, variant: "replace-escaping" },
+      rule_id: { cwe: 116, variant: "replace-escaping", },
       severity: Warning,
       confidence: High,
       message: "test finding",
@@ -33,7 +33,7 @@ test "Baseline: generate and load round-trip" {
 ///|
 test "Baseline: filter_baseline removes matched findings" {
   let f1 : Finding = {
-    rule_id: { cwe: 116, variant: "replace-escaping" },
+    rule_id: { cwe: 116, variant: "replace-escaping", },
     severity: Warning,
     confidence: High,
     message: "known issue",
@@ -46,7 +46,7 @@ test "Baseline: filter_baseline removes matched findings" {
     fingerprint: "aaa",
   }
   let f2 : Finding = {
-    rule_id: { cwe: 79, variant: "cmark-unsafe" },
+    rule_id: { cwe: 79, variant: "cmark-unsafe", },
     severity: Error,
     confidence: High,
     message: "new issue",
@@ -68,7 +68,7 @@ test "Baseline: filter_baseline removes matched findings" {
 ///|
 test "Baseline: filter_baseline with empty baseline returns all" {
   let f : Finding = {
-    rule_id: { cwe: 116, variant: "replace-escaping" },
+    rule_id: { cwe: 116, variant: "replace-escaping", },
     severity: Warning,
     confidence: High,
     message: "test",
@@ -107,7 +107,7 @@ test "Baseline: load_baseline handles invalid JSON" {
 test "Baseline: generate_baseline handles special chars" {
   let findings : Array[Finding] = [
     {
-      rule_id: { cwe: 79, variant: "xss" },
+      rule_id: { cwe: 79, variant: "xss", },
       severity: Error,
       confidence: High,
       message: "contains \"quotes\" and \\backslash",

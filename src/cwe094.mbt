@@ -12,7 +12,7 @@ priv struct Cwe094Visitor {
 ///|
 pub fn cwe094_info() -> RuleInfo {
   {
-    id: { cwe: 94, variant: "eval-extern" },
+    id: { cwe: 94, variant: "eval-extern", },
     name: "Code Injection via eval in Extern JS",
     description: "eval() or new Function() in extern JS/JavaScript blocks enables arbitrary code execution.",
     default_severity: Error,
@@ -70,7 +70,7 @@ impl @syntax.IterVisitor for Cwe094Visitor with fn visit_FuncStubs_Embedded(
     let code_str = match code {
       CodeString(s) => s
       CodeMultilineString(lines) => {
-        let buf = StringBuilder::new()
+        let buf = StringBuilder()
         lines.each(fn(line) {
           buf.write_string(line)
           buf.write_char('\n')
@@ -85,13 +85,13 @@ impl @syntax.IterVisitor for Cwe094Visitor with fn visit_FuncStubs_Embedded(
         Some(l) => l
         None =>
           {
-            start: { fname: env.file, lnum: 0, bol: 0, cnum: 0 },
-            end: { fname: env.file, lnum: 0, bol: 0, cnum: 0 },
+            start: { fname: env.file, lnum: 0, bol: 0, cnum: 0, },
+            end: { fname: env.file, lnum: 0, bol: 0, cnum: 0, },
           }
       }
       env.findings.push(
         make_finding(
-          { cwe: 94, variant: "eval-extern" },
+          { cwe: 94, variant: "eval-extern", },
           env.severity,
           High,
           "eval() or new Function() in extern JS block enables code injection. Consider safer alternatives.",

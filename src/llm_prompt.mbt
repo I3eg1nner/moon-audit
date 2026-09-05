@@ -58,7 +58,7 @@ pub fn generate_batch_prompts(
 
 ///|
 fn build_system_prompt() -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string(
     "You are a security expert specialized in MoonBit web application security.\n",
   )
@@ -99,7 +99,7 @@ fn build_analysis_prompt(
   context : String,
   imports : ImportContext,
 ) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("## Static Analysis Finding\n\n")
   buf.write_string("**Rule**: ")
   buf.write_string(rule_id_str(finding.rule_id))
@@ -169,7 +169,7 @@ fn extract_source_context(
   } else {
     lines.length()
   }
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for i = start; i < end; i = i + 1 {
     let line_num = i + 1
     let marker = if line_num == center_line { ">>> " } else { "    " }
@@ -249,7 +249,7 @@ pub fn filter_by_llm_results(
 
 ///|
 pub fn format_llm_report(results : Array[LLMAnalysisResult]) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("# LLM-Assisted Vulnerability Analysis Report\n\n")
   let tp_count = results.iter().filter(fn(r) { r.is_true_positive }).count()
   let fp_count = results.length() - tp_count

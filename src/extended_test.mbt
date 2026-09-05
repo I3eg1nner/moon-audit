@@ -137,7 +137,7 @@ test "CWE-079/template: html() with constant string should not trigger" {
 ///|
 test "LLM: generate_analysis_prompt produces non-empty prompt" {
   let finding : Finding = {
-    rule_id: { cwe: 942, variant: "cors-credentials" },
+    rule_id: { cwe: 942, variant: "cors-credentials", },
     severity: Error,
     confidence: Medium,
     message: "CORS credential theft",
@@ -161,7 +161,7 @@ test "LLM: generate_analysis_prompt produces non-empty prompt" {
 ///|
 test "LLM: parse_llm_response parses valid JSON" {
   let finding : Finding = {
-    rule_id: { cwe: 79, variant: "cmark-unsafe" },
+    rule_id: { cwe: 79, variant: "cmark-unsafe", },
     severity: Error,
     confidence: High,
     message: "test",
@@ -189,7 +189,7 @@ test "LLM: parse_llm_response parses valid JSON" {
 ///|
 test "LLM: format_prompt_as_json produces valid structure" {
   let finding : Finding = {
-    rule_id: { cwe: 116, variant: "replace-escaping" },
+    rule_id: { cwe: 116, variant: "replace-escaping", },
     severity: Error,
     confidence: High,
     message: "test",
@@ -218,7 +218,7 @@ test "LLM: format_prompt_as_json produces valid structure" {
 ///|
 test "PoC: generate_poc creates CORS PoC" {
   let finding : Finding = {
-    rule_id: { cwe: 942, variant: "cors-credentials" },
+    rule_id: { cwe: 942, variant: "cors-credentials", },
     severity: Error,
     confidence: Medium,
     message: "CORS credential theft",
@@ -246,7 +246,7 @@ test "PoC: generate_poc creates CORS PoC" {
 ///|
 test "PoC: generate_poc creates cookie PoC" {
   let finding : Finding = {
-    rule_id: { cwe: 614, variant: "cookie-attrs" },
+    rule_id: { cwe: 614, variant: "cookie-attrs", },
     severity: Warning,
     confidence: Medium,
     message: "Missing cookie attrs",
@@ -273,7 +273,7 @@ test "PoC: generate_poc creates cookie PoC" {
 test "PoC: generate_all_pocs handles multiple findings" {
   let findings : Array[Finding] = [
     {
-      rule_id: { cwe: 942, variant: "cors-credentials" },
+      rule_id: { cwe: 942, variant: "cors-credentials", },
       severity: Error,
       confidence: Medium,
       message: "CORS",
@@ -286,7 +286,7 @@ test "PoC: generate_all_pocs handles multiple findings" {
       fingerprint: "",
     },
     {
-      rule_id: { cwe: 770, variant: "no-body-limit" },
+      rule_id: { cwe: 770, variant: "no-body-limit", },
       severity: Warning,
       confidence: Medium,
       message: "DoS",
@@ -310,7 +310,7 @@ test "PoC: generate_all_pocs handles multiple findings" {
 ///|
 test "Remediation: get_remediation returns correct fix for CWE-116" {
   let finding : Finding = {
-    rule_id: { cwe: 116, variant: "replace-escaping" },
+    rule_id: { cwe: 116, variant: "replace-escaping", },
     severity: Error,
     confidence: High,
     message: "test",
@@ -333,7 +333,7 @@ test "Remediation: get_remediation returns correct fix for CWE-116" {
 test "Remediation: get_all_remediations deduplicates" {
   let findings : Array[Finding] = [
     {
-      rule_id: { cwe: 614, variant: "cookie-attrs" },
+      rule_id: { cwe: 614, variant: "cookie-attrs", },
       severity: Warning,
       confidence: Medium,
       message: "a",
@@ -346,7 +346,7 @@ test "Remediation: get_all_remediations deduplicates" {
       fingerprint: "",
     },
     {
-      rule_id: { cwe: 614, variant: "cookie-attrs" },
+      rule_id: { cwe: 614, variant: "cookie-attrs", },
       severity: Warning,
       confidence: Medium,
       message: "b",
@@ -366,7 +366,7 @@ test "Remediation: get_all_remediations deduplicates" {
 ///|
 test "Remediation: format_remediation_report produces markdown" {
   let finding : Finding = {
-    rule_id: { cwe: 942, variant: "cors-credentials" },
+    rule_id: { cwe: 942, variant: "cors-credentials", },
     severity: Error,
     confidence: Medium,
     message: "test",
@@ -391,7 +391,7 @@ test "Remediation: format_remediation_report produces markdown" {
 
 ///|
 test "Types: rule_id_str formats correctly" {
-  let id : RuleId = { cwe: 942, variant: "cors-credentials" }
+  let id : RuleId = { cwe: 942, variant: "cors-credentials", }
   assert_true(rule_id_str(id) == "CWE-942/cors-credentials")
 }
 

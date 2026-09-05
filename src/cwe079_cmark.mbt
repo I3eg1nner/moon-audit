@@ -13,7 +13,7 @@ priv struct Cwe079CmarkVisitor {
 ///|
 pub fn cwe079_cmark_info() -> RuleInfo {
   {
-    id: { cwe: 79, variant: "cmark-unsafe" },
+    id: { cwe: 79, variant: "cmark-unsafe", },
     name: "Explicit Unsafe HTML Rendering in cmark",
     description: "cmark render()/from_doc()/renderer() called with safe=false, allowing raw HTML and javascript: URLs in output.",
     default_severity: Error,
@@ -28,7 +28,7 @@ pub fn run_cwe079_cmark(
   findings : Array[Finding],
   severity : Severity,
 ) -> Unit {
-  let visitor : Cwe079CmarkVisitor = { findings, file, source, severity }
+  let visitor : Cwe079CmarkVisitor = { findings, file, source, severity, }
   impls.each(fn(impl_) { @syntax.IterVisitor::visit_Impl(visitor, impl_) })
 }
 
@@ -63,7 +63,7 @@ impl @syntax.IterVisitor for Cwe079CmarkVisitor with fn visit_Expr_Apply(
     if has_safe_false {
       env.findings.push(
         make_finding(
-          { cwe: 79, variant: "cmark-unsafe" },
+          { cwe: 79, variant: "cmark-unsafe", },
           env.severity,
           High,
           "cmark called with safe=false. Raw HTML and javascript: URLs pass through to output. Remove safe=false or set safe=true.",

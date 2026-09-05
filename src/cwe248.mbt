@@ -20,7 +20,7 @@ priv struct Cwe248Visitor {
 ///|
 pub fn cwe248_info() -> RuleInfo {
   {
-    id: { cwe: 248, variant: "panic-reachable" },
+    id: { cwe: 248, variant: "panic-reachable", },
     name: "Reachable panic/abort in Library Code",
     description: "panic() or abort() in library code terminates the program. Callers cannot recover. Use Result/Option or raise an error instead.",
     default_severity: Warning,
@@ -183,7 +183,7 @@ impl @syntax.IterVisitor for Cwe248Visitor with fn visit_Expr_Apply(
     !is_contract_assertion(kind, args) {
     env.findings.push(
       make_finding(
-        { cwe: 248, variant: "panic-reachable" },
+        { cwe: 248, variant: "panic-reachable", },
         env.severity,
         Medium,
         "panic()/abort() terminates the program. In library code, prefer returning Result or raising an error so callers can handle the failure.",

@@ -107,7 +107,7 @@ fn build_llm_config(env : Map[String, String]) -> LLMConfig {
   let model = if m.length() > 0 { m } else { base.model }
   let k = env_get_any(env, ["LLM_API_KEY", "API_KEY", "ANTHROPIC_API_KEY"])
   let api_key = if k.length() > 0 { k } else { base.api_key }
-  { base_url, model, api_key }
+  { base_url, model, api_key, }
 }
 
 ///|
@@ -127,7 +127,7 @@ pub fn generate_llm_script(
   llm_config : LLMConfig,
   requests : Array[LLMAnalysisRequest],
 ) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("#!/usr/bin/env python3\n")
   buf.write_string("\"\"\"moon-audit LLM Analysis Runner\n")
   buf.write_string(
@@ -394,7 +394,7 @@ fn write_py_main(buf : StringBuilder) -> Unit {
 
 ///|
 fn escape_py_str(s : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let backslash = char16('\\')
   let dquote = char16('"')
   let newline = char16('\n')

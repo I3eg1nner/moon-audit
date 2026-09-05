@@ -53,7 +53,7 @@ fn env_fingerprint(ctx : FlowCtx) -> String {
   let keys : Array[String] = []
   ctx.env.each(fn(k, _) { keys.push(k) })
   keys.sort()
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for k in keys {
     sb.write_string(k)
     sb.write_char(':')
@@ -128,7 +128,7 @@ fn FlowCtx::copy(self : FlowCtx) -> FlowCtx {
   let sites : Map[String, String] = Map([])
   self.sites.each(fn(k, v) { sites[k] = v })
   // heap/record channels are Map/Array references: shared by design
-  { ..self, env, sites, alloc_result: None }
+  { ..self, env, sites, alloc_result: None, }
 }
 
 // ── entry: analyze one top-level function ─────────────────────────────────
@@ -818,8 +818,8 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
 ///|
 fn dummy_flow_loc() -> @basic.Location {
   {
-    start: { fname: "", lnum: 0, bol: 0, cnum: 0 },
-    end: { fname: "", lnum: 0, bol: 0, cnum: 0 },
+    start: { fname: "", lnum: 0, bol: 0, cnum: 0, },
+    end: { fname: "", lnum: 0, bol: 0, cnum: 0, },
   }
 }
 
@@ -1437,7 +1437,7 @@ fn report_output_sink(
   }
   ctx.findings.push(
     make_finding(
-      { cwe: 116, variant: "tainted-output" },
+      { cwe: 116, variant: "tainted-output", },
       ctx.severity,
       Medium,
       "Tainted data written to output channel `" +
@@ -1486,7 +1486,7 @@ fn report_cwe113(ctx : FlowCtx, expr : @syntax.Expr, t : Taint) -> Unit {
   }
   ctx.findings.push(
     make_finding(
-      { cwe: 113, variant: "crlf-injection" },
+      { cwe: 113, variant: "crlf-injection", },
       ctx.severity,
       Medium,
       "Response header set with tainted value without CRLF sanitization" +

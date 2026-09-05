@@ -152,7 +152,7 @@ pub fn generate_deep_audit_script(
   findings : Array[Finding],
   source_files : Array[(String, String)],
 ) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   write_deep_header(buf)
   write_deep_env_loader(buf)
   write_deep_config(buf, llm_config)
@@ -347,7 +347,7 @@ fn build_static_findings_context(findings : Array[Finding]) -> String {
   if findings.length() == 0 {
     return ""
   }
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string(
     "The following issues were ALREADY found by static analysis. Do NOT repeat these — focus on NEW vulnerabilities that static analysis missed:\\n",
   )

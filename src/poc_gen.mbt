@@ -93,7 +93,7 @@ fn generate_cors_poc(finding : Finding) -> PoCTemplate {
 
 ///|
 fn build_cors_script(finding : Finding) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("#!/usr/bin/env python3\n")
   buf.write_string("\"\"\"CORS Credential Theft PoC - ")
   buf.write_string(finding.file)
@@ -152,7 +152,7 @@ fn generate_cookie_poc(finding : Finding) -> PoCTemplate {
 
 ///|
 fn build_cookie_script(finding : Finding) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("#!/usr/bin/env python3\n")
   buf.write_string("\"\"\"Cookie Security Audit PoC - ")
   buf.write_string(finding.file)
@@ -211,7 +211,7 @@ fn generate_dos_poc(finding : Finding) -> PoCTemplate {
 
 ///|
 fn build_dos_script(finding : Finding) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("#!/usr/bin/env python3\n")
   buf.write_string("\"\"\"Resource Exhaustion PoC - ")
   buf.write_string(finding.file)
@@ -262,7 +262,7 @@ fn generate_cmark_xss_poc(finding : Finding) -> PoCTemplate {
 
 ///|
 fn build_cmark_xss_script(finding : Finding) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("#!/usr/bin/env python3\n")
   buf.write_string("\"\"\"cmark XSS PoC - ")
   buf.write_string(finding.file)
@@ -309,7 +309,7 @@ fn generate_replace_xss_poc(finding : Finding) -> PoCTemplate {
 
 ///|
 fn build_replace_poc_script(_finding : Finding) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("#!/usr/bin/env python3\n")
   buf.write_string("\"\"\"replace() vs replace_all() PoC\"\"\"\n")
   buf.write_string("# This demonstrates the MoonBit-specific behavior:\n")
@@ -372,7 +372,7 @@ fn generate_traversal_poc(finding : Finding) -> PoCTemplate {
 
 ///|
 fn build_traversal_script(finding : Finding) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("#!/usr/bin/env python3\n")
   buf.write_string("\"\"\"Path Traversal PoC - ")
   buf.write_string(finding.file)
@@ -456,7 +456,7 @@ pub fn format_poc_script(poc : PoCTemplate) -> String {
   if poc.script.length() > 0 {
     return poc.script
   }
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("#!/usr/bin/env python3\n")
   buf.write_string("\"\"\"")
   buf.write_string(poc.title)
@@ -508,7 +508,7 @@ fn generate_crlf_poc(finding : Finding) -> PoCTemplate {
 
 ///|
 fn build_crlf_script(finding : Finding) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("#!/usr/bin/env python3\n")
   buf.write_string("\"\"\"HTTP Response Splitting (CRLF Injection) PoC - ")
   buf.write_string(finding.file)
@@ -627,7 +627,7 @@ fn generate_template_xss_poc(finding : Finding) -> PoCTemplate {
 
 ///|
 fn build_template_xss_script(finding : Finding) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("#!/usr/bin/env python3\n")
   buf.write_string("\"\"\"Reflected XSS via Template Interpolation PoC - ")
   buf.write_string(finding.file)
@@ -698,7 +698,7 @@ fn build_template_xss_script(finding : Finding) -> String {
 
 ///|
 pub fn format_poc_report(pocs : Array[PoCTemplate]) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("# Generated PoC Templates\n\n")
   buf.write_string("| # | CWE | Type | Title | File |\n")
   buf.write_string("|---|-----|------|-------|------|\n")

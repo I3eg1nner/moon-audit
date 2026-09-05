@@ -86,7 +86,7 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
       }
     })
   }
-  { findings: dedup_findings(findings), files_scanned, errors }
+  { findings: dedup_findings(findings), files_scanned, errors, }
 }
 
 ///|

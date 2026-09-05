@@ -2,7 +2,7 @@
 
 ///|
 pub fn generate_baseline(findings : Array[Finding]) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("[\n")
   for i, f in findings {
     if i > 0 {
@@ -76,7 +76,7 @@ pub fn filter_baseline(
 
 ///|
 fn escape_json_str(s : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for i = 0; i < s.length(); i = i + 1 {
     let ch = s[i]
     if ch == char16('"') {

@@ -110,7 +110,7 @@ fn extract_quoted_imports(line : String, results : Array[String]) -> Unit {
   let mut i = 0
   while i < chars.length() {
     if chars[i] == '"' {
-      let buf = StringBuilder::new()
+      let buf = StringBuilder()
       i += 1
       while i < chars.length() && chars[i] != '"' {
         buf.write_char(chars[i])
@@ -128,7 +128,7 @@ fn extract_quoted_imports(line : String, results : Array[String]) -> Unit {
 ///|
 fn extract_quoted(s : String) -> String {
   let chars = s.to_array()
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut in_quote = false
   for c in chars {
     if c == '"' {

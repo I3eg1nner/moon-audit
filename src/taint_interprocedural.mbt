@@ -27,7 +27,7 @@ pub(all) struct InterProceduralContext {
 
 ///|
 pub fn InterProceduralContext::new() -> InterProceduralContext {
-  { summaries: Map([]) }
+  { summaries: Map([]), }
 }
 
 ///|
@@ -79,7 +79,7 @@ fn ip_extract_func_sigs(source : String) -> Array[IPFuncSig] {
     let paren_content = ip_between_parens(trimmed_s)
     let params = ip_parse_params(paren_content)
     if params.length() > 0 {
-      results.push({ name, params, line: line_num })
+      results.push({ name, params, line: line_num, })
     }
   }
   results
@@ -105,7 +105,7 @@ fn ip_get_fn_name(line : String) -> String {
 
 ///|
 fn ip_extract_ident(s : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for i = 0; i < s.length(); i = i + 1 {
     if ip_is_ident_ch(s[i]) {
       buf.write_string(s[i].to_int().unsafe_to_char().to_string())
@@ -180,7 +180,7 @@ fn ip_extract_func_body(source : String, start_line : Int) -> String {
   let brace_close = char16('}')
   let mut depth = 0
   let mut started = false
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let from = if start_line - 1 >= 0 { start_line - 1 } else { 0 }
   for i = from; i < lines.length(); i = i + 1 {
     let line = lines[i]
@@ -382,7 +382,7 @@ fn ip_sink_to_rule_id(sink : TaintSink) -> RuleId {
     ExternJsEval => 94
     RedirectUrl => 601
   }
-  { cwe, variant: "taint-" + taint_sink_str(sink) }
+  { cwe, variant: "taint-" + taint_sink_str(sink), }
 }
 
 ///|

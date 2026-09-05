@@ -59,7 +59,7 @@ pub(all) struct TaintState {
 
 ///|
 pub fn TaintState::new(file : String) -> TaintState {
-  { tainted_vars: {}, flows: [], current_file: file }
+  { tainted_vars: {}, flows: [], current_file: file, }
 }
 
 ///|
@@ -96,7 +96,7 @@ pub fn TaintState::add_tainted_var(
   source : TaintSource,
   line : Int,
 ) -> Unit {
-  self.tainted_vars[name] = { name, source, file: self.current_file, line }
+  self.tainted_vars[name] = { name, source, file: self.current_file, line, }
 }
 
 ///|
@@ -450,7 +450,7 @@ pub fn taint_flows_to_findings(
       " flows to " +
       taint_sink_str(flow.sink) +
       " without sanitization"
-    let rid : RuleId = { cwe, variant }
+    let rid : RuleId = { cwe, variant, }
     findings.push({
       rule_id: rid,
       severity: Error,
@@ -470,7 +470,7 @@ pub fn taint_flows_to_findings(
 
 ///|
 pub fn format_taint_report(flows : Array[TaintFlow]) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("# Taint Analysis Report\n\n")
   if flows.length() == 0 {
     buf.write_string("No taint flows detected.\n")

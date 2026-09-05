@@ -214,7 +214,7 @@ fn remediation_generic(rule_id : String) -> Remediation {
 
 ///|
 pub fn format_remediation_report(remediations : Array[Remediation]) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("# Security Remediation Guide\n\n")
   for i, r in remediations {
     buf.write_string("## ")

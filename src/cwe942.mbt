@@ -11,7 +11,7 @@ priv struct Cwe942Visitor {
 ///|
 pub fn cwe942_info() -> RuleInfo {
   {
-    id: { cwe: 942, variant: "cors-credentials" },
+    id: { cwe: 942, variant: "cors-credentials", },
     name: "Permissive CORS Configuration",
     description: "handle_cors() without explicit origin defaults to '*', allowing any website to read responses. With credentials=true this enables credential theft.",
     default_severity: Warning,
@@ -27,7 +27,7 @@ pub fn run_cwe942(
   severity : Severity,
 ) -> Unit {
   let _ = severity
-  let visitor : Cwe942Visitor = { findings, file, source }
+  let visitor : Cwe942Visitor = { findings, file, source, }
   impls.each(fn(impl_) { @syntax.IterVisitor::visit_Impl(visitor, impl_) })
 }
 
@@ -69,7 +69,7 @@ impl @syntax.IterVisitor for Cwe942Visitor with fn visit_Expr_Apply(
       if has_credentials_true {
         env.findings.push(
           make_finding(
-            { cwe: 942, variant: "cors-credentials" },
+            { cwe: 942, variant: "cors-credentials", },
             Error,
             High,
             "CORS with credentials=true and wildcard origin allows any website to make authenticated requests and read responses. Specify an explicit origin.",

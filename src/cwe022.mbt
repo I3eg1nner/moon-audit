@@ -12,7 +12,7 @@ priv struct Cwe022Visitor {
 ///|
 pub fn cwe022_info() -> RuleInfo {
   {
-    id: { cwe: 22, variant: "path-concat" },
+    id: { cwe: 22, variant: "path-concat", },
     name: "Potential Path Traversal via String Concatenation",
     description: "String concatenation to build file paths without traversal protection may allow directory traversal attacks.",
     default_severity: Warning,
@@ -27,7 +27,7 @@ pub fn run_cwe022(
   findings : Array[Finding],
   severity : Severity,
 ) -> Unit {
-  let visitor : Cwe022Visitor = { findings, file, source, severity }
+  let visitor : Cwe022Visitor = { findings, file, source, severity, }
   impls.each(fn(impl_) { @syntax.IterVisitor::visit_Impl(visitor, impl_) })
 }
 
@@ -108,7 +108,7 @@ impl @syntax.IterVisitor for Cwe022Visitor with fn visit_Expr_Infix(
       if has_path_context {
         env.findings.push(
           make_finding(
-            { cwe: 22, variant: "path-concat" },
+            { cwe: 22, variant: "path-concat", },
             env.severity,
             Low,
             "String concatenation to build file path. Use path sanitization to prevent directory traversal (e.g., reject '..' segments).",

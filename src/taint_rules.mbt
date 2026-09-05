@@ -213,7 +213,7 @@ fn parse_rule_array(node : Json?) -> Array[TaintMethodRule] {
                 Some(Number(n, ..)) => n.to_int()
                 _ => 1
               }
-              out.push({ method_name: mname, kind, value_slot })
+              out.push({ method_name: mname, kind, value_slot, })
             }
           }
           _ => ()

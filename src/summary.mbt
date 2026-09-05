@@ -174,7 +174,7 @@ fn build_cwe_stats(findings : Array[Finding]) -> Array[CWEStat] {
   }
   let stats : Array[CWEStat] = []
   cwe_counts.each(fn(cwe_id, count) {
-    stats.push({ cwe_id, name: cwe_name(cwe_id), count })
+    stats.push({ cwe_id, name: cwe_name(cwe_id), count, })
   })
   stats.sort_by(fn(a, b) { b.count - a.count })
   stats
@@ -251,7 +251,7 @@ fn build_owasp_stats(findings : Array[Finding]) -> Array[OwaspStat] {
         }
       }
       None =>
-        owasp_map[cat] = { category: cat, count: 1, cwe_ids: [f.rule_id.cwe] }
+        owasp_map[cat] = { category: cat, count: 1, cwe_ids: [f.rule_id.cwe], }
     }
   }
   let result : Array[OwaspStat] = []
@@ -262,7 +262,7 @@ fn build_owasp_stats(findings : Array[Finding]) -> Array[OwaspStat] {
 
 ///|
 pub fn format_summary_text(summary : ScanSummary) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string(
     "═══════════════════════════════════════════════\n",
   )
@@ -380,7 +380,7 @@ fn pad_right(s : String, width : Int) -> String {
   if s.length() >= width {
     return s
   }
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string(s)
   for _i = s.length(); _i < width; _i = _i + 1 {
     buf.write_char(' ')
@@ -393,7 +393,7 @@ fn pad_left(s : String, width : Int) -> String {
   if s.length() >= width {
     return s
   }
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for _i = s.length(); _i < width; _i = _i + 1 {
     buf.write_char(' ')
   }

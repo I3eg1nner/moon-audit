@@ -83,5 +83,5 @@ fn get_rule_info_by_id(id : RuleId) -> RuleInfo {
       return rule
     }
   }
-  { id, name: rule_id_str(id), description: "", default_severity: Warning }
+  { id, name: rule_id_str(id), description: "", default_severity: Warning, }
 }

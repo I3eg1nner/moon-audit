@@ -3,7 +3,7 @@
 ///|
 fn mk_finding(fp : String) -> Finding {
   {
-    rule_id: { cwe: 113, variant: "crlf-injection" },
+    rule_id: { cwe: 113, variant: "crlf-injection", },
     severity: Error,
     confidence: Medium,
     message: "m",

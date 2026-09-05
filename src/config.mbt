@@ -26,7 +26,7 @@ fn parse_config(json : Json) -> Config {
                   Some(String(s)) => Some(severity_from_str(s))
                   _ => None
                 }
-                config.rules[key] = { enabled, severity }
+                config.rules[key] = { enabled, severity, }
               }
               _ => ()
             }
@@ -43,18 +43,18 @@ fn parse_config(json : Json) -> Config {
             }
           }
           if excludes.length() > 0 {
-            config = { ..config, exclude: excludes }
+            config = { ..config, exclude: excludes, }
           }
         }
         _ => ()
       }
       match obj.get("output_format") {
-        Some(String(fmt)) => config = { ..config, output_format: fmt }
+        Some(String(fmt)) => config = { ..config, output_format: fmt, }
         _ => ()
       }
       match obj.get("severity") {
         Some(String(s)) =>
-          config = { ..config, min_severity: severity_from_str(s) }
+          config = { ..config, min_severity: severity_from_str(s), }
         _ => ()
       }
     }

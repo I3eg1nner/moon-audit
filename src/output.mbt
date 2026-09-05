@@ -1,6 +1,6 @@
 ///|
 pub fn format_text(result : ScanResult, verbose : Bool) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for f in result.findings {
     buf.write_string(f.file)
     buf.write_char(':')

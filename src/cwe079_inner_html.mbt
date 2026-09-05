@@ -12,7 +12,7 @@ priv struct Cwe079InnerHtmlVisitor {
 ///|
 pub fn cwe079_inner_html_info() -> RuleInfo {
   {
-    id: { cwe: 79, variant: "inner-html" },
+    id: { cwe: 79, variant: "inner-html", },
     name: "XSS via inner_html with Dynamic Content",
     description: "inner_html() injects raw HTML. Non-constant arguments may contain user-controlled content enabling XSS.",
     default_severity: Error,
@@ -27,7 +27,7 @@ pub fn run_cwe079_inner_html(
   findings : Array[Finding],
   severity : Severity,
 ) -> Unit {
-  let visitor : Cwe079InnerHtmlVisitor = { findings, file, source, severity }
+  let visitor : Cwe079InnerHtmlVisitor = { findings, file, source, severity, }
   impls.each(fn(impl_) { @syntax.IterVisitor::visit_Impl(visitor, impl_) })
 }
 
@@ -49,7 +49,7 @@ impl @syntax.IterVisitor for Cwe079InnerHtmlVisitor with fn visit_Expr_DotApply(
     if !first_arg_is_safe {
       env.findings.push(
         make_finding(
-          { cwe: 79, variant: "inner-html" },
+          { cwe: 79, variant: "inner-html", },
           env.severity,
           Medium,
           "inner_html() with non-constant argument is an XSS sink. User-controlled content will be injected as raw HTML.",

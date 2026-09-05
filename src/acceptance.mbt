@@ -123,7 +123,7 @@ fn truncate_str(s : String, max : Int) -> String {
 ///|
 /// Text summary of a baseline diff (TP candidates / resolved / unchanged).
 pub fn format_baseline_diff(diff : BaselineDiff) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("Baseline comparison (previous report):\n")
   buf.write_string(
     "  previous findings: " +

@@ -12,7 +12,7 @@ priv struct Cwe346Visitor {
 ///|
 pub fn cwe346_info() -> RuleInfo {
   {
-    id: { cwe: 346, variant: "ws-origin" },
+    id: { cwe: 346, variant: "ws-origin", },
     name: "WebSocket Without Origin Validation",
     description: "WebSocket upgrade handler without Origin header validation allows cross-site WebSocket hijacking.",
     default_severity: Warning,
@@ -27,7 +27,7 @@ pub fn run_cwe346(
   findings : Array[Finding],
   severity : Severity,
 ) -> Unit {
-  let visitor : Cwe346Visitor = { findings, file, source, severity }
+  let visitor : Cwe346Visitor = { findings, file, source, severity, }
   impls.each(fn(impl_) { @syntax.IterVisitor::visit_Impl(visitor, impl_) })
 }
 
@@ -58,7 +58,7 @@ impl @syntax.IterVisitor for Cwe346Visitor with fn visit_Expr_DotApply(
       !has_labelled_arg(args, "allowed_origins") {
       env.findings.push(
         make_finding(
-          { cwe: 346, variant: "ws-origin" },
+          { cwe: 346, variant: "ws-origin", },
           env.severity,
           Low,
           "WebSocket upgrade without Origin validation. Any website can connect via cross-site WebSocket hijacking.",
@@ -90,7 +90,7 @@ impl @syntax.IterVisitor for Cwe346Visitor with fn visit_Expr_Apply(
       !has_labelled_arg(args, "allowed_origins") {
       env.findings.push(
         make_finding(
-          { cwe: 346, variant: "ws-origin" },
+          { cwe: 346, variant: "ws-origin", },
           env.severity,
           Low,
           "WebSocket upgrade without Origin validation. Any website can connect via cross-site WebSocket hijacking.",

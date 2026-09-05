@@ -655,8 +655,10 @@ test "taint_dsl_custom_source_and_sink" {
   inspect(findings.length(), content="0")
   // with DSL: fetch_input is a source, custom_set is a header sink
   let rules : TaintRuleset = {
-    sources: [{ method_name: "fetch_input", kind: "QueryParam", value_slot: 1 }],
-    sinks: [{ method_name: "custom_set", kind: "HeaderValue", value_slot: 1 }],
+    sources: [
+      { method_name: "fetch_input", kind: "QueryParam", value_slot: 1, },
+    ],
+    sinks: [{ method_name: "custom_set", kind: "HeaderValue", value_slot: 1, }],
     sanitizers: [],
     fn_types: [],
     callbacks: [],
@@ -673,8 +675,8 @@ test "taint_dsl_custom_sanitizer" {
   let (impls, _) = @parser.parse_string(src, name="t.mbt")
   let rules : TaintRuleset = {
     sources: [],
-    sinks: [{ method_name: "custom_set", kind: "HeaderValue", value_slot: 1 }],
-    sanitizers: [{ method_name: "cleanse", kind: "", value_slot: 0 }],
+    sinks: [{ method_name: "custom_set", kind: "HeaderValue", value_slot: 1, }],
+    sanitizers: [{ method_name: "cleanse", kind: "", value_slot: 0, }],
     fn_types: [],
     callbacks: [],
     extends: [],
@@ -691,7 +693,7 @@ test "taint_dsl_value_slot" {
   let (impls, _) = @parser.parse_string(src, name="t.mbt")
   let rules : TaintRuleset = {
     sources: [],
-    sinks: [{ method_name: "h", kind: "HeaderValue", value_slot: 0 }],
+    sinks: [{ method_name: "h", kind: "HeaderValue", value_slot: 0, }],
     sanitizers: [],
     fn_types: [],
     callbacks: [],

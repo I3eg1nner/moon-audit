@@ -13,7 +13,7 @@ priv struct Cwe770Visitor {
 ///|
 pub fn cwe770_info() -> RuleInfo {
   {
-    id: { cwe: 770, variant: "no-body-limit" },
+    id: { cwe: 770, variant: "no-body-limit", },
     name: "Missing Request Body Size Limit",
     description: "Server listen()/serve() without max body size limit is vulnerable to memory exhaustion via large request bodies.",
     default_severity: Warning,
@@ -33,7 +33,7 @@ pub fn run_cwe770(
     !source.contains(".patch(") {
     return
   }
-  let visitor : Cwe770Visitor = { findings, file, source, severity }
+  let visitor : Cwe770Visitor = { findings, file, source, severity, }
   impls.each(fn(impl_) { @syntax.IterVisitor::visit_Impl(visitor, impl_) })
 }
 
@@ -57,7 +57,7 @@ impl @syntax.IterVisitor for Cwe770Visitor with fn visit_Expr_DotApply(
       !has_labelled_arg(args, "body_limit") {
       env.findings.push(
         make_finding(
-          { cwe: 770, variant: "no-body-limit" },
+          { cwe: 770, variant: "no-body-limit", },
           env.severity,
           Medium,
           "Server started without request body size limit. Large payloads can exhaust memory. Set a max body size.",
