@@ -65,3 +65,25 @@ accept（--baseline-report / 缓存 key）。148/148 × 4 targets，deny-warn �
 bash scripts/regression.sh
 # 覆盖二进制: MOON_AUDIT_BIN=/path/to/main.exe bash scripts/regression.sh
 ```
+
+## 第三次快照（2026-09-05，工作流 #3 E1+E2 后：extern stub + dep .mbti + 别名身份 + LetFn）
+
+155/155 × 4 targets，deny-warn 全绿；moon info 无 diff（E2 已在 db3a112 再生 mbti）。
+
+| 项目 | findings | 文件 | 解析率 | 边覆盖 | vs 第二次 | 状态 |
+|---|---|---|---|---|---|---|
+| mizchi/luna.mbt | 0 | 91 | **84%** | 83% | +1 / = | clean ✅ |
+| moonbit-community/cmark.mbt | 0 | 46 | **82%** | **82%** | +4 / +4 | clean ✅ |
+| moonbit-community/crescent | **5** | 53 | **61%** | **63%** | +1 / +1 | findings（TP 稳定） |
+| moonbit-community/rabbita | 0 | 144 | **70%** | **69%** | +3 / +1 | clean ✅ |
+| moonbitlang/async | 0 | 170 | **71%** | **71%** | +2 / +2 | clean ✅ |
+| oboard/mocket | 0 | 42 | **74%** | **74%** | +1 / +1 | clean ✅ |
+| 本地 moonbit-petgraph | 0 | 56 | 69% | 69% | = / = | clean ✅ |
+
+**对比结论**：
+1. **修复护栏不破**：6 已修复项目 0 findings（第三次验证，E1/E2 符号身份变更零 FP 回归）
+2. **TP 语料稳定**：crescent 5 条（CORS:6 / Cookie:35,48,49 / DoS:99）第三次完全一致
+3. **E1/E2 增益全语料可度量**：七个项目解析率全线 +1~+4（dep .mbti 74 个接口文件 +
+   moon.pkg 别名展开 + LetFn 注册）；语料最大增益 cmark/rabbita（依赖接口密集型）
+4. 主线三目标：mocket 74→75%（unknown 469→185 中 FFI ~79/dyn ~30）、自举 86→**88%**、
+   petgraph 持平 69%（依赖单一，杠杆饱和）

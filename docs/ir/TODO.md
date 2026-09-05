@@ -135,14 +135,16 @@
       动态调用边插桩设计（coverage≠调用图真值）、性能三档口径、缓存接入点清单
 - [ ] 动态插桩实现 + 摘要传递闭包失效（Phase-3/4 落地时接入，见 ACCEPTANCE.md）
 
-## 下一里程碑（2026-09-05 收口后剩余，按序）
+## 下一里程碑（2026-09-05 E1/E2 收口后剩余，按序）
 1. 显式 HIR/CFG（BlockIr + worklist 不动点 + SCC 递归摘要）
-2. 源码侧包身份（moon.pkg 解析 → qualified key 全覆盖）+ .mbti 版本/后端 guard
+2. ~~源码侧包身份~~ ✅ E2 完成（moon.pkg 别名 + dep .mbti + LetFn）；剩 .mbti 版本/后端 guard
 3. source/sink/transfer/sanitizer JSON 配置化
-4. 指针分析协同（分配点堆抽象；先比较调用点敏感 vs 上下文无关）
+4. 指针分析协同（分配点堆抽象；先比较调用点敏感 vs 上下文无关，不预设 2-obj）
 5. 动态调用边插桩（ACCEPTANCE.md 设计已备）
-6. 21 项目语料网络全量 + 推送远端 CI + mooncakes 发布 v0.3.x
-7. 上游 PR 提交（patch 已备，待 OCaml 编译验证）
+6. extern 库模型（FFI 剩余 ~79 位点，类 Tai-e reflection 模型）+
+   .core 高保真后端（依赖上游 PR 合入，补丁已就绪）
+7. 21 项目语料网络全量 + 推送远端 CI + mooncakes 发布 v0.3.x
+8. 上游 PR 提交（patch 已备，待 OCaml 编译验证）
 
 ## Phase E2：dep .mbti 摄取 + moon.pkg 别名身份 + LetFn 闭包位点（2026-09-05）
 - [x] walk_dep_dir 摄取 .mooncakes 内 74 个 .mbti（mocket 依赖：async/x/mimetype），

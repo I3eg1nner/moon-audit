@@ -363,3 +363,30 @@ FP 三目标 0；155/155 × native；check --target all --deny-warn 绿。
 **验收判定**：自举 ≥88% ✅；mocket ≥78% ❌（75%——E2 杠杆已尽，FFI+dyn 是下一域，
 诚实记录）。测试教训：期望值必须从机制推导（helper 体内无调用 → static_resolved=1），
 先写对断言再怀疑实现——本次机制本身一次通过（$closure:helper@1 即证）。
+
+## 2026-09-05 · E1+E2 完成收口（工作流 #3，integrate3）
+
+**验证矩阵**：moon fmt 无 diff；check/test --target all --deny-warn 全绿；
+155/155 × wasm/wasm-gc/js/native；moon info 无 diff（E2 已再生 mbti）；gate3 无阻断。
+
+**主线三目标（前 → 后）**
+| 目标 | 前（#2 后） | 后 | 剩余 unknown 构成 |
+|---|---|---|---|
+| mocket | 74% | 75%（receiver concrete 76%，unknown 184） | FFI ~79、dyn 30、级联 ~75 |
+| 自举 | 86% | **88%**（receiver 91%） | 级联为主 |
+| petgraph | 69% | 69% | 依赖单一，杠杆饱和 |
+
+**第三次语料快照**：护栏 6×0 第三次不破；crescent 5 TP 三次全一致；
+七项目解析率全线 +1~+4（cmark 78→82、rabbita 67→70、async 69→71）。
+
+**里程碑判定**：
+- Phase 2（统一程序模型）✅ 完成：.mbti（本项目+依赖 74 个）+ qualified key +
+  moon.pkg 别名身份 + trait 分派 + extern stub（探针修正：DeclStubs 已覆盖，
+  真缺口是普通 fn 的 FFI 使用模式）
+- mocket ≥78% 未达（75%）：E1/E2 杠杆已尽，剩余是 FFI 文件原理性盲区 + dyn 分派
+  ——下一域是 extern 库模型与 .core 高保真后端（上游 PR 就绪）
+- 自举 ≥88% ✅ 达标
+
+**下一里程碑**（见 TODO 收口）：显式 HIR/CFG+SCC、规则 JSON 配置化、
+指针分析协同（先比较不预设 2-obj）、动态调用边插桩、21 项目网络全量、
+推送+发布 v0.3.x、上游 PR 提交。
