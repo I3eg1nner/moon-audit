@@ -132,3 +132,9 @@ mocket/petgraph/自举 0 FP；解析率 69%/86%/67%（指标 bug 修复后自举
 - using 导入摄取 + dispatch 边路径（dyn → impl 枚举）落地；deny-warn + 122/122 保持
 
 ## 待续（M4 完整验收：闭包分配点建模、Andersen 或轻量替代、coverage 动态真值、FFI stub 摄取）
+
+## 2026-09-04 · [lane: upstream] 上游 PR 工件就绪
+- /tmp/mbc-pr 克隆实测：driver_config.ml Buildpkg_Opt + moon0_main.ml Core_End 双点补丁
+- 复用链：Core_format.import → dump_serialized_from_t → S.print / Io.write_s（全部现成）
+- 设计决策：OCaml Arg 不支持可选值 → 显式 FILE 参数 + '-'=stdout（README 记录理由）
+- 局限：本环境无 opam/dune/ocaml，未编译验证；静态核对签名表见 upstream/README.md

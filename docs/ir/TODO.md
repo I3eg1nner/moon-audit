@@ -102,4 +102,5 @@
 - [ ] 指标口径分离：解析率（类型重建）vs 调用图准确率（方法绑定）
 
 ## 上游机会（随时可做，独立于主线）
-- [ ] 向 moonbit-compiler 提 PR：moonc build-package --dump-core-sexp（复用 dump_serialized_from_t）
+- [x] 上游 PR 准备完成：dump-core-sexp.patch（2 文件 +18/-1，静态核对全部签名）+
+      upstream/README.md（动机/用法/验证步骤/PR 草稿）——待有 OCaml 环境编译验证后提交 PR

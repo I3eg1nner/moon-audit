@@ -1,0 +1,55 @@
+diff --git a/src/driver_config.ml b/src/driver_config.ml
+index 1501f7a..1d0f189 100644
+--- a/src/driver_config.ml
++++ b/src/driver_config.ml
+@@ -221,6 +221,7 @@ module Buildpkg_Opt = struct
+   let patch_file = ref ""
+   let blackbox_test = ref false
+   let whitebox_test = ref false
++  let dump_core_sexp = ref ""
+ 
+   let spec =
+     [
+@@ -275,6 +276,11 @@ module Buildpkg_Opt = struct
+         " set format of diagnostics. available formats: human, json" );
+       ("-patch-file", Arg.Set_string patch_file, "patch file");
+       ("-no-mi", Arg.Set no_mi, "don't generate .mi file");
++      ( "-dump-core-sexp",
++        Arg.Set_string dump_core_sexp,
++        "dump the built core IR as an S-expression to FILE ('-' for stdout); \
++         enables external tools to consume the typed IR without the binary \
++         .core format" );
+     ]
+     @ Common_Opt.llvm_list
+     @ [ Common_Opt.warn_help; Common_Opt.warn_list; Common_Opt.alert_list ]
+diff --git a/src/moon0_main.ml b/src/moon0_main.ml
+index 6af1b25..5648fda 100644
+--- a/src/moon0_main.ml
++++ b/src/moon0_main.ml
+@@ -207,6 +207,7 @@ let build_package () =
+   let output_file = Driver_config.Buildpkg_Opt.output_file in
+   let no_mi = Driver_config.Buildpkg_Opt.no_mi in
+   let patch_file = Driver_config.Buildpkg_Opt.patch_file in
++  let dump_core_sexp = Driver_config.Buildpkg_Opt.dump_core_sexp in
+   let blackbox_test = Driver_config.Buildpkg_Opt.blackbox_test in
+   let whitebox_test = Driver_config.Buildpkg_Opt.whitebox_test in
+   Compile_env.reset ();
+@@ -264,7 +265,17 @@ let build_package () =
+     | `Core_End ->
+         let core_path = Filename.remove_extension !output_file ^ ".core" in
+         Core_format.export ~action:(Write_file core_path) ~pkg_name
+-          ~program:prog ~genv:global_env
++          ~program:prog ~genv:global_env;
++        if !dump_core_sexp <> "" then (
++          (* Re-read the serialized package and emit it as S-expression text
++             (reuses Core_format.dump_serialized_from_t). This gives external
++             tools (static analysis, auditors) a readable, version-pinned view
++             of the typed core IR without depending on the binary .core
++             (OCaml Marshal) format. *)
++          let core_fmt = Core_format.import ~path:core_path in
++          let sexp = Core_format.dump_serialized_from_t core_fmt in
++          if !dump_core_sexp = "-" then S.print sexp
++          else Io.write_s !dump_core_sexp sexp)
+   in
+   let pkg_config_file =
+     match
