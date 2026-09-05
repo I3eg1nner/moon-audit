@@ -22,6 +22,7 @@ fn call_flow(
   findings : Array[Finding],
   ictx : InterProceduralContext?,
   rules : TaintRuleset,
+  output_sinks : Bool,
 ) -> Unit {
   match ictx {
     Some(i) =>
@@ -34,6 +35,7 @@ fn call_flow(
         findings,
         ictx=i,
         rules~,
+        output_sinks_enabled=output_sinks,
       )
     None =>
       run_flow_taint_func(
@@ -44,6 +46,7 @@ fn call_flow(
         severity,
         findings,
         rules~,
+        output_sinks_enabled=output_sinks,
       )
   }
 }
@@ -57,6 +60,7 @@ pub fn run_cwe113(
   severity : Severity,
   ictx? : InterProceduralContext,
   rules? : TaintRuleset,
+  output_sinks_enabled? : Bool,
 ) -> Unit {
   // M2: flow-sensitive engine replaces the IterVisitor heuristic walk.
   // Taint state is threaded through control flow with branch merging and
@@ -67,6 +71,10 @@ pub fn run_cwe113(
   let rules = match rules {
     Some(r) => r
     None => TaintRuleset::empty()
+  }
+  let output_sinks = match output_sinks_enabled {
+    Some(b) => b
+    None => true
   }
   for item in impls {
     match item {
@@ -82,6 +90,7 @@ pub fn run_cwe113(
               findings,
               ictx,
               rules,
+              output_sinks,
             )
           DeclBody(expr=body) =>
             call_flow(
@@ -93,6 +102,7 @@ pub fn run_cwe113(
               findings,
               ictx,
               rules,
+              output_sinks,
             )
           _ => ()
         }
@@ -108,6 +118,7 @@ pub fn run_cwe113(
               findings,
               ictx,
               rules,
+              output_sinks,
             )
           DeclBody(expr=body) =>
             call_flow(
@@ -119,11 +130,20 @@ pub fn run_cwe113(
               findings,
               ictx,
               rules,
+              output_sinks,
             )
           _ => ()
         }
       TopExpr(expr~, ..) =>
-        run_flow_taint_func_top(expr, file, source, severity, findings, rules~)
+        run_flow_taint_func_top(
+          expr,
+          file,
+          source,
+          severity,
+          findings,
+          rules~,
+          output_sinks_enabled=output_sinks,
+        )
       _ => ()
     }
   }

@@ -41,6 +41,29 @@
 CRLF 剥离链判定（`replace_all` old/new 槽位语义）**暂不开放配置**——
 它是安全语义修正的一部分（M2.6），配置化之前需要先积累对抗测试。
 
+## 库模型（A2：extern 绑定与容器语义）
+
+`taint-rules.json` 新增三个节 + 一个激活键（全部 ADD 语义）：
+
+```json
+{
+  "extends": ["mongoose"],
+  "types":     { "create_server": "Server" },
+  "callbacks": { "Map::custom_each": ["K", "V"] },
+  "sinks":     [{ "method": "mg_send", "kind": "Output", "value_slot": 1 }]
+}
+```
+
+| 键 | 说明 |
+|---|---|
+| `extends` | 内置模型名（现内置 `mongoose`，见 docs/ir/libmodels/mongoose.json）；用户模型放 `<项目根>/libmodels/<name>.json`，优先于内置。未知名静默忽略 |
+| `types` | 函数 → 返回类型表达式（`Server`、`Map[Int, String]`、`@pkg.Name`）——注册进符号表供 ir-stats/call-graph 解析 FFI 链 |
+| `callbacks` | 高阶方法回调形参占位符：`K`/`V`/`E` 从接收者泛型实参解析，其余按类型表达式解析 |
+| sink `kind: "Output"` | 输出通道 sink → **CWE-116/tainted-output**（新规则，默认开启；仅由模型/DSL 触发，无配置项目不受影响；`value_slot` 指定污点实参位） |
+
+装载点：`run_ir_stats` Phase 1.7（types/callbacks → 符号表）；`scan_project`（taint 词汇表 → 流引擎）。
+模型条目仅按方法名匹配——`extends` 是显式 opt-in，避免无 mongoose 项目被 `body`/`url` 等通用名误伤。
+
 ## CLI
 
 ```

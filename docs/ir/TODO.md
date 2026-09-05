@@ -179,6 +179,15 @@
 - [ ] 残余：FFI 文件未解析主因转为深层级联（值来自 extern 返回但经 2+ 层包装），
       与跨包级联同源——E2（.mooncakes 内部 .mbti + moon.pkg 包身份）覆盖
 
+## Phase A2：extern 库模型（2026-09-05 完成）
+- [x] FFI 根因修正：全局 `let`（带标注）注入 env（mocket 75→78%，receiver unknown 182→118）
+- [x] `is String(v)` 类型测试模式绑定
+- [x] DSL 扩展：`extends`/`types`/`callbacks` + sink kind `Output`（→CWE-116/tainted-output，默认开、仅模型触发）
+- [x] 内置 mongoose 模型（嵌入 JSON）+ docs/ir/libmodels/mongoose.json 文档副本 + 用户模型 `<root>/libmodels/*.json`
+- [x] 验收：探针项目（extends mongoose）ws_send_native(id, req.body()) 告警 + 链路 100% 解析；
+      mocket 78%（+3）；FP 三目标 0；166/166 × 4 targets；deny-warn 全绿
+- [ ] 剩余 FFI unknown ~39（mocket）：跨依赖级联与 dyn 分派，属 M4 域；模型杠杆已尽
+
 ## 上游机会（随时可做，独立于主线）
 - [x] 上游 PR 准备完成：dump-core-sexp.patch（2 文件 +18/-1，静态核对全部签名）+
       upstream/README.md（动机/用法/验证步骤/PR 草稿）——待有 OCaml 环境编译验证后提交 PR

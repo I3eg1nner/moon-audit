@@ -226,6 +226,7 @@ fn run_all_rules(
       config.get_severity(cwe113_id, cwe113_info().default_severity),
       ictx~,
       rules=taint_rules,
+      output_sinks_enabled=config.is_enabled("CWE-116/tainted-output"),
     )
   }
   if imports.has_mocket || imports.has_crescent {
@@ -377,6 +378,7 @@ pub fn load_changed_files(path : String) -> Array[String] {
 pub fn list_all_rules() -> Array[RuleInfo] {
   [
     cwe116_info(),
+    cwe116_output_info(),
     cwe079_cmark_info(),
     cwe079_inner_html_info(),
     cwe079_template_info(),

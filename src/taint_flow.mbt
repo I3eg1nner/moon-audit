@@ -89,6 +89,10 @@ priv struct FlowCtx {
   mut record_fields : Array[String]? // P3: "r|field|src-param" field writes
   ictx : InterProceduralContext? // P3: summaries consumed at call sites
   taint_rules : TaintRuleset // project DSL entries (ADD to built-ins)
+  // CWE-116/tainted-output gate: fires only from DSL/lib-model Output sinks;
+  // default enabled (no builtin sink carries kind Output, so projects
+  // without a model/config are unaffected)
+  output_sinks_enabled : Bool
 }
 
 ///|
@@ -110,6 +114,7 @@ pub fn run_flow_taint_func(
   findings : Array[Finding],
   ictx? : InterProceduralContext,
   rules? : TaintRuleset,
+  output_sinks_enabled? : Bool,
 ) -> Unit {
   let ctx : FlowCtx = {
     env: Map([]),
@@ -124,6 +129,10 @@ pub fn run_flow_taint_func(
     taint_rules: match rules {
       Some(r) => r
       None => TaintRuleset::empty()
+    },
+    output_sinks_enabled: match output_sinks_enabled {
+      Some(b) => b
+      None => true
     },
   }
   // fn parameters carry param provenance: direct param flow reaches
@@ -154,6 +163,7 @@ pub fn run_flow_taint_func_top(
   severity : Severity,
   findings : Array[Finding],
   rules? : TaintRuleset,
+  output_sinks_enabled? : Bool,
 ) -> Unit {
   let ctx : FlowCtx = {
     env: Map([]),
@@ -168,6 +178,10 @@ pub fn run_flow_taint_func_top(
     taint_rules: match rules {
       Some(r) => r
       None => TaintRuleset::empty()
+    },
+    output_sinks_enabled: match output_sinks_enabled {
+      Some(b) => b
+      None => true
     },
   }
   let _ = flow(body, ctx)
@@ -250,6 +264,13 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
               report_cwe113(ctx, expr, value_taint)
             }
           }
+          if ctx.output_sinks_enabled && ctx.taint_rules.output_sink_hit(name) {
+            let slot = or_slot(ctx.taint_rules.output_sink_slot(name))
+            let value_taint = header_value_taint(args, ctx, slot)
+            if is_tainted(value_taint) {
+              report_output_sink(ctx, expr, value_taint, name)
+            }
+          }
           if is_sanitize_call_name(name) || ctx.taint_rules.sanitizer_hit(name) {
             Clean
           } else {
@@ -284,6 +305,15 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
         let value_taint = header_value_taint(args, ctx, slot)
         if is_tainted(value_taint) {
           report_cwe113(ctx, expr, value_taint)
+        }
+        Clean
+      } else if ctx.output_sinks_enabled &&
+        ctx.taint_rules.output_sink_hit(mname) {
+        // output channel sink (lib model / DSL kind "Output") -> CWE-116
+        let slot = or_slot(ctx.taint_rules.output_sink_slot(mname))
+        let value_taint = header_value_taint(args, ctx, slot)
+        if is_tainted(value_taint) {
+          report_output_sink(ctx, expr, value_taint, mname)
         }
         Clean
       } else if is_sanitize_call_name(mname) ||
@@ -1164,6 +1194,34 @@ fn or_clean_taint(t : Taint?) -> Taint {
 }
 
 ///|
+fn report_output_sink(
+  ctx : FlowCtx,
+  expr : @syntax.Expr,
+  t : Taint,
+  sink_name : String,
+) -> Unit {
+  let origin = match t {
+    TaintedParam(p) => " (via parameter `" + p + "`)"
+    _ => ""
+  }
+  ctx.findings.push(
+    make_finding(
+      { cwe: 116, variant: "tainted-output" },
+      ctx.severity,
+      Medium,
+      "Tainted data written to output channel `" +
+      sink_name +
+      "` without neutralization" +
+      origin +
+      ". User-controlled content that reaches an FFI/network output can enable injection attacks.",
+      ctx.file,
+      ctx.source,
+      expr.loc(),
+    ),
+  )
+}
+
+///|
 fn report_cwe113(ctx : FlowCtx, expr : @syntax.Expr, t : Taint) -> Unit {
   let origin = match t {
     TaintedParam(p) => " (via parameter `" + p + "`)"
@@ -1302,6 +1360,7 @@ fn collect_summary_func(
     record_fields: None,
     ictx: None,
     taint_rules: TaintRuleset::empty(),
+    output_sinks_enabled: true,
   }
   match params {
     Some(ps) =>

@@ -62,3 +62,13 @@ impl @syntax.IterVisitor for Cwe116Visitor with fn visit_Expr_DotApply(
     loc~,
   )
 }
+
+///|
+pub fn cwe116_output_info() -> RuleInfo {
+  {
+    id: { cwe: 116, variant: "tainted-output" },
+    name: "Tainted Output via Library Sink",
+    description: "User-controlled data written to an output channel (FFI/network sink modeled via taint-rules.json or a library model) without neutralization.",
+    default_severity: Warning,
+  }
+}

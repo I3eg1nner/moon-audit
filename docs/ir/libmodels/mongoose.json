@@ -1,0 +1,22 @@
+{
+  "name": "mongoose",
+  "description": "mocket native mongoose C bindings (req_*/res_*/ws_* externs). Activate via \"extends\": [\"mongoose\"] in taint-rules.json. Mirrors the built-in model embedded in src/lib_models.mbt.",
+  "types": {
+    "create_server": "Server",
+    "server_listen_address": "String",
+    "ws_msg_body_len": "Int",
+    "ws_msg_copy": "Bytes"
+  },
+  "sources": [
+    { "method": "url",        "kind": "RequestData" },
+    { "method": "headers",    "kind": "RequestData" },
+    { "method": "body",       "kind": "RequestBody" },
+    { "method": "req_method", "kind": "RequestData" },
+    { "method": "ws_msg_copy","kind": "RequestBody" }
+  ],
+  "sinks": [
+    { "method": "ws_send_native", "kind": "Output", "value_slot": 1 },
+    { "method": "end_bytes",      "kind": "Output", "value_slot": 1 }
+  ],
+  "sanitizers": []
+}

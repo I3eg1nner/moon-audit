@@ -432,3 +432,11 @@ petgraph 69% 持平。FP 三目标 0；156/156 × 4 targets deny-warn 绿；moon
   trailing_slash ← 用户路径、request_id use_existing 回显）+ 4 FP 嫌疑（realm 配置/
   etag 哈希/枚举映射/内部构造）；TP 率 56% 符合未适配框架历史表现
 - 解析率全距 57-87%（中位 ~76%），旧 7 项目零回退
+
+## 2026-09-05 · A2 extern 库模型（工作流 d3ae0231）
+- 全局 let 注入 env 是最大单项收益（mocket receiver unknown 182→118；75→78%）——
+  FFI 绑定文件状态全在带标注的全局里，此前从未进入函数 env
+- DSL 扩展 extends/types/callbacks/Output sink；内置 mongoose 模型（opt-in via extends）
+- 探针验收：ws_send_native(id, req.body()) → CWE-116/tainted-output 告警；链路 5/5 解析
+- 数字：mocket 75→78%、自举 86%、petgraph 69%；FP 三目标 0；166/166 × 4；deny-warn 全绿
+- 剩余 FFI unknown ~39 = 跨依赖级联 + dyn 分派（M4 域），模型杠杆已尽（如实记录）

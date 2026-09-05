@@ -25,6 +25,9 @@ pub(all) struct PkgSymbols {
   fn_param_arrows : Map[String, Array[Array[IRType?]]] // fn -> per-param arrow arg types
   alias_arrows : Map[String, Array[IRType?]] // type alias -> arrow param types
   value_types : Map[String, IRType] // const/value name -> declared type (.mbti)
+  globals : Map[String, IRType] // top-level `let x : T = ...` annotated globals
+  lib_fn_ret : Map[String, IRType] // library-model return types (extern etc.)
+  lib_callbacks : Map[String, Array[String]] // lib-model callback param placeholders
   trait_names : Map[String, Bool] // declared trait names (local + .mbti)
   type_params : Map[String, Bool] // generic params seen in this package
 }
@@ -42,6 +45,9 @@ pub fn PkgSymbols::new() -> PkgSymbols {
     fn_param_arrows: Map([]),
     alias_arrows: Map([]),
     value_types: Map([]),
+    globals: Map([]),
+    lib_fn_ret: Map([]),
+    lib_callbacks: Map([]),
     trait_names: Map([]),
     type_params: Map([]),
   }
@@ -190,6 +196,20 @@ pub fn collect_symbols(
           symbols.fn_exists[alias_name] = true
         }
       TopTypeDef(decl) => collect_type_decl(decl, symbols)
+      TopLetDef(binder~, ty~, is_declare~, ..) => {
+        // annotated top-level globals: `let ws_handler_map : Map[...] = ...`
+        // — the type source for FFI binding-file receiver chains
+        if !is_declare {
+          match ty {
+            Some(t) => symbols.globals[binder.name] = type_to_ir(t, symbols)
+            None => ()
+          }
+        }
+        match ty {
+          Some(_) => symbols.fn_exists[binder.name] = true
+          None => ()
+        }
+      }
       _ => ()
     }
   }
@@ -338,6 +358,9 @@ pub fn scan_package_calls(
       None => Map([])
     },
   }
+  // seed annotated top-level globals into the env: FFI binding files keep
+  // their state in globals (`let ws_handler_map : Map[...] = ...`)
+  symbols.globals.each(fn(name, t) { ctx.env[name] = t })
   for item in impls {
     match item {
       TopFuncDef(fun_decl~, decl_body~, ..) => {
@@ -921,8 +944,12 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
       let _ = infer_expr(cond, ctx)
       infer_expr(body, ctx)
     }
-    Is(expr~, ..) => {
-      let _ = infer_expr(expr, ctx)
+    Is(expr~, pat~, ..) => {
+      let t = infer_expr(expr, ctx)
+      // `x is String(v)` binds v : String when the type-test constructor is a
+      // builtin primitive test — the tested scrutinee type is not needed
+      bind_is_pattern(pat, ctx)
+      ignore(t)
       IRConcrete("Bool", [])
     }
     RegexMatch(expr~, bindings~, ..) => {
@@ -1338,6 +1365,8 @@ fn visit_args(
   // builtin higher-order fallback: closure hints from the receiver's
   // parametric type (Map::each -> (K, V), Array::map -> (elem), ...)
   let builtin_cb = builtin_callback_params(ctx.last_recv_ty, callee)
+  // library-model callbacks (A2): placeholders resolved from receiver args
+  let lib_cb = lib_callback_params(ctx, callee)
   let mut i = start_index
   for arg in args {
     match arg.value {
@@ -1354,7 +1383,10 @@ fn visit_args(
             } else {
               fill_builtin_cb(ctx, builtin_cb, start_index)
             }
-          None => fill_builtin_cb(ctx, builtin_cb, start_index)
+          None => {
+            fill_builtin_cb(ctx, builtin_cb, start_index)
+            fill_builtin_cb(ctx, lib_cb, start_index)
+          }
         }
         let _ = infer_expr(arg.value, ctx)
         ctx.pending_closure_hints.clear()
@@ -1932,6 +1964,10 @@ pub fn run_ir_stats(root : String, config : Config) -> IRStatsResult {
   collect_dep_symbols(root, symbols)
   // Phase 1.6: ingest official interface files (.mbti) when present
   collect_mbti_dir(root, symbols)
+  // Phase 1.7: library-model types/callbacks from taint-rules.json
+  // (extends/models register return types + callback placeholders)
+  let (lib_rs, _) = load_taint_rules(root)
+  lib_rs.apply_to_symbols(symbols)
   // Phase 2: per-function inference with the merged table
   // (per-package moon.pkg aliases are passed so `@alias.fn` call sites can
   // expand to the real package-qualified keys)
@@ -2062,10 +2098,14 @@ fn get_struct_fields(
 
 ///|
 fn get_fn_ret(symbols : PkgSymbols, key : String) -> IRType? {
-  // resolution order: exact key first; short_key is a last-resort fallback
+  // resolution order: exact key; library-model types; short_key last resort
   match symbols.fn_ret.get(key) {
     Some(t) => Some(t)
-    None => symbols.fn_ret.get(short_key(key))
+    None =>
+      match symbols.lib_fn_ret.get(key) {
+        Some(t) => Some(t)
+        None => symbols.fn_ret.get(short_key(key))
+      }
   }
 }
 
@@ -2611,4 +2651,91 @@ fn numeric_join(a : IRType, b : IRType) -> IRType {
       IRConcrete("Double", [])
     _ => IRUnresolved
   }
+}
+
+///|
+fn bind_is_pattern(pat : @syntax.Pattern, ctx : ScanCtx) -> Unit {
+  // builtin type-test constructors in `is` patterns bind their payload var
+  match pat {
+    Constr(constr~, args~, ..) => {
+      let t = match constr.name.name {
+        "String" => IRConcrete("String", [])
+        "Int" => IRConcrete("Int", [])
+        "Double" => IRConcrete("Double", [])
+        "Bool" => IRConcrete("Bool", [])
+        "Char" => IRConcrete("Char", [])
+        "Bytes" => IRConcrete("Bytes", [])
+        _ => IRUnresolved
+      }
+      if t != IRUnresolved {
+        match args {
+          Some(list) =>
+            for arg in list {
+              bind_pattern(arg.pat, t, ctx)
+            }
+          None => ()
+        }
+      }
+    }
+    SpecialConstr(binder~, args~, ..) => {
+      let t = match binder.name {
+        "String" => IRConcrete("String", [])
+        "Int" => IRConcrete("Int", [])
+        "Double" => IRConcrete("Double", [])
+        "Bool" => IRConcrete("Bool", [])
+        _ => IRUnresolved
+      }
+      if t != IRUnresolved {
+        for arg in args {
+          bind_pattern(arg.pat, t, ctx)
+        }
+      }
+    }
+    _ => ()
+  }
+}
+
+///|
+fn lib_callback_params(
+  ctx : ScanCtx,
+  callee : String,
+) -> Array[Array[IRType?]]? {
+  // library-model callback signatures: placeholders K/V/E resolve from the
+  // receiver's parametric args; anything else parses as a type expression
+  let placeholders = match ctx.symbols.lib_callbacks.get(callee) {
+    Some(ps) => ps
+    None =>
+      match ctx.symbols.lib_callbacks.get(short_key(callee)) {
+        Some(ps) => ps
+        None => return None
+      }
+  }
+  let recv_args = match ctx.last_recv_ty {
+    IRConcrete(_, args) => args
+    _ => []
+  }
+  let hints : Array[IRType?] = []
+  for ph in placeholders {
+    match ph {
+      "K" | "E" => {
+        let t = if recv_args.length() >= 1 {
+          recv_args[0]
+        } else {
+          IRUnresolved
+        }
+        hints.push(Some(t))
+      }
+      "V" => {
+        let t = if recv_args.length() >= 2 {
+          recv_args[1]
+        } else {
+          IRUnresolved
+        }
+        hints.push(Some(t))
+      }
+      other => hints.push(Some(parse_type_expr(other)))
+    }
+  }
+  // slot 0 = receiver (convention shared with builtin_callback_params)
+  Some([[None], hints])
 }

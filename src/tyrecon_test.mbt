@@ -658,6 +658,9 @@ test "taint_dsl_custom_source_and_sink" {
     sources: [{ method_name: "fetch_input", kind: "QueryParam", value_slot: 1 }],
     sinks: [{ method_name: "custom_set", kind: "HeaderValue", value_slot: 1 }],
     sanitizers: [],
+    fn_types: [],
+    callbacks: [],
+    extends: [],
   }
   let findings2 : Array[Finding] = []
   run_cwe113(impls, "t.mbt", src, findings2, Error, rules~)
@@ -672,6 +675,9 @@ test "taint_dsl_custom_sanitizer" {
     sources: [],
     sinks: [{ method_name: "custom_set", kind: "HeaderValue", value_slot: 1 }],
     sanitizers: [{ method_name: "cleanse", kind: "", value_slot: 0 }],
+    fn_types: [],
+    callbacks: [],
+    extends: [],
   }
   let findings : Array[Finding] = []
   run_cwe113(impls, "t.mbt", src, findings, Error, rules~)
@@ -687,6 +693,9 @@ test "taint_dsl_value_slot" {
     sources: [],
     sinks: [{ method_name: "h", kind: "HeaderValue", value_slot: 0 }],
     sanitizers: [],
+    fn_types: [],
+    callbacks: [],
+    extends: [],
   }
   let findings : Array[Finding] = []
   run_cwe113(impls, "t.mbt", src, findings, Error, rules~)
@@ -722,4 +731,110 @@ test "taint_dsl_no_file_is_builtin" {
   let (rs, source) = load_taint_rules("/tmp/definitely_missing_dir_xyz")
   inspect(source, content="built-in defaults")
   inspect(rs.size(), content="0")
+}
+
+// ---------------------------------------------------------------------------
+// A2: extern library models (mongoose) — type resolution + taint behavior
+// ---------------------------------------------------------------------------
+
+///|
+test "a2_lib_model_type_expr_parser" {
+  inspect(parse_type_expr("Server").display(), content="Server")
+  inspect(
+    parse_type_expr("Map[Int, String]").display(),
+    content="Map[Int, String]",
+  )
+  inspect(
+    parse_type_expr("@http.CaseInsensitiveString").display(),
+    content="http::CaseInsensitiveString",
+  )
+}
+
+///|
+test "a2_lib_model_resolves_extern_chain" {
+  // `ws_msg_copy` has no local signature; the mongoose model types it.
+  // The chain `let n = ws_msg_body_len(); ignore(n)` resolves via lib_fn_ret.
+  let src = "extern \"c\" fn ws_msg_body_len() -> Int = \"ws_msg_body_len\" pub fn go() -> Int { ws_msg_body_len() }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  let stats = IRStatsResult::new()
+  let rs = TaintRuleset::empty()
+  let _ = extend_ruleset_with_model(rs, "mongoose")
+  rs.apply_to_symbols(symbols)
+  inspect(symbols.lib_fn_ret.contains("ws_msg_body_len"), content="true")
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  // the extern call itself resolves (stub ingestion) and its return type
+  // now comes from the model
+  inspect(stats.static_resolved, content="1")
+}
+
+///|
+test "a2_mongoose_model_source_and_output_sink" {
+  // probe: req.body() is a SOURCE (model), ws_send_native(x, v) is an
+  // OUTPUT sink (model) -> CWE-116/tainted-output fires on tainted v
+  let src = "pub fn handle(req : Req, id : Bytes) -> Unit { ws_send_native(id, req.body()) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let rules = TaintRuleset::empty()
+  let _ = extend_ruleset_with_model(rules, "mongoose")
+  inspect(rules.source_hit("body"), content="true")
+  inspect(rules.output_sink_hit("ws_send_native"), content="true")
+  let findings : Array[Finding] = []
+  run_cwe113(
+    impls,
+    "t.mbt",
+    src,
+    findings,
+    Warning,
+    rules~,
+    output_sinks_enabled=true,
+  )
+  let mut fired = false
+  for f in findings {
+    if f.rule_id.variant == "tainted-output" && f.rule_id.cwe == 116 {
+      fired = true
+    }
+  }
+  inspect(fired, content="true")
+}
+
+///|
+test "a2_output_sink_disabled_by_flag" {
+  let src = "pub fn handle(req : Req, id : Bytes) -> Unit { ws_send_native(id, req.body()) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let rules = TaintRuleset::empty()
+  let _ = extend_ruleset_with_model(rules, "mongoose")
+  let findings : Array[Finding] = []
+  run_cwe113(
+    impls,
+    "t.mbt",
+    src,
+    findings,
+    Warning,
+    rules~,
+    output_sinks_enabled=false,
+  )
+  let mut fired = false
+  for f in findings {
+    if f.rule_id.variant == "tainted-output" && f.rule_id.cwe == 116 {
+      fired = true
+    }
+  }
+  inspect(fired, content="false")
+}
+
+///|
+test "a2_lib_callback_placeholders" {
+  // lib-model callbacks: K/V placeholders resolve from receiver type args
+  let src = "pub fn go(m : Map[String, Int]) -> Unit { m.custom_each(fn(k, v) { ignore(k.length()); ignore(v + 1) }) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  // model a custom higher-order method via the callbacks section
+  let rs = TaintRuleset::empty()
+  rs.callbacks.push(("Map::custom_each", ["K", "V"]))
+  rs.apply_to_symbols(symbols)
+  inspect(symbols.lib_callbacks.contains("Map::custom_each"), content="true")
+  let stats = IRStatsResult::new()
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  // k : String -> k.length() resolves as a concrete receiver
+  inspect(stats.receiver_resolved >= 1, content="true")
 }
