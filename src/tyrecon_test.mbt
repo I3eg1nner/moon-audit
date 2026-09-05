@@ -8,7 +8,13 @@ fn test_tmp(sub : String) -> String {
   // side-effect-free probe: read_dir succeeds iff /tmp exists & readable
   ignore(
     @fs.read_dir("/tmp") catch {
-      _ => return "./moon_audit_test_tmp/" + sub
+      _ => {
+        // create the fallback base once: tests only create their leaf dir
+        @fs.create_dir("./moon_audit_test_tmp") catch {
+          _ => ()
+        }
+        return "./moon_audit_test_tmp/" + sub
+      }
     },
   )
   "/tmp/" + sub
