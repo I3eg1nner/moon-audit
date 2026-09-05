@@ -161,13 +161,7 @@ pub fn format_baseline_diff(diff : BaselineDiff) -> String {
     buf.write_string("  resolved findings:\n")
     for p in diff.resolved {
       buf.write_string(
-        "    " +
-        p.file +
-        ":" +
-        p.line.to_string() +
-        " [" +
-        p.rule_id +
-        "]\n",
+        "    " + p.file + ":" + p.line.to_string() + " [" + p.rule_id + "]\n",
       )
     }
   }
@@ -177,7 +171,10 @@ pub fn format_baseline_diff(diff : BaselineDiff) -> String {
 ///|
 /// JSON output with a comparison section (used when --baseline-report set
 /// together with --format json).
-pub fn format_json_with_diff(result : ScanResult, diff : BaselineDiff) -> String {
+pub fn format_json_with_diff(
+  result : ScanResult,
+  diff : BaselineDiff,
+) -> String {
   let findings_json : Array[Json] = []
   for f in result.findings {
     findings_json.push({
@@ -193,9 +190,9 @@ pub fn format_json_with_diff(result : ScanResult, diff : BaselineDiff) -> String
       "snippet": Json::string(f.snippet),
       "fingerprint": Json::string(f.fingerprint),
       "status": Json::string(
-        if diff.new_findings.any(
-            fn(f2) { f2.fingerprint == f.fingerprint && f2.file == f.file },
-        ) {
+        if diff.new_findings.any(fn(f2) {
+            f2.fingerprint == f.fingerprint && f2.file == f.file
+          }) {
           "new"
         } else {
           "unchanged"
