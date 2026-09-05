@@ -35,6 +35,48 @@ fn is_tainted(t : Taint) -> Bool {
   t != Clean
 }
 
+// serialize taint env for loop fixpoint comparison
+
+///|
+fn env_fingerprint(ctx : FlowCtx) -> String {
+  let keys : Array[String] = []
+  ctx.env.each(fn(k, _) { keys.push(k) })
+  keys.sort()
+  let sb = StringBuilder::new()
+  for k in keys {
+    sb.write_string(k)
+    sb.write_char(':')
+    match ctx.env.get(k) {
+      Some(Clean) => sb.write_char('C')
+      Some(Tainted) => sb.write_char('T')
+      Some(TaintedParam(p)) => {
+        sb.write_char('P')
+        sb.write_string(p)
+      }
+      None => sb.write_char('_')
+    }
+    sb.write_char(';')
+  }
+  sb.to_string()
+}
+
+// iterate a loop body to a taint fixpoint (cap 3 passes)
+
+///|
+fn flow_to_fixpoint(e : @syntax.Expr, ctx : FlowCtx) -> Unit {
+  let mut prev = env_fingerprint(ctx)
+  let mut i = 0
+  while i < 3 {
+    let _ = flow(e, ctx)
+    let cur = env_fingerprint(ctx)
+    if cur == prev {
+      break
+    }
+    prev = cur
+    i += 1
+  }
+}
+
 ///|
 priv struct FlowCtx {
   env : Map[String, Taint]
@@ -71,8 +113,9 @@ pub fn run_flow_taint_func(
     severity,
     record_sinks: None,
   }
-  // callback/closure parameters conservatively tainted (framework-supplied
-  // input, e.g. middleware `fn(event, next)`)
+  // fn parameters carry param provenance: direct param flow reaches
+  // sinks (report), but field access on a param is a config-like read
+  // (Clean) — provenance-aware field propagation (review counterexample)
   match params {
     Some(ps) =>
       for param in ps {
@@ -80,7 +123,8 @@ pub fn run_flow_taint_func(
           Positional(binder~, ..)
           | Labelled(binder~, ..)
           | Optional(binder~, ..)
-          | QuestionOptional(binder~, ..) => ctx.env[binder.name] = Tainted
+          | QuestionOptional(binder~, ..) =>
+            ctx.env[binder.name] = TaintedParam(binder.name)
           DiscardPositional(..) => ()
         }
       }
@@ -256,7 +300,9 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
     LabelledBlock(body~, ..) => flow(body, ctx)
     While(loop_cond~, loop_body~, ..) => {
       let _ = flow(loop_cond, ctx)
-      let _ = flow(loop_body, ctx)
+      // fixpoint: taint written in iteration N must be visible to the
+      // sink executed in iteration N+1 (review counterexample b)
+      flow_to_fixpoint(loop_body, ctx)
       Clean
     }
     Function(func~, ..) => {
@@ -327,8 +373,11 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       }
     }
     Defer(expr~, body~, ..) => {
+      // defer semantics: BODY runs first; the deferred expression runs on
+      // the exit path (review counterexample — order was previously reversed)
+      let t = flow(body, ctx)
       let _ = flow(expr, ctx)
-      flow(body, ctx)
+      t
     }
     LetFn(func~, body~, ..) => {
       let _ = flow(Function(func~, loc=dummy_flow_loc()), ctx)
@@ -374,10 +423,16 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       t
     }
     Field(record~, ..) => {
-      // field access is a configuration/derived read, not user input
-      // (parity with the legacy rule; M3 refines with type-aware policy)
-      let _ = flow(record, ctx)
-      Clean
+      // provenance-aware field propagation (review counterexample a):
+      //   receiver tainted FROM A SOURCE  -> field carries the taint
+      //   receiver tainted AS A DIRECT PARAM (config-like) -> field is a
+      //     configuration read, stays Clean (legacy parity, test c)
+      let t = flow(record, ctx)
+      match t {
+        Tainted => Tainted
+        TaintedParam(_) => Clean
+        Clean => Clean
+      }
     }
     As(expr~, ..) => flow(expr, ctx)
     Mutate(record~, field~, ..) => {
@@ -447,7 +502,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       for pair in continue_block {
         let _ = flow(pair.1, ctx)
       }
-      let _ = flow(body, ctx)
+      flow_to_fixpoint(body, ctx)
       Clean
     }
     ForEach(binders~, expr~, init~, continue_block~, body~, ..) => {
@@ -464,7 +519,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       for pair in continue_block {
         let _ = flow(pair.1, ctx)
       }
-      let _ = flow(body, ctx)
+      flow_to_fixpoint(body, ctx)
       Clean
     }
     Try(body~, catch_~, ..) => {

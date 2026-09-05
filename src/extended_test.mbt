@@ -501,3 +501,43 @@ test "M2.6: old-slot CRLF strip chain still sanitizes" {
   run_cwe113(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() == 0)
 }
+
+// ---------------------------------------------------------------------------
+// Phase-3 semantics: review counterexamples (field / loop / defer)
+// ---------------------------------------------------------------------------
+
+///|
+test "P3: field of source-derived struct must trigger" {
+  let source = "pub struct Box { v : String } fn h(resp : Response, req : Request) -> Unit { let b = Box::{ v: req.query(\"q\") }; resp.set_header(\"X\", b.v) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "P3: config-like param field stays silent" {
+  let source = "pub struct Cfg { cc : String } fn h(resp : Response, config : Cfg) -> Unit { resp.set_header(\"Cache-Control\", config.cc) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "P3: two-pass loop propagation must trigger" {
+  let source = "fn h(resp : Response, req : Request) -> Unit { let mut acc = \"\"; let mut i = 0; while i < 2 { if i > 0 { resp.set_header(\"X\", acc) } else { () }; acc = req.query(\"q\"); i = i + 1 } }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "P3: defer expression observes body writes (exit-path order)" {
+  let source = "fn h(resp : Response, req : Request) -> Unit { let mut acc2 = \"s\"; defer { resp.set_header(\"X\", acc2) }; acc2 = req.query(\"q\") }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}

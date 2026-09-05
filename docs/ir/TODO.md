@@ -92,7 +92,16 @@
       永不判安全）；对抗测试锁定（引入型必报 / old 槽双覆盖链仍安全）
 - [x] regex-positive 精化禁用（re"^ok-" 前缀不排除后续 CRLF，非可靠性质）
 - [x] PLAN 撤回"M2 超前"表述；COMPARISON 纠正所有权假设；路线按五步重排
-- [ ] 已知漏报（记录为 M3 显式 HIR 验收用例）：字段传播、两轮循环传播、&Trait 接收者
+- [x] 已知漏报三连修复（2026-09-05，Phase-3sem）：
+      ① 字段传播溯源化——fn 参数改绑 TaintedParam（直传报、字段读 Clean），
+         source 派生接收者（req.query 结果构造的 struct）字段传播 Tainted；
+      ② 循环不动点——While/For/ForEach 体最多 3 遍或 env 指纹稳定（序列化 "k:v;" 比对），
+         第 N 轮写入的污点对第 N+1 轮 sink 可见；
+      ③ defer 退出路径顺序——body 先执行、defer 表达式后评估（原顺序相反）；
+      验收：4 个反例单测（字段/配置静默/两轮循环/defer）全绿，136/136 × 4 targets，
+      deny-warn 绿；luna 全仓扫描前后均 6 检出（stash 对照）零 FP 回归
+      （基线 0 条系仅扫 luna/ 子目录，6 条在 sol/ 成员，属既有检出）
+      （&Trait 接收者已由 Phase-2b 修复，见上）
 - [x] .mbti 摄取切片：mbti_parser 官方解析，FuncSig（含 SelfTy::method）注册
       fn_exists/fn_ret/fn_param_arrows；递归扫描项目 .mbti（moon info 产物）；
       单测锁定"接口签名成为可解析静态目标"；自举 3,057→3,067 边

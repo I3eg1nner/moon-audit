@@ -131,6 +131,27 @@ mocket/petgraph/自举 0 FP；解析率 69%/86%/67%（指标 bug 修复后自举
 - 修正后诚实基线：mocket 72%（1906 调用点）/ 自举 86% / petgraph 67%
 - using 导入摄取 + dispatch 边路径（dyn → impl 枚举）落地；deny-warn + 122/122 保持
 
+
+## 2026-09-05 · Phase-3sem：语义修复三连（评审漏报反例全部闭环）
+
+**变更**（src/taint_flow.mbt）
+1. 字段传播溯源化：run_flow_taint_func 参数绑定 Tainted→TaintedParam(name)；
+   Field(record) 按接收者溯源分派——TaintedParam（config 直传）→ Clean，
+   Tainted（source 派生）→ Tainted。旧行为（字段一律 Clean）保留配置访问静默，
+   新行为让"输入→struct 字段→sink"路径可检出
+2. 循环不动点：env_fingerprint（排序序列化）+ flow_to_fixpoint（≤3 遍或稳定），
+   应用于 While/For/ForEach 体；Taint 格点有限，实测 2 遍内收敛
+3. defer 顺序：body 先、defer 表达式后（退出路径语义）
+
+**验收**
+- 新增 4 反例单测：source 构造字段必报 / config 参数字段静默 /
+  两轮循环传播必报 / defer 观察 body 写入必报 —— 全绿
+- 136/136 × 4 targets（wasm/wasm-gc/js/native）；moon check --target all --deny-warn 绿
+- FP 回归（git stash 前后对照，同二进制路径）：luna 全仓 crlf 6→6、
+  crescent 0→0、mocket 0→0、自举 0→0 —— 零回归
+- 发现：回归基线 luna=0 只扫了 workspace 成员 luna/，6 条既有检出在 sol/ 成员
+  （含 via parameter 直传与方法链）——基线口径待集成阶段修订为全仓扫描
+
 ## 待续（M4 完整验收：闭包分配点建模、Andersen 或轻量替代、coverage 动态真值、FFI stub 摄取）
 
 ## 2026-09-04 · [lane: upstream] 上游 PR 工件就绪
