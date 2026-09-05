@@ -284,3 +284,17 @@ FP 三目标持平全零。
   本任务文件 0 警告；全树 moon test 141/141 通过
 - 教训追加：format_baseline_diff 的 message[0:60] 越界 abort——任何字符串截断
   必须先判长度（truncate_str 已固化）
+
+
+## 2026-09-05 · p4clos 闭包分配点建模（工作流 #2）
+- ClosureSite：Let/LetAnd 绑定的 Function 字面量注册（var → params/body/分配行）；
+  标注齐全的闭包在分配点正常扫体（保持既有行为），未标注闭包体**延迟**到首个调用点
+- 调用点：infer_apply Ident(Some IRFn) 且命中 closure_sites → 计 static resolved
+  （target="$closure:h@line"），Apply 臂消费 pending_closure 做懒回填重扫；
+  实参类型计算用 stats 快照/恢复（visit_args 已计一次，避免双计）
+- 指标（三目标）：mocket 74%（higher 43→38）、自举 86%（→1）、petgraph 67→**69%**
+  （higher 38、concrete 745/939=79%）；FP 三目标 0 持平；148/148 × native
+- **诚实结论**：var 绑定闭包在当前语料中占比小（mocket 仅 5 位点），
+  ≥80%/≥90% 目标未达——剩余缺口主体是 FFI 文件（mocket.native/js ~41%）与
+  跨包深层级联，闭包直传参数已被 visit_args hints 覆盖
+- 工程坑：priv struct 不可用 priv(all)（无公开签名）；moonfmt 后模式需复核 `..`

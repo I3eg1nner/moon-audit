@@ -296,6 +296,18 @@ priv struct ScanCtx {
   pending_closure_hints : Array[IRType?]
   mut last_key : String // receiver key recorded by infer_dot_apply
   mut cur_fn : String // enclosing function name (call graph caller)
+  // M4-lite: var-name -> closure allocation site (params/body reference)
+  closure_sites : Map[String, ClosureSite]
+  mut pending_closure : String? // set by infer_apply, consumed by Apply arm
+}
+
+///|
+priv struct ClosureSite {
+  line : Int // allocation line (params_loc)
+  params : @list.List[@syntax.Parameter]
+  body : @syntax.Expr
+  has_unannotated : Bool // body walk deferred until first call
+  mut rescanned : Bool // one-shot lazy rescan guard
 }
 
 ///|
@@ -314,6 +326,8 @@ pub fn scan_package_calls(
     pending_closure_hints: [],
     last_key: "?",
     cur_fn: "<top>",
+    closure_sites: Map([]),
+    pending_closure: None,
   }
   for item in impls {
     match item {
@@ -433,6 +447,151 @@ fn scan_params_body(
   }
   let _ = infer_expr(body, ctx)
   restore_env(saved, ctx)
+}
+
+///|
+// ── M4-lite: closure allocation sites ─────────────────────────────────────
+
+///|
+fn closure_has_unannotated(params : @list.List[@syntax.Parameter]) -> Bool {
+  let mut found = false
+  for param in params {
+    match param {
+      Positional(ty~, ..) | Labelled(ty~, ..) =>
+        match ty {
+          None => found = true
+          Some(_) => ()
+        }
+      _ => ()
+    }
+  }
+  found
+}
+
+///|
+fn register_closure(
+  var_name : String,
+  func : @syntax.Func,
+  ctx : ScanCtx,
+) -> Bool {
+  // returns true when the body walk should be DEFERRED to the first call
+  let unannotated = closure_has_unannotated(func.parameters)
+  ctx.closure_sites[var_name] = {
+    line: func.params_loc.start.lnum,
+    params: func.parameters,
+    body: func.body,
+    has_unannotated: unannotated,
+    rescanned: false,
+  }
+  unannotated
+}
+
+///|
+fn rescan_closure(
+  name : String,
+  args : @list.List[@syntax.Argument],
+  ctx : ScanCtx,
+) -> Unit {
+  let site = match ctx.closure_sites.get(name) {
+    Some(s) => s
+    None => return
+  }
+  if site.rescanned {
+    return // one-shot: first call site's argument types win
+  }
+  site.rescanned = true
+  if !site.has_unannotated {
+    return // body was already walked at allocation with known param types
+  }
+  // compute call-site argument types WITHOUT counting stats
+  // (args are counted once by visit_args in the Apply arm)
+  let arg_tys : Array[IRType] = []
+  let s0 = snapshot_stats(ctx.stats)
+  for arg in args {
+    arg_tys.push(infer_expr(arg.value, ctx))
+  }
+  restore_stats(ctx.stats, s0)
+  // walk the closure body once with backfilled param types (stats ON)
+  let saved : Array[(String, IRType)] = []
+  let mut i = 0
+  for param in site.params {
+    match param {
+      Positional(binder~, ty~) | Labelled(binder~, ty~) => {
+        saved.push((binder.name, or_unresolved(ctx.env.get(binder.name))))
+        match ty {
+          Some(t) => ctx.env[binder.name] = type_to_ir(t, ctx.symbols)
+          None => {
+            let at = if i < arg_tys.length() {
+              arg_tys[i]
+            } else {
+              IRUnresolved
+            }
+            ctx.env[binder.name] = at
+          }
+        }
+      }
+      Optional(binder~, ty~, ..) | QuestionOptional(binder~, ty~) => {
+        saved.push((binder.name, or_unresolved(ctx.env.get(binder.name))))
+        match ty {
+          Some(t) => ctx.env[binder.name] = type_to_ir(t, ctx.symbols)
+          None => ctx.env[binder.name] = IRUnresolved
+        }
+      }
+      DiscardPositional(..) => ()
+    }
+    i += 1
+  }
+  let _ = infer_expr(site.body, ctx)
+  restore_env(saved, ctx)
+}
+
+///|
+priv struct StatsSnapshot {
+  files_scanned : Int
+  funcs_scanned : Int
+  total_calls : Int
+  static_calls : Int
+  static_resolved : Int
+  receiver_calls : Int
+  receiver_resolved : Int
+  receiver_dispatch : Int
+  receiver_unknown : Int
+  higher_calls : Int
+  sites_len : Int
+}
+
+///|
+fn snapshot_stats(stats : IRStatsResult) -> StatsSnapshot {
+  {
+    files_scanned: stats.files_scanned,
+    funcs_scanned: stats.funcs_scanned,
+    total_calls: stats.total_calls,
+    static_calls: stats.static_calls,
+    static_resolved: stats.static_resolved,
+    receiver_calls: stats.receiver_calls,
+    receiver_resolved: stats.receiver_resolved,
+    receiver_dispatch: stats.receiver_dispatch,
+    receiver_unknown: stats.receiver_unknown,
+    higher_calls: stats.higher_calls,
+    sites_len: stats.sites.length(),
+  }
+}
+
+///|
+fn restore_stats(stats : IRStatsResult, snap : StatsSnapshot) -> Unit {
+  stats.files_scanned = snap.files_scanned
+  stats.funcs_scanned = snap.funcs_scanned
+  stats.total_calls = snap.total_calls
+  stats.static_calls = snap.static_calls
+  stats.static_resolved = snap.static_resolved
+  stats.receiver_calls = snap.receiver_calls
+  stats.receiver_resolved = snap.receiver_resolved
+  stats.receiver_dispatch = snap.receiver_dispatch
+  stats.receiver_unknown = snap.receiver_unknown
+  stats.higher_calls = snap.higher_calls
+  while stats.sites.length() > snap.sites_len {
+    let _ = stats.sites.pop()
+  }
 }
 
 ///|
@@ -611,6 +770,14 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
       let ret = infer_apply(func, ctx)
       let key = callee_key(func)
       visit_args(args, key, ctx, 0)
+      // closure call: lazy body rescan with call-site argument types
+      match ctx.pending_closure {
+        Some(cname) => {
+          ctx.pending_closure = None
+          rescan_closure(cname, args, ctx)
+        }
+        None => ()
+      }
       ret
     }
     DotApply(self~, method_name~, args~, ..) => {
@@ -768,10 +935,13 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
       let saved : Array[(String, IRType)] = []
       for binding in bindings {
         let (binder, ty, func) = binding
-        let fsaved : Array[(String, IRType)] = []
-        bind_params(func.parameters, ctx, fsaved)
-        let _ = infer_expr(func.body, ctx)
-        restore_env(fsaved, ctx)
+        let defer_body = register_closure(binder.name, func, ctx)
+        if !defer_body {
+          let fsaved : Array[(String, IRType)] = []
+          bind_params(func.parameters, ctx, fsaved)
+          let _ = infer_expr(func.body, ctx)
+          restore_env(fsaved, ctx)
+        }
         saved.push((binder.name, or_unresolved(ctx.env.get(binder.name))))
         match ty {
           Some(t) => ctx.env[binder.name] = type_to_ir(t, ctx.symbols)
@@ -783,8 +953,24 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
       t
     }
     Let(pattern~, expr~, body~, ..) => {
-      let t = infer_expr(expr, ctx)
-      bind_pattern(pattern, t, ctx)
+      // closure allocation site: `let h = fn(...) { ... }`
+      let closure_case = match (pattern, expr) {
+        (Var(binder), Function(func~, ..)) => {
+          let defer_body = register_closure(binder.name, func, ctx)
+          let t = if defer_body {
+            IRFn // body walked lazily at first call site
+          } else {
+            infer_expr(expr, ctx)
+          }
+          ctx.env[binder.name] = t
+          true
+        }
+        _ => false
+      }
+      if !closure_case {
+        let t = infer_expr(expr, ctx)
+        bind_pattern(pattern, t, ctx)
+      }
       infer_expr(body, ctx)
     }
     LetMut(binder~, ty~, expr~, body~, ..) => {
@@ -1174,6 +1360,25 @@ fn infer_apply(func : @syntax.Expr, ctx : ScanCtx) -> IRType {
     Ident(id~, ..) => {
       let name = longident_str(id.name)
       match ctx.env.get(name) {
+        Some(IRFn) =>
+          // var-bound closure call: resolve to its allocation site
+          match ctx.closure_sites.get(name) {
+            Some(site) => {
+              let target = "$closure:" + name + "@" + site.line.to_string()
+              record_site(ctx, func, "static", true, target)
+              ctx.stats.total_calls += 1
+              ctx.stats.static_calls += 1
+              ctx.stats.static_resolved += 1
+              ctx.pending_closure = Some(name)
+              IRUnresolved
+            }
+            None => {
+              record_site(ctx, func, "higher", false, name)
+              ctx.stats.total_calls += 1
+              ctx.stats.higher_calls += 1
+              IRUnresolved
+            }
+          }
         Some(_) => {
           record_site(ctx, func, "higher", false, name)
           ctx.stats.total_calls += 1

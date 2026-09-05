@@ -429,3 +429,47 @@ test "p3_field_write_end_to_end_alerts_via_ictx" {
   run_cwe113(caller_impls, "app.mbt", caller_src, findings2, Error)
   inspect(findings2.length(), content="0")
 }
+
+///|
+test "p4_closure_annotated_alloc_site" {
+  let src = "pub fn go() -> Unit { let h = fn(s : String) { ignore(s.length()) }; h(\"x\") }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  let stats = IRStatsResult::new()
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  // s.length() resolves via annotation
+  inspect(stats.receiver_resolved, content="1")
+  // h("x") reclassified higher -> static resolved ($closure target)
+  inspect(stats.higher_calls, content="0")
+  inspect(stats.static_resolved >= 2, content="true") // ignore + h("x")
+  inspect(
+    stats.sites.filter(fn(s) { s.target.has_prefix("$closure:") }).length(),
+    content="1",
+  )
+}
+
+///|
+test "p4_closure_unannotated_backfilled_at_call" {
+  let src = "pub fn go() -> Unit { let h = fn(s) { ignore(s.length()) }; h(\"x\") }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  let stats = IRStatsResult::new()
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  // closure body deferred to call site; arg "x" (String) backfills s
+  inspect(stats.receiver_resolved, content="1")
+  inspect(stats.receiver_unknown, content="0")
+  inspect(stats.higher_calls, content="0")
+  inspect(stats.static_resolved >= 2, content="true")
+}
+
+///|
+test "p4_closure_uncalled_unannotated_deferred" {
+  // never called: body not walked at all (no phantom unknowns, no double count)
+  let src = "pub fn go() -> Unit { let h = fn(s) { ignore(s.length()) }; ignore(h) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  let stats = IRStatsResult::new()
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  inspect(stats.receiver_unknown, content="0")
+  inspect(stats.receiver_resolved, content="0")
+}
