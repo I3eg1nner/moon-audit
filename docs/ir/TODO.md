@@ -80,6 +80,19 @@
       FP 三目标 0 持平；见 docs/ir/RULES-DSL.md（transfer/其他 sink kind 的边界已记录）
 - [ ] 数据流规则全部配置化（剩余：transfer 规则、其他 sink kind——依赖显式 IR）
 
+## Phase M4-lite：字段敏感堆抽象切片（2026-09-05 A3 完成）
+- [x] 分配点身份：Record 字面量出现处生成 alloc-site（file:line），构造即记录逐字段污点
+- [x] 别名追踪（有限）：let a = b / LetMut / Assign 继承 alloc-site（含 o.g.h 基链）
+- [x] 对象级字段污点表：alloc-site → field → Taint；Mutate 写入、Field 读取
+      （与溯源回退 taint_or 合并——P3 field-write 语义与 config 对照双双保持）
+- [x] TaintedFieldRef(param, field)：参数字段读的条件污点——本地不告警（config 语义），
+      记录 (param,field) 摘要；调用点 apply_param_field_sinks 用 caller 堆事实确认后告警
+- [x] 验收（评审第 4 步口径）：source→对象→跨 2 层调用→sink 单测（emit(resp,w) 读 w.v
+      入 sink；go 构造污染字段后调用 → 调用点告警；clean 字段负对照 0 告警）
+- [x] 既有 170/170 × 4 targets；FP 三目标 0；moon info CI 门干净
+- 诚实边界：无闭包捕获堆、无容器元素敏感、Assign 非对象值保留旧 site（有界近似）、
+  DotApply 方法形态的 param-field 摘要未接线（仅普通 fn 调用）
+
 ## Phase M4 切片（2026-09-04）
 - [x] call-graph 子命令：闭世界 CHA（模块+依赖符号）+ 去虚化索引
       （method → impl self types），caller 追踪入 CallSiteStat

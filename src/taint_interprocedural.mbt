@@ -14,6 +14,10 @@ pub(all) struct FuncTaintSummary {
   // P3: field-write side effects — param r -> [(field, source-param)]
   // (approximation: field name only, no alias/handler precision)
   field_taint : Map[String, Array[(String, String)]]
+  // M4-lite: conditional field sinks — (param, field) pairs where the
+  // function reads `param.field` into a header sink; the CALLER confirms
+  // via the bounded heap model (alloc-site field facts) before reporting
+  param_field_sinks : Array[(String, String)]
 }
 
 ///|
@@ -231,6 +235,7 @@ fn ip_build_summary(
     param_sinks,
     ret_from: [],
     field_taint: Map([]),
+    param_field_sinks: [],
   }
 }
 

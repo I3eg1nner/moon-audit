@@ -838,3 +838,82 @@ test "a2_lib_callback_placeholders" {
   // k : String -> k.length() resolves as a concrete receiver
   inspect(stats.receiver_resolved >= 1, content="true")
 }
+
+// ---------------------------------------------------------------------------
+// M4-lite: bounded heap slice — alloc-site field-sensitive taint
+// ---------------------------------------------------------------------------
+
+///|
+test "m4lite_mutate_then_field_read_via_heap" {
+  // discriminating case: field CLEAN at construction, tainted via Mutate;
+  // only the heap model connects the write to the later read
+  let src = "pub struct W { v : String } fn foo(resp : Response, req : Request) -> Unit { let o = W::{ v: \"\" }; o.v = req.query(\"q\"); resp.set_header(\"X\", o.v) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "t.mbt", src, findings, Error)
+  inspect(findings.length() > 0, content="true")
+}
+
+///|
+test "m4lite_alias_inherits_alloc_site" {
+  // let b = a: alias inherits the alloc-site; field read through the
+  // alias sees the heap fact
+  let src = "pub struct W { v : String } fn foo(resp : Response, req : Request) -> Unit { let a = W::{ v: req.query(\"q\") }; let b = a; resp.set_header(\"X\", b.v) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "t.mbt", src, findings, Error)
+  inspect(findings.length() > 0, content="true")
+}
+
+///|
+test "m4lite_source_to_object_cross_2_layers_to_sink" {
+  // review phase-4 acceptance shape: object built+field tainted in f1,
+  // f2 reads the field into a header sink — alarm fires at the CALL site
+  // via the param-field summary + caller heap facts
+  let emit_src = "pub struct W { v : String } fn emit(resp : Response, w : W) -> Unit { resp.set_header(\"X\", w.v) }"
+  let (emit_impls, _) = @parser.parse_string(emit_src, name="lib.mbt")
+  let ictx = InterProceduralContext::new()
+  collect_func_summaries_flow(emit_impls, "lib.mbt", ictx)
+  inspect(ictx.summaries.contains("emit"), content="true")
+  inspect(
+    ictx.summaries.get("emit") |> unwrap_summary_field_sinks,
+    content="[(w, v)]",
+  )
+  let caller_src = "fn go(resp : Response, req : Request) -> Unit { let o = W::{ v: req.query(\"q\") }; emit(resp, o) }"
+  let (caller_impls, _) = @parser.parse_string(caller_src, name="app.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(caller_impls, "app.mbt", caller_src, findings, Error, ictx~)
+  inspect(findings.length() > 0, content="true")
+  // negative control: clean field at the call site -> conditional sink
+  // NOT confirmed -> no alarm
+  let clean_src = "fn go2(resp : Response) -> Unit { let o = W::{ v: \"static\" }; emit(resp, o) }"
+  let (clean_impls, _) = @parser.parse_string(clean_src, name="app2.mbt")
+  let findings2 : Array[Finding] = []
+  run_cwe113(clean_impls, "app2.mbt", clean_src, findings2, Error, ictx~)
+  inspect(findings2.length(), content="0")
+}
+
+///|
+fn unwrap_summary_field_sinks(s : FuncTaintSummary?) -> String {
+  match s {
+    Some(sum) => {
+      let parts : Array[String] = []
+      for pair in sum.param_field_sinks {
+        parts.push("(" + pair.0 + ", " + pair.1 + ")")
+      }
+      "[" + parts.join(", ") + "]"
+    }
+    None => "none"
+  }
+}
+
+///|
+test "m4lite_config_field_read_stays_silent" {
+  // config-like param field read: no site, no summary consumer -> Clean
+  // (legacy parity preserved under the heap model)
+  let src = "fn foo(ctx : Context, config : Config) -> Unit { ctx.set_header(\"Cache-Control\", config.cache_control) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "t.mbt", src, findings, Error)
+  inspect(findings.length(), content="0")
+}

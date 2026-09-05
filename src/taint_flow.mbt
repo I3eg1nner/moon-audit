@@ -11,6 +11,10 @@ priv enum Taint {
   Clean
   Tainted // tainted, origin unknown (env/param/callback)
   TaintedParam(String) // tainted, originated from this fn parameter
+  // field read of a param-typed receiver: taint is CONDITIONAL on the
+  // caller actually passing an object with a tainted field — no local
+  // finding; recorded as a param-field summary and re-checked at call sites
+  TaintedFieldRef(String, String) // (param, field)
 } derive(Eq)
 
 ///|
@@ -24,6 +28,13 @@ fn taint_or(a : Taint, b : Taint) -> Taint {
       } else {
         Tainted // mixed provenance: keep taint, drop single-param attribution
       }
+    (TaintedFieldRef(p, f), TaintedFieldRef(q, g)) =>
+      if p == q && f == g {
+        TaintedFieldRef(p, f)
+      } else {
+        Tainted
+      }
+    (_, TaintedFieldRef(_, _)) | (TaintedFieldRef(_, _), _) => Tainted
     (_, TaintedParam(p)) => TaintedParam(p)
     (TaintedParam(p), _) => TaintedParam(p)
     _ => Tainted
@@ -52,6 +63,12 @@ fn env_fingerprint(ctx : FlowCtx) -> String {
       Some(TaintedParam(p)) => {
         sb.write_char('P')
         sb.write_string(p)
+      }
+      Some(TaintedFieldRef(p, f)) => {
+        sb.write_char('F')
+        sb.write_string(p)
+        sb.write_char('.')
+        sb.write_string(f)
       }
       None => sb.write_char('_')
     }
@@ -88,6 +105,15 @@ priv struct FlowCtx {
   mut record_returns : Array[String]? // P3: params flowing to return value
   mut record_fields : Array[String]? // P3: "r|field|src-param" field writes
   ictx : InterProceduralContext? // P3: summaries consumed at call sites
+  // bounded heap slice (M4-lite): var -> alloc-site id ("file:line")
+  sites : Map[String, String]
+  // alloc-site -> field -> taint; SHARED across branch copies on purpose:
+  // field facts are monotone (taint only grows), so branch joins are sound
+  heap : Map[String, Map[String, Taint]]
+  // site of the literal just evaluated, consumed at the next binding point
+  mut alloc_result : String?
+  // param-field sink recording channel ("param|field") for summaries
+  mut record_field_sinks : Array[String]?
   taint_rules : TaintRuleset // project DSL entries (ADD to built-ins)
   // CWE-116/tainted-output gate: fires only from DSL/lib-model Output sinks;
   // default enabled (no builtin sink carries kind Output, so projects
@@ -99,7 +125,10 @@ priv struct FlowCtx {
 fn FlowCtx::copy(self : FlowCtx) -> FlowCtx {
   let env : Map[String, Taint] = Map([])
   self.env.each(fn(k, v) { env[k] = v })
-  { ..self, env, }
+  let sites : Map[String, String] = Map([])
+  self.sites.each(fn(k, v) { sites[k] = v })
+  // heap/record channels are Map/Array references: shared by design
+  { ..self, env, sites, alloc_result: None }
 }
 
 // ── entry: analyze one top-level function ─────────────────────────────────
@@ -125,6 +154,10 @@ pub fn run_flow_taint_func(
     record_sinks: None,
     record_returns: None,
     record_fields: None,
+    sites: Map([]),
+    heap: Map([]),
+    alloc_result: None,
+    record_field_sinks: None,
     ictx,
     taint_rules: match rules {
       Some(r) => r
@@ -174,6 +207,10 @@ pub fn run_flow_taint_func_top(
     record_sinks: None,
     record_returns: None,
     record_fields: None,
+    sites: Map([]),
+    heap: Map([]),
+    alloc_result: None,
+    record_field_sinks: None,
     ictx: None,
     taint_rules: match rules {
       Some(r) => r
@@ -185,6 +222,71 @@ pub fn run_flow_taint_func_top(
     },
   }
   let _ = flow(body, ctx)
+}
+
+// ── bounded heap helpers ──────────────────────────────────────────────────
+
+// site for a binding RHS: fresh literal site (consumed) or alias of a var
+
+///|
+fn resolve_binding_site(expr : @syntax.Expr, ctx : FlowCtx) -> String? {
+  let fresh = ctx.alloc_result
+  ctx.alloc_result = None
+  match fresh {
+    Some(s) => Some(s)
+    None =>
+      match expr {
+        Ident(id~, ..) =>
+          match id.name {
+            Ident(name~) => ctx.sites.get(name)
+            Dot(..) => None
+          }
+        Field(record~, ..) =>
+          // o.g.h chain: inherit the base object's site (path-insensitive)
+          resolve_binding_site(record, ctx)
+        _ => None
+      }
+  }
+}
+
+// bind an alloc-site to a pattern's simple Var binders
+
+///|
+fn bind_site_to_pattern(
+  pat : @syntax.Pattern,
+  site : String?,
+  ctx : FlowCtx,
+) -> Unit {
+  match (pat, site) {
+    (Var(binder), Some(s)) => ctx.sites[binder.name] = s
+    (Alias(pat~, alias_~, ..), Some(s)) => {
+      bind_site_to_pattern(pat, site, ctx)
+      ctx.sites[alias_.name] = s
+    }
+    _ => ()
+  }
+}
+
+// field taint of a heap object; None = no fact for this site/field
+
+///|
+fn heap_read(ctx : FlowCtx, site : String, field : String) -> Taint? {
+  match ctx.heap.get(site) {
+    Some(fm) => fm.get(field)
+    None => None
+  }
+}
+
+///|
+fn heap_write(ctx : FlowCtx, site : String, field : String, t : Taint) -> Unit {
+  match ctx.heap.get(site) {
+    Some(fm) => fm[field] = t
+    None => {
+      let fm : Map[String, Taint] = Map([])
+      fm[field] = t
+      ctx.heap[site] = fm
+    }
+  }
 }
 
 // ── structured walk ───────────────────────────────────────────────────────
@@ -253,6 +355,9 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       // tainted in the caller (source-derived provenance so later field
       // reads propagate per the provenance-aware Field rule)
       apply_field_taint_side_effect(func, args, ctx, arg_taint_arr)
+      // M4-lite: conditional field sinks — callee reads `param.field`
+      // into a sink; confirm against this caller's heap field facts
+      apply_param_field_sinks(func, args, ctx, expr)
       let ret = match apply_func_name(func) {
         Some(name) => {
           let is_sink = is_header_setter(name) ||
@@ -471,11 +576,16 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
     Let(pattern~, expr~, body~, ..) => {
       let t = flow(expr, ctx)
       bind_pattern_taint(pattern, t, ctx)
+      bind_site_to_pattern(pattern, resolve_binding_site(expr, ctx), ctx)
       flow(body, ctx)
     }
     LetMut(binder~, expr~, body~, ..) => {
       let t = flow(expr, ctx)
       ctx.env[binder.name] = t
+      match resolve_binding_site(expr, ctx) {
+        Some(s) => ctx.sites[binder.name] = s
+        None => ()
+      }
       flow(body, ctx)
     }
     Sequence(exprs~, last_expr~, ..) => {
@@ -486,10 +596,17 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
     }
     Tuple(exprs~, ..) => fold_taint(exprs, ctx)
     Record(fields~, ..) => {
+      // allocation site: record per-field taint at construction
+      let site = ctx.file + ":" + expr.loc().start.lnum.to_string()
+      let fm : Map[String, Taint] = Map([])
       let mut t = Clean
       for field in fields {
-        t = taint_or(t, flow(field.expr, ctx))
+        let ft = flow(field.expr, ctx)
+        fm[field.label.name] = ft
+        t = taint_or(t, ft)
       }
+      ctx.heap[site] = fm
+      ctx.alloc_result = Some(site)
       t
     }
     RecordUpdate(record~, fields~, ..) => {
@@ -499,18 +616,43 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       }
       t
     }
-    Field(record~, ..) => {
-      // provenance-aware field propagation (review counterexample a):
+    Field(record~, accessor~, ..) =>
+      // precedence 1: heap read — receiver var with a known alloc-site
+      //   (field facts from construction and Mutate writes)
+      // precedence 2: provenance-aware fallback (review counterexample a):
       //   receiver tainted FROM A SOURCE  -> field carries the taint
-      //   receiver tainted AS A DIRECT PARAM (config-like) -> field is a
-      //     configuration read, stays Clean (legacy parity, test c)
-      let t = flow(record, ctx)
-      match t {
-        Tainted => Tainted
-        TaintedParam(_) => Clean
-        Clean => Clean
+      //   receiver tainted AS A DIRECT PARAM (config-like) -> field read
+      //     is CONDITIONAL: no local finding (legacy parity, test c), but
+      //     recorded as (param, field) for call-site re-check
+      match accessor {
+        Label(l) => {
+          let heap_hit : Taint? = match flow_var_name(record) {
+            Some(v) =>
+              match ctx.sites.get(v) {
+                Some(s) => heap_read(ctx, s, l.name)
+                None => None
+              }
+            None => None
+          }
+          // merge: heap fact AND provenance fallback both apply —
+          // e.g. a clean-at-construction field later tainted via a
+          // field-write summary keeps its taint (P3 test parity)
+          let fallback : Taint = {
+            let t = flow(record, ctx)
+            match t {
+              Tainted => Tainted
+              TaintedParam(p) => TaintedFieldRef(p, l.name)
+              Clean => Clean
+              TaintedFieldRef(_, _) => t
+            }
+          }
+          match heap_hit {
+            Some(ft) => taint_or(ft, fallback)
+            None => fallback
+          }
+        }
+        _ => flow(record, ctx)
       }
-    }
     As(expr~, ..) => flow(expr, ctx)
     Mutate(record~, accessor~, field~, ..) => {
       // P3: field-write summary event — `r.f = value` where value carries
@@ -518,6 +660,19 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       // no alias tracking — documented in CONTEXT)
       let base = flow_var_name(record)
       let ft = flow(field, ctx)
+      // bounded heap: record the field fact on the receiver's alloc-site
+      match base {
+        Some(v) =>
+          match ctx.sites.get(v) {
+            Some(s) =>
+              match accessor {
+                Label(l) => heap_write(ctx, s, l.name, ft)
+                _ => ()
+              }
+            None => ()
+          }
+        None => ()
+      }
       match (base, ft) {
         (Some(r), TaintedParam(p)) =>
           match ctx.record_fields {
@@ -567,7 +722,12 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
     RevPipe(lhs~, rhs~, ..) => taint_or(flow(lhs, ctx), flow(rhs, ctx))
     Assign(var_~, expr~, ..) => {
       let t = flow(expr, ctx)
-      ctx.env[longident_str(var_.name)] = t
+      let name = longident_str(var_.name)
+      ctx.env[name] = t
+      match resolve_binding_site(expr, ctx) {
+        Some(s) => ctx.sites[name] = s
+        None => () // stale site kept: bounded approximation (documented)
+      }
       Clean
     }
     Return(return_value~, ..) => {
@@ -1093,6 +1253,77 @@ fn param_index(params : Array[String], name : String) -> Int? {
 // arg_taints are the single-pass flow results in argument order.
 
 ///|
+fn apply_param_field_sinks(
+  func : @syntax.Expr,
+  args : @list.List[@syntax.Argument],
+  ctx : FlowCtx,
+  call_expr : @syntax.Expr,
+) -> Unit {
+  let ictx = match ctx.ictx {
+    Some(i) => i
+    None => return
+  }
+  let name = match apply_func_name(func) {
+    Some(n) => n
+    None => return
+  }
+  let summary = match ictx.summaries.get(name) {
+    Some(s) => s
+    None => return
+  }
+  if summary.param_field_sinks.length() == 0 {
+    return
+  }
+  // positional param index -> argument expression (bounded: positional
+  // args only; labelled lookups follow the same convention as
+  // apply_field_taint_side_effect)
+  let arg_exprs : Array[@syntax.Expr?] = []
+  let mut pos = 0
+  for arg in args {
+    match arg.kind {
+      Labelled(_)
+      | LabelledPun(_)
+      | LabelledOption(..)
+      | LabelledOptionPun(..) => arg_exprs.push(None)
+      _ => {
+        ignore(pos)
+        arg_exprs.push(Some(arg.value))
+        pos += 1
+      }
+    }
+  }
+  for pair in summary.param_field_sinks {
+    let (p, f) = pair
+    let pi = match param_index(summary.params, p) {
+      Some(i) => i
+      None => continue
+    }
+    let arg_e = match (pi < arg_exprs.length(), arg_exprs[pi]) {
+      (true, Some(e)) => e
+      _ => continue
+    }
+    // bounded heap lookup: simple var argument with a known alloc-site
+    match flow_var_name(arg_e) {
+      Some(v) =>
+        match ctx.sites.get(v) {
+          Some(s) =>
+            match heap_read(ctx, s, f) {
+              Some(ft) =>
+                // conditional taint CONFIRMED by the caller's heap fact
+                match ft {
+                  TaintedFieldRef(_, _) => () // still conditional: skip
+                  _ => if is_tainted(ft) { report_cwe113(ctx, call_expr, ft) }
+                }
+              None => ()
+            }
+          None => ()
+        }
+      None => ()
+    }
+  }
+}
+
+///|
 fn apply_field_taint_side_effect(
   func : @syntax.Expr,
   args : @list.List[@syntax.Argument],
@@ -1227,6 +1458,23 @@ fn report_cwe113(ctx : FlowCtx, expr : @syntax.Expr, t : Taint) -> Unit {
     TaintedParam(p) => " (via parameter `" + p + "`)"
     _ => ""
   }
+  // conditional field-ref sink: NO local finding (config-like read);
+  // record (param, field) for call-site re-check via summaries
+  match t {
+    TaintedFieldRef(p, f) => {
+      match ctx.record_field_sinks {
+        Some(arr) => {
+          let entry = p + "|" + f
+          if !arr.contains(entry) {
+            arr.push(entry)
+          }
+        }
+        None => ()
+      }
+      return
+    }
+    _ => ()
+  }
   // M3 summary event: record which parameter reached a header sink
   match t {
     TaintedParam(p) =>
@@ -1349,6 +1597,7 @@ fn collect_summary_func(
   let sinks : Array[String] = []
   let returns : Array[String] = []
   let fields : Array[String] = []
+  let field_sinks : Array[String] = [] // "param|field" conditional sinks
   let ctx : FlowCtx = {
     env: Map([]),
     findings: [],
@@ -1358,6 +1607,10 @@ fn collect_summary_func(
     record_sinks: None,
     record_returns: None,
     record_fields: None,
+    sites: Map([]),
+    heap: Map([]),
+    alloc_result: None,
+    record_field_sinks: None,
     ictx: None,
     taint_rules: TaintRuleset::empty(),
     output_sinks_enabled: true,
@@ -1378,7 +1631,9 @@ fn collect_summary_func(
       }
     None => ()
   }
-  let final_taint = record_param_sinks(body, ctx, sinks, returns, fields)
+  let final_taint = record_param_sinks(
+    body, ctx, sinks, returns, field_sinks, fields,
+  )
   // final-expression return taint (expression-oriented bodies): a body
   // whose value carries param provenance means "param flows to return"
   match final_taint {
@@ -1424,9 +1679,25 @@ fn collect_summary_func(
       }
     }
   }
+  // conditional field sinks: "param|field" -> (param, field) pairs
+  let param_field_sinks : Array[(String, String)] = []
+  for entry in field_sinks {
+    let bar = find_bar(entry)
+    if bar > 0 {
+      let p = Show::to_string(entry[:bar])
+      let f = Show::to_string(entry[bar + 1:])
+      if param_names.contains(p) {
+        let pair = (p, f)
+        if !param_field_sinks.contains(pair) {
+          param_field_sinks.push(pair)
+        }
+      }
+    }
+  }
   if param_sinks.length() > 0 ||
     ret_from.length() > 0 ||
-    field_taint.length() > 0 {
+    field_taint.length() > 0 ||
+    param_field_sinks.length() > 0 {
     ictx.summaries[name] = {
       name,
       file,
@@ -1435,6 +1706,7 @@ fn collect_summary_func(
       param_sinks,
       ret_from,
       field_taint,
+      param_field_sinks,
     }
   }
 }
@@ -1448,15 +1720,18 @@ fn record_param_sinks(
   ctx : FlowCtx,
   sinks : Array[String],
   returns : Array[String],
+  field_sinks : Array[String],
   fields : Array[String],
 ) -> Taint {
   ctx.record_sinks = Some(sinks)
   ctx.record_returns = Some(returns)
   ctx.record_fields = Some(fields)
+  ctx.record_field_sinks = Some(field_sinks)
   let final_taint = flow(expr, ctx)
   ctx.record_sinks = None
   ctx.record_returns = None
   ctx.record_fields = None
+  ctx.record_field_sinks = None
   final_taint
 }
 

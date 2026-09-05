@@ -148,6 +148,11 @@ mocket/petgraph/自举 0 FP；解析率 69%/86%/67%（指标 bug 修复后自举
 - using 导入摄取 + dispatch 边路径（dyn → impl 枚举）落地；deny-warn + 122/122 保持
 
 
+## 2026-09-05 · A3 字段敏感堆切片（终局工作流顺序链第三级）
+- alloc-site/别名/堆读写 + TaintedFieldRef 条件污点 + 调用点确认；170/170 × 4；
+  deny-warn 绿；FP 三目标 0；moon info 干净；验收=评审第 4 步跨 2 层口径（正负对照）
+- 教训：新精度层与旧机制 taint_or 合并而非替换（初版堆读覆盖回退致 P3 测试回归）
+
 ## 2026-09-05 · Phase-3sem：语义修复三连（评审漏报反例全部闭环）
 
 **变更**（src/taint_flow.mbt）

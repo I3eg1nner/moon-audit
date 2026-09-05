@@ -310,6 +310,7 @@ pub(all) struct FuncTaintSummary {
   param_sinks : Map[String, Array[TaintSink]]
   ret_from : Array[String]
   field_taint : Map[String, Array[(String, String)]]
+  param_field_sinks : Array[(String, String)]
 }
 
 pub(all) struct IRStatsResult {
