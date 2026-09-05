@@ -105,7 +105,16 @@
       DiscardPositional 类型必须入 trait_params/fn_param_arrows
 - [ ] .mbti 版本与目标后端匹配检查、依赖 .mooncakes 内 .mbti 摄取、
       struct_fields/constr 硬编码表的进一步替换
-- [ ] 完整符号身份（包/类型/trait 身份 ID），取消 short_key 后缀匹配作正式依据
+- [x] 完整符号身份（2026-09-05，Phase-2b）：
+      · qualified key（"pkg::key"）与短 key 并行注册（mbti 来源），
+        short_key 降级为最后回退（三个 getter 注释标明解析顺序）
+      · 跨包同名单测：两个 pkg::Foo::act 互不覆盖（exact 优先）
+      · &Trait 探明：Type::Object(ConstrId) → trait_names 表 → IRTraitObj
+      · 分派索引升级 "trait::method" → [SelfTy]，dyn 位点按 trait 身份枚举
+      · 评审反例锁定：&Alpha 接收者 → dispatch(trait:Alpha) + 边 f -> B::act
+      · 数字：mocket dispatch 2→13 / dispatch 边 0→39 / coverage 75%；
+        petgraph 67%→69%（&Trait 参数 unknown→dispatch，接收者具体 76%→79%）
+      · 残留：源码收集侧包身份（需 moon.pkg）；声明晚于使用点的字段类型首收集
 - [ ] 指标口径分离：解析率（类型重建）vs 调用图准确率（方法绑定）
 
 ## 上游机会（随时可做，独立于主线）

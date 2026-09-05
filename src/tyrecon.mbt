@@ -25,6 +25,7 @@ pub(all) struct PkgSymbols {
   fn_param_arrows : Map[String, Array[Array[IRType?]]] // fn -> per-param arrow arg types
   alias_arrows : Map[String, Array[IRType?]] // type alias -> arrow param types
   value_types : Map[String, IRType] // const/value name -> declared type (.mbti)
+  trait_names : Map[String, Bool] // declared trait names (local + .mbti)
   type_params : Map[String, Bool] // generic params seen in this package
 }
 
@@ -41,6 +42,7 @@ pub fn PkgSymbols::new() -> PkgSymbols {
     fn_param_arrows: Map([]),
     alias_arrows: Map([]),
     value_types: Map([]),
+    trait_names: Map([]),
     type_params: Map([]),
   }
   // core trait method signatures (Show etc.) for impl param backfill
@@ -155,7 +157,8 @@ pub fn collect_symbols(
           None => ()
         }
       }
-      TopTrait(decl) =>
+      TopTrait(decl) => {
+        symbols.trait_names[decl.name.name] = true
         for m in decl.methods {
           let key = decl.name.name + "::" + m.name.name
           let tys : Array[IRType?] = []
@@ -179,6 +182,7 @@ pub fn collect_symbols(
             None => ()
           }
         }
+      }
       TopUsing(names~, ..) =>
         // `using @pkg.{name, ...}`: unqualified aliases resolve statically
         for pair in names {
@@ -508,7 +512,17 @@ pub fn type_to_ir(ty : @syntax.Type, symbols : PkgSymbols) -> IRType {
     Arrow(..) => IRFn
     Tuple(..) => IRConcrete("Tuple", [])
     Option(ty~, ..) => type_to_ir(ty, symbols)
-    Object(_) => IRUnresolved
+    Object(cid) => {
+      // `&Alpha` parses as Object(ConstrId(Ident("Alpha"))): a reference/
+      // trait-object type. Map to IRTraitObj when Alpha is a declared trait
+      // (local TopTrait or .mbti TraitSig); otherwise stay unresolved.
+      let name = longident_str(cid.id)
+      if symbols.trait_names.contains(name) {
+        IRTraitObj(name)
+      } else {
+        IRUnresolved
+      }
+    }
     Name(constr_id~, tys~, ..) => {
       let name = longident_str(constr_id.id)
       if symbols.type_params.contains(name) {
@@ -1618,12 +1632,18 @@ fn short_key(k : String) -> String {
 }
 
 ///|
-fn get_impl_method(symbols : PkgSymbols, key : String) -> String? {
+pub fn get_impl_method(symbols : PkgSymbols, key : String) -> String? {
+  // resolution order: exact (qualified or short as written) FIRST;
+  // short_key suffix match is a LAST-RESORT fallback for receiver types
+  // whose package prefix is unknown at the call site
   match symbols.impl_methods.get(key) {
     Some(t) => Some(t)
     None => symbols.impl_methods.get(short_key(key))
   }
 }
+
+///|
+// resolution order: exact key first; short_key is a last-resort fallback
 
 ///|
 fn get_struct_fields(
@@ -1638,6 +1658,7 @@ fn get_struct_fields(
 
 ///|
 fn get_fn_ret(symbols : PkgSymbols, key : String) -> IRType? {
+  // resolution order: exact key first; short_key is a last-resort fallback
   match symbols.fn_ret.get(key) {
     Some(t) => Some(t)
     None => symbols.fn_ret.get(short_key(key))
@@ -1731,18 +1752,26 @@ pub fn run_call_graph(root : String, config : Config) -> CallGraph {
     }
   })
   collect_dep_symbols(root, symbols)
-  // method -> self types index (devirtualization table)
+  // devirtualization index keyed by TRAIT IDENTITY ("Trait::method" ->
+  // self types); impl_methods values carry the trait path. A method-name-only
+  // index remains as fallback for sites whose trait identity is unknown.
+  let trait_method_index : Map[String, Array[String]] = Map([])
   let method_index : Map[String, Array[String]] = Map([])
-  symbols.impl_methods.each(fn(key, _trait) {
+  symbols.impl_methods.each(fn(key, trait_path) {
     // key = "SelfTy::method"
     let idx = find_last(key, "::")
     if idx > 0 {
       let mname = Show::to_string(key[idx + 2:])
       let self_ty = Show::to_string(key[:idx])
-      match method_index.get(mname) {
-        Some(arr) => if !arr.contains(self_ty) { arr.push(self_ty) }
-        None => method_index[mname] = [self_ty]
+      let push = fn(table : Map[String, Array[String]], k : String) {
+        match table.get(k) {
+          Some(arr) => if !arr.contains(self_ty) { arr.push(self_ty) }
+          None => table[k] = [self_ty]
+        }
       }
+      push(trait_method_index, trait_path + "::" + mname)
+      push(trait_method_index, short_key(trait_path) + "::" + mname)
+      push(method_index, mname)
     }
   })
   // call sites -> edges
@@ -1758,42 +1787,56 @@ pub fn run_call_graph(root : String, config : Config) -> CallGraph {
   let edges : Array[String] = []
   let dispatch_edges : Array[String] = []
   let unresolved : Array[String] = []
+  // resolve a dispatch site by TRAIT IDENTITY first ("Trait::method"),
+  // then fall back to the method-name-only index
+  let resolve_dispatch = fn(dyn_target : String, caller : String) -> Unit {
+    // dyn_target = "Alpha::act" or "pkg::Alpha::act" (dyn prefix removed)
+    let mname = last_segment(dyn_target)
+    let midx = find_last(dyn_target, "::")
+    let trait_part = if midx > 0 {
+      Show::to_string(dyn_target[:midx])
+    } else {
+      ""
+    }
+    let identity_hit = if trait_part != "" {
+      match trait_method_index.get(trait_part + "::" + mname) {
+        Some(arr) => Some(arr)
+        None => trait_method_index.get(short_key(trait_part) + "::" + mname)
+      }
+    } else {
+      None
+    }
+    match identity_hit {
+      Some(self_tys) =>
+        for st in self_tys {
+          dispatch_edges.push(caller + " -> " + st + "::" + mname)
+        }
+      None =>
+        match method_index.get(mname) {
+          Some(self_tys) =>
+            for st in self_tys {
+              dispatch_edges.push(caller + " -> " + st + "::" + mname)
+            }
+          None => unresolved.push(caller + " -> ?" + mname)
+        }
+    }
+  }
   for site in stats.sites {
     let clean_target = site.target
       .replace(old=" (unconfirmed)", new="")
       .replace(old="?", new="")
     if site.resolved {
       if site.kind == "receiver" && site.target.has_prefix("dyn ") {
-        // trait-object dispatch: enumerate all impls of this method
-        let mname = last_segment(clean_target)
-        match method_index.get(mname) {
-          Some(self_tys) =>
-            for st in self_tys {
-              dispatch_edges.push(site.caller + " -> " + st + "::" + mname)
-            }
-          None => unresolved.push(site.caller + " -> ?" + mname)
-        }
+        // trait-object dispatch: enumerate impls of (trait, method)
+        resolve_dispatch(Show::to_string(clean_target[4:]), site.caller)
       } else {
         edges.push(site.caller + " -> " + clean_target)
       }
     } else if site.target.has_prefix("dyn ") {
-      let mname = last_segment(Show::to_string(site.target[4:]))
-      match method_index.get(mname) {
-        Some(self_tys) =>
-          for st in self_tys {
-            dispatch_edges.push(site.caller + " -> " + st + "::" + mname)
-          }
-        None => unresolved.push(site.caller + " -> ?" + mname)
-      }
+      resolve_dispatch(Show::to_string(site.target[4:]), site.caller)
     } else if site.kind == "receiver" && site.recv_ty.has_prefix("trait:") {
-      let mname = last_segment(clean_target)
-      match method_index.get(mname) {
-        Some(self_tys) =>
-          for st in self_tys {
-            dispatch_edges.push(site.caller + " -> " + st + "::" + mname)
-          }
-        None => unresolved.push(site.caller + " -> ?" + mname)
-      }
+      // receiver typed as a trait object: use its trait identity
+      resolve_dispatch(clean_target, site.caller)
     } else {
       unresolved.push(site.caller + " -> ?")
     }
@@ -1853,12 +1896,21 @@ pub fn collect_mbti_file(path : String, symbols : PkgSymbols) -> Unit {
             self_ty.name + "::" + fname
           None => fname
         }
+        // qualified identity: register "pkg::key" alongside the short key
+        // so cross-package same-name symbols never overwrite each other
+        let qkey = mbti.package_name + "::" + key
         // source wins: .mbti only supplements symbols not already collected
         // from source (module walk runs before this pass)
         if !symbols.fn_exists.contains(key) {
           symbols.fn_exists[key] = true
           symbols.fn_ret[key] = type_to_ir(ret_ty, symbols)
           collect_fn_param_arrows(func_sig.params, key, symbols)
+        }
+        if qkey != key && !symbols.fn_exists.contains(qkey) {
+          symbols.fn_exists[qkey] = true
+          if !symbols.fn_ret.contains(qkey) {
+            symbols.fn_ret[qkey] = type_to_ir(ret_ty, symbols)
+          }
         }
         // impl -> trait join: attach trait identity to "SelfTy::method"
         // when the trait's method set contains this method (local mbti trait
@@ -1952,6 +2004,7 @@ fn collect_mbti_type(sig : @mbti_ast.TypeSig, symbols : PkgSymbols) -> Unit {
 ///|
 fn collect_mbti_trait(sig : @mbti_ast.TraitSig, symbols : PkgSymbols) -> Unit {
   let tname = sig.name.name
+  symbols.trait_names[tname] = true
   for m in sig.methods {
     let key = tname + "::" + m.name.name
     if !symbols.trait_params.contains(key) {

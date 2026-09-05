@@ -168,3 +168,30 @@ mocket/petgraph/自举 0 FP；解析率 69%/86%/67%（指标 bug 修复后自举
 
 **遗留**：.mbti 版本/目标后端匹配检查、.mooncakes 内 .mbti 摄取（当前依赖走源码表）、
 hardcode 表进一步瘦身（留待符号身份阶段）
+
+## 2026-09-05 · phase-2b 符号身份 + &Trait 分派
+
+**探明的 AST 事实**：`&Alpha` 解析为 `Type::Object(ConstrId(Ident("Alpha")))`（非 Name），
+此前 type_to_ir 对 Object 一律 IRUnresolved——评审反例的根因。
+
+**产出**
+- PkgSymbols.trait_names（本地 TopTrait + mbti TraitSig 双源注册）
+- type_to_ir：Object → trait_names 命中 → IRTraitObj
+- mbti 摄取：qualified key（"pkg::key"）与短 key 并行注册；get_impl_method/
+  get_fn_ret/get_struct_fields 注释标明 exact 优先、short_key 仅最后回退
+- run_call_graph：trait_method_index（"trait::method"→[SelfTy]），dyn 位点按
+  (trait, method) 身份解析，method-only 索引降为回退
+- 3 个新测试：&Trait 接收者分类、端到端 dispatch 边、跨包同名不覆盖
+
+**数字（三目标，ir-stats | call-graph）**
+| 目标 | 合并解析率 | dispatch 位点 | dispatch 边 | coverage |
+|---|---|---|---|---|
+| mocket | 74%（持平 p2a） | 2→13 | 0→39 | 74%→75% |
+| 自举 | 86% | 0 | 0 | 86% |
+| petgraph | 67%→69% | 28→30 | 0（回退路径） | 67%→69% |
+（petgraph 接收者具体 76%→79%、unknown 193→164：&Trait 参数从 unknown 转入 dispatch）
+FP 回归：三目标 No issues 持平。132/132 × 4 targets deny-warn 绿。
+
+**残留风险**：trait 声明晚于使用点的源文件，首次收集时 &Trait 字段类型可能已存为
+IRUnresolved（第二遍扫描的参数路径已覆盖，字段表路径未完全覆盖）；
+qualified key 目前仅 mbti 来源（源码收集的包身份需 moon.pkg 信息，留待后续）。

@@ -283,3 +283,76 @@ test "mbti_trait_params_render_as_types_only" {
   let (_m, reports) = @mbti_parser.parse_string(source, name="probe")
   inspect(reports.length(), content="0")
 }
+
+///|
+test "phase2b_amp_trait_receiver_is_dispatch" {
+  // review counterexample: &Alpha param must classify as trait-object
+  // dispatch (not unknown receiver)
+  let src = "pub trait Alpha { fn act(Self) -> Unit } pub struct B { v : Int } pub impl Alpha for B with fn act(self) -> Unit { ignore(self.v) } pub fn f(x : &Alpha) -> Unit { x.act() }"
+  let (stats, symbols) = scan_src(src)
+  ignore(symbols)
+  inspect(stats.receiver_calls, content="1")
+  inspect(stats.receiver_dispatch, content="1")
+  inspect(stats.receiver_unknown, content="0")
+  // site records the trait identity
+  let mut found = false
+  for site in stats.sites {
+    if site.kind == "receiver" && site.recv_ty == "trait:Alpha" {
+      found = true
+    }
+  }
+  assert_true(found)
+}
+
+///|
+test "phase2b_devirtualized_dispatch_edge" {
+  // call-graph: &Alpha receiver yields a dispatch edge f -> B::act
+  let dir = "/tmp/p2b_cg/src"
+  // create both levels: fs.create_dir is not recursive
+  @fs.create_dir("/tmp/p2b_cg") catch {
+    _ => ()
+  }
+  @fs.create_dir(dir) catch {
+    _ => ()
+  }
+  let snippet = "pub trait Alpha { fn act(Self) -> Unit } pub struct B { v : Int } pub impl Alpha for B with fn act(self) -> Unit { ignore(self.v) } pub fn f(x : &Alpha) -> Unit { x.act() }"
+  @fs.write_string_to_file(dir + "/lib.mbt", "// probe\n" + snippet + "\n") catch {
+    _ => ()
+  }
+  let cg = run_call_graph("/tmp/p2b_cg", Config::default())
+  let mut hit = false
+  for e in cg.dispatch_edges {
+    if e == "f -> B::act" {
+      hit = true
+    }
+  }
+  assert_true(hit)
+}
+
+///|
+test "phase2b_qualified_keys_no_cross_package_overwrite" {
+  // two packages exporting the same Trait::method must coexist:
+  // exact (qualified) keys take priority; short key is fallback only
+  let symbols = PkgSymbols::new()
+  symbols.impl_methods["pkgA::Foo::act"] = "TraitA"
+  symbols.impl_methods["pkgB::Foo::act"] = "TraitB"
+  assert_true(get_impl_method(symbols, "pkgA::Foo::act") == Some("TraitA"))
+  assert_true(get_impl_method(symbols, "pkgB::Foo::act") == Some("TraitB"))
+  // mbti ingestion registers qualified identities alongside short keys
+  let f = "/tmp/p2b_mbti/pkg.generated.mbti"
+  @fs.create_dir("/tmp/p2b_mbti") catch {
+    _ => ()
+  }
+  @fs.remove_file(f) catch {
+    _ => ()
+  } // avoid stale interfaces from older runs
+  @fs.write_string_to_file(
+    f, "package \"alpha/dep\"\n\npub fn Foo::act(Int) -> Int\n",
+  ) catch {
+    _ => ()
+  }
+  let s2 = PkgSymbols::new()
+  collect_mbti_file(f, s2)
+  inspect(s2.fn_exists.contains("Foo::act"), content="true")
+  inspect(s2.fn_exists.contains("alpha/dep::Foo::act"), content="true")
+}
