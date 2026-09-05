@@ -56,11 +56,6 @@
 - [x] 验收：跨函数路径（handler→set_custom 污点参数→sink）端到端测试通过
 - [ ] 摘要扩展：return/field 流（HeaderValue 之外），依赖 M4 call graph 定位 callee body
 
-## Phase M3：bottom-up 摘要
-- [ ] FuncSummary（param taint in → return/field/sink out）
-- [ ] 替换 taint_interprocedural.mbt 文本摘要，API 不变
-- [ ] 验收：跨 2 层调用污点路径可追踪
-
 ## Phase M4：指针分析 + call graph（含动态真值验收）
 - [ ] Andersen subset constraints + worklist（若范围需裁剪，在 CONTEXT.md 记录理由）
 - [ ] 闭世界去虚化（枚举模块+依赖源码全部 impl Trait for T）

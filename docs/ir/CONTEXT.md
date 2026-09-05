@@ -216,3 +216,43 @@ FP 回归：三目标 No issues 持平。132/132 × 4 targets deny-warn 绿。
 **残留风险**：trait 声明晚于使用点的源文件，首次收集时 &Trait 字段类型可能已存为
 IRUnresolved（第二遍扫描的参数路径已覆盖，字段表路径未完全覆盖）；
 qualified key 目前仅 mbti 来源（源码收集的包身份需 moon.pkg 信息，留待后续）。
+
+## 2026-09-05 · Phase-2+3 集成完成（integrate lane 收口）
+
+**验证矩阵**：moon fmt 无 diff；moon check --target all --deny-warn 绿；
+moon test --target all --deny-warn **136/136 × 4 targets**；工作区 clean 提交。
+
+**三目标最终数字**（scan / ir-stats / call-graph）
+
+| 目标 | findings | 合并解析率 | 静态(解析/总数) | 接收者具体/dispatch/unknown | 直接边 | dispatch 边 | coverage |
+|---|---|---|---|---|---|---|---|
+| mocket | 0 | 74% (1412/1906) | 792/1031 (76%) | 620/13/204 | 1,412 | 39 | 75% |
+| 自举 | 0 | 86% (3125/3629) | 1374/1602 (85%) | 1751/0/268 | 3,125 | 0 | 86% |
+| petgraph | 0 | 69% (1003/1449) | 258/472 (54%) | 745/30/164 | 1,003 | 0（回退路径） | 69% |
+
+对比集成前：mocket 72%→74%（.mbti 摄取 +2）、dispatch 位点 2→13 且产出 39 条
+去虚化边（&Trait 身份分派）；petgraph 67%→69%、unknown 193→164（&Trait 转 dispatch）。
+FP 三目标持平全零。
+
+**评审门 P2 修复**：README 测试数 122→136；TODO 重复的 M3 空段清除。
+评审门结论：静态 PASS（136 测试已锁定全部反例等价形态）；本条目即其 runbook
+的运行时执行记录（三命令全绿 + 三目标指标复测）。
+
+**Phase-2+3 达成判定**：
+- 五步路线第 1 步（语义与指标修正）：完成——评审反例 5/5 修复且有单测锁定
+- 第 2 步（统一程序模型）：核心完成——.mbti 官方摄取（Func/Type/Trait/Impl/Const）、
+  qualified+短 key 双注册、&Trait 类型化分派；残留：源码侧包身份（需 moon.pkg）、
+  版本/后端匹配检查、硬编码表进一步瘦身
+- 第 3 步（显式 HIR/CFG+摘要）：语义修复完成（字段溯源/循环不动点/defer 顺序），
+  显式 BlockIr/工作队列未做——结构化遍历+受限不动点已达当前验收，
+  SCC 递归摘要与 return/field 摘要归入下一里程碑
+
+**下一里程碑清单（按序）**
+1. 显式 HIR/CFG（BlockIr + worklist 不动点 + SCC 递归摘要 + return/field 摘要）
+2. 源码侧包身份（moon.pkg 解析 → qualified key 全覆盖）+ .mbti 版本/后端 guard
+3. source/sink/transfer/sanitizer 配置化（JSON，评审建议提前）
+4. 指针分析协同（分配点堆抽象；先比较调用点敏感 vs 上下文无关，不预设 2-obj）
+5. 验收体系：TP/FP/FN 分记 harness（scripts/regression.sh 已备）、动态调用边插桩、
+   缓存失效 key 扩展（接口/后端/解析器版本/库模型/被调摘要）
+6. 21 项目语料全量回归 + 推送远端 CI + mooncakes 发布 v0.3.x
+7. 上游 PR：docs/ir/upstream/dump-core-sexp.patch（已起草，待 OCaml 环境编译验证）
