@@ -24,6 +24,7 @@ pub(all) struct PkgSymbols {
   trait_params : Map[String, Array[IRType?]] // "Trait::m" -> declared param types
   fn_param_arrows : Map[String, Array[Array[IRType?]]] // fn -> per-param arrow arg types
   alias_arrows : Map[String, Array[IRType?]] // type alias -> arrow param types
+  value_types : Map[String, IRType] // const/value name -> declared type (.mbti)
   type_params : Map[String, Bool] // generic params seen in this package
 }
 
@@ -39,6 +40,7 @@ pub fn PkgSymbols::new() -> PkgSymbols {
     trait_params: Map([]),
     fn_param_arrows: Map([]),
     alias_arrows: Map([]),
+    value_types: Map([]),
     type_params: Map([]),
   }
   // core trait method signatures (Show etc.) for impl param backfill
@@ -219,7 +221,8 @@ fn collect_fn_param_arrows(
   let per_param : Array[Array[IRType?]] = []
   for param in params {
     match param {
-      Positional(ty~, ..) | Labelled(ty~, ..) =>
+      // DiscardPositional: mbti params arrive anonymous but still typed
+      Positional(ty~, ..) | Labelled(ty~, ..) | DiscardPositional(ty~, ..) =>
         match ty {
           Some(Arrow(args~, ..)) => {
             let arrow_tys : Array[IRType?] = []
@@ -972,7 +975,12 @@ fn const_type(c : @syntax.Constant) -> IRType {
 ///|
 fn lookup_ident(id : @syntax.LongIdent, ctx : ScanCtx) -> IRType {
   match id {
-    Ident(name~) => or_unresolved(ctx.env.get(name))
+    Ident(name~) =>
+      // local binding first, then .mbti-declared const/value types
+      match ctx.env.get(name) {
+        Some(t) => t
+        None => or_unresolved(ctx.symbols.value_types.get(name))
+      }
     Dot(..) => IRUnresolved
   }
 }
@@ -1202,13 +1210,17 @@ fn infer_dot_apply(
     IRConcrete(name, _) => {
       let key = name + "::" + mname
       ctx.last_key = key
-      let confirmed = get_impl_method(ctx.symbols, key) != None
       record_site_recv(ctx, recv, true, key, name)
       ctx.stats.receiver_resolved += 1
-      let base = if confirmed {
-        or_unresolved(get_fn_ret(ctx.symbols, key))
-      } else {
-        or_unresolved(builtin_method_ret(name, mname))
+      // symbols first (source + .mbti + dep tables, short_key fallback);
+      // the builtin hardcoding table stays as last resort only
+      let base = match get_fn_ret(ctx.symbols, key) {
+        Some(t) =>
+          match t {
+            IRUnresolved => or_unresolved(builtin_method_ret(name, mname))
+            _ => t
+          }
+        None => or_unresolved(builtin_method_ret(name, mname))
       }
       match base {
         IRConcrete("__arraymap__", _) =>
@@ -1801,9 +1813,38 @@ pub fn collect_mbti_file(path : String, symbols : PkgSymbols) -> Unit {
   if reports.length() > 0 {
     return // unparseable interface: skip conservatively
   }
+  // Pre-pass A: local trait -> method-name sets (for impl -> trait join)
+  let trait_methods : Map[String, Map[String, Bool]] = Map([])
+  // Pre-pass B: impl relations (self type short name -> trait name)
+  let impl_relations : Array[(String, String)] = []
+  for pair in mbti.sigs {
+    match pair.0 {
+      Trait(t) => {
+        let mset : Map[String, Bool] = Map([])
+        for m in t.methods {
+          mset[m.name.name] = true
+        }
+        trait_methods[t.name.name] = mset
+      }
+      Impl(i) => {
+        let self_short = match i.type_ {
+          Name(constr_id~, ..) => short_key(longident_str(constr_id.id))
+          _ => ""
+        }
+        if self_short != "" {
+          impl_relations.push((self_short, longident_str(i.trait_name.name)))
+        }
+      }
+      _ => ()
+    }
+  }
   for pair in mbti.sigs {
     match pair.0 {
       Func(func_sig) => {
+        // register generics first so signature types map to IRTypeParam
+        for tp in func_sig.type_params {
+          symbols.type_params[tp.name.name] = true
+        }
         let fname = func_sig.name.name
         let (ret_ty, _) = func_sig.return_
         let key = match func_sig.type_name {
@@ -1812,11 +1853,131 @@ pub fn collect_mbti_file(path : String, symbols : PkgSymbols) -> Unit {
             self_ty.name + "::" + fname
           None => fname
         }
-        symbols.fn_exists[key] = true
-        symbols.fn_ret[key] = type_to_ir(ret_ty, symbols)
-        collect_fn_param_arrows(func_sig.params, key, symbols)
+        // source wins: .mbti only supplements symbols not already collected
+        // from source (module walk runs before this pass)
+        if !symbols.fn_exists.contains(key) {
+          symbols.fn_exists[key] = true
+          symbols.fn_ret[key] = type_to_ir(ret_ty, symbols)
+          collect_fn_param_arrows(func_sig.params, key, symbols)
+        }
+        // impl -> trait join: attach trait identity to "SelfTy::method"
+        // when the trait's method set contains this method (local mbti trait
+        // or a trait already collected from source)
+        match func_sig.type_name {
+          Some(self_ty) =>
+            if !symbols.impl_methods.contains(key) {
+              for relation in impl_relations {
+                let (impl_self, impl_trait) = relation
+                if impl_self == short_key(self_ty.name) {
+                  let trait_key = impl_trait + "::" + fname
+                  let in_local_trait = match trait_methods.get(impl_trait) {
+                    Some(mset) => mset.contains(fname)
+                    None => false
+                  }
+                  if in_local_trait || symbols.trait_params.contains(trait_key) {
+                    symbols.impl_methods[key] = impl_trait
+                    break
+                  }
+                }
+              }
+            }
+          None => ()
+        }
       }
+      Type(type_sig) => collect_mbti_type(type_sig, symbols)
+      Trait(trait_sig) => collect_mbti_trait(trait_sig, symbols)
+      Impl(_) => () // handled via the join above
+      Const(const_sig) =>
+        if !symbols.value_types.contains(const_sig.name.name) {
+          symbols.value_types[const_sig.name.name] = type_to_ir(
+            const_sig.type_,
+            symbols,
+          )
+        }
+      Value(value_sig) =>
+        if !symbols.value_types.contains(value_sig.name.name) {
+          symbols.value_types[value_sig.name.name] = type_to_ir(
+            value_sig.type_,
+            symbols,
+          )
+        }
       _ => ()
+    }
+  }
+}
+
+// TypeSig: struct fields / constructors into the shared tables.
+// Registered under both the declared name and its short_key form.
+
+///|
+fn collect_mbti_type(sig : @mbti_ast.TypeSig, symbols : PkgSymbols) -> Unit {
+  let tycon = sig.name.name
+  for tp in sig.type_params {
+    match tp {
+      Name(n) => symbols.type_params[n.name] = true
+      Underscore(_) => ()
+    }
+  }
+  match sig.components {
+    Record(fields~) =>
+      if !symbols.struct_fields.contains(tycon) {
+        let field_map : Map[String, IRType] = Map([])
+        for field in fields {
+          field_map[field.name.label] = type_to_ir(field.ty, symbols)
+        }
+        symbols.struct_fields[tycon] = field_map
+        let short = short_key(tycon)
+        if short != tycon && !symbols.struct_fields.contains(short) {
+          symbols.struct_fields[short] = field_map
+        }
+      }
+    Variant(constrs) => collect_constrs(constrs, tycon, symbols)
+    ExtensibleEnum(constrs) => collect_constrs(constrs, tycon, symbols)
+    ExtendEnum(constructors~, ..) =>
+      for c in constructors {
+        if !symbols.constructors.contains(c.name.name) {
+          symbols.constructors[c.name.name] = tycon
+        }
+      }
+    TupleStruct(_) =>
+      if !symbols.constructors.contains(tycon) {
+        symbols.constructors[tycon] = tycon
+      }
+    Newtype(_) | Alias(_) | Error(_) | Abstract => ()
+  }
+}
+
+// TraitSig: method signatures -> trait_params ("Trait::method" keys)
+
+///|
+fn collect_mbti_trait(sig : @mbti_ast.TraitSig, symbols : PkgSymbols) -> Unit {
+  let tname = sig.name.name
+  for m in sig.methods {
+    let key = tname + "::" + m.name.name
+    if !symbols.trait_params.contains(key) {
+      let tys : Array[IRType?] = []
+      for param in m.params {
+        match param {
+          // mbti renders params as TYPES ONLY: they arrive as
+          // DiscardPositional(ty=Some(..)) — the type still flows to this
+          // position for impl-param backfill
+          Positional(ty~, ..)
+          | Labelled(ty~, ..)
+          | DiscardPositional(ty~, ..) =>
+            tys.push(
+              match ty {
+                Some(t) => Some(type_to_ir(t, symbols))
+                None => None
+              },
+            )
+          _ => tys.push(None)
+        }
+      }
+      symbols.trait_params[key] = tys
+      let (ret_ty, _) = m.return_
+      if !symbols.fn_ret.contains(key) {
+        symbols.fn_ret[key] = type_to_ir(ret_ty, symbols)
+      }
     }
   }
 }

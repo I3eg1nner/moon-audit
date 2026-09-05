@@ -181,3 +181,105 @@ test "phase2_mbti_ingestion" {
   scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
   inspect(stats.static_resolved, content="1")
 }
+
+///|
+test "phase2a_mbti_type_trait_impl_ingestion" {
+  // full ingestion: struct fields (Type), method set (Trait), and the
+  // impl->trait join (Impl + method FuncSig), all from an interface file
+  let src = "pub fn go(h : Holder) -> Int { h.payload.token().length() }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  let dir = "/tmp/mbti_p2a"
+  @fs.create_dir(dir) catch {
+    _ => ()
+  }
+  let f = dir + "/pkg.generated.mbti"
+  @fs.write_string_to_file(
+    f, "package \"x/y\"\n\npub struct Holder {\n  payload : Token2\n}\n\npub trait Tokenizer {\n  fn token(Self) -> String\n}\n\npub impl Tokenizer for Token2\n\npub fn Token2::token(Self) -> String\n",
+  ) catch {
+    _ => ()
+  }
+  collect_mbti_file(f, symbols)
+  // Type ingestion: struct fields registered
+  inspect(symbols.struct_fields.contains("Holder"), content="true")
+  // Impl + Func join: trait identity attached to "SelfTy::method"
+  inspect(symbols.impl_methods.contains("Token2::token"), content="true")
+  // (a) chain resolution through mbti struct field + mbti method signature:
+  // Holder -> payload : Token2 -> token() : String -> length() : Int
+  let stats = IRStatsResult::new()
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  inspect(stats.receiver_resolved, content="2")
+  inspect(stats.receiver_unknown, content="0")
+}
+
+///|
+test "phase2a_mbti_trait_backfill_and_const" {
+  // (b) impl body params backfilled from a trait declared ONLY in .mbti;
+  // plus Const/Value ingestion feeding local type reconstruction
+  let src = "pub struct Box3 { v : Int } pub impl Writer2 for Box3 with fn output(self, buf) -> Unit { buf.write_string(self.v.to_string()) } pub fn use_limit() -> String { let x = limit; x.to_string() }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  let dir = "/tmp/mbti_p2b"
+  @fs.create_dir(dir) catch {
+    _ => ()
+  }
+  let f = dir + "/pkg.generated.mbti"
+  @fs.write_string_to_file(
+    f, "package \"x/y\"\n\npub trait Writer2 {\n  fn output(Self, String) -> Unit\n}\n\npub let limit : Int\n",
+  ) catch {
+    _ => ()
+  }
+  collect_mbti_file(f, symbols)
+  inspect(symbols.trait_params.contains("Writer2::output"), content="true")
+  inspect(symbols.value_types.contains("limit"), content="true")
+  let stats = IRStatsResult::new()
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  // buf : String (backfilled), self.v : Int field, x : Int (const value type)
+  inspect(stats.receiver_resolved, content="3")
+  inspect(stats.receiver_unknown, content="0")
+}
+
+///|
+test "phase2a_mbti_source_wins" {
+  // conflict rule: symbols collected from source take precedence;
+  // .mbti only supplements what is missing
+  let symbols = PkgSymbols::new()
+  // pre-seed as the source pass would
+  symbols.fn_exists["conflicted"] = true
+  symbols.fn_ret["conflicted"] = IRType::IRConcrete("Source", [])
+  let dir = "/tmp/mbti_p2c"
+  @fs.create_dir(dir) catch {
+    _ => ()
+  }
+  let f = dir + "/pkg.generated.mbti"
+  @fs.write_string_to_file(
+    f, "package \"x/y\"\n\npub fn conflicted() -> MbtiType\n\npub fn only_in_mbti() -> Int\n",
+  ) catch {
+    _ => ()
+  }
+  collect_mbti_file(f, symbols)
+  inspect(
+    symbols.fn_ret.get("conflicted") == Some(IRType::IRConcrete("Source", [])),
+    content="true",
+  )
+  inspect(symbols.fn_exists.contains("only_in_mbti"), content="true")
+}
+
+///|
+test "mbti_trait_params_render_as_types_only" {
+  // regression guard: mbti trait methods render params as TYPES ONLY
+  // (names are erased in interfaces); named params are a parse error
+  @fs.create_dir("/tmp/mbti_dbg") catch {
+    _ => ()
+  }
+  @fs.write_string_to_file(
+    "/tmp/mbti_dbg/pkg.generated.mbti", "package \"x/y\"\n\npub trait Writer2 {\n  fn output(Self, String) -> Unit\n}\n\npub let limit : Int\n",
+  ) catch {
+    _ => ()
+  }
+  let source = @fs.read_file_to_string("/tmp/mbti_dbg/pkg.generated.mbti") catch {
+    _ => ""
+  }
+  let (_m, reports) = @mbti_parser.parse_string(source, name="probe")
+  inspect(reports.length(), content="0")
+}

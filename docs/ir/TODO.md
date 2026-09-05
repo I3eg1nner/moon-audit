@@ -96,8 +96,15 @@
 - [x] .mbti 摄取切片：mbti_parser 官方解析，FuncSig（含 SelfTy::method）注册
       fn_exists/fn_ret/fn_param_arrows；递归扫描项目 .mbti（moon info 产物）；
       单测锁定"接口签名成为可解析静态目标"；自举 3,057→3,067 边
-- [ ] .mbti 完整摄取：Type/Trait/Impl/Const Sig、版本与目标后端匹配检查、
-      逐步替换 builtin_method_ret/struct_fields 硬编码
+- [x] .mbti 完整摄取（2026-09-05，Phase-2a）：Type（struct 字段/构造器，双 key 注册）、
+      Trait（方法签名→trait_params）、Impl+方法 FuncSig 联合 join（impl→trait 身份）、
+      Const/Value（value_types 新表，lookup_ident 消费）；
+      源码优先规则（mbti 仅补充，guard + 测试锁定）；
+      builtin_method_ret 降为最后回退（符号表先行）
+      —— mbti 事实：参数渲染为纯类型（匿名 DiscardPositional），命名参数是解析错误；
+      DiscardPositional 类型必须入 trait_params/fn_param_arrows
+- [ ] .mbti 版本与目标后端匹配检查、依赖 .mooncakes 内 .mbti 摄取、
+      struct_fields/constr 硬编码表的进一步替换
 - [ ] 完整符号身份（包/类型/trait 身份 ID），取消 short_key 后缀匹配作正式依据
 - [ ] 指标口径分离：解析率（类型重建）vs 调用图准确率（方法绑定）
 

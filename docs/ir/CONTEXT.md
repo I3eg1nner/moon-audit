@@ -138,3 +138,33 @@ mocket/petgraph/自举 0 FP；解析率 69%/86%/67%（指标 bug 修复后自举
 - 复用链：Core_format.import → dump_serialized_from_t → S.print / Io.write_s（全部现成）
 - 设计决策：OCaml Arg 不支持可选值 → 显式 FILE 参数 + '-'=stdout（README 记录理由）
 - 局限：本环境无 opam/dune/ocaml，未编译验证；静态核对签名表见 upstream/README.md
+
+## 2026-09-05 · Phase-2a：.mbti 完整摄取（subagent lane 执行）
+
+**产出**（src/tyrecon.mbt + 3 个新单测）
+- collect_mbti_file 完整化：Type(TypeSig→struct_fields 双 key/constructors/constr_params)、
+  Trait(TraitSig→trait_params "Trait::method")、Impl(ImplSig 与方法 FuncSig 联合 join →
+  impl_methods 的 trait 身份，判定条件=本地 trait 方法集 ∪ 源码 trait_params)、
+  Const/Value(→新表 value_types，lookup_ident 消费)
+- 源码优先规则：mbti 仅补充缺失符号（fn_exists/trait_params/struct_fields/
+  value_types 全部带 !contains guard），phase2a_mbti_source_wins 测试锁定
+- builtin_method_ret 降级为最后回退：接收者方法返回类型先查 get_fn_ret
+  （源码+.mbti+依赖，short_key 回退），未命中才走 builtin 表
+- FuncSig/TraitSig 泛型参数注册进 type_params（签名类型可映射 IRTypeParam）
+
+**关键 mbti 事实（新教训）**
+- mbti 的参数渲染为**纯类型**（`fn output(Self, String)`），命名参数（`s : String`）
+  是解析错误 → 整文件被保守跳过
+- 匿名参数解析为 **DiscardPositional(ty=Some(..))**——trait_params/fn_param_arrows
+  的收集必须覆盖该形态，否则 mbti trait 参数回填静默失效（本任务实测踩中）
+
+**验收数字**（ir-stats 合并解析率，二进制重建后）
+| 目标 | 前 | 后 |
+|---|---|---|
+| /data/my/mocket | 72% (1389/1906) | **74% (1412/1906)** |
+| moon-audit 自举 | 86% (3067/3560) | **86% (3102/3596)** |
+- FP 持平：mocket/自举/petgraph 扫描均 No issues
+- moon test --target all --deny-warn：129/129 × 4 targets
+
+**遗留**：.mbti 版本/目标后端匹配检查、.mooncakes 内 .mbti 摄取（当前依赖走源码表）、
+hardcode 表进一步瘦身（留待符号身份阶段）
