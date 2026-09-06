@@ -1,0 +1,28 @@
+{
+  "sources": [
+    {
+      "method": "input",
+      "kind": "QueryParam"
+    },
+    {
+      "method": "query",
+      "kind": "QueryParam"
+    },
+    {
+      "method": "step",
+      "kind": "QueryParam"
+    }
+  ],
+  "sinks": [
+    {
+      "method": "sink",
+      "kind": "HeaderValue",
+      "value_slot": 0
+    },
+    {
+      "method": "emit",
+      "kind": "HeaderValue",
+      "value_slot": 0
+    }
+  ]
+}

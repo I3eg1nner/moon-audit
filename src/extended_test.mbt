@@ -608,3 +608,88 @@ test "v1_tuple_component_clean_no_report" {
   run_cwe113(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() == 0)
 }
+
+// ---------------------------------------------------------------------------
+// T2 first batch: scope ids / single-evaluation / direct raise payload
+// ---------------------------------------------------------------------------
+
+///|
+test "t2_scope_closure_param_no_longer_clobbers_outer_var" {
+  // G2 same-name: the closure param `v` lives in its OWN scope; the outer
+  // tainted `v` survives the closure body (flat-env engines restored the
+  // outer binding to Clean after the closure — a known miss)
+  let source = "pub fn go(resp : Response, req : Request) -> Unit { let v = req.query(\"q\"); let f = fn(v : String) -> Unit { ignore(v) }; f(\"x\"); resp.set_header(\"X\", v) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "t2_scope_branch_binding_does_not_leak" {
+  // a branch-local binding stays branch-local: after the if, the outer
+  // `h` (constant) is still clean even though the then-branch bound a
+  // same-name tainted value in its own scope
+  let source = "pub fn go(resp : Response, c : Bool, req : Request) -> Unit { let h = \"safe\"; if c { let h = req.query(\"q\"); ignore(h) } else { () }; resp.set_header(\"X\", h) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "t2_single_eval_sink_arg_reported_exactly_once" {
+  // G2 double evaluation: the value-slot argument contains a nested sink
+  // call; single-evaluation contract => exactly ONE finding (the inner
+  // report). Re-flowing args would report it twice.
+  let source = "pub fn go(resp : Response, req : Request) -> Unit { resp.set_header(\"X\", resp.set_header(\"Y\", req.query(\"q\"))) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  inspect(findings.length(), content="1")
+}
+
+///|
+test "t2_raise_direct_payload_alerts_in_catch" {
+  // G3: raise Bad(query()) — the payload taint flows directly to the
+  // catch binding (no temp variable needed)
+  let source = "pub fn go(resp : Response, req : Request) -> Unit { try { raise Bad(req.query(\"q\")) } catch { Bad(v) => resp.set_header(\"X\", v) } }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "t2_raise_temp_var_version_behaves_identically" {
+  // equivalence rewrite: storing the payload in a temp variable first
+  // must produce the SAME alert (review: equivalent rewrites may not
+  // change analysis facts)
+  let source = "pub fn go(resp : Response, req : Request) -> Unit { let t = req.query(\"q\"); try { raise Bad(t) } catch { Bad(v) => resp.set_header(\"X\", v) } }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "t2_tuple_component_projection_via_field" {
+  // C1 (G2): let pair = (tainted, "safe"); sink(pair.1) must stay SILENT —
+  // the Index projection reads the exact recorded component
+  let source = "pub fn go(resp : Response, req : Request) -> Unit { let pair = (req.query(\"q\"), \"safe\"); resp.set_header(\"X\", pair.1) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "t2_tuple_component_zero_still_tainted" {
+  // negative control: the FIRST component stays tainted (projection is
+  // positional, not blanket)
+  let source = "pub fn go(resp : Response, req : Request) -> Unit { let pair = (req.query(\"q\"), \"safe\"); resp.set_header(\"X\", pair.0) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}

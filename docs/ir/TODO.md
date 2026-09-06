@@ -105,6 +105,23 @@
 - [ ] M1 完成线（接收者 ≥90%）：剩余 = 闭包二级传播 + FFI（extern stub 签名摄取可部分救回）
 - [ ] Andersen 约束图 / 闭包分配点建模 / coverage 动态真值验收（M4 完整验收）  【需外部环境: 运行时插桩基建（coverage 工具仅测分支覆盖）】
 
+## Phase T2 first batch（2026-09-05，第四轮评审 G1-G3 结构修复）
+- [x] T2.1 变量身份：作用域栈（函数/闭包/If/Match/Try/Guard/While 体压栈），
+      env 键 = "s<id>:<name>"，内层优先查找、新绑定遮蔽、赋值回写定义域槽位
+      ——闭包参数不再覆写外层同名变量（回归测试锁定）
+- [x] T2.1 单次求值：实参 taint 一次性收集为 (kind, taint) 对，sink 槽位选择
+      为纯函数（value_taint_at）；删除 header_value_taint 重复流；
+      嵌套 sink 精确一次（findings==1 测试锁定）
+- [x] T2.3 Raise 直接载荷：raise 的值 taint 入共享缓冲，Try 主路径消费
+      （env 并集降级为保守补充）；直接版与临时变量版行为一致（测试锁定）
+- [x] T2.3 有界值结构切片：let v=(a,b,...) 记录分量表（作用域键），
+      v.1 按位投影——C1 反例（(污点,"safe") 第二分量）转静默
+- [x] tests/cases 观察：DSL（value_slot=0）使 mock sink 可观测；
+      C1 静默/C2 恰一次/C3 告警×2/C4 告警（C5-C8 为 T2.2+/T3 已知缺口）
+- [x] 验收：191/191 native；FP 三目标 0；deny-warn 绿
+- [ ] T2.2 完整控制流（defer 各退出路径/短路）、T2.3 完整结构化值（enum 载荷
+      投影、容器元素、闭包捕获槽）——见 ROADMAP-T
+
 ## Phase M2.6：二次评审整改（2026-09-04）
 - [x] 安全缺陷修复：replace_all 的 old/new 槽位语义（new 含 CRLF = 引入危险 → 毒化链，
       永不判安全）；对抗测试锁定（引入型必报 / old 槽双覆盖链仍安全）

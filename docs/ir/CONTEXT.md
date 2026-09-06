@@ -558,3 +558,17 @@ m4lite_source_to_object_cross_2_layers_to_sink）+ 已知保守界条目 + TODO:
 
 **残余**：Match scrutinee 元组解构仍整体绑定（保守，过报方向）；err_t 形参并集
 保守界（HIR/CFG"按位投影"消解）；IRFn 参数化与回调完整求解列 M5。
+
+## 2026-09-05 · T2 首批（G1-G3）：作用域身份 + 单次求值 + Raise 直接载荷
+
+- FlowCtx 新增 scope_stack（分支副本独立）/scope_counter（共享引用保证 id 唯一）/
+  raise_buffer（共享）/tuple_comps（分支副本）；全部 env 读写改经 env_bind/
+  env_assign/env_lookup（键 "s<id>:<name>"，内层优先）
+- 单次求值：flow_args_pairs 一次流 + value_taint_at 纯选择；删除旧
+  header_value_taint（其重复流曾使嵌套 sink 双报）
+- Raise 载荷主路径 + env 并集保守补充；Try 体/catch/noraise 各自压栈
+- 有界值结构：元组字面量分量表 + Field Index 投影（C1 转绿）
+- 实现教训：闭包参数旧实现"事后置 Clean"会清掉外层同名污点变量（漏报根因），
+  作用域栈天然消除该类 save/restore 错误；调试期间一次"编译失败+旧二进制"
+  造成误判（hit=Y 却以为仍在报），build tail 必须确认成功再下结论
+- 验收：191/191 × native；FP 三目标 0；tests/cases C1/C2/C3 全部按期望

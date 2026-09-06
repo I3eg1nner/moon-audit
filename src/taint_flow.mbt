@@ -112,6 +112,19 @@ priv struct FlowCtx {
   heap : Map[String, Map[String, Taint]]
   // site of the literal just evaluated, consumed at the next binding point
   mut alloc_result : String?
+  // T2.1 scope identity: env keys are "<scope-id>:<name>"; the stack is
+  // per-ctx (branch copies are independent), the counter is a shared box
+  // so ids stay unique across sibling branches
+  scope_stack : Array[Int]
+  scope_counter : Array[Int]
+  // T2.3 direct raise payloads: every Raise pushes its value taint here;
+  // the enclosing Try unions the buffer into its error payload (shared
+  // reference across branch copies, like heap)
+  raise_buffer : Array[Taint]
+  // T2.1 bounded value structure: components of a tuple-LITERAL binding,
+  // keyed by scoped variable key — `pair.1` projects the exact component
+  // (G2 shadowing counterexample: (tainted, "safe") second read is clean)
+  tuple_comps : Map[String, Array[Taint]]
   // param-field sink recording channel ("param|field") for summaries
   mut record_field_sinks : Array[String]?
   taint_rules : TaintRuleset // project DSL entries (ADD to built-ins)
@@ -127,8 +140,123 @@ fn FlowCtx::copy(self : FlowCtx) -> FlowCtx {
   self.env.each(fn(k, v) { env[k] = v })
   let sites : Map[String, String] = Map([])
   self.sites.each(fn(k, v) { sites[k] = v })
-  // heap/record channels are Map/Array references: shared by design
-  { ..self, env, sites, alloc_result: None, }
+  let scope_stack : Array[Int] = []
+  for id in self.scope_stack {
+    scope_stack.push(id)
+  }
+  let tuple_comps : Map[String, Array[Taint]] = Map([])
+  self.tuple_comps.each(fn(k, v) {
+    let ccopy : Array[Taint] = []
+    for c in v {
+      ccopy.push(c)
+    }
+    tuple_comps[k] = ccopy
+  })
+  // heap/record channels/raise buffer/scope counter are references:
+  // shared by design (monotone facts + id uniqueness)
+  { ..self, env, sites, scope_stack, tuple_comps, alloc_result: None, }
+}
+
+// ── T2.1 scoped variable identity ────────────────────────────────────────
+// env keys are "<scope>:<name>"; lookup walks the stack inner-first, new
+// bindings shadow in the current scope, assignments update the defining
+// scope's slot. Same-name destructuring can no longer alias the outer var.
+
+///|
+fn scope_push(ctx : FlowCtx) -> Unit {
+  ctx.scope_counter[0] += 1
+  ctx.scope_stack.push(ctx.scope_counter[0])
+}
+
+///|
+fn scope_pop(ctx : FlowCtx) -> Unit {
+  ignore(ctx.scope_stack.pop())
+}
+
+///|
+fn scope_lookup_key(ctx : FlowCtx, name : String) -> String? {
+  let mut i = ctx.scope_stack.length() - 1
+  while i >= 0 {
+    let key = "s" + ctx.scope_stack[i].to_string() + ":" + name
+    if ctx.env.contains(key) {
+      return Some(key)
+    }
+    i -= 1
+  }
+  None
+}
+
+///|
+fn env_bind(ctx : FlowCtx, name : String, t : Taint) -> Unit {
+  // new binding in the CURRENT scope (shadows outer same-name)
+  ctx.env["s" + current_scope_id(ctx).to_string() + ":" + name] = t
+}
+
+///|
+fn current_scope_id(ctx : FlowCtx) -> Int {
+  match ctx.scope_stack.length() {
+    0 => 0
+    n => ctx.scope_stack[n - 1]
+  }
+}
+
+///|
+fn env_assign(ctx : FlowCtx, name : String, t : Taint) -> Unit {
+  // assignment updates the DEFINING scope's slot if one exists
+  match scope_lookup_key(ctx, name) {
+    Some(key) => ctx.env[key] = t
+    None => env_bind(ctx, name, t)
+  }
+}
+
+///|
+fn env_lookup(ctx : FlowCtx, name : String) -> Taint? {
+  match scope_lookup_key(ctx, name) {
+    Some(key) => ctx.env.get(key)
+    None => None
+  }
+}
+
+// record tuple-literal components for a simple Var binding (scoped)
+
+///|
+fn record_tuple_comps(
+  pattern : @syntax.Pattern,
+  expr : @syntax.Expr,
+  ctx : FlowCtx,
+) -> Unit {
+  match (pattern, expr) {
+    (Var(binder), Tuple(exprs~, ..)) => {
+      let comps : Array[Taint] = []
+      for e in exprs {
+        comps.push(flow(e, ctx))
+      }
+      ctx.tuple_comps["s" +
+      current_scope_id(ctx).to_string() +
+      ":" +
+      binder.name] = comps
+    }
+    _ => ()
+  }
+}
+
+// scoped tuple component lookup
+
+///|
+fn tuple_comp_lookup(ctx : FlowCtx, name : String, idx : Int) -> Taint? {
+  match scope_lookup_key(ctx, name) {
+    Some(key) =>
+      match ctx.tuple_comps.get(key) {
+        Some(comps) =>
+          if idx >= 0 && idx < comps.length() {
+            Some(comps[idx])
+          } else {
+            None
+          }
+        None => None
+      }
+    None => None
+  }
 }
 
 // ── entry: analyze one top-level function ─────────────────────────────────
@@ -157,6 +285,10 @@ pub fn run_flow_taint_func(
     sites: Map([]),
     heap: Map([]),
     alloc_result: None,
+    scope_stack: [],
+    scope_counter: [0],
+    raise_buffer: [],
+    tuple_comps: Map([]),
     record_field_sinks: None,
     ictx,
     taint_rules: match rules {
@@ -168,6 +300,7 @@ pub fn run_flow_taint_func(
       None => true
     },
   }
+  scope_push(ctx) // function scope
   // fn parameters carry param provenance: direct param flow reaches
   // sinks (report), but field access on a param is a config-like read
   // (Clean) — provenance-aware field propagation (review counterexample)
@@ -179,13 +312,15 @@ pub fn run_flow_taint_func(
           | Labelled(binder~, ..)
           | Optional(binder~, ..)
           | QuestionOptional(binder~, ..) =>
-            ctx.env[binder.name] = TaintedParam(binder.name)
+            env_bind(ctx, binder.name, TaintedParam(binder.name))
           DiscardPositional(..) => ()
         }
       }
     None => ()
   }
   let _ = flow(body, ctx)
+  ctx.raise_buffer.clear() // raises escaping this function: error exit (P3)
+  scope_pop(ctx)
 }
 
 ///|
@@ -210,6 +345,10 @@ pub fn run_flow_taint_func_top(
     sites: Map([]),
     heap: Map([]),
     alloc_result: None,
+    scope_stack: [],
+    scope_counter: [0],
+    raise_buffer: [],
+    tuple_comps: Map([]),
     record_field_sinks: None,
     ictx: None,
     taint_rules: match rules {
@@ -221,7 +360,10 @@ pub fn run_flow_taint_func_top(
       None => true
     },
   }
+  scope_push(ctx) // function scope
   let _ = flow(body, ctx)
+  ctx.raise_buffer.clear()
+  scope_pop(ctx)
 }
 
 // ── bounded heap helpers ──────────────────────────────────────────────────
@@ -341,15 +483,17 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
     BytesInterp(..) => Clean
     Ident(id~, ..) => {
       let name = longident_str(id.name)
-      or_clean(ctx.env.get(name))
+      or_clean(env_lookup(ctx, name))
     }
     Method(..) => Clean
     Apply(func~, args~, ..) => {
-      let arg_taint_arr = flow_args_taints(args, ctx)
-      let mut arg_taint = Clean
-      for t in arg_taint_arr {
-        arg_taint = taint_or(arg_taint, t)
+      // T2.1: every argument expression flows exactly once
+      let arg_pairs = flow_args_pairs(args, ctx)
+      let arg_taint_arr : Array[Taint] = []
+      for p in arg_pairs {
+        arg_taint_arr.push(p.taint)
       }
+      let arg_taint = pairs_aggregate(arg_pairs)
       // P3: consume field-write summaries — if the callee writes a tainted
       // param into a field of another param, the receiver argument becomes
       // tainted in the caller (source-derived provenance so later field
@@ -364,14 +508,14 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
             ctx.taint_rules.header_sink_hit(name)
           if is_sink {
             let slot = or_slot(ctx.taint_rules.sink_value_slot(name))
-            let value_taint = header_value_taint(args, ctx, slot)
+            let value_taint = value_taint_at(arg_pairs, slot)
             if is_tainted(value_taint) {
               report_cwe113(ctx, expr, value_taint)
             }
           }
           if ctx.output_sinks_enabled && ctx.taint_rules.output_sink_hit(name) {
             let slot = or_slot(ctx.taint_rules.output_sink_slot(name))
-            let value_taint = header_value_taint(args, ctx, slot)
+            let value_taint = value_taint_at(arg_pairs, slot)
             if is_tainted(value_taint) {
               report_output_sink(ctx, expr, value_taint, name)
             }
@@ -397,7 +541,9 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
     }
     DotApply(self~, method_name~, args~, ..) => {
       let recv_taint = flow(self, ctx)
-      let arg_taint = flow_args(args, ctx)
+      // T2.1: every argument expression flows exactly once
+      let arg_pairs = flow_args_pairs(args, ctx)
+      let arg_taint = pairs_aggregate(arg_pairs)
       let combined = taint_or(recv_taint, arg_taint)
       let mname = method_name.name
       let is_sink = is_header_setter(mname) ||
@@ -407,7 +553,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
         // DSL value_slot) matters; the header NAME slot and the response
         // receiver are expected to carry request-derived state
         let slot = or_slot(ctx.taint_rules.sink_value_slot(mname))
-        let value_taint = header_value_taint(args, ctx, slot)
+        let value_taint = value_taint_at(arg_pairs, slot)
         if is_tainted(value_taint) {
           report_cwe113(ctx, expr, value_taint)
         }
@@ -416,7 +562,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
         ctx.taint_rules.output_sink_hit(mname) {
         // output channel sink (lib model / DSL kind "Output") -> CWE-116
         let slot = or_slot(ctx.taint_rules.output_sink_slot(mname))
-        let value_taint = header_value_taint(args, ctx, slot)
+        let value_taint = value_taint_at(arg_pairs, slot)
         if is_tainted(value_taint) {
           report_output_sink(ctx, expr, value_taint, mname)
         }
@@ -484,28 +630,26 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       let _ = flow(loop_cond, ctx)
       // fixpoint: taint written in iteration N must be visible to the
       // sink executed in iteration N+1 (review counterexample b)
+      scope_push(ctx)
       flow_to_fixpoint(loop_body, ctx)
+      scope_pop(ctx)
       Clean
     }
     Function(func~, ..) => {
-      // closure params: conservatively tainted (framework-supplied input)
-      let saved : Array[String] = []
+      // closure params: conservatively tainted (framework-supplied input);
+      // body runs in its OWN scope — captures resolve via the stack
+      scope_push(ctx)
       for param in func.parameters {
         match param {
           Positional(binder~, ..)
           | Labelled(binder~, ..)
           | Optional(binder~, ..)
-          | QuestionOptional(binder~, ..) => {
-            saved.push(binder.name)
-            ctx.env[binder.name] = Tainted
-          }
+          | QuestionOptional(binder~, ..) => env_bind(ctx, binder.name, Tainted)
           DiscardPositional(..) => ()
         }
       }
       let _ = flow(func.body, ctx)
-      for name in saved {
-        ctx.env[name] = Clean
-      }
+      scope_pop(ctx)
       Clean
     }
     If(cond~, ifso~, ifnot~, ..) => {
@@ -513,13 +657,20 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       let refined = validated_var(cond)
       let then_ctx = ctx.copy()
       match refined {
-        Some(name) => then_ctx.env[name] = Clean
+        Some(name) => env_assign(then_ctx, name, Clean)
         None => ()
       }
+      scope_push(then_ctx)
       let then_t = flow(ifso, then_ctx)
+      scope_pop(then_ctx)
       let else_ctx = ctx.copy()
       let else_t = match ifnot {
-        Some(e) => flow(e, else_ctx)
+        Some(e) => {
+          scope_push(else_ctx)
+          let et = flow(e, else_ctx)
+          scope_pop(else_ctx)
+          et
+        }
         None => Clean
       }
       merge_env(ctx, then_ctx, else_ctx)
@@ -530,10 +681,13 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       let _ = flow(cond, ctx)
       let refined = validated_var(cond)
       match refined {
-        Some(name) => ctx.env[name] = Clean
+        Some(name) => env_assign(ctx, name, Clean)
         None => ()
       }
-      flow(body, ctx)
+      scope_push(ctx)
+      let gt = flow(body, ctx)
+      scope_pop(ctx)
+      gt
     }
     Is(expr~, ..) => {
       let _ = flow(expr, ctx)
@@ -546,8 +700,8 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
         t => {
           for binding in bindings {
             match binding.1 {
-              Some(binder) => ctx.env[binder.name] = t
-              None => ctx.env[binding.0.name] = t
+              Some(binder) => env_bind(ctx, binder.name, t)
+              None => env_bind(ctx, binding.0.name, t)
             }
           }
           Clean
@@ -575,14 +729,36 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
     }
     Let(pattern~, expr~, body~, ..) => {
       // value-structure contract: tuple destructuring binds positionally so
-      // (tainted, "safe") keeps the second component clean (third review)
-      bind_let_taint(pattern, expr, ctx)
+      // (tainted, "safe") keeps the second component clean (third review).
+      // For `let v = (a, b, ...)` we record components (single flow) and
+      // bind v to the fold — `v.1` later projects the exact component.
+      // `let v = (a, b, ...)`: record components (single flow) and bind v
+      // to their fold — later `v.1` projects the exact component
+      match (pattern, expr) {
+        (Var(binder), Tuple(..)) => {
+          record_tuple_comps(pattern, expr, ctx)
+          let mut fold = Clean
+          match
+            ctx.tuple_comps.get(
+              "s" + current_scope_id(ctx).to_string() + ":" + binder.name,
+            ) {
+            Some(comps) => {
+              for c in comps {
+                fold = taint_or(fold, c)
+              }
+              env_bind(ctx, binder.name, fold)
+            }
+            None => ()
+          }
+        }
+        _ => bind_let_taint(pattern, expr, ctx)
+      }
       bind_site_to_pattern(pattern, resolve_binding_site(expr, ctx), ctx)
       flow(body, ctx)
     }
     LetMut(binder~, expr~, body~, ..) => {
       let t = flow(expr, ctx)
-      ctx.env[binder.name] = t
+      env_bind(ctx, binder.name, t)
       match resolve_binding_site(expr, ctx) {
         Some(s) => ctx.sites[binder.name] = s
         None => ()
@@ -652,6 +828,17 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
             None => fallback
           }
         }
+        Index(tuple_index~, ..) =>
+          // bounded value structure: `pair.1` projects the recorded
+          // component when the base var holds a tuple LITERAL
+          match flow_var_name(record) {
+            Some(v) =>
+              match tuple_comp_lookup(ctx, v, tuple_index) {
+                Some(ct) => ct
+                None => flow(record, ctx)
+              }
+            None => flow(record, ctx)
+          }
         _ => flow(record, ctx)
       }
     As(expr~, ..) => flow(expr, ctx)
@@ -699,7 +886,9 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
         bind_pattern_taint(case.pattern, scrut, case_ctx)
         // constant patterns refine: `x is Some(...)`, literals
         let _ = case.guard_.map(fn(e) { flow(e, case_ctx) })
+        scope_push(case_ctx)
         result = taint_or(result, flow(case.body, case_ctx))
+        scope_pop(case_ctx)
         branch_envs.push(case_ctx)
       }
       merge_envs(ctx, branch_envs)
@@ -724,7 +913,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
     Assign(var_~, expr~, ..) => {
       let t = flow(expr, ctx)
       let name = longident_str(var_.name)
-      ctx.env[name] = t
+      env_assign(ctx, name, t)
       match resolve_binding_site(expr, ctx) {
         Some(s) => ctx.sites[name] = s
         None => () // stale site kept: bounded approximation (documented)
@@ -750,7 +939,12 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       Clean
     }
     Raise(err_value~, ..) => {
-      let _ = flow(err_value, ctx)
+      // T2.3 direct error payload: the raised VALUE carries its own taint;
+      // the enclosing Try consumes it (no environment guessing needed for
+      // the primary path — env union remains only as the conservative
+      // supplement)
+      let t = flow(err_value, ctx)
+      ctx.raise_buffer.push(t)
       Clean
     }
     Quantifier(body~, ..) => flow(body, ctx)
@@ -779,7 +973,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       let t = flow(expr, ctx)
       for b in binders {
         match b {
-          Some(binder) => ctx.env[binder.name] = t
+          Some(binder) => env_bind(ctx, binder.name, t)
           None => ()
         }
       }
@@ -798,15 +992,25 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       // state (approximated by the post-body env); the error payload may
       // carry body-derived data (conservative: body result ∪ any body taint).
       let body_ctx = ctx.copy()
+      ctx.raise_buffer.clear() // scope this Try to raises inside its body
+      scope_push(body_ctx)
       let body_t = flow(body, body_ctx)
-      let err_t = taint_or(body_t, env_any_taint(body_ctx))
+      scope_pop(body_ctx)
+      // direct raise payloads (primary) ∪ body value ∪ env taint (conservative)
+      let mut err_t = taint_or(body_t, env_any_taint(body_ctx))
+      for pt in ctx.raise_buffer {
+        err_t = taint_or(err_t, pt)
+      }
+      ctx.raise_buffer.clear()
       let branch_envs : Array[FlowCtx] = [body_ctx]
       let mut result = body_t
       for case in catch_ {
         let case_ctx = ctx.copy()
         merge_env(case_ctx, body_ctx, case_ctx) // entry ∪ post-body state
         bind_pattern_taint(case.pattern, err_t, case_ctx)
+        scope_push(case_ctx)
         let t = flow(case.body, case_ctx)
+        scope_pop(case_ctx)
         result = taint_or(result, t)
         branch_envs.push(case_ctx)
       }
@@ -817,7 +1021,9 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
             let arm_ctx = ctx.copy()
             merge_env(arm_ctx, body_ctx, arm_ctx)
             bind_pattern_taint(case.pattern, body_t, arm_ctx)
+            scope_push(arm_ctx)
             let t = flow(case.body, arm_ctx)
+            scope_pop(arm_ctx)
             result = taint_or(result, t)
             branch_envs.push(arm_ctx)
           }
@@ -859,28 +1065,7 @@ fn or_clean(t : Taint?) -> Taint {
   }
 }
 
-///|
-fn flow_args(args : @list.List[@syntax.Argument], ctx : FlowCtx) -> Taint {
-  let mut t = Clean
-  for arg in args {
-    t = taint_or(t, flow(arg.value, ctx))
-  }
-  t
-}
-
 // per-argument taints in argument order (single flow pass, no re-visits)
-
-///|
-fn flow_args_taints(
-  args : @list.List[@syntax.Argument],
-  ctx : FlowCtx,
-) -> Array[Taint] {
-  let arr : Array[Taint] = []
-  for arg in args {
-    arr.push(flow(arg.value, ctx))
-  }
-  arr
-}
 
 ///|
 fn fold_taint(exprs : @list.List[@syntax.Expr], ctx : FlowCtx) -> Taint {
@@ -895,10 +1080,10 @@ fn fold_taint(exprs : @list.List[@syntax.Expr], ctx : FlowCtx) -> Taint {
 fn bind_pattern_taint(pat : @syntax.Pattern, t : Taint, ctx : FlowCtx) -> Unit {
   match pat {
     Any(..) => ()
-    Var(binder) => ctx.env[binder.name] = t
+    Var(binder) => env_bind(ctx, binder.name, t)
     Alias(pat~, alias_~, ..) => {
       bind_pattern_taint(pat, t, ctx)
-      ctx.env[alias_.name] = t
+      env_bind(ctx, alias_.name, t)
     }
     Constraint(pat~, ..) => bind_pattern_taint(pat, t, ctx)
     Tuple(pats~, ..) =>
@@ -914,7 +1099,7 @@ fn bind_pattern_taint(pat : @syntax.Pattern, t : Taint, ctx : FlowCtx) -> Unit {
         None => ()
       }
     SpecialConstr(binder~, args~, ..) => {
-      ctx.env[binder.name] = t
+      env_bind(ctx, binder.name, t)
       for arg in args {
         bind_pattern_taint(arg.pat, t, ctx)
       }
@@ -1032,40 +1217,88 @@ fn merge_envs(ctx : FlowCtx, branches : Array[FlowCtx]) -> Unit {
 // taint of the header VALUE argument only (parity with the legacy rule)
 
 ///|
-fn header_value_taint(
+// T2.1 single-evaluation contract: argument expressions flow EXACTLY ONCE.
+// Pairs capture (kind, taint); slot selection is a pure function over them.
+
+///|
+priv struct ArgTaint {
+  is_positional : Bool
+  label_value : String? // labelled "value"-style slot name, if labelled
+  taint : Taint
+}
+
+// flow each argument exactly once, preserving kind info for slot selection
+
+///|
+fn flow_args_pairs(
   args : @list.List[@syntax.Argument],
   ctx : FlowCtx,
-  value_slot : Int,
-) -> Taint {
-  let mut pos_idx = 0
-  let mut result = Clean
+) -> Array[ArgTaint] {
+  let pairs : Array[ArgTaint] = []
   for arg in args {
+    let t = flow(arg.value, ctx)
     match arg.kind {
       Labelled(label) =>
-        if label.name == "value" {
-          result = taint_or(result, flow(arg.value, ctx))
-        }
+        pairs.push({
+          is_positional: false,
+          label_value: Some(label.name),
+          taint: t,
+        })
       LabelledPun(label) =>
-        if label.name == "value" {
-          result = taint_or(result, flow(arg.value, ctx))
-        }
+        pairs.push({
+          is_positional: false,
+          label_value: Some(label.name),
+          taint: t,
+        })
       LabelledOption(label~, ..) =>
-        if label.name == "value" {
-          result = taint_or(result, flow(arg.value, ctx))
-        }
+        pairs.push({
+          is_positional: false,
+          label_value: Some(label.name),
+          taint: t,
+        })
       LabelledOptionPun(label~, ..) =>
-        if label.name == "value" {
-          result = taint_or(result, flow(arg.value, ctx))
-        }
-      _ => {
-        if pos_idx == value_slot {
-          result = taint_or(result, flow(arg.value, ctx))
-        }
-        pos_idx += 1
+        pairs.push({
+          is_positional: false,
+          label_value: Some(label.name),
+          taint: t,
+        })
+      _ => pairs.push({ is_positional: true, label_value: None, taint: t, })
+    }
+  }
+  pairs
+}
+
+// pure selection: labelled `value` slot, else positional value_slot index
+
+///|
+fn value_taint_at(pairs : Array[ArgTaint], value_slot : Int) -> Taint {
+  let mut pos_idx = 0
+  let mut result = Clean
+  for p in pairs {
+    if p.is_positional {
+      if pos_idx == value_slot {
+        result = taint_or(result, p.taint)
+      }
+      pos_idx += 1
+    } else {
+      match p.label_value {
+        Some(l) => if l == "value" { result = taint_or(result, p.taint) }
+        None => ()
       }
     }
   }
   result
+}
+
+// aggregate taint over already-flowed pairs (no re-evaluation)
+
+///|
+fn pairs_aggregate(pairs : Array[ArgTaint]) -> Taint {
+  let mut t = Clean
+  for p in pairs {
+    t = taint_or(t, p.taint)
+  }
+  t
 }
 
 // `x.replace_all(old="\r", new="")` strips CRLF: a sanitizer
@@ -1475,8 +1708,8 @@ fn apply_field_taint_side_effect(
         if triggered && ri < var_at.length() {
           match var_at[ri] {
             Some(var_name) => {
-              let cur = or_clean_taint(ctx.env.get(var_name))
-              ctx.env[var_name] = taint_or(cur, Tainted)
+              let cur = or_clean_taint(env_lookup(ctx, var_name))
+              env_assign(ctx, var_name, taint_or(cur, Tainted))
             }
             None => ()
           }
@@ -1681,11 +1914,16 @@ fn collect_summary_func(
     sites: Map([]),
     heap: Map([]),
     alloc_result: None,
+    scope_stack: [],
+    scope_counter: [0],
+    raise_buffer: [],
+    tuple_comps: Map([]),
     record_field_sinks: None,
     ictx: None,
     taint_rules: TaintRuleset::empty(),
     output_sinks_enabled: true,
   }
+  scope_push(ctx) // function scope for summary collection
   match params {
     Some(ps) =>
       for p in ps {
@@ -1695,7 +1933,7 @@ fn collect_summary_func(
           | Optional(binder~, ..)
           | QuestionOptional(binder~, ..) => {
             param_names.push(binder.name)
-            ctx.env[binder.name] = TaintedParam(binder.name)
+            env_bind(ctx, binder.name, TaintedParam(binder.name))
           }
           DiscardPositional(..) => ()
         }
@@ -1705,6 +1943,7 @@ fn collect_summary_func(
   let final_taint = record_param_sinks(
     body, ctx, sinks, returns, field_sinks, fields,
   )
+  scope_pop(ctx)
   // final-expression return taint (expression-oriented bodies): a body
   // whose value carries param provenance means "param flows to return"
   match final_taint {
