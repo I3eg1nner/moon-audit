@@ -83,21 +83,13 @@ test "t1a1_alias_map_and_official_imports" {
   // every module package gets an alias-map entry (may be empty)
   let all_keyed = world.packages.any(fn(p) { !world.aliases.contains(p.dir) })
   inspect(all_keyed, content="false")
-  // official import paths parsed from moon.pkg
+  // forward-slash lookups must work on every OS (map keys are canonical;
+  // walk_packages yields OS separators on Windows — T1a-1 CI lesson)
   let src_dir = root + "/src"
   let imports = world_pkg_imports(world, src_dir)
-  // CI probe (windows-only failure): dump what the loader actually saw
-  let pkg_path = src_dir + "/moon.pkg"
-  let content = @fs.read_file_to_string(pkg_path) catch { _ => "<unreadable>" }
-  println("[t1a1-probe] pkg content len=" + content.length().to_string())
-  println(
-    "[t1a1-probe] world.imports has src_dir: " +
-    world.imports.contains(src_dir).to_string(),
-  )
-  for p in world.packages {
-    println("[t1a1-probe] pkg dir=" + p.dir)
-  }
   inspect(imports.length() >= 1, content="true")
+  let has_dep = imports.any(fn(i) { i == "fixture/dep" })
+  inspect(has_dep, content="true")
   let has_dep = imports.any(fn(i) { i == "fixture/dep" })
   inspect(has_dep, content="true")
 }

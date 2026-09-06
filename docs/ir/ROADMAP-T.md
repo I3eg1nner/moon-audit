@@ -80,7 +80,8 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       load_program_world（模块包 walk → 源码符号 → .mooncakes → .mbti → 库模型 →
       moon.pkg 别名 → moon_config 官方 import/moon.work）。纯增量零接线（上轮超时
       教训：薄切数据层先行，T1a-2/3 接线）；修正 wip 依赖错误（moon_config 是独立
-      模块）；4 个自包含 fixture 单测。覆盖 T1.1 装载 + T1.4 统一入口的数据层部分。
+      模块）；4 个自包含 fixture 单测。CI 教训：world 键已规范化为正斜杠
+      （Windows walk_packages 产出反斜杠路径导致查询失配）。覆盖 T1.1 装载 + T1.4 统一入口的数据层部分。
 - [ ] T1a-2 CLI 接线（行为等价验收）/ T1a-3 入口策略分类，随后进入 T1.2 身份。
 - [ ] T1.1 剩余：目标后端条件进入模型。
 - [ ] T1.1 项目装载：官方 moon_config 处理模块/包/工作区/导入；目标后端、

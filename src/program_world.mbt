@@ -69,7 +69,7 @@ pub fn load_program_world(
   // 6. per-package alias maps
   let aliases : Map[String, Map[String, String]] = Map([])
   for pkgf in packages {
-    aliases[pkgf.dir] = pkg_alias_map(pkgf.dir)
+    aliases[canonical_dir(pkgf.dir)] = pkg_alias_map(pkgf.dir)
   }
   // 7. workspace members via the official config parser
   let workspace_members : Array[String] = []
@@ -86,7 +86,7 @@ pub fn load_program_world(
   // 6b. official import paths per package (moon_config parse)
   let imports : Map[String, Array[String]] = Map([])
   for pkgf in packages {
-    imports[pkgf.dir] = read_pkg_imports(pkgf.dir)
+    imports[canonical_dir(pkgf.dir)] = read_pkg_imports(pkgf.dir)
   }
   {
     root,
@@ -101,6 +101,13 @@ pub fn load_program_world(
 }
 
 // official import paths of one package (moon_config parse + validation)
+
+// map keys are canonical (forward-slash) so lookups are OS-independent
+
+///|
+fn canonical_dir(dir : String) -> String {
+  dir.replace(old="\\", new="/")
+}
 
 ///|
 fn read_pkg_imports(pkg_dir : String) -> Array[String] {
@@ -176,7 +183,7 @@ pub fn world_pkg_imports(
   world : ProgramWorld,
   pkg_dir : String,
 ) -> Array[String] {
-  or_empty(world.imports.get(pkg_dir))
+  or_empty(world.imports.get(canonical_dir(pkg_dir)))
 }
 
 ///|
