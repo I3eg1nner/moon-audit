@@ -41,17 +41,39 @@ let mongoose_model_json : String =
   #|  "sanitizers": []
   #|}
 
+///| Built-in "core-callbacks" model: T5.3 callback TIMING for core
+
+///| containers (SCHEMA-v2 table): immediate = executes during the call
+
+///| (current engine behavior); deferred = stored, executed on advance —
+
+///| the engine records a deferred-callback fact instead of executing.
+
+///|
+let core_callbacks_model_json : String =
+  #|{
+  #|  "name": "core-callbacks",
+  #|  "description": "core container callback timing (Array::map executes during the call; Iter::map stores and executes on advance)",
+  #|  "callbacks": {
+  #|    "Array::map":     { "slots": ["T"], "timing": "immediate" },
+  #|    "Array::filter":  { "slots": ["T"], "timing": "immediate" },
+  #|    "Array::sort_by": { "slots": ["T"], "timing": "immediate" },
+  #|    "Iter::map":      { "slots": ["T"], "timing": "deferred" }
+  #|  }
+  #|}
+
 ///|
 fn builtin_model_json(name : String) -> String? {
   match name {
     "mongoose" => Some(mongoose_model_json)
+    "core-callbacks" => Some(core_callbacks_model_json)
     _ => None
   }
 }
 
 ///|
 pub fn builtin_model_names() -> Array[String] {
-  ["mongoose"]
+  ["mongoose", "core-callbacks"]
 }
 
 ///|

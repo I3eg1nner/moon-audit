@@ -53,6 +53,39 @@ pub(all) struct TaintRuleset {
 } derive(Debug)
 
 ///|
+
+///|
+/// T5.3: the DEFERRED model key for `callee`, if any — the returned key
+/// is what deferred-callback facts record. Name-based suffix match
+/// ("Array::map" matches a call to `map`): the flow engine carries no
+/// receiver types, so the qualified model key is matched against the
+/// bare callee name (honest boundary, documented).
+pub fn TaintRuleset::cb_timing_deferred_key(
+  self : TaintRuleset,
+  callee : String,
+) -> String? {
+  for pair in self.cb_timing {
+    let (k, t) = pair
+    match t {
+      Deferred =>
+        if k == callee || k.has_suffix("::" + callee) {
+          return Some(k)
+        }
+      Immediate => ()
+    }
+  }
+  None
+}
+
+///|
+pub fn TaintRuleset::cb_timing_deferred(
+  self : TaintRuleset,
+  callee : String,
+) -> Bool {
+  self.cb_timing_deferred_key(callee) != None
+}
+
+///|
 pub fn TaintRuleset::empty() -> TaintRuleset {
   {
     sources: [],

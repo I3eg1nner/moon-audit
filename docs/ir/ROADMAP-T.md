@@ -240,8 +240,15 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       T 占位符修复；未知字段与未支持语义不静默丢弃
 - [ ] T5.2 优先覆盖 core：Array/Map/Ref、Option/Result、字符串与字节转换，
       再迭代器；描述真实读写/返回/捕获/trait 再入
-- [ ] T5.3 接通回调效应：Array::map 调用期间执行 vs Iter::map 延迟执行；
-      传播参数/返回值/错误效应
+- [x] T5.3 接通回调效应（2026-09-06 薄切）：引擎消费 cb_timing——immediate 在调用点
+      执行回调体（现行行为，模型门控化）；deferred **不在**创建点执行、记录
+      deferred-callback 事实（"model-key@L<line>:fn[n]"，供未来效应求解器消费，
+      `run_flow_taint_func` 的 `deferred_facts?` 输出通道）。抑制范围=该调用点的实参表
+      （嵌套非延迟调用自动复位再恢复）；匹配为后缀名匹配（流引擎无接收者类型，诚实边界）。
+      内置 core-callbacks 模型（Array::map/filter/sort_by=immediate、Iter::map=deferred）；
+      无模型=默认 immediate 行为不变（t53 三测试：immediate 执行/deferred 不执行+事实/
+      无模型不变）。**未竟（登记 T5.3 剩余）**：延迟回调的"推进点"执行建模（当前记录
+      事实但不执行——方向为漏报）；参数/返回值/错误效应经回调的传播；接收者类型精确匹配
 - [ ] T5.4 扩展系统与框架模型：语料实际使用的文件/网络/异步/取消/FFI；
       外部对象与回调边界明确
 - [ ] T5.5 规则绑定完整符号与安全上下文：移除 sanitize/escape/encode 子串自动清污；

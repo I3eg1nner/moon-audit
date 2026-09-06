@@ -394,6 +394,15 @@ priv struct FlowCtx {
   // default enabled (no builtin sink carries kind Output, so projects
   // without a model/config are unaffected)
   output_sinks_enabled : Bool
+  // T5.3 callback timing: facts recorded when a deferred-model callback
+  // argument is created-but-not-executed ("callee@L<line>:fn[n]" — for the
+  // future effect solver); the suppression channel is transient call-stack
+  // state (set only while flowing the arg list of a deferred-model call).
+  // deferred_callbacks is a SHARED reference across branch copies on
+  // purpose (additive observations, like findings)
+  deferred_callbacks : Array[String]
+  mut cb_exec_suppressed : Bool
+  mut cb_suppress_target : String
 }
 
 ///|
@@ -699,6 +708,8 @@ pub fn run_flow_taint_func(
   output_sinks_enabled? : Bool,
   fn_name? : String, // T3.4: live-vars driver labels the trace
   hir_out? : Array[(String, Array[Stmt])], // append (name, trace) at exit
+  deferred_facts? : Array[String], // T5.3: caller-owned out-array for
+  // deferred-callback facts recorded during this run
 ) -> Unit {
   let ctx : FlowCtx = {
     env: Map([]),
@@ -733,6 +744,12 @@ pub fn run_flow_taint_func(
       Some(b) => b
       None => true
     },
+    deferred_callbacks: match deferred_facts {
+      Some(a) => a
+      None => []
+    },
+    cb_exec_suppressed: false,
+    cb_suppress_target: "",
   }
   scope_push(ctx) // function scope
   // T2.2 safety net: pending defers (e.g. from an uncaught raise path)
@@ -815,6 +832,9 @@ pub fn run_flow_taint_func_top(
       Some(b) => b
       None => true
     },
+    deferred_callbacks: [],
+    cb_exec_suppressed: false,
+    cb_suppress_target: "",
   }
   scope_push(ctx) // function scope
   let _ = flow(body, ctx)
@@ -1151,8 +1171,28 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
     }
     Method(..) => Clean
     Apply(func~, args~, ..) => {
+      // T5.3: a DEFERRED-model callback is created, not executed, here —
+      // suppression scopes to this arg list only (nested non-deferred
+      // calls reset it for their own args, then it restores)
+      let saved_sup = ctx.cb_exec_suppressed
+      let saved_tgt = ctx.cb_suppress_target
+      let callee_name = apply_func_name(func)
+      ctx.cb_exec_suppressed = false
+      match callee_name {
+        Some(n) =>
+          match ctx.taint_rules.cb_timing_deferred_key(n) {
+            Some(model_key) => {
+              ctx.cb_exec_suppressed = true
+              ctx.cb_suppress_target = model_key
+            }
+            None => ()
+          }
+        None => ()
+      }
       // T2.1: every argument expression flows exactly once
       let arg_pairs = flow_args_pairs(args, ctx)
+      ctx.cb_exec_suppressed = saved_sup
+      ctx.cb_suppress_target = saved_tgt
       // statement layer: temps + call trace (args already flowed once)
       let hir_target = match apply_func_name(func) {
         Some(n) => n
@@ -1245,8 +1285,21 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
     }
     DotApply(self~, method_name~, args~, ..) => {
       let recv_taint = flow(self, ctx)
+      // T5.3: deferred-model callback suppression (see Apply arm)
+      let saved_sup = ctx.cb_exec_suppressed
+      let saved_tgt = ctx.cb_suppress_target
+      ctx.cb_exec_suppressed = false
+      match ctx.taint_rules.cb_timing_deferred_key(method_name.name) {
+        Some(model_key) => {
+          ctx.cb_exec_suppressed = true
+          ctx.cb_suppress_target = model_key
+        }
+        None => ()
+      }
       // T2.1: every argument expression flows exactly once
       let arg_pairs = flow_args_pairs(args, ctx)
+      ctx.cb_exec_suppressed = saved_sup
+      ctx.cb_suppress_target = saved_tgt
       // statement layer: receiver temp first, then args (method-call form)
       let hir_temps = hir_temps_from_pairs(ctx, arg_pairs.length() + 1)
       hir_emit_call(ctx, method_name.name, hir_temps)
@@ -1394,7 +1447,22 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       scope_pop(ctx)
       join
     }
-    Function(func~, ..) => {
+    Function(func~, loc~) => {
+      if ctx.cb_exec_suppressed {
+        // T5.3 deferred callback: CREATED but NOT executed at this point —
+        // its effects belong to the advance point (future effect solver).
+        // Record the fact; the callback value itself contributes Clean.
+        let nparams = func.parameters.length()
+        ctx.deferred_callbacks.push(
+          ctx.cb_suppress_target +
+          "@L" +
+          loc.start.lnum.to_string() +
+          ":fn[" +
+          nparams.to_string() +
+          "]",
+        )
+        return Clean
+      }
       // closure params: conservatively tainted (framework-supplied input);
       // body runs in its OWN scope — captures resolve via the stack
       scope_push(ctx)
@@ -3310,6 +3378,9 @@ fn collect_summary_func(
     ictx: Some(ictx),
     taint_rules: TaintRuleset::empty(),
     output_sinks_enabled: true,
+    deferred_callbacks: [],
+    cb_exec_suppressed: false,
+    cb_suppress_target: "",
   }
   scope_push(ctx) // function scope for summary collection
   match params {
@@ -3491,6 +3562,9 @@ pub fn run_flow_taint_trace(
     ictx: None,
     taint_rules: TaintRuleset::empty(),
     output_sinks_enabled: true,
+    deferred_callbacks: [],
+    cb_exec_suppressed: false,
+    cb_suppress_target: "",
   }
   scope_push(ctx) // function scope
   match params {

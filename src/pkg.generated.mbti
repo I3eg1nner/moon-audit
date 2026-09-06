@@ -276,7 +276,7 @@ pub fn run_cwe770(@list.List[@syntax.Impl], String, String, Array[Finding], Seve
 
 pub fn run_cwe942(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
-pub fn run_flow_taint_func(@list.List[@syntax.Parameter]?, @syntax.Expr, String, String, Severity, Array[Finding], ictx? : InterProceduralContext, rules? : TaintRuleset, output_sinks_enabled? : Bool, fn_name? : String, hir_out? : Array[(String, Array[Stmt])]) -> Unit
+pub fn run_flow_taint_func(@list.List[@syntax.Parameter]?, @syntax.Expr, String, String, Severity, Array[Finding], ictx? : InterProceduralContext, rules? : TaintRuleset, output_sinks_enabled? : Bool, fn_name? : String, hir_out? : Array[(String, Array[Stmt])], deferred_facts? : Array[String]) -> Unit
 
 pub fn run_flow_taint_func_top(@syntax.Expr, String, String, Severity, Array[Finding], rules? : TaintRuleset, output_sinks_enabled? : Bool) -> Unit
 
@@ -744,6 +744,8 @@ pub(all) struct TaintRuleset {
   trait_edges : Array[TraitCallbackEdge]
 } derive(@debug.Debug)
 pub fn TaintRuleset::apply_to_symbols(Self, PkgSymbols) -> Unit
+pub fn TaintRuleset::cb_timing_deferred(Self, String) -> Bool
+pub fn TaintRuleset::cb_timing_deferred_key(Self, String) -> String?
 pub fn TaintRuleset::empty() -> Self
 pub fn TaintRuleset::header_sink_hit(Self, String) -> Bool
 pub fn TaintRuleset::output_sink_hit(Self, String) -> Bool
