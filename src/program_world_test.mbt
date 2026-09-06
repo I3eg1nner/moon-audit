@@ -86,6 +86,17 @@ test "t1a1_alias_map_and_official_imports" {
   // official import paths parsed from moon.pkg
   let src_dir = root + "/src"
   let imports = world_pkg_imports(world, src_dir)
+  // CI probe (windows-only failure): dump what the loader actually saw
+  let pkg_path = src_dir + "/moon.pkg"
+  let content = @fs.read_file_to_string(pkg_path) catch { _ => "<unreadable>" }
+  println("[t1a1-probe] pkg content len=" + content.length().to_string())
+  println(
+    "[t1a1-probe] world.imports has src_dir: " +
+    world.imports.contains(src_dir).to_string(),
+  )
+  for p in world.packages {
+    println("[t1a1-probe] pkg dir=" + p.dir)
+  }
   inspect(imports.length() >= 1, content="true")
   let has_dep = imports.any(fn(i) { i == "fixture/dep" })
   inspect(has_dep, content="true")
