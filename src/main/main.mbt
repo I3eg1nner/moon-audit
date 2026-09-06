@@ -1091,15 +1091,45 @@ fn cmd_ir_stats(matches : @argparse.Matches) -> Unit {
     stats.higher_calls.to_string() +
     ")",
   )
+  // T0.2: unknown-site reason classification (four classes)
+  let mut ffi = 0
+  let mut cascade = 0
+  let mut higher = 0
+  let mut unsupported = 0
+  for site in stats.sites {
+    // dispatch sites are CANDIDATES (reported above), not unknown
+    let is_dispatch = site.recv_ty.has_prefix("trait:") ||
+      site.recv_ty.has_prefix("T:")
+    if !site.resolved && !is_dispatch {
+      match site_reason(site) {
+        "ffi" => ffi += 1
+        "cascade" => cascade += 1
+        "higher" => higher += 1
+        _ => unsupported += 1
+      }
+    }
+  }
+  println(
+    "  unknown by reason: ffi=" +
+    ffi.to_string() +
+    "  cascade=" +
+    cascade.to_string() +
+    "  higher=" +
+    higher.to_string() +
+    "  unsupported=" +
+    unsupported.to_string(),
+  )
   if details {
     println("")
-    println("unknown-site reasons (by kind):")
+    println("unknown-site reasons (per site):")
     for site in stats.sites {
       if !site.resolved {
         println(
           "  [" +
-          site.kind +
+          site_reason(site) +
           "] " +
+          site.kind +
+          " " +
           site.file +
           ":" +
           site.line.to_string() +
@@ -1111,6 +1141,30 @@ fn cmd_ir_stats(matches : @argparse.Matches) -> Unit {
       }
     }
   }
+}
+
+///|
+// T0.2 unknown-site reason classes:
+//   ffi          — site lives in an FFI binding context (native/js/mongoose)
+//   higher       — callee is a function value (closure/callback)
+//   cascade      — receiver type lost via an unresolved chain
+//   unsupported  — static identity not established (cross-pkg, no decl)
+fn site_reason(site : @audit.CallSiteStat) -> String {
+  if site.kind == "higher" {
+    return "higher"
+  }
+  let f = site.file
+  if f.contains("/native/") ||
+    f.contains("/js/") ||
+    f.contains("mongoose") ||
+    f.contains(".native.") ||
+    f.contains(".js.") {
+    return "ffi"
+  }
+  if site.kind == "receiver" {
+    return "cascade"
+  }
+  "unsupported"
 }
 
 ///|
@@ -1152,6 +1206,18 @@ fn cmd_call_graph(matches : @argparse.Matches) -> Unit {
     "  (avg " +
     avg_set_size(cg) +
     ")",
+  )
+  // T0.2(b): per-site coverage — denominator is CALL SITES, never edges
+  println(
+    "site coverage:      " +
+    (
+      (cg.bound_sites + cg.candidate_sites).to_string() +
+      "/" +
+      cg.site_total().to_string() +
+      " = " +
+      cg.site_coverage().to_string() +
+      "%  (denominator = call sites; a 13-target candidate set is ONE site)"
+    ),
   )
   println("note: candidate != bound (T0.2 four-level status vocabulary)")
   if details {

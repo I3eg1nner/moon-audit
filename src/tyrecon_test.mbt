@@ -1095,3 +1095,34 @@ test "libmodel_v2_callback_timing_and_trait_edges_parse" {
   inspect(edge.trait_method, content="hash")
   inspect(edge.note, content="lookup calls key Hash/Eq impls")
 }
+
+///|
+test "t0_default_param_call_enters_graph" {
+  // T0.2(a): calls inside default-argument expressions are executable
+  // code and must enter the analysis graph
+  let src = "fn mark(x : Int) -> Int { x + 1 } pub fn f(a~ : Int = mark(1)) -> Int { a }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  let stats = IRStatsResult::new()
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  inspect(stats.total_calls, content="1")
+  inspect(stats.static_resolved, content="1") // mark(1) bound
+}
+
+///|
+test "t0_site_coverage_per_site_denominator" {
+  // T0.2(b): coverage denominator is CALL SITES — a site with a 13-target
+  // candidate set is ONE covered site, not 13 edges
+  let cg : CallGraph = {
+    edges: ["f -> g", "f -> h"], // 2 bound sites
+    dispatch_edges: [
+      "f -> A::m", "f -> B::m", "f -> C::m", // 1 site, 3 targets
+    ],
+    unresolved: ["f -> ?"], // 1 unknown site
+    bound_sites: 2,
+    candidate_sites: 1,
+    unresolved_sites: 1,
+  }
+  inspect(cg.site_total(), content="4")
+  inspect(cg.site_coverage(), content="75") // (2+1)/4 — NOT 3/7 by edges
+}

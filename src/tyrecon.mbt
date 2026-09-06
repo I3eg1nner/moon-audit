@@ -469,8 +469,12 @@ fn scan_params_body(
         bind_param_hinted(binder.name, ty, i, hint_arr, ctx, saved)
       Labelled(binder~, ty~) =>
         bind_param_hinted(binder.name, ty, i, hint_arr, ctx, saved)
-      Optional(binder~, ty~, ..) =>
+      Optional(binder~, default~, ty~) => {
+        // T0.2(a): default-argument expressions are executable code —
+        // their call sites must enter the analysis graph
+        let _ = infer_expr(default, ctx)
         bind_param_hinted(binder.name, ty, i, hint_arr, ctx, saved)
+      }
       QuestionOptional(binder~, ty~) =>
         bind_param_hinted(binder.name, ty, i, hint_arr, ctx, saved)
       DiscardPositional(..) => ()
@@ -923,8 +927,11 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
             bind_param_hinted(binder.name, ty, i, hints, ctx, saved)
           Labelled(binder~, ty~) =>
             bind_param_hinted(binder.name, ty, i, hints, ctx, saved)
-          Optional(binder~, ty~, ..) =>
+          Optional(binder~, default~, ty~) => {
+            // T0.2(a): default-argument expressions enter the graph
+            let _ = infer_expr(default, ctx)
             bind_param_hinted(binder.name, ty, i, hints, ctx, saved)
+          }
           QuestionOptional(binder~, ty~) =>
             bind_param_hinted(binder.name, ty, i, hints, ctx, saved)
           DiscardPositional(..) => ()
@@ -2319,9 +2326,29 @@ fn find_last(s : String, sep : String) -> Int {
 
 ///|
 pub(all) struct CallGraph {
-  edges : Array[String] // "caller -> callee" resolved edges
+  edges : Array[String] // "caller -> callee" resolved edges (1 per site)
   dispatch_edges : Array[String] // devirtualized: one per impl target
-  unresolved : Array[String] // callers with unknown targets
+  unresolved : Array[String] // callers with unknown targets (1 per site)
+  bound_sites : Int // T0.2: sites with a unique known target
+  candidate_sites : Int // sites expanded into candidate sets (dispatch)
+  unresolved_sites : Int // sites with no target at all
+}
+
+///|
+pub fn CallGraph::site_total(self : CallGraph) -> Int {
+  self.bound_sites + self.candidate_sites + self.unresolved_sites
+}
+
+///|
+// T0.2(b): coverage denominator is CALL SITES, not edges — a site with a
+// 13-target candidate set is one covered site, not 13 (the old mixed
+// denominator reported 75% when only 1 of 2 sites had candidates)
+pub fn CallGraph::site_coverage(self : CallGraph) -> Int {
+  let total = self.site_total()
+  if total == 0 {
+    return 0
+  }
+  (self.bound_sites + self.candidate_sites) * 100 / total
 }
 
 ///|
@@ -2415,6 +2442,9 @@ pub fn run_call_graph(root : String, config : Config) -> CallGraph {
         }
     }
   }
+  let mut bound_sites = 0
+  let mut candidate_sites = 0
+  let mut unresolved_sites = 0
   for site in stats.sites {
     let clean_target = site.target
       .replace(old=" (unconfirmed)", new="")
@@ -2422,20 +2452,32 @@ pub fn run_call_graph(root : String, config : Config) -> CallGraph {
     if site.resolved {
       if site.kind == "receiver" && site.target.has_prefix("dyn ") {
         // trait-object dispatch: enumerate impls of (trait, method)
+        candidate_sites += 1
         resolve_dispatch(Show::to_string(clean_target[4:]), site.caller)
       } else {
+        bound_sites += 1
         edges.push(site.caller + " -> " + clean_target)
       }
     } else if site.target.has_prefix("dyn ") {
+      candidate_sites += 1
       resolve_dispatch(Show::to_string(site.target[4:]), site.caller)
     } else if site.kind == "receiver" && site.recv_ty.has_prefix("trait:") {
       // receiver typed as a trait object: use its trait identity
+      candidate_sites += 1
       resolve_dispatch(clean_target, site.caller)
     } else {
+      unresolved_sites += 1
       unresolved.push(site.caller + " -> ?")
     }
   }
-  { edges, dispatch_edges, unresolved, }
+  {
+    edges,
+    dispatch_edges,
+    unresolved,
+    bound_sites,
+    candidate_sites,
+    unresolved_sites,
+  }
 }
 
 // ── Phase 2: .mbti ingestion (official interface files) ──────────────────

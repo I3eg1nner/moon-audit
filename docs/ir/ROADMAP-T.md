@@ -43,10 +43,15 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 
 ## T0 纠正验收与完成状态 ✅（2026-09-05 本轮执行）
 
-- [x] T0.1 反例固化 → tests/cases/effects-review.mbt（8 样例独立可编译工程：
+- [x] T0.1 反例固化 → tests/cases/（8 反例每类一文件 c1..c8 + c0_helpers + run.sh
+      一条命令重现：
       同名解构/重复求值/错误载荷/循环/分支堆/未调用闭包/defer/默认参数，
-      每条注明当前引擎行为与期望行为的差 = 对应 G#）
-- [x] T0.2 指标修正 → ir-stats: bound/candidate/unknown 三分列 + unknown 原因逐点（--details）；
+      每文件头注明 期望/当前行为 与对应 G#；C8 的默认实参调用缺失已随 T0.2(a) 修复）
+- [x] T0.2 指标修正 → ir-stats: bound/candidate/unknown 分列 + unknown 四分类计数
+      （ffi/cascade/higher/unsupported，--details 逐点带 reason）；
+      call-graph: site coverage 分母=调用点（候选集按位点归一，修 75% 混算）+
+      默认实参表达式调用点入图（Parameter::Optional default~ 经 infer_expr）；
+      单测锁定：t0_default_param_call_enters_graph / t0_site_coverage_per_site_denominator；
       call-graph: 废除 edge coverage 单一百分比，改报 candidate-set 大小分布；
       增量模式输出 caller-invalidation=not-implemented 警告（G8）
 - [x] T0.3 四级状态 + 降级 → 词汇表如上；TODO/CONTRACTS 超标称项降为"部分实现"

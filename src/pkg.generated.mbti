@@ -255,7 +255,12 @@ pub(all) struct CallGraph {
   edges : Array[String]
   dispatch_edges : Array[String]
   unresolved : Array[String]
+  bound_sites : Int
+  candidate_sites : Int
+  unresolved_sites : Int
 }
+pub fn CallGraph::site_coverage(Self) -> Int
+pub fn CallGraph::site_total(Self) -> Int
 
 pub(all) struct CallSiteStat {
   caller : String
