@@ -18,6 +18,11 @@ fn main {
         about="Show detailed scan info",
       ),
       @argparse.FlagArg(
+        "timing",
+        long="timing",
+        about="T7.4: print per-stage timings (world-load/symbols/analysis/output)",
+      ),
+      @argparse.FlagArg(
         "fail-on-error",
         long="fail-on-error",
         about="Exit with code 1 when error-level findings exist (for CI gating)",
@@ -43,6 +48,12 @@ fn main {
         long="config",
         about="Config file path",
         default_values=[".moon-audit.json"],
+      ),
+      @argparse.OptionArg(
+        "mode",
+        long="mode",
+        about="T7.5: quick (default) | deep (force interprocedural taint + SCC summaries)",
+        default_values=["quick"],
       ),
       @argparse.OptionArg(
         "severity",
@@ -250,6 +261,11 @@ fn main {
         about="M4 slice: closed-world call graph (CHA + devirtualization)",
         flags=[
           @argparse.FlagArg(
+            "timing",
+            long="timing",
+            about="T7.4: print per-stage timings",
+          ),
+          @argparse.FlagArg(
             "details",
             short='d',
             long="details",
@@ -271,6 +287,11 @@ fn main {
         "ir-stats",
         about="M1 IR spike: measure type-reconstruction call-site resolution rate",
         flags=[
+          @argparse.FlagArg(
+            "timing",
+            long="timing",
+            about="T7.4: print per-stage timings",
+          ),
           @argparse.FlagArg(
             "details",
             short='d',
@@ -453,6 +474,26 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
   }
   let mut config = @audit.load_config(resolved_config_path)
   config = { ..config, min_severity: severity_filter, }
+  // T7.5: analysis mode (quick = default behavior; deep forces interproc)
+  let mode = match matches.values.get("mode") {
+    Some(arr) => if arr.length() > 0 { arr[0] } else { "quick" }
+    None => "quick"
+  }
+  if mode == "deep" || mode == "quick" {
+    config = { ..config, analysis_mode: mode, }
+  } else {
+    println(
+      "moon-audit: warning: unknown --mode '" +
+      mode +
+      "', using quick (no silent downgrade)",
+    )
+  }
+  // T7.4: timing capture
+  let timing_on = match matches.flags.get("timing") {
+    Some(v) => v
+    None => false
+  }
+  let timings = @audit.StageTimings::new()
   let changed_files_path = get_opt(matches, "changed-files")
   match changed_files_path {
     Some(cf_path) => {
@@ -504,16 +545,20 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     println("")
   }
   // T6.2: request via the analysis registry (behavior-identical adapter)
-  let taint_world = @audit.load_program_world(path, config)
+  let taint_world = timings.time("world-load", fn() {
+    @audit.load_program_world(path, config)
+  })
   let taint_registry = @audit.default_registry()
-  let result = match taint_registry.run_all([@audit.TaintFlow], taint_world) {
-    Ok(results) =>
-      match results.get(@audit.TaintFlow) {
-        Some(@audit.TaintFlowR(r)) => r
-        _ => @audit.scan_project(path, config)
-      }
-    Err(_) => @audit.scan_project(path, config)
-  }
+  let result = timings.time("analysis", fn() {
+    match taint_registry.run_all([@audit.TaintFlow], taint_world) {
+      Ok(results) =>
+        match results.get(@audit.TaintFlow) {
+          Some(@audit.TaintFlowR(r)) => r
+          _ => @audit.scan_project(path, config)
+        }
+      Err(_) => @audit.scan_project(path, config)
+    }
+  })
   let baseline_path = get_opt(matches, "baseline")
   let baseline = match baseline_path {
     Some(bp) => @audit.load_baseline(bp)
@@ -575,6 +620,13 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
       }
     }
     None => println(output)
+  }
+  // T7.4: stage timings (world-load/symbols from the world loader record)
+  if timing_on && !quiet {
+    timings.time("output", fn() { ignore(output) })
+    // NOTE: scan_project reloads its own world (with_symbols=false) which
+    // resets the loader record — the CLI-level line is the accurate one
+    println(timings.render())
   }
   // text mode: print the baseline-diff summary after the report
   match (diff, machine_output, quiet) {
@@ -1117,7 +1169,19 @@ fn cmd_ir_stats(matches : @argparse.Matches) -> Unit {
     Some(v) => v
     None => false
   }
-  let stats = @audit.run_ir_stats(path, config, conservative_alias=conservative)
+  let timing_on = match matches.flags.get("timing") {
+    Some(v) => v
+    None => false
+  }
+  let timings = @audit.StageTimings::new()
+  let stats = timings.time("analysis", fn() {
+    @audit.run_ir_stats(path, config, conservative_alias=conservative)
+  })
+  if timing_on {
+    println(@audit.last_world_timings.render())
+    println(timings.render())
+    println("")
+  }
   println(
     "alias mode: " +
     (if conservative {
@@ -1331,17 +1395,31 @@ fn cmd_call_graph(matches : @argparse.Matches) -> Unit {
     None => false
   }
   // T6.2: request via the analysis registry (behavior-identical adapter)
-  let cg_world = @audit.load_program_world(path, config)
+  let timing_on = match matches.flags.get("timing") {
+    Some(v) => v
+    None => false
+  }
+  let timings = @audit.StageTimings::new()
+  let cg_world = timings.time("world-load", fn() {
+    @audit.load_program_world(path, config)
+  })
   let cg_registry = @audit.default_registry(conservative_alias=conservative)
-  let cg = match cg_registry.run_all([@audit.CallGraph], cg_world) {
-    Ok(results) =>
-      match results.get(@audit.CallGraph) {
-        Some(@audit.CallGraphR(c)) => c
-        _ =>
-          @audit.run_call_graph(path, config, conservative_alias=conservative)
-      }
-    Err(_) =>
-      @audit.run_call_graph(path, config, conservative_alias=conservative)
+  let cg = timings.time("analysis", fn() {
+    match cg_registry.run_all([@audit.CallGraph], cg_world) {
+      Ok(results) =>
+        match results.get(@audit.CallGraph) {
+          Some(@audit.CallGraphR(c)) => c
+          _ =>
+            @audit.run_call_graph(path, config, conservative_alias=conservative)
+        }
+      Err(_) =>
+        @audit.run_call_graph(path, config, conservative_alias=conservative)
+    }
+  })
+  if timing_on {
+    println(@audit.last_world_timings.render())
+    println(timings.render())
+    println("")
   }
   println(
     "alias mode: " +

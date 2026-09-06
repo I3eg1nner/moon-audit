@@ -295,10 +295,17 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       不预设 2-obj
 - [ ] T7.2 真实增量分析：未受影响结果保留；函数体/接口/模型/入口/调用图变化
       向依赖者传播失效（修增量语义）
-- [ ] T7.3 正确缓存键：含签名值（非仅键名）+后端+版本+模型+选项+被调摘要依赖；
+- [x] T7.3 薄切（值敏感指纹）：symbols_fingerprint 从仅键名扩为键名+值哈希
+      （fn_ret/impl/fields/ctor/trait/arrow/alias 全表入指纹；struct_fields 内层排序归一）；
+      analyzer+parser 版本常量入键——gate15 known-gap 关闭（同名换类型必变指纹，t7 单测锁定）。
+      剩余：后端/模型/选项/被调摘要依赖项接入（与 T7.2 增量一起做才有消费方）；
       循环依赖下的版本管理设计
-- [ ] T7.4 性能工程：各阶段耗时/峰值内存/约束数/重复传播测量；再优化 ID/集合/队列/按需分析
-- [ ] T7.5 分档运行：快速扫描 vs 深入分析分别预算；超时/降级/不完整可见
+- [x] T7.4 薄切（阶段计时）：--timing 输出 world-load/symbols/analysis/output 各阶段 ms
+      （load_program_world 内部打点进全局记录 + CLI 级 time 包装；scan/ir-stats/call-graph 三命令）
+      剩余：峰值内存/约束数/重复传播测量与瓶颈优化；
+- [x] T7.5 薄切（quick|deep 分档）：--mode quick（默认=现行为）| deep（强制非 web 项目
+      走 interproc taint + SCC 摘要——现有能力组合，非新分析）；mode 进 analysis-scope 披露；
+      未知 mode 显式警告不静默降级。剩余：预算上限与超时降级披露；
 - 验收：修改后增量结果 = 冷启动全量结果；性能比较固定机器/版本/语料/配置
 
 ## T8 最终对标与发布门槛（测试从 T0 持续建设）

@@ -264,18 +264,69 @@ pub fn analysis_cache_key(
 }
 
 ///|
-/// Fingerprint of a PkgSymbols table (insertion-order independent:
-/// sorts key names only (values not in fingerprint — same-name type change will NOT invalidate; must include values before wiring to cache) before hashing).
+fn irtype_opt_repr(t : IRType?) -> String {
+  match t {
+    Some(ty) => ty.display()
+    None => "-"
+  }
+}
+
+///|
+/// Fingerprint of a PkgSymbols table. T7.3: VALUE-SENSITIVE — a same-name
+/// type change now changes the fingerprint (gate15 known-gap closed).
+/// Also stamped with analyzer + parser versions so a toolchain bump
+/// invalidates derived caches. Insertion-order independent.
 pub fn symbols_fingerprint(symbols : PkgSymbols) -> String {
   let parts : Array[String] = []
+  // version stamps (T7.3): toolchain identity enters the key
+  parts.push("v:analyzer=" + ANALYZER_VERSION)
+  parts.push("v:parser=" + PARSER_SPEC_VERSION)
   let keys : Array[String] = []
-  symbols.fn_ret.each(fn(k, _) { keys.push("ret:" + k) })
-  symbols.impl_methods.each(fn(k, _) { keys.push("impl:" + k) })
-  symbols.struct_fields.each(fn(k, _) { keys.push("field:" + k) })
-  symbols.constr_params.each(fn(k, _) { keys.push("ctor:" + k) })
-  symbols.trait_params.each(fn(k, _) { keys.push("trait:" + k) })
-  symbols.fn_param_arrows.each(fn(k, _) { keys.push("arrow:" + k) })
-  symbols.alias_arrows.each(fn(k, _) { keys.push("alias:" + k) })
+  symbols.fn_ret.each(fn(k, ty) { keys.push("ret:" + k + "=" + ty.display()) })
+  symbols.impl_methods.each(fn(k, trait_path) {
+    keys.push("impl:" + k + "=" + trait_path)
+  })
+  symbols.struct_fields.each(fn(k, fields) {
+    // field map is itself insertion-order dependent: normalize by sorting
+    let fpairs : Array[String] = []
+    fields.each(fn(fk, fty) { fpairs.push(fk + ":" + fty.display()) })
+    fpairs.sort()
+    keys.push("field:" + k + "={" + fpairs.join(",") + "}")
+  })
+  symbols.constr_params.each(fn(k, tys) {
+    let reps : Array[String] = []
+    for ty in tys {
+      reps.push(ty.display())
+    }
+    keys.push("ctor:" + k + "=[" + reps.join(",") + "]")
+  })
+  symbols.trait_params.each(fn(k, tys) {
+    let reps : Array[String] = []
+    for t in tys {
+      reps.push(irtype_opt_repr(t))
+    }
+    keys.push("trait:" + k + "=[" + reps.join(",") + "]")
+  })
+  symbols.fn_param_arrows.each(fn(k, per_param) {
+    // per-param groups: each param's arrow-arg types rendered as a group
+    let groups : Array[String] = []
+    for grp in per_param {
+      let reps : Array[String] = []
+      for t in grp {
+        reps.push(irtype_opt_repr(t))
+      }
+      groups.push("(" + reps.join(",") + ")")
+    }
+    keys.push("arrow:" + k + "=[" + groups.join(",") + "]")
+  })
+  symbols.alias_arrows.each(fn(k, tys) {
+    let reps : Array[String] = []
+    for t in tys {
+      reps.push(irtype_opt_repr(t))
+    }
+    keys.push("alias:" + k + "=[" + reps.join(",") + "]")
+  })
+  // fn_exists values are constant `true` — key names suffice
   symbols.fn_exists.each(fn(k, _) { keys.push("fn:" + k) })
   keys.sort()
   for k in keys {

@@ -192,6 +192,8 @@ pub fn is_safe_value(@syntax.Expr) -> Bool
 
 pub fn is_sanitized_expr(@syntax.Expr) -> Bool
 
+pub let last_world_timings : StageTimings
+
 pub fn list_all_rules() -> Array[RuleInfo]
 
 pub fn live_vars_examples(LiveVarsSummary, Int) -> String
@@ -406,6 +408,7 @@ pub(all) struct Config {
   output_format : String
   min_severity : Severity
   changed_files : Array[String]
+  analysis_mode : String
 }
 pub fn Config::default() -> Self
 pub fn Config::get_severity(Self, String, Severity) -> Severity
@@ -744,6 +747,15 @@ pub(all) enum Severity {
   Warning
   Info
 } derive(Eq, @debug.Debug)
+
+pub(all) struct StageTimings {
+  mut stages : Array[(String, UInt64)]
+}
+pub fn StageTimings::new() -> Self
+pub fn StageTimings::record(Self, String, UInt64) -> Unit
+pub fn StageTimings::render(Self) -> String
+pub fn StageTimings::reset(Self) -> Unit
+pub fn[T] StageTimings::time(Self, String, () -> T) -> T
 
 pub(all) enum Stmt {
   LetEvalTemp(Int, Int)

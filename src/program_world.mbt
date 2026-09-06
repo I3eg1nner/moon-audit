@@ -57,31 +57,37 @@ pub fn load_program_world(
   // T1.2 alias policy lands on the shared symbol table; PkgSymbols::new()
   // keeps conservative=true so direct unit-test constructors are unchanged
 
+  // T7.4: stage stamps into the global record (instrumentation only)
+  last_world_timings.reset()
   // 1. module package walk — the file-fact source for every CLI
   let packages : Array[PkgFiles] = []
-  walk_packages(root, config, fn(pkg_dir, mbt_files) {
-    let files : Array[String] = []
-    for f in mbt_files {
-      files.push(f)
-    }
-    packages.push({ dir: pkg_dir, files, })
+  last_world_timings.time("world-load", fn() {
+    walk_packages(root, config, fn(pkg_dir, mbt_files) {
+      let files : Array[String] = []
+      for f in mbt_files {
+        files.push(f)
+      }
+      packages.push({ dir: pkg_dir, files, })
+    })
   })
   // 2-5. symbol tables (skippable for consumers that only need file facts,
   // e.g. the scanner today; T1b wires more of the scanner onto symbols)
   let symbols = PkgSymbols::new()
   if with_symbols {
-    for pkgf in packages {
-      for file in pkgf.files {
-        let source = @fs.read_file_to_string(file) catch { _ => continue }
-        let (impls, _) = @parser.parse_string(source, name=file)
-        collect_symbols(impls.to_array(), symbols)
+    last_world_timings.time("symbols", fn() {
+      for pkgf in packages {
+        for file in pkgf.files {
+          let source = @fs.read_file_to_string(file) catch { _ => continue }
+          let (impls, _) = @parser.parse_string(source, name=file)
+          collect_symbols(impls.to_array(), symbols)
+        }
       }
-    }
-    collect_dep_symbols(root, symbols)
-    collect_mbti_dir(root, symbols)
-    let (lib_rs, _, _) = load_taint_rules(root)
-    lib_rs.apply_to_symbols(symbols)
-    symbols.alias_mode = conservative_alias
+      collect_dep_symbols(root, symbols)
+      collect_mbti_dir(root, symbols)
+      let (lib_rs, _, _) = load_taint_rules(root)
+      lib_rs.apply_to_symbols(symbols)
+      symbols.alias_mode = conservative_alias
+    })
   }
   // 6. per-package alias maps
   let aliases : Map[String, Map[String, String]] = Map([])

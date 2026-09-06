@@ -33,7 +33,10 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
   let mod_is_web = mod_imports.has_mocket ||
     mod_imports.has_crescent ||
     mod_imports.has_rabbita
-  if mod_is_web {
+  // T7.5: deep mode forces the interprocedural paths on non-web projects
+  // too (existing capabilities combined; no new analysis)
+  let deep_mode = config.analysis_mode == "deep"
+  if mod_is_web || deep_mode {
     let scc_units : Array[SummaryUnit] = []
     for pkgf in world.packages {
       let pkg_web = mod_is_web ||
@@ -41,7 +44,7 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
           let pi = analyze_imports(pkgf.dir)
           pi.has_mocket || pi.has_crescent || pi.has_rabbita
         })
-      if pkg_web {
+      if pkg_web || deep_mode {
         for file in pkgf.files {
           let source = @fs.read_file_to_string(file) catch { _ => continue }
           let (impls, _) = @parser.parse_string(source, name=file)
@@ -87,13 +90,17 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
       }
     }
   }
-  // Phase 2: Cross-function taint analysis (only for web projects)
-  if has_web && interproc_ctx.summaries.length() > 0 {
+  // Phase 2: Cross-function taint analysis (web projects; deep mode
+  // forces it for all projects — T7.5)
+  if (has_web || deep_mode) && interproc_ctx.summaries.length() > 0 {
     for pkgf in world.packages {
       let pkg_dir = pkgf.dir
       let pkg_imports = analyze_imports(pkg_dir)
       let imports = merge_imports(mod_imports, pkg_imports)
-      if imports.has_mocket || imports.has_crescent || imports.has_rabbita {
+      if imports.has_mocket ||
+        imports.has_crescent ||
+        imports.has_rabbita ||
+        deep_mode {
         for file in pkgf.files {
           if incremental && !is_changed_file(file, changed_set) {
             continue
@@ -155,7 +162,9 @@ fn build_analysis_scope(
   summary_not_converged.to_string() +
   "(measured); model-warnings=" +
   model_warnings.to_string() +
-  "(measured, T5.1 pipeline); incremental=" +
+  "(measured, T5.1 pipeline); mode=" +
+  config.analysis_mode +
+  "; incremental=" +
   (if incremental { "true" } else { "false" }) +
   "; " +
   entries +

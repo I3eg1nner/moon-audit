@@ -810,3 +810,18 @@ t51 测试路径拼接留待下次触碰。
 - P2 处置：t6b_dump 测试补 taint-findings 断言（five→six）；dump 结果共享消费登记 T6.2 深化项；
   CLI 直连路径文档化薄切边界（registry fallback 不可达）；make_t6_fixture 裸拼接留下次顺手
 - 状态：T6.1 ✅ / T6.2 薄切（结果共享深化留）/ T6.3 未启（Tai-e 插件机制对齐）/ T6.4 薄切（span 级 provenance 留）
+
+## 2026-09-06 · T7 薄切（T7.3/7.4/7.5）
+- timing.mbt：StageTimings（@env.now() 毫秒钟，全后端可用）；load_program_world
+  内部打点（world-load/symbols）进全局记录（repo-global 模式同 loop_budget）；
+  三 CLI --timing。注意：scan 的 registry 适配器内部重载 world（with_symbols=false）
+  会覆盖 loader 记录——scan 打印 CLI 级单行（准确），ir-stats/call-graph 打印两行
+- --mode quick|deep：deep 强制 SCC 预收集 + phase-2 跨函数污点于非 web 项目；
+  mode 进 scope 披露；测试证明 quick=1（helper 内部流）deep=2（+caller 摘要命中）
+- symbols_fingerprint 值敏感化（gate15 known-gap 关闭）：全表键+值入指纹 +
+  analyzer/parser 版本常量；struct_fields 内层 map 排序归一防插入序漂移
+- 实测计时（三目标，native debug 二进制）：scan mocket ~1850ms（world-load 955）；
+  ir-stats mocket ~1070ms（symbols 1065）；call-graph petgraph ~950ms（symbols 946）
+  ——world 符号构建是主要成本（~50-90%），与 T7.4 剩余项（按需分析）的优化方向一致
+- 过程教训：一次 git checkout -- . 误清了全部 tracked 编辑（Hard Rule 违反），
+  以 assert-guarded 单脚本全量重做恢复——无丢失

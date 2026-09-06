@@ -77,6 +77,7 @@ pub(all) struct Config {
   output_format : String
   min_severity : Severity
   changed_files : Array[String]
+  analysis_mode : String // T7.5: "quick" (default) | "deep" (force interproc)
 }
 
 ///|
@@ -114,6 +115,7 @@ pub fn Config::default() -> Config {
     output_format: "text",
     min_severity: Warning,
     changed_files: [],
+    analysis_mode: "quick",
   }
 }
 
