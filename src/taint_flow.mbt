@@ -19,26 +19,49 @@ priv enum Taint {
 
 ///|
 fn taint_or(a : Taint, b : Taint) -> Taint {
-  match (a, b) {
-    (Clean, b) => b
-    (a, Clean) => a
-    (TaintedParam(p), TaintedParam(q)) =>
-      if p == q {
-        TaintedParam(p)
-      } else {
-        Tainted // mixed provenance: keep taint, drop single-param attribution
-      }
-    (TaintedFieldRef(p, f), TaintedFieldRef(q, g)) =>
-      if p == q && f == g {
-        TaintedFieldRef(p, f)
-      } else {
-        Tainted
-      }
-    (_, TaintedFieldRef(_, _)) | (TaintedFieldRef(_, _), _) => Tainted
-    (_, TaintedParam(p)) => TaintedParam(p)
-    (TaintedParam(p), _) => TaintedParam(p)
-    _ => Tainted
+  // T3.1: delegates to the SecurityFact lattice (join = set union, algebraic
+  // by construction) and re-projects through the legacy view rules. Zero
+  // behavior change: locked by t3a_differential_16_pairs_vs_legacy_table
+  // (232 tests incl. the full legacy-table matrix).
+  taint_view_of(taint_to_fact(a).join(taint_to_fact(b)))
+}
+
+///|
+fn taint_to_fact(t : Taint) -> SecurityFact {
+  match t {
+    Clean => SecurityFact::clean()
+    Tainted => SecurityFact::tainted_unknown()
+    TaintedParam(p) => fact_of_tainted_param(p)
+    TaintedFieldRef(p, f) => fact_of_field_ref(p, f)
   }
+}
+
+///|
+fn taint_view_of(f : SecurityFact) -> Taint {
+  // view rules (verbatim reproduction of the pre-T3.1 join table's outcome):
+  //   single plain source keeps attribution even when unknown taint joined
+  //   (legacy `(_, P(p)) => P(p)`); single field source is conditional;
+  //   mixed (>=2) or unknown-only drops attribution
+  let n = f.src.length()
+  if !f.unknown && n == 0 {
+    return Clean
+  }
+  if n == 0 {
+    return Tainted
+  }
+  if n == 1 {
+    let s = f.src[0]
+    let dot = find_first_dot(s)
+    if dot >= 0 {
+      return if f.unknown {
+        Tainted
+      } else {
+        TaintedFieldRef(Show::to_string(s[:dot]), Show::to_string(s[dot + 1:]))
+      }
+    }
+    return TaintedParam(s)
+  }
+  Tainted
 }
 
 ///|

@@ -96,6 +96,14 @@ pub fn entry_stats_line(ProgramWorld) -> String
 
 pub fn extend_ruleset_with_model(TaintRuleset, String) -> Bool
 
+pub fn fact_of_field_ref(String, String) -> SecurityFact
+
+pub fn fact_of_taint_clean() -> SecurityFact
+
+pub fn fact_of_tainted_param(String) -> SecurityFact
+
+pub fn fact_of_tainted_unknown() -> SecurityFact
+
 pub fn filter_baseline(Array[Finding], Map[String, Bool]) -> Array[Finding]
 
 pub fn filter_by_llm_results(Array[LLMAnalysisResult], Double) -> Array[LLMAnalysisResult]
@@ -535,6 +543,11 @@ pub(all) struct ProgramWorld {
   entry_kinds : Map[String, String]
 }
 
+pub(all) enum Reach {
+  Reachable
+  Unreachable
+} derive(Eq, @debug.Debug)
+
 pub(all) struct Remediation {
   rule_id : String
   title : String
@@ -596,6 +609,20 @@ pub(all) struct ScanSummary {
   owasp_mapping : Array[OwaspStat]
   scan_errors : Int
 }
+
+pub(all) struct SecurityFact {
+  reach : Reach
+  src : Array[String]
+  unknown : Bool
+} derive(Eq, @debug.Debug)
+pub fn SecurityFact::bottom() -> Self
+pub fn SecurityFact::clean() -> Self
+pub fn SecurityFact::from_source(String) -> Self
+pub fn SecurityFact::is_tainted(Self) -> Bool
+pub fn SecurityFact::join(Self, Self) -> Self
+pub fn SecurityFact::leq(Self, Self) -> Bool
+pub fn SecurityFact::tainted_unknown() -> Self
+pub fn SecurityFact::to_taint_view(Self) -> String
 
 pub(all) enum Severity {
   Error
