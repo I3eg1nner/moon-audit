@@ -47,6 +47,7 @@ test "acceptance: json diff output marks new status" {
     findings: [mk_finding("fp-old"), mk_finding("fp-fresh")],
     files_scanned: 1,
     errors: [],
+    analysis_scope: "",
   }
   let diff = diff_findings(result.findings, prev)
   let json = format_json_with_diff(result, diff)

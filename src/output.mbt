@@ -41,6 +41,13 @@ pub fn format_text(result : ScanResult, verbose : Bool) -> String {
     }
     buf.write_char('\n')
   }
+  // T0.4: scope disclosure is always printed (verbose or not) — what was
+  // NOT analyzed is as important as what was
+  if result.analysis_scope.length() > 0 {
+    buf.write_string("analysis-scope: ")
+    buf.write_string(result.analysis_scope)
+    buf.write_char('\n')
+  }
   buf.to_string()
 }
 
@@ -54,6 +61,7 @@ pub fn format_json(result : ScanResult) -> String {
     "findings": Json::array(findings_json),
     "files_scanned": Json::number(result.files_scanned.to_double()),
     "errors": Json::array(result.errors.map(fn(e) { Json::string(e) })),
+    "analysis_scope": Json::string(result.analysis_scope),
   }
   obj.stringify(indent=2)
 }

@@ -8,6 +8,10 @@ import {
 }
 
 // Values
+pub const ANALYZER_VERSION : String = "0.4.0"
+
+pub const PARSER_SPEC_VERSION : String = "0.3.18"
+
 pub const PARSER_VERSION_KEY : String = "moonbitlang/parser@0.3.18"
 
 pub fn analysis_cache_key(String, String) -> String
@@ -488,6 +492,7 @@ pub(all) struct ScanResult {
   findings : Array[Finding]
   files_scanned : Int
   errors : Array[String]
+  analysis_scope : String
 }
 
 pub(all) struct ScanSummary {

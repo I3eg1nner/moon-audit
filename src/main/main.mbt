@@ -417,6 +417,14 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     Some(cf_path) => {
       let changed = @audit.load_changed_files(cf_path)
       config = { ..config, changed_files: changed, }
+      // T0.2/T0.4: incremental mode limits the scanned set; callers of a
+      // changed function are NOT invalidated (G8) — the result describes
+      // the changed files only, not the whole project
+      println(
+        "analysis-scope: incremental=true; scanned-files=" +
+        changed.length().to_string() +
+        "; caller-invalidation=not-implemented (G8 — affected callers of changed functions are NOT re-analyzed); unanalyzed-is-not-safe",
+      )
     }
     None => ()
   }
@@ -476,6 +484,7 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     findings: filtered_findings,
     files_scanned: result.files_scanned,
     errors: result.errors,
+    analysis_scope: result.analysis_scope,
   }
   // Acceptance mode: diff against a previous scan report (TP/FP/FN tracking)
   let baseline_report_path = get_opt(matches, "baseline-report")
@@ -1051,18 +1060,40 @@ fn cmd_ir_stats(matches : @argparse.Matches) -> Unit {
     "  (closure/callback callees — M2/M4 scope)",
   )
   println("")
+  // T0.2: split metrics — no single mixed-denominator percentage.
+  // - bound sites = call sites with a KNOWN target function (static
+  //   confirmed + receiver-with-impl-hit)
+  // - candidates = devirtualized/dyn sites contributing candidate edges
+  //   (candidate != bound)
+  // - unknown = no target identified, with reason buckets
+  println("metrics (T0.2 split — legacy 'combined' kept for continuity):")
   println(
-    "combined resolution: " +
-    stats.combined_resolution().to_string() +
-    "%  (" +
+    "  bound sites:     " +
     (stats.static_resolved + stats.receiver_resolved).to_string() +
     "/" +
-    stats.total_calls.to_string() +
+    stats.total_calls.to_string(),
+  )
+  println(
+    "  candidate sites: " +
+    stats.receiver_dispatch.to_string() +
+    "  (dyn/trait-object — candidate edges, NOT bound)",
+  )
+  println(
+    "  unknown sites:   " +
+    (stats.receiver_unknown +
+    (stats.static_calls - stats.static_resolved) +
+    stats.higher_calls).to_string() +
+    "  (receiver=" +
+    stats.receiver_unknown.to_string() +
+    " static=" +
+    (stats.static_calls - stats.static_resolved).to_string() +
+    " higher=" +
+    stats.higher_calls.to_string() +
     ")",
   )
   if details {
     println("")
-    println("unresolved sites:")
+    println("unknown-site reasons (by kind):")
     for site in stats.sites {
       if !site.resolved {
         println(
@@ -1109,16 +1140,20 @@ fn cmd_call_graph(matches : @argparse.Matches) -> Unit {
     "  (devirtualized via impl enumeration)",
   )
   println("unresolved edges:  " + cg.unresolved.length().to_string())
-  let total = cg.edges.length() +
-    cg.dispatch_edges.length() +
-    cg.unresolved.length()
+  // T0.2: candidate-edge sets are reported separately from bound edges;
+  // the legacy single 'edge coverage' percentage mixed candidate edges
+  // into the numerator and is removed (review counterexample: 1 of 2
+  // sites with candidate sets showed 75% via 3 candidate edges)
   println(
-    "edge coverage:     " +
-    ((cg.edges.length() + cg.dispatch_edges.length()) *
-    100 /
-    (if total == 0 { 1 } else { total })).to_string() +
-    "%",
+    "candidate-set size: total dispatch edges / sites with candidates = " +
+    cg.dispatch_edges.length().to_string() +
+    "/" +
+    candidate_sites(cg).to_string() +
+    "  (avg " +
+    avg_set_size(cg) +
+    ")",
   )
+  println("note: candidate != bound (T0.2 four-level status vocabulary)")
   if details {
     println("")
     println("edges:")
@@ -1130,4 +1165,41 @@ fn cmd_call_graph(matches : @argparse.Matches) -> Unit {
       println("  " + e)
     }
   }
+}
+
+///|
+fn candidate_sites(cg : @audit.CallGraph) -> Int {
+  // distinct callers contributing dispatch edges
+  let callers : Array[String] = []
+  for e in cg.dispatch_edges {
+    let idx = find_arrow_sep(e)
+    let caller = if idx > 0 { Show::to_string(e[:idx]) } else { e }
+    if !callers.contains(caller) {
+      callers.push(caller)
+    }
+  }
+  callers.length()
+}
+
+///|
+fn find_arrow_sep(e : String) -> Int {
+  let sep = " -> "
+  let mut best = -1
+  let mut i = 0
+  while i <= e.length() - sep.length() {
+    if e[i:i + sep.length()] == sep {
+      best = i
+    }
+    i += 1
+  }
+  best
+}
+
+///|
+fn avg_set_size(cg : @audit.CallGraph) -> String {
+  let sites = candidate_sites(cg)
+  if sites == 0 {
+    return "0"
+  }
+  (cg.dispatch_edges.length() / sites).to_string()
 }

@@ -12,8 +12,8 @@
 
 | 位置类别 | 投影语义 | 状态 | 锚点 |
 |---|---|---|---|
-| 元组分量 `.0/.1` | Tuple 模式 × Tuple 字面量右值**逐位绑定**；形状不匹配保守回退整体（过报不漏报） | ✅ | `v1_tuple_component_clean_no_report`（`(tainted, "safe")` 第二分量 Clean） |
-| enum 载荷位置 | catch/Match 的 `Constr` 解构把（错误值/ scrutinee）污点投影到载荷变量；`Err(Bad(x))` 两层投影 | ✅ | `v1_error_payload_taint_reports`（错误载荷→header 告警） |
+| 元组分量 `.0/.1` | Tuple 模式 × Tuple 字面量右值**逐位绑定**；形状不匹配保守回退整体（过报不漏报） | 🔶 部分实现（**已端到端验证**仅限字面量右值场景；Match scrutinee 与别名传递仍整体绑定，等价改写可改变结果 = G2/T2.3） | `v1_tuple_component_clean_no_report`（`(tainted, "safe")` 第二分量 Clean） |
+| enum 载荷位置 | catch/Match 的 `Constr` 解构把（错误值/ scrutinee）污点投影到载荷变量；`Err(Bad(x))` 两层投影 | 🔶 部分实现（catch 侧**已端到端验证**；但错误值经环境猜测而非直接传递 = G3，`raise Bad(f())` 直达形态漏报，见 tests/cases C3） | `v1_error_payload_taint_reports`（错误载荷→header 告警） |
 | struct 字段 | 对象级字段污点表（field_taint，A3 堆切片）；写入即污染对象槽位 | ✅ | A3 验收测试 `m4lite_source_to_object_cross_2_layers_to_sink` |
 | 容器元素摘要位 | Map/Array 存入污点 → 容器摘要位污染；读取返回该位 | ⬜ M5（需字段敏感堆求解） | — |
 | 闭包捕获槽位 | 捕获环境按槽位携带污点；逃逸分析区分立即/延迟执行 | ⬜ M5（依赖库模型 v2 的 timing 语义） | — |
@@ -43,12 +43,12 @@ FuncEffect = {
 
 | 条目 | 状态 | 说明 |
 |---|---|---|
-| 正常出口：返回值关系 | ✅（A1/p3sum `ret_from` 摘要） | 跨函数返回值传播已测 |
+| 正常出口：返回值关系 | 🔶 部分实现（`ret_from` 摘要**已生成**但调用点无消费路径 = G6；返回值告警实测可能来自实参整体传播兜底，"已参与求解"级都未达） | 生成侧已测，消费侧 T4.1 |
 | 正常出口：堆更新 | ✅（A3 `field_taint` 摘要） | 对象级字段写传播 |
 | 错误出口：Try fork/join + 载荷绑定 | ✅（V1） | 三出口状态合并，`err_t = body_t ∪ env_any_taint(body)`（保守近似） |
 | 错误出口：错误类型区分 + 抛错前堆副作用保留 | 🔶 | 当前 err_t 不区分 Suberror 类型；堆副作用靠 catch 基环境=入口∪body后状态 近似保留——精确化在 HIR/CFG |
 | 已知保守界（gate5 P2-b） | ⚠️ 记录在案 | `env_any_taint(body)` 并集计入**全部** TaintedParam 形参：函数有 ≥1 个形参、body 干净、错误载荷为常量时 catch 出口仍视为污点 → 方向为**过报不漏报**；三次语料快照 FP=0 实证未触发；HIR/CFG 阶段以"错误出口按位投影"消解，负对照测试锚点随之补入 |
-| 回调：立即执行（`Array::map` raise?） | ✅（lib_callbacks 占位符回填即此语义） | 占位符 → 形参绑定 |
+| 回调：立即执行（`Array::map` raise?） | 🔶 部分实现（占位符回填**已解析**；求解未接线，延迟回调（Iter::map）当前按即时处理 = 模型位置影响行为风险 G7） | T5.3 |
 | 回调：延迟执行（`Iter::map` 存储待推进） | ⬜ M5 | 需 timing 字段（见 SCHEMA-v2）+ 逃逸分析 |
 | 回调：trait 回调边（`Map::get` → 用户 Hash/Eq impl） | ⬜ M5 | 需闭世界 impl 索引产生调用边 |
 | IRFn 参数化（函数类型带参数/返回/效应） | ⬜ M5 路线图 | 当前 `IRFn` 无参数信息；升级后闭包调用可携带效应摘要 |

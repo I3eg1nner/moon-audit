@@ -493,3 +493,31 @@ test "CWE-676: unsafe_to_char after guard should not trigger" {
   run_cwe676(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
+
+///|
+test "t0_4_analysis_scope_disclosure" {
+  // T0.4: scope string must carry analyzer/frontend version, excludes,
+  // parse-failure count and the unanalyzed-is-not-safe note
+  let config = Config::default()
+  let result = scan_project(".", config)
+  inspect(
+    result.analysis_scope.has_prefix("analyzer=moon-audit "),
+    content="true",
+  )
+  inspect(
+    result.analysis_scope.contains("(moonbitlang/parser "),
+    content="true",
+  )
+  inspect(result.analysis_scope.contains("excludes=["), content="true")
+  inspect(result.analysis_scope.contains("parse-failures="), content="true")
+  inspect(
+    result.analysis_scope.contains("unanalyzed-is-not-safe"),
+    content="true",
+  )
+  // text output surfaces the scope section
+  let text = format_text(result, false)
+  inspect(text.contains("analysis-scope: "), content="true")
+  // JSON output embeds the scope
+  let json = format_json(result)
+  inspect(json.contains("\"analysis_scope\""), content="true")
+}

@@ -46,7 +46,17 @@ pub(all) struct ScanResult {
   findings : Array[Finding]
   files_scanned : Int
   errors : Array[String]
+  analysis_scope : String // T0.4 disclosure: analyzer/excludes/parse-failures (+reserved)
 }
+
+///|
+/// Analyzer identity for scope disclosure; keep in sync with moon.mod
+/// (manual sync documented in ROADMAP-T.md T0.4).
+pub const ANALYZER_VERSION = "0.4.0"
+
+///|
+/// Frontend spec pinned in moon.mod (moonbitlang/parser).
+pub const PARSER_SPEC_VERSION = "0.3.18"
 
 ///|
 pub(all) struct ImportContext {

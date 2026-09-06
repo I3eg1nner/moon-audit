@@ -86,7 +86,41 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
       }
     })
   }
-  { findings: dedup_findings(findings), files_scanned, errors, }
+  {
+    findings: dedup_findings(findings),
+    files_scanned,
+    errors,
+    analysis_scope: build_analysis_scope(config, errors, incremental),
+  }
+}
+
+///|
+fn build_analysis_scope(
+  config : Config,
+  errors : Array[String],
+  incremental : Bool,
+) -> String {
+  // T0.4: scan-scope disclosure. Minimal fields implemented: analyzer/
+  // frontend version, excludes, parse-failure count. Reserved fields
+  // (unsupported-semantics, timeouts, backend, entry policy) must be
+  // reported non-zero once measurable; unanalyzed != safe.
+  let mut parse_failures = 0
+  for e in errors {
+    if e.has_prefix("Parse error") {
+      parse_failures += 1
+    }
+  }
+  "analyzer=moon-audit " +
+  ANALYZER_VERSION +
+  " (moonbitlang/parser " +
+  PARSER_SPEC_VERSION +
+  "); excludes=[" +
+  config.exclude.join(", ") +
+  "]; parse-failures=" +
+  parse_failures.to_string() +
+  "; unsupported-semantics=0(reserved); timeouts=0(reserved); incremental=" +
+  (if incremental { "true" } else { "false" }) +
+  "; note=unanalyzed-is-not-safe"
 }
 
 ///|
