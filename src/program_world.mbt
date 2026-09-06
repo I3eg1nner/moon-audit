@@ -197,7 +197,7 @@ pub fn entry_stats_line(world : ProgramWorld) -> String {
 ///|
 pub fn derive_identities(symbols : PkgSymbols) -> WorldIdentities {
   let fns = identity_keys(symbols.fn_exists)
-  let types = identity_keys_of(symbols.struct_fields)
+  let types = identity_keys(symbols.struct_fields)
   let traits = identity_keys(symbols.impl_methods)
   let fields : Array[String] = []
   symbols.struct_fields.each(fn(tyname, fields_map) {
@@ -209,14 +209,6 @@ pub fn derive_identities(symbols : PkgSymbols) -> WorldIdentities {
 
 ///|
 fn[V] identity_keys(m : Map[String, V]) -> Array[String] {
-  let arr : Array[String] = []
-  m.each(fn(k, _) { arr.push(k) })
-  sort_dedup(arr)
-  arr
-}
-
-///|
-fn identity_keys_of(m : Map[String, Map[String, IRType]]) -> Array[String] {
   let arr : Array[String] = []
   m.each(fn(k, _) { arr.push(k) })
   sort_dedup(arr)
