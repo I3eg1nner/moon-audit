@@ -291,13 +291,34 @@ test "t1c_fnsig_error_and_arrow_param" {
 
 ///|
 test "t1c_entry_stats_line" {
-  // pkg-level classification + fn-level kinds via the same world loader
-  let world = load_program_world("/data/my/moonbit-petgraph", Config::default())
+  // self-contained fixture (CI has no /data corpus): a library pkg with a
+  // pub fn (library-pub) and an extern stub (ffi-extern) must be disclosed
+  let root = test_tmp("t1c_entry")
+  let dir = root + "/src"
+  @fs.create_dir(root) catch {
+    _ => ()
+  }
+  @fs.create_dir(dir) catch {
+    _ => ()
+  }
+  @fs.write_string_to_file(root + "/moon.mod", "name = \"t1c/e\"\n") catch {
+    _ => ()
+  }
+  @fs.write_string_to_file(dir + "/moon.pkg", "") catch {
+    _ => ()
+  }
+  @fs.write_string_to_file(
+    dir + "/stub.mbt",
+    "extern \"c\" fn raw(p : Int) -> Int",
+  ) catch {
+    _ => ()
+  }
+  @fs.write_string_to_file(dir + "/lib.mbt", "pub fn api(x : Int) -> Int { x }") catch {
+    _ => ()
+  }
+  let world = load_program_world(root, Config::default())
   let line = entry_stats_line(world)
   inspect(line.has_prefix("entries: pkgs("), content="true")
-  // petgraph is a library: at least one library-pub fn sig disclosed
-  inspect(line.contains("fns(library-pub="), content="true")
-  // unified reads still resolve arrow hints through FnSig
-  let world2 = load_program_world("/data/my/mocket", Config::default())
-  inspect(entry_stats_line(world2).contains("ffi-extern="), content="true")
+  inspect(line.contains("library-pub="), content="true")
+  inspect(line.contains("ffi-extern="), content="true")
 }
