@@ -173,7 +173,7 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 
 ## T3 抽象域与通用数据流求解器
 
-- [ ] T3.1 重做抽象域：区分不可达/已知安全/来源集合/未知；值结构、指向集合、
+- [~] T3.1 重做抽象域（薄切 2026-09-06）：SecurityFact{reach, src:有序去重来源集, unknown}（src/abstract_domain.mbt）——join=集合并 **by construction 幂等/交换/结合**（t3a_* 属性测试：幂等/交换/结合/单位元+单调+bottom）；`taint_or` 改为格 join+视图投影，**16 对全组合差分锁定零行为变化**（t3a_differential_16_pairs_vs_legacy_table，232/232，FP 三目标 0）；G1（合并非结合）就 join 算子根除——剩余：值结构与指向集合分离表示（TaintedFieldRef 暂编码 'p.f' 入 src，T4 指针约束落地时结构化）
       安全属性不混在一个枚举（修 G1：合并需幂等+交换+结合，性质测试锁定）
 - [ ] T3.2 状态合并：变量/堆/别名/出口分别合并；分支状态隔离（修 G4）；
       仅满足唯一目标条件才允许强更新
