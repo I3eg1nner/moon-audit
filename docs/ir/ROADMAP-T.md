@@ -121,17 +121,24 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       unknown(alias)——petgraph 泛型重度受影响最大（-67），这正是
       T1.2 要消除的不确定绑定；T1.4（统一 .mbti 限定身份）将把其中
       大部分转为确定绑定。
-- [ ] **T1c（下一入口）= T1.3 完整签名 + T1.5 入口策略**：废弃无信息 IRFn
-      （参数位置/标签/可选/默认表达式/泛型约束/返回/错误/异步效应入签名模型），
-      并区分应用入口/初始化/框架回调/库 pub API/FFI 再入的入口分类——
-      外部传入对象不得因无本地分配点而默认安全。承接 T1.2 的 unknown(alias)
-      池（petgraph 227）正是 T1.4 限定身份的目标输入。
-- [ ] T1.3 完整签名：参数位置与标签、可选参数、默认表达式、泛型及约束、
-      返回类型、错误与异步效应入模型；废弃无信息 IRFn
+- [x] **T1c（已完成 @8020b44）= T1.3 完整签名 + T1.5 入口策略**
+- [x] T1.3 完整签名：FnSig/FnP 模型（src/fn_sig.mbt）——参数位置/标签/可选
+      （默认表达式 has_default）/泛型约束（"T : Trait" 字符串化）/返回类型/
+      错误效应（none|default|typed|noraise|maybe）/异步；IRFn(String) 携带
+      sig/closure 身份（无信息 IRFn 废弃）；统一读取入口 sig_arrow_args/
+      sig_trait_params 替换 tyrecon 双表直读（旧表成为派生物，T1.4 移除）；
+      零漂移验证：mocket 1485/1906、petgraph 944/1449 与 T1b 基线逐项一致；
+      自举 4004/4527（+62 位点全部来自新增 fn_sig.mbt 源码被扫描，T1a 同款
+      自增长非行为漂移）；泛型语法实证：parser 0.3.18 为 `fn [T : S] f`（前缀
+      方括号），`fn f[T]` 不解析（官方 AST 文档 ast.mbt:199）
 - [ ] T1.4 统一源码与接口：.mbt/.mbti/builtin-prelude/依赖库/模型经同一入口装载，
       冲突与版本不匹配有定义的处理
-- [ ] T1.5 入口策略：应用入口/初始化/框架回调/库公共 API/FFI 再入；
-      外部传入对象不得因无本地分配点而默认安全
+- [x] T1.5 入口策略：ProgramWorld.entry_kinds（moon.pkg is-main/is-test
+      官方解析）+ FnSig.entry（app-main|test|library-pub|ffi-extern|internal，
+      按 vis/DeclStubs/is-main 分类）；scan analysis-scope 新增 entries 披露行
+      （pkg 级恒有、符号装载时含 fn 级计数）；实测 petgraph pkgs(library=7)、
+      mocket pkgs(library=8) 且 ffi-extern 计数>0；披露不改行为（外部对象不
+      默认安全的原则由 flow 引擎保守性承担，框架回调参数仍 Tainted）
 - 验收：跨包同名/局部遮蔽/导入别名/声明顺序不改变绑定结果；scan/ir-stats/call-graph
   使用同一程序世界
 
