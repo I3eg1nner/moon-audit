@@ -166,7 +166,14 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       返回仍保留分量关系（修 Match scrutinee 整体绑定缺口）
 - [ ] T2.4 隐式行为：默认参数/运算符与索引相关调用/插值/派生方法/迭代协议入 HIR；
       不支持 → 明确诊断（不再默认安全）
-- [ ] T2.5 闭包转换：闭包代码与环境对象分开表示；创建/捕获/存储/调用四态区分
+- [x] T2.5 闭包转换（薄切 2026-09-06）：let/LetFn/LetAnd 绑定的闭包注册即捕获快照
+      （值拷贝 taints + struct 共享 sites），body 仅在调用点执行（create≠execute，
+      未调用闭包零分析副作用，t2_5_uncalled 锁定）；调用点以实参 taint 播种参数 +
+      快照重放捕获（t2_5_capture_frozen_value_copy / t2_5_shared_struct_capture
+      _field_mutate_visible）；参数位闭包（框架回调）保持立即执行模型。
+      符号侧：ClosureSite.captures/shared_captures/capture_tys 声明期收集，
+      rescan 重播种防 R4 遮蔽丢失类型；调用边标注 (shared:N)。
+      遗留：递归/自引用闭包、闭包作为返回值逃逸（T4 域）、capture 深链（o.g.h）
       （创建 ≠ 执行）
 - 验收：同名解构/sink 副作用/直接错误载荷三反例修复；临时变量、一致改名等
   受限等价改写不改变关键分析事实

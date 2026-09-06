@@ -927,3 +927,38 @@ test "g4_branch_heap_in_branch_read_sees_prefork_state" {
   run_cwe113(impls, "t.mbt", source, findings, Error)
   assert_true(findings.length() == 0)
 }
+
+// ---------------------------------------------------------------------------
+// T2.5 closure conversion: create != execute, frozen captures, shared heap
+// ---------------------------------------------------------------------------
+
+///|
+test "t2_5_uncalled_let_closure_no_finding" {
+  let source = "fn foo(resp : Response, v : String) -> Unit { let f = fn() -> Unit { resp.set_header(\"X\", v) }; ignore(f) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "t2_5_capture_frozen_value_copy" {
+  // value-copy semantics: the capture snapshot is frozen at CREATION;
+  // reassigning the outer variable afterwards does not flow into the body
+  let source = "fn foo(resp : Response) -> Unit { let mut c : String = \"safe\"; let f = fn() -> Unit { resp.set_header(\"X\", c) }; c = get_input(); f() }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "t2_5_shared_struct_capture_field_mutate_visible" {
+  // shared-object semantics: a captured struct's field write inside the
+  // called closure is visible to the caller through the shared heap site
+  let source = "pub struct Box { mut v : String } fn foo(resp : Response, u : String) -> Unit { let b = Box::{ v: \"safe\" }; let f = fn() -> Unit { b.v = u }; f(); resp.set_header(\"X\", b.v) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}

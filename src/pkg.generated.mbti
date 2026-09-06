@@ -38,6 +38,8 @@ pub fn collect_func_summaries(String, String, InterProceduralContext) -> Unit
 
 pub fn collect_func_summaries_flow(@list.List[@syntax.Impl], String, InterProceduralContext, rules? : TaintRuleset) -> Unit
 
+pub fn collect_idents(@syntax.Expr, Array[String]) -> Unit
+
 pub fn collect_mbti_dir(String, PkgSymbols) -> Unit
 
 pub fn collect_mbti_file(String, PkgSymbols) -> Unit
@@ -45,6 +47,8 @@ pub fn collect_mbti_file(String, PkgSymbols) -> Unit
 pub fn collect_mbti_fn_sig(@mbti_ast.FuncSig, String, PkgSymbols) -> Unit
 
 pub fn collect_mbti_trait_method(@mbti_ast.TraitMethodSig, String, PkgSymbols) -> Unit
+
+pub fn collect_mutate_receivers(@syntax.Expr, Array[String]) -> Unit
 
 pub fn collect_symbols(Array[@syntax.Impl], PkgSymbols) -> Unit
 

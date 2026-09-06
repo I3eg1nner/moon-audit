@@ -381,6 +381,15 @@ priv struct ClosureSite {
   body : @syntax.Expr
   has_unannotated : Bool // body walk deferred until first call
   mut rescanned : Bool // one-shot lazy rescan guard
+  // T2.5 captures: outer names referenced by the body (declaration-time
+  // collection). shared = names whose object is FIELD-MUTATED in the body
+  // (reference-shared); the rest are value-copied snapshots.
+  captures : Array[String]
+  shared_captures : Array[String]
+  // declaration-time type snapshot: the rescan re-seeds captured variable
+  // types so the body walk resolves receivers even when the call site sits
+  // in a scope where the binding has since been shadowed/rebound
+  capture_tys : Map[String, IRType]
 }
 
 ///|
@@ -562,12 +571,49 @@ fn register_closure(
 ) -> Bool {
   // returns true when the body walk should be DEFERRED to the first call
   let unannotated = closure_has_unannotated(func.parameters)
+  // T2.5: declaration-time capture collection (value-copy vs shared)
+  let param_names : Array[String] = []
+  for p in func.parameters {
+    match p {
+      Positional(binder~, ..)
+      | Labelled(binder~, ..)
+      | Optional(binder~, ..)
+      | QuestionOptional(binder~, ..) => param_names.push(binder.name)
+      DiscardPositional(..) => ()
+    }
+  }
+  let idents : Array[String] = []
+  collect_idents(func.body, idents)
+  let muts : Array[String] = []
+  collect_mutate_receivers(func.body, muts)
+  let caps : Array[String] = []
+  for n in idents {
+    if !param_names.contains(n) && !caps.contains(n) {
+      caps.push(n)
+    }
+  }
+  let shared : Array[String] = []
+  for n in muts {
+    if caps.contains(n) && !shared.contains(n) {
+      shared.push(n)
+    }
+  }
+  let ctys : Map[String, IRType] = Map([])
+  for n in caps {
+    match ctx.env.get(n) {
+      Some(t) => ctys[n] = t
+      None => ()
+    }
+  }
   ctx.closure_sites[var_name] = {
     line: func.params_loc.start.lnum,
     params: func.parameters,
     body: func.body,
     has_unannotated: unannotated,
     rescanned: false,
+    captures: caps,
+    shared_captures: shared,
+    capture_tys: ctys,
   }
   unannotated
 }
@@ -586,6 +632,14 @@ fn rescan_closure(
     return // one-shot: first call site's argument types win
   }
   site.rescanned = true
+  // T2.5: re-seed declaration-time capture types (R4/R3 scoping can have
+  // shadowed the original binding between creation and this call site)
+  for n in site.captures {
+    match site.capture_tys.get(n) {
+      Some(t) => if ctx.env.get(n) == None { ctx.env[n] = t }
+      None => ()
+    }
+  }
   if !site.has_unannotated {
     return // body was already walked at allocation with known param types
   }
@@ -1578,7 +1632,16 @@ fn infer_apply(func : @syntax.Expr, ctx : ScanCtx) -> IRType {
           // var-bound closure call: resolve to its allocation site
           match ctx.closure_sites.get(name) {
             Some(site) => {
-              let target = "$closure:" + name + "@" + site.line.to_string()
+              let target = "$closure:" +
+                name +
+                "@" +
+                site.line.to_string() +
+                // T2.5: mark reference-shared captures in the edge label
+                (if site.shared_captures.length() > 0 {
+                  "(shared:" + site.shared_captures.length().to_string() + ")"
+                } else {
+                  ""
+                })
               record_site(ctx, func, "static", true, target)
               ctx.stats.total_calls += 1
               ctx.stats.static_calls += 1

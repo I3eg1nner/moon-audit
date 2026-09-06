@@ -371,6 +371,12 @@ priv struct FlowCtx {
   // the same sequence) + temp id counter (shared for uniqueness)
   hir_trace : Array[Stmt]
   hir_temp_ctr : Array[Int]
+  // T2.5 closure bindings: let-bound closures are REGISTERED at creation
+  // (captures frozen: value taints copied, struct sites shared via the
+  // name-keyed site map) and their body flows ONLY at a call site
+  // (create != execute). Shared across branch copies: bindings are
+  // immutable after registration (one-shot invoke guard on first call).
+  closures : Map[String, ClosureBinding]
   // param-field sink recording channel ("param|field") for summaries
   mut record_field_sinks : Array[String]?
   // T2.2 defer exit sequence: registered by the Defer arm, executed LIFO
@@ -455,6 +461,7 @@ fn FlowCtx::copy(self : FlowCtx) -> FlowCtx {
     sites,
     scope_stack,
     struct_comps,
+    closures: self.closures,
     heap,
     alloc_result: None,
   }
@@ -708,6 +715,7 @@ pub fn run_flow_taint_func(
     struct_comps: Map([]),
     hir_trace: [],
     hir_temp_ctr: [0],
+    closures: Map([]),
     record_field_sinks: None,
     defers: [],
     loop_exits: [],
@@ -779,6 +787,7 @@ pub fn run_flow_taint_func_top(
     struct_comps: Map([]),
     hir_trace: [],
     hir_temp_ctr: [0],
+    closures: Map([]),
     record_field_sinks: None,
     defers: [],
     loop_exits: [],
@@ -799,6 +808,211 @@ pub fn run_flow_taint_func_top(
   run_defers(ctx)
   ctx.raise_buffer.clear()
   scope_pop(ctx)
+}
+
+// ── T2.5 closure conversion (thin) ─────────────────────────────────────────
+
+///|
+priv struct ClosureBinding {
+  func : @syntax.Func
+  capture_names : Array[String]
+  frozen_taints : Map[String, Taint] // value-copy snapshot at CREATION
+  frozen_sites : Map[String, String] // struct objects: shared via heap site
+  mut invoked : Bool // one-shot: the first call site wins (parity with
+  // the call-graph's lazy rescan semantics)
+}
+
+// collect simple identifier names from an expression tree (frequent forms;
+// anything exotic is simply not captured — conservative-free because a
+// missed capture only loses an in-closure read of an outer value)
+
+///|
+pub fn collect_idents(expr : @syntax.Expr, out : Array[String]) -> Unit {
+  match expr {
+    Ident(id~, ..) =>
+      match id.name {
+        Ident(name~) => if !out.contains(name) { out.push(name) }
+        Dot(..) => ()
+      }
+    Apply(func~, args~, ..) => {
+      collect_idents(func, out)
+      for arg in args {
+        collect_idents(arg.value, out)
+      }
+    }
+    DotApply(self~, args~, ..) => {
+      collect_idents(self, out)
+      for arg in args {
+        collect_idents(arg.value, out)
+      }
+    }
+    Field(record~, ..) => collect_idents(record, out)
+    Mutate(record~, field~, ..) => {
+      collect_idents(record, out)
+      collect_idents(field, out)
+    }
+    Infix(lhs~, rhs~, ..)
+    | Pipe(lhs~, rhs~, ..)
+    | RevPipe(lhs~, rhs~, ..)
+    | Implies(lhs~, rhs~, ..) => {
+      collect_idents(lhs, out)
+      collect_idents(rhs, out)
+    }
+    Unary(expr~, ..) => collect_idents(expr, out)
+    Tuple(exprs~, ..) =>
+      for e in exprs {
+        collect_idents(e, out)
+      }
+    Array(exprs~, ..) =>
+      for e in exprs {
+        collect_idents(e, out)
+      }
+    Sequence(exprs~, last_expr~, ..) => {
+      for e in exprs {
+        collect_idents(e, out)
+      }
+      collect_idents(last_expr, out)
+    }
+    If(cond~, ifso~, ifnot~, ..) => {
+      collect_idents(cond, out)
+      collect_idents(ifso, out)
+      match ifnot {
+        Some(e) => collect_idents(e, out)
+        None => ()
+      }
+    }
+    Match(expr~, cases~, ..) => {
+      collect_idents(expr, out)
+      for case in cases {
+        collect_idents(case.body, out)
+        match case.guard_ {
+          Some(g) => collect_idents(g, out)
+          None => ()
+        }
+      }
+    }
+    Let(expr~, ..) => collect_idents(expr, out)
+    LetMut(expr~, ..) => collect_idents(expr, out)
+    Assign(expr~, ..) => collect_idents(expr, out)
+    Interp(elems~, ..) =>
+      for elem in elems {
+        match elem {
+          Expr(expr~, ..) => collect_idents(expr, out)
+          _ => ()
+        }
+      }
+    _ => ()
+  }
+}
+
+// register a let-bound closure: freeze captures, DEFER the body walk
+
+///|
+fn register_closure_binding(
+  ctx : FlowCtx,
+  name : String,
+  func : @syntax.Func,
+) -> Unit {
+  let param_names : Array[String] = []
+  for p in func.parameters {
+    match p {
+      Positional(binder~, ..)
+      | Labelled(binder~, ..)
+      | Optional(binder~, ..)
+      | QuestionOptional(binder~, ..) => param_names.push(binder.name)
+      DiscardPositional(..) => ()
+    }
+  }
+  let idents : Array[String] = []
+  collect_idents(func.body, idents)
+  let caps : Array[String] = []
+  let ft : Map[String, Taint] = Map([])
+  let fs : Map[String, String] = Map([])
+  for n in idents {
+    if param_names.contains(n) || caps.contains(n) {
+      continue
+    }
+    // only names with a LIVE outer declaration are captures
+    match env_lookup(ctx, n) {
+      Some(_) => {
+        caps.push(n)
+        ft[n] = or_clean(env_lookup(ctx, n))
+        match sites_get(ctx, n) {
+          Some(s) => fs[n] = s
+          None => ()
+        }
+      }
+      None => ()
+    }
+  }
+  ctx.closures[name] = {
+    func,
+    capture_names: caps,
+    frozen_taints: ft,
+    frozen_sites: fs,
+    invoked: false,
+  }
+}
+
+// execute a registered closure AT ITS CALL SITE: params receive call-site
+// argument taints (labelled matched by name), captures replay the frozen
+// snapshot — struct captures re-bind the SAME alloc-site, so field writes
+// inside the body are visible to the caller through the shared heap
+
+///|
+fn call_closure_binding(
+  ctx : FlowCtx,
+  name : String,
+  cb : ClosureBinding,
+  arg_pairs : Array[ArgTaint],
+) -> Taint {
+  if cb.invoked {
+    return Clean // one-shot: first call site wins (lazy-rescan parity)
+  }
+  cb.invoked = true
+  hir_emit_call(
+    ctx,
+    "$closure:" + name,
+    hir_temps_from_pairs(ctx, arg_pairs.length()),
+  )
+  scope_push(ctx)
+  let mut pos = 0
+  for p in cb.func.parameters {
+    match p {
+      Positional(binder~, ..) => {
+        let t : Taint = if pos < arg_pairs.length() {
+          arg_pairs[pos].taint
+        } else {
+          Tainted
+        }
+        ignore(env_bind(ctx, binder.name, t))
+        pos += 1
+      }
+      Labelled(binder~, ..) => {
+        let mut t : Taint = Tainted
+        for pr in arg_pairs {
+          match pr.label_value {
+            Some(l) => if l == binder.name { t = pr.taint }
+            None => ()
+          }
+        }
+        ignore(env_bind(ctx, binder.name, t))
+      }
+      Optional(binder~, ..) | QuestionOptional(binder~, ..) =>
+        ignore(env_bind(ctx, binder.name, Tainted))
+      DiscardPositional(..) => ()
+    }
+  }
+  for n in cb.capture_names {
+    ignore(env_bind(ctx, n, or_clean(cb.frozen_taints.get(n))))
+    match cb.frozen_sites.get(n) {
+      Some(s) => sites_set(ctx, n, s)
+      None => ()
+    }
+  }
+  let r = flow(cb.func.body, ctx)
+  scope_pop(ctx)
+  r
 }
 
 // ── bounded heap helpers ──────────────────────────────────────────────────
@@ -936,51 +1150,72 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
         arg_taint_arr.push(p.taint)
       }
       let arg_taint = pairs_aggregate(arg_pairs)
-      // P3: consume field-write summaries — if the callee writes a tainted
-      // param into a field of another param, the receiver argument becomes
-      // tainted in the caller (source-derived provenance so later field
-      // reads propagate per the provenance-aware Field rule)
-      apply_field_taint_side_effect(func, args, ctx, arg_taint_arr)
-      // M4-lite: conditional field sinks — callee reads `param.field`
-      // into a sink; confirm against this caller's heap field facts
-      apply_param_field_sinks(func, args, ctx, expr)
-      let ret = match apply_func_name(func) {
-        Some(name) => {
-          let is_sink = is_header_setter(name) ||
-            ctx.taint_rules.header_sink_hit(name)
-          if is_sink {
-            let slot = or_slot(ctx.taint_rules.sink_value_slot(name))
-            let value_taint = value_taint_at(arg_pairs, slot)
-            if is_tainted(value_taint) {
-              hir_emit_sink(ctx, "header:" + name, hir_temps)
-              report_cwe113(ctx, expr, value_taint)
-            }
-          }
-          if ctx.output_sinks_enabled && ctx.taint_rules.output_sink_hit(name) {
-            let slot = or_slot(ctx.taint_rules.output_sink_slot(name))
-            let value_taint = value_taint_at(arg_pairs, slot)
-            if is_tainted(value_taint) {
-              report_output_sink(ctx, expr, value_taint, name)
-            }
-          }
-          if is_sanitize_call_name(name) || ctx.taint_rules.sanitizer_hit(name) {
-            Clean
-          } else {
-            match classify_source_method(name) {
-              Some(_) => Tainted
-              None =>
-                if ctx.taint_rules.source_hit(name) {
-                  Tainted
-                } else {
-                  arg_taint
-                }
-            }
+      // T2.5: calling a REGISTERED closure binding — execute its body HERE
+      // (call-site argument taints seed the params; frozen captures replay;
+      // shared struct captures re-bind the same alloc-site so field writes
+      // inside the body are visible to the caller via the heap)
+      let closure_ret : Taint? = match func {
+        Ident(id~, ..) => {
+          let name = longident_str(id.name)
+          match ctx.closures.get(name) {
+            Some(cb) => Some(call_closure_binding(ctx, name, cb, arg_pairs))
+            None => None
           }
         }
-        None => arg_taint
+        _ => None
       }
-      let _ = flow(func, ctx)
-      ret
+      match closure_ret {
+        Some(t) => t
+        None => {
+          // P3: consume field-write summaries — if the callee writes a tainted
+          // param into a field of another param, the receiver argument becomes
+          // tainted in the caller (source-derived provenance so later field
+          // reads propagate per the provenance-aware Field rule)
+          apply_field_taint_side_effect(func, args, ctx, arg_taint_arr)
+          // M4-lite: conditional field sinks — callee reads `param.field`
+          // into a sink; confirm against this caller's heap field facts
+          apply_param_field_sinks(func, args, ctx, expr)
+          let ret = match apply_func_name(func) {
+            Some(name) => {
+              let is_sink = is_header_setter(name) ||
+                ctx.taint_rules.header_sink_hit(name)
+              if is_sink {
+                let slot = or_slot(ctx.taint_rules.sink_value_slot(name))
+                let value_taint = value_taint_at(arg_pairs, slot)
+                if is_tainted(value_taint) {
+                  hir_emit_sink(ctx, "header:" + name, hir_temps)
+                  report_cwe113(ctx, expr, value_taint)
+                }
+              }
+              if ctx.output_sinks_enabled &&
+                ctx.taint_rules.output_sink_hit(name) {
+                let slot = or_slot(ctx.taint_rules.output_sink_slot(name))
+                let value_taint = value_taint_at(arg_pairs, slot)
+                if is_tainted(value_taint) {
+                  report_output_sink(ctx, expr, value_taint, name)
+                }
+              }
+              if is_sanitize_call_name(name) ||
+                ctx.taint_rules.sanitizer_hit(name) {
+                Clean
+              } else {
+                match classify_source_method(name) {
+                  Some(_) => Tainted
+                  None =>
+                    if ctx.taint_rules.source_hit(name) {
+                      Tainted
+                    } else {
+                      arg_taint
+                    }
+                }
+              }
+            }
+            None => arg_taint
+          }
+          let _ = flow(func, ctx)
+          ret
+        }
+      }
     }
     DotApply(self~, method_name~, args~, ..) => {
       let recv_taint = flow(self, ctx)
@@ -1206,10 +1441,12 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       run_defers(ctx)
       t
     }
-    LetFn(func~, body~, ..) => {
-      // R4: the local function name is scoped to its body (block semantics)
+    LetFn(name~, func~, body~, ..) => {
+      // R4: the binding group is scoped to its body (block semantics)
+      // T2.5: register + defer — the local fn body flows at its call site
       scope_push(ctx)
-      let _ = flow(Function(func~, loc=dummy_flow_loc()), ctx)
+      register_closure_binding(ctx, name.name, func)
+      ignore(env_bind(ctx, name.name, Clean))
       let t = flow(body, ctx)
       scope_pop(ctx)
       t
@@ -1217,12 +1454,12 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
     LetAnd(bindings~, body~, ..) => {
       // R4: the binding group is scoped to its body (block semantics)
       scope_push(ctx)
-      let mut t = Clean
       for binding in bindings {
-        let (_, _, func) = binding
-        t = taint_or(t, flow(Function(func~, loc=dummy_flow_loc()), ctx))
+        let (binder, _, func) = binding
+        register_closure_binding(ctx, binder.name, func)
+        ignore(env_bind(ctx, binder.name, Clean))
       }
-      let bt = taint_or(t, flow(body, ctx))
+      let bt = flow(body, ctx)
       scope_pop(ctx)
       bt
     }
@@ -1235,6 +1472,13 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       //     declaration, so stale components become unreachable (R5)
       scope_push(ctx) // R4: the binding is scoped to the let body
       match (pattern, expr) {
+        (Var(binder), Function(func~, ..)) => {
+          // T2.5 create != execute: register the closure (captures frozen
+          // at creation) — the body flows only at a call site; a closure
+          // that is never called has zero analysis side effects
+          register_closure_binding(ctx, binder.name, func)
+          ignore(env_bind(ctx, binder.name, Clean))
+        }
         (Var(binder), Tuple(exprs~, ..)) => {
           // T2.1+T2.3: lower through the statement layer — each component
           // evaluated ONCE into a temp, then positions bound to the decl
@@ -2612,6 +2856,7 @@ fn collect_summary_func(
     struct_comps: Map([]),
     hir_trace: [],
     hir_temp_ctr: [0],
+    closures: Map([]),
     record_field_sinks: None,
     defers: [],
     loop_exits: [],
@@ -2792,6 +3037,7 @@ pub fn run_flow_taint_trace(
     struct_comps: Map([]),
     hir_trace: [],
     hir_temp_ctr: [0],
+    closures: Map([]),
     record_field_sinks: None,
     defers: [],
     loop_exits: [],
@@ -2821,4 +3067,51 @@ pub fn run_flow_taint_trace(
   ctx.raise_buffer.clear()
   scope_pop(ctx)
   ctx.hir_trace
+}
+
+///|
+pub fn collect_mutate_receivers(
+  expr : @syntax.Expr,
+  out : Array[String],
+) -> Unit {
+  // receivers of field-mutation writes (`obj.f = v`): the captured object
+  // is REFERENCE-SHARED (writes visible to the creator), unlike value
+  // captures which are frozen snapshots
+  match expr {
+    Mutate(record~, ..) => {
+      match flow_var_name(record) {
+        Some(n) => if !out.contains(n) { out.push(n) }
+        None => ()
+      }
+      collect_mutate_receivers(record, out)
+    }
+    Apply(func~, args~, ..) => {
+      collect_mutate_receivers(func, out)
+      for arg in args {
+        collect_mutate_receivers(arg.value, out)
+      }
+    }
+    DotApply(self~, ..) => collect_mutate_receivers(self, out)
+    If(ifso~, ifnot~, ..) => {
+      collect_mutate_receivers(ifso, out)
+      match ifnot {
+        Some(e) => collect_mutate_receivers(e, out)
+        None => ()
+      }
+    }
+    Match(cases~, ..) =>
+      for case in cases {
+        collect_mutate_receivers(case.body, out)
+      }
+    Sequence(exprs~, last_expr~, ..) => {
+      for e in exprs {
+        collect_mutate_receivers(e, out)
+      }
+      collect_mutate_receivers(last_expr, out)
+    }
+    Let(body~, ..) => collect_mutate_receivers(body, out)
+    LetFn(body~, ..) => collect_mutate_receivers(body, out)
+    LetAnd(body~, ..) => collect_mutate_receivers(body, out)
+    _ => ()
+  }
 }
