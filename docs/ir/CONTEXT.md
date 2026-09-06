@@ -635,3 +635,21 @@ CWE-113 候选待分诊。
   丢失 rc（失败静默 exit 0）——改 here-string；反证锁定：篡改期望计数 → rc=1 + FAIL 行
 - mars 9→12 源码核实为 R4 语义修复浮出的同款 TP 模式（redirect.mbt ctx.path()→Location），
   分诊 8 TP 候选/4 FP 嫌疑，非回归
+
+## 2026-09-05 · T1b 完整身份层收官（6a95bd0 + integrate8）
+- WorldIdentities 派生注册表（函数/类型/trait/字段，排序去重、声明顺序无关）；
+  short_key 回退受 alias_mode 控制：CLI 默认 strict（未命中计 unknown(alias)），
+  --conservative-alias 保留旧行为
+- 验收三反例（单测）：两包同名 Foo::m strict 不跨绑、别名表清空解析不变、
+  声明顺序打乱 identity 表相等；gate8 三 P2 顺手修复
+- **双模式差异表（supervisor 双二进制复验，conservative 与基线 b1847b3 逐项一致）**：
+  | 目标 | conservative | strict | alias |
+  |---|---|---|---|
+  | mocket | 1502/1906 | 1485/1906 | 44 |
+  | petgraph | 1011/1449 | 944/1449 | 227 |
+  | 自举 | 3976/4462 | 3944/4462 | 55 |
+  解读：strict 把"静默跨包绑定风险"转为诚实 unknown(alias)——petgraph 泛型
+  重度受影响最大，正是 T1.4 限定身份的目标输入
+- 过程教训：工人自报数字含提交前中间态（1489/1941 等三处失真），gate9
+  运行时复验纠正——自报数字不得直接入档，双二进制复验为准
+- 下一步：T1c = T1.3 完整签名（废弃 IRFn）+ T1.5 入口策略
