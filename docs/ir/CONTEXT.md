@@ -659,3 +659,9 @@ CWE-113 候选待分诊。
   测试 fixture 的全部文件系统操作路径必须经 @path.join（新助手 pjoin）；
   canonical 查询键（aliases/imports map 查询）保持正斜杠由 canonical_dir 统一
 - t1a1 测试加非空转护栏（packages >= 1 先行断言），Windows 端故障未来可精确定位
+
+## 2026-09-06 · gate10b 裁定补记（评审应答超时非代码缺陷）
+- gate10b 静态复核零反例（三表唯一写点 grep 实证：fn_param_arrows 仅 store_fn_sig、trait_params 仅 materialize_trait_from_sig、collect_fn_param_arrows 已删除；四路摄取统一）
+- 其要求的动态项已由 supervisor 全部代跑通过：216/216 × native、双二进制 5/5 SAME（mocket/petgraph 双命令 + 冻结自举）、run.sh GATE-OK rc=0 + /bin/false rc=2、FP 三目标 0/0/0
+- 唯一未绿项 = 远端 CI Windows 红（9889bc2），根因 = Windows native fs 不接受正斜杠字符串路径（fixture 创建静默失败，error code 3）——CI 差异第四形态（版本/绝对路径/临时目录/**分隔符**）；修复由 winpath 工作流执行中（@path.join 全 fixture 治理 + CI 迭代验证至三平台绿）
+- 裁定：gate10b 视为 **PASS（动态项 supervisor 代跑 + CI 项委托 winpath）**；P2（T1.1 子项清单过时）挂下次文档触碰
