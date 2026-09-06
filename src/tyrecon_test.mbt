@@ -1,6 +1,14 @@
 // M1 type-reconstruction spike unit tests (see docs/ir/PLAN.md)
 
 ///|
+fn test_tmpc(sub : String) -> String {
+  // canonical forward-slash form: for fixtures whose paths flow into
+  // production STRING-path logic (canonical queries, config-relative
+  // resolution) — those must NOT be OS-native on Windows
+  canonical_dir(test_tmp(sub))
+}
+
+///|
 fn pjoin(base : String, seg : String) -> String {
   @path.Path(
     // OS-native path join: Windows native fs (FindFirstFileW in x/fs) is not
@@ -647,8 +655,8 @@ test "e2_letfn_call_static_not_higher" {
 test "gate3_p2_1_dep_canonical_pkg_strips_source_layout" {
   // self-contained fixture (CI has no /data/my checkout): build a
   // .mooncakes-like tree in /tmp with source="src" layout
-  let root = test_tmp("gate3_p2_1_fixture")
-  let async_src = pjoin(root, ".mooncakes/moonbitlang/async/src")
+  let root = test_tmpc("gate3_p2_1_fixture")
+  let async_src = root + "/.mooncakes/moonbitlang/async/src"
   // create_dir is not recursive: build the chain level by level (root first)
   @fs.create_dir(root) catch {
     _ => ()
@@ -662,7 +670,7 @@ test "gate3_p2_1_dep_canonical_pkg_strips_source_layout" {
   }
   // dep_canonical_pkg reads the REPO-ROOT moon.mod (like the real async repo)
   @fs.write_string_to_file(
-    pjoin(root, ".mooncakes/moonbitlang/async/moon.mod"),
+    root + "/.mooncakes/moonbitlang/async/moon.mod",
     "name = \"moonbitlang/async\"\nsource = \"src\"\n",
   ) catch {
     _ => ()
@@ -760,11 +768,11 @@ test "taint_dsl_value_slot" {
 
 ///|
 test "taint_dsl_load_from_file" {
-  let dir = test_tmp("taint_dsl_test")
+  let dir = test_tmpc("taint_dsl_test")
   @fs.create_dir(dir) catch {
     _ => ()
   }
-  let f = pjoin(dir, "taint-rules.json")
+  let f = dir + "/taint-rules.json"
   @fs.write_string_to_file(
     f, "{ \"sources\": [{ \"method\": \"fetch_input\", \"kind\": \"QueryParam\" }], \"sinks\": [{ \"method\": \"custom_set\", \"kind\": \"HeaderValue\", \"value_slot\": 1 }], \"sanitizers\": [{ \"method\": \"cleanse\" }] }",
   ) catch {
@@ -982,11 +990,11 @@ test "gate4_extends_combined_path_applies_model" {
   // .moon-audit.json taint section with ONLY {"extends":["mongoose"]} must
   // resolve the model (previously silently no-op: size()==0 early return
   // AND missing resolve_extends on the combined path)
-  let dir = test_tmp("gate4_combined_test")
+  let dir = test_tmpc("gate4_combined_test")
   @fs.create_dir(dir) catch {
     _ => ()
   }
-  let f = pjoin(dir, ".moon-audit.json")
+  let f = dir + "/.moon-audit.json"
   @fs.write_string_to_file(f, "{\"taint\": {\"extends\": [\"mongoose\"]}}") catch {
     _ => ()
   }
@@ -1002,7 +1010,7 @@ test "gate4_extends_combined_path_alert_e2e" {
   // end-to-end: probe snippet alerts only when the model is applied
   let src = "pub fn handle(req : Req, id : Bytes) -> Unit { ws_send_native(id, req.body()) }"
   let (impls, _) = @parser.parse_string(src, name="t.mbt")
-  let dir = test_tmp("gate4_combined_test")
+  let dir = test_tmpc("gate4_combined_test")
   let (rules, _) = load_taint_rules(dir)
   let findings : Array[Finding] = []
   run_cwe113(
@@ -1021,7 +1029,7 @@ test "gate4_extends_combined_path_alert_e2e" {
 test "gate4_extends_with_extern_decl_e2e" {
   let src = "extern \"c\" fn ws_send_native(a : Bytes, b : Bytes) -> Unit = \"ws_send_native\" pub fn handle(req : Req, id : Bytes) -> Unit { ws_send_native(id, req.body()) }"
   let (impls, _) = @parser.parse_string(src, name="t.mbt")
-  let dir = test_tmp("gate4_combined_test")
+  let dir = test_tmpc("gate4_combined_test")
   let (rules, _) = load_taint_rules(dir)
   let findings : Array[Finding] = []
   run_cwe113(
@@ -1039,8 +1047,8 @@ test "gate4_extends_with_extern_decl_e2e" {
 ///|
 test "gate4_scan_project_level_e2e" {
   // full scan_project path (equivalent to CLI): rules from project root
-  let dir = test_tmp("g4_scanproj")
-  let src_dir = pjoin(dir, "src")
+  let dir = test_tmpc("g4_scanproj")
+  let src_dir = dir + "/src"
   @fs.create_dir(dir) catch {
     _ => ()
   }
@@ -1048,20 +1056,20 @@ test "gate4_scan_project_level_e2e" {
     _ => ()
   }
   @fs.write_string_to_file(
-    pjoin(dir, "moon.mod"),
+    dir + "/moon.mod",
     "name = \"g4p\"\nversion = \"0.1.0\"\n",
   )
-  @fs.write_string_to_file(pjoin(src_dir, "moon.pkg"), "") catch {
+  @fs.write_string_to_file(src_dir + "/moon.pkg", "") catch {
     _ => ()
   }
   @fs.write_string_to_file(
-    pjoin(src_dir, "lib.mbt"),
+    src_dir + "/lib.mbt",
     "extern \"c\" fn ws_send_native(a : Bytes, b : Bytes) -> Unit = \"ws_send_native\"\npub fn handle(req : Req, id : Bytes) -> Unit { ws_send_native(id, req.body()) }\n",
   ) catch {
     _ => ()
   }
   @fs.write_string_to_file(
-    pjoin(dir, ".moon-audit.json"),
+    dir + "/.moon-audit.json",
     "{\"taint\": {\"extends\": [\"mongoose\"]}}",
   ) catch {
     _ => ()
@@ -1074,11 +1082,11 @@ test "gate4_scan_project_level_e2e" {
 test "libmodel_v2_callback_timing_and_trait_edges_parse" {
   // v2 object-form callbacks (deferred timing) + trait re-entry edges
   // are parsed into the ruleset (minimal read path; solving is M5)
-  let dir = test_tmp("libmodel_v2_test")
+  let dir = test_tmpc("libmodel_v2_test")
   @fs.create_dir(dir) catch {
     _ => ()
   }
-  let f = pjoin(dir, "taint-rules.json")
+  let f = dir + "/taint-rules.json"
   @fs.write_string_to_file(
     f, "{ \"callbacks\": { \"Array::map\": [\"T\"], \"Iter::map\": { \"slots\": [\"T\"], \"timing\": \"deferred\" } }, \"trait_edges\": [ { \"method\": \"Map::get\", \"trait_method\": \"hash\", \"note\": \"lookup calls key Hash/Eq impls\" } ] }",
   ) catch {
@@ -1140,12 +1148,12 @@ test "t0_site_coverage_per_site_denominator" {
 test "r7_empty_candidate_set_counts_unknown" {
   // round-5 P1: a dispatch with zero enumerable impls must be
   // unknown(no-impls) — 0/1 coverage, never counted as covered
-  let dir = test_tmp("r7_noimpl")
+  let dir = test_tmpc("r7_noimpl")
   @fs.create_dir(dir) catch {
     _ => ()
   }
   @fs.write_string_to_file(
-    pjoin(dir, "moon.mod"),
+    dir + "/moon.mod",
     "name = \"r7noimpl\"\nversion = \"0.1.0\"\n",
   ) catch {
     _ => ()

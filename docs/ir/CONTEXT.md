@@ -665,3 +665,11 @@ CWE-113 候选待分诊。
 - 其要求的动态项已由 supervisor 全部代跑通过：216/216 × native、双二进制 5/5 SAME（mocket/petgraph 双命令 + 冻结自举）、run.sh GATE-OK rc=0 + /bin/false rc=2、FP 三目标 0/0/0
 - 唯一未绿项 = 远端 CI Windows 红（9889bc2），根因 = Windows native fs 不接受正斜杠字符串路径（fixture 创建静默失败，error code 3）——CI 差异第四形态（版本/绝对路径/临时目录/**分隔符**）；修复由 winpath 工作流执行中（@path.join 全 fixture 治理 + CI 迭代验证至三平台绿）
 - 裁定：gate10b 视为 **PASS（动态项 supervisor 代跑 + CI 项委托 winpath）**；P2（T1.1 子项清单过时）挂下次文档触碰
+
+## 2026-09-06 · Windows 路径分流修正（winpath 第二轮）
+- 第一轮 pjoin 全量清扫：修好 t1a1（walker），但误伤 4 个测试——它们的路径流入生产代码
+  字符串路径逻辑（canonical 查询/taint-rules/extends 相对解析 root+"/x"），OS 原生反斜杠使其失效
+- 修正分流：test_tmp=OS 原生（喂 walker/scan 的 fixture），新助手 test_tmpc=canonical 正斜杠
+  （喂 loader 字符串逻辑的 fixture）；g4_scanproj 等 walker+loader 混合场景用 canonical 基座
+  （Windows 上 fopen 接受正斜杠，唯 read_dir/FindFirstFileW 混合分隔符敏感——但 g4 类
+  测试在正斜杠下历来绿，t1a1 的深层嵌套 fixture 需要 OS 原生，实证分流）
