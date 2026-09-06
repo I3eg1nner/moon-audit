@@ -154,6 +154,8 @@ pub fn has_labelled_arg(@list.List[@syntax.Argument], String) -> Bool
 
 pub fn has_labelled_bool_arg(@list.List[@syntax.Argument], String, Bool) -> Bool
 
+pub fn hir_trace_show(Array[Stmt]) -> String
+
 pub fn is_any_constant(@syntax.Expr) -> Bool
 
 pub fn is_constant_ident(@syntax.LongIdent) -> Bool
@@ -237,6 +239,8 @@ pub fn run_cwe942(@list.List[@syntax.Impl], String, String, Array[Finding], Seve
 pub fn run_flow_taint_func(@list.List[@syntax.Parameter]?, @syntax.Expr, String, String, Severity, Array[Finding], ictx? : InterProceduralContext, rules? : TaintRuleset, output_sinks_enabled? : Bool) -> Unit
 
 pub fn run_flow_taint_func_top(@syntax.Expr, String, String, Severity, Array[Finding], rules? : TaintRuleset, output_sinks_enabled? : Bool) -> Unit
+
+pub fn run_flow_taint_trace(@list.List[@syntax.Parameter]?, @syntax.Expr, String, String, Severity, Array[Finding]) -> Array[Stmt]
 
 pub fn run_ir_stats(String, Config, conservative_alias? : Bool) -> IRStatsResult
 
@@ -542,6 +546,12 @@ pub(all) struct Remediation {
   owasp_category : String
 }
 
+pub(all) enum RhsKind {
+  RTemp(Int)
+  RWhole
+}
+pub fn RhsKind::show(Self) -> String
+
 pub(all) struct RuleConfig {
   enabled : Bool
   severity : Severity?
@@ -592,6 +602,17 @@ pub(all) enum Severity {
   Warning
   Info
 } derive(Eq, @debug.Debug)
+
+pub(all) enum Stmt {
+  LetEvalTemp(Int, Int)
+  BindVar(String, RhsKind)
+  BindTuplePositions(String, Array[Int])
+  BindCtorPositions(String, String, Array[Int])
+  CallStmt(String, Array[Int])
+  SinkStmt(String, Array[Int])
+  AssignStmt(String, Int)
+}
+pub fn Stmt::show(Self) -> String
 
 pub(all) struct TaintFlow {
   source : TaintSource
@@ -673,6 +694,12 @@ pub(all) struct TraitCallbackEdge {
   trait_method : String
   note : String
 } derive(@debug.Debug)
+
+pub(all) enum ValuePos {
+  PTuple(String, Int)
+  PCtor(String, String, Int)
+}
+pub fn ValuePos::key(Self) -> String
 
 pub(all) struct WorldIdentities {
   fns : Array[String]
