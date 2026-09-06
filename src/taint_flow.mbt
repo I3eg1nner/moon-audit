@@ -341,8 +341,11 @@ priv struct FlowCtx {
   ictx : InterProceduralContext? // P3: summaries consumed at call sites
   // bounded heap slice (M4-lite): var -> alloc-site id ("file:line")
   sites : Map[String, String]
-  // alloc-site -> field -> taint; SHARED across branch copies on purpose:
-  // field facts are monotone (taint only grows), so branch joins are sound
+  // alloc-site -> field -> taint. G4: PER-BRANCH fork/join (weak merge at
+  // join points via fact-level join); monotone growth keeps joins sound.
+  // (Historical note: pre-G4 this map was deliberately shared across
+  // branch copies — see ROADMAP-T G4 for the c5 counterexample that
+  // forced isolation.)
   heap : Map[String, Map[String, Taint]]
   // site of the literal just evaluated, consumed at the next binding point
   mut alloc_result : String?

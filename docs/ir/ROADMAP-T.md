@@ -160,7 +160,7 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
         raise——被捕获 raise 保持 defers 不排空；短路 &&/||：常量 lhs 跳过 rhs
         （其 sink 不再误报）、一般 lhs 分支副本 merge、结果 join 保守；break/
         continue 携带值入 loop_exits 汇合（parser 0.3.18 无 valued-loop 形态可
-        端到端观察，实现为结构能力+break 值表达式求值单测锁定）；c5(G4 分支堆)
+        端到端观察，实现为结构能力+break 值表达式求值单测锁定）；c5(G4 分支堆)已于 G4 批次转绿（XFAIL 表归零）
         保持 XFAIL 如实
 - [ ] T2.3 结构化值：tuple/enum/Option/Result/struct 的构造与投影经赋值、别名、
       返回仍保留分量关系（修 Match scrutinee 整体绑定缺口）

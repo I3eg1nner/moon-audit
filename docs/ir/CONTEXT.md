@@ -716,3 +716,26 @@ CWE-113 候选待分诊。
 - 测试坑记录：output-sink 名（如 sink()）依赖 lib-model 配置——单测场景
   必须用 resp.set_header 全场景路径；未知名调用（input()）在空符号表下回退
   Clean，污点须用真实参数承载
+
+## 2026-09-06 · c5 归零里程碑 — G4/T2.5/T3.4 批次集成（integrate11）
+
+**XFAIL 表归零**：tests/cases 期望表 12 反例全 PASS（"0 tracked misses"）——五轮评审以来
+全部已知失败反例（同名解构/作用域/循环/分支堆/错误载荷/元组分量/嵌套 try/空候选…）闭环。
+
+批次交付：
+- **G4 分支堆隔离**（3c3d85e）：heap fork/join 弱合并（SecurityFact join，格性质承袭 T3.1）+
+  虚拟位点；c5 转绿
+- **T2.5 闭包转换薄切**（074d259）：let/LetFn/LetAnd 绑定闭包注册即捕获快照（create≠execute
+  结构性断言：未调用闭包零副作用）；值拷贝 vs struct 共享双语义正反测
+- **T3.4 第二种分析**（e2a1a1a）：活跃变量跑在共享 HIR 语句层（静态契约：live_vars 零
+  taint_flow 引用）——框架复用性第一证
+- gate12 P1 修复：t2_5_capture_frozen_value_copy 改区分性构造（参数源经重赋值围栏 +
+  无围栏配对对照），冻结语义经真判别验证
+- gate12 P2 清理：FlowCtx.heap 注释更新为 per-branch G4 语义（含历史注记）、ROADMAP
+  T2.2 行 c5 表述纠正
+
+gate12：VERDICT PASS（243/243 × native、双二进制 2/2 SAME、FP 三目标 0/0/0、
+crescent 5 逐条稳定、CI 三平台绿 e2a1a1a）。
+
+T2.5 登记未竟（薄切边界，如实）：hir_trace 闭包调用双 CallStmt（外层+分配点各 fresh temps）、
+LetMut 绑定闭包仍创建期执行 body——均在 ROADMAP T2.5 剩余项。

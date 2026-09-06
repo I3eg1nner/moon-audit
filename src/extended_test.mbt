@@ -943,13 +943,25 @@ test "t2_5_uncalled_let_closure_no_finding" {
 
 ///|
 test "t2_5_capture_frozen_value_copy" {
-  // value-copy semantics: the capture snapshot is frozen at CREATION;
-  // reassigning the outer variable afterwards does not flow into the body
-  let source = "fn foo(resp : Response) -> Unit { let mut c : String = \"safe\"; let f = fn() -> Unit { resp.set_header(\"X\", c) }; c = get_input(); f() }"
+  // DISCRIMINATING (gate12 P1): the taint source is a fn PARAM (the
+  // engine's built-in TaintedParam convention), reassigned into `c` AFTER
+  // the closure is created.
+  //   frozen value-copy  -> body sees the "safe" snapshot  -> 0 findings
+  //   late-binding read  -> body reads c = TaintedParam(u) -> 1 finding
+  // (the previous version used get_input(), which is Clean in the empty
+  // rule set, so both semantics passed vacuously)
+  let source = "fn foo(resp : Response, u : String) -> Unit { let mut c : String = \"safe\"; let f = fn() -> Unit { resp.set_header(\"X\", c) }; c = u; f() }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[Finding] = []
   run_cwe113(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() == 0)
+  // paired discriminator: WITHOUT the reassignment fence the same closure
+  // body DOES report (proves the sink/param path is live in this shape)
+  let source2 = "fn bar(resp : Response, u : String) -> Unit { let f = fn() -> Unit { resp.set_header(\"X\", u) }; f() }"
+  let (impls2, _) = @parser.parse_string(source2, name="test.mbt")
+  let findings2 : Array[Finding] = []
+  run_cwe113(impls2, "test.mbt", source2, findings2, Error)
+  assert_true(findings2.length() > 0)
 }
 
 ///|
