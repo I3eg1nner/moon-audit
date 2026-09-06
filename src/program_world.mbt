@@ -44,6 +44,7 @@ pub(all) struct ProgramWorld {
   config_reports : Array[String] // official moon_config validation reports
   config : Config
   identities : WorldIdentities // T1.2 derived registry (sorted, deduped)
+  entry_kinds : Map[String, String] // T1.5 pkg dir -> app-main|test|library
 }
 
 ///|
@@ -104,6 +105,23 @@ pub fn load_program_world(
   for pkgf in packages {
     imports[canonical_dir(pkgf.dir)] = read_pkg_imports(pkgf.dir)
   }
+  // T1.5: package-level entry classification (official moon_config parse)
+  let entry_kinds : Map[String, String] = Map([])
+  for pkgf in packages {
+    entry_kinds[canonical_dir(pkgf.dir)] = classify_pkg(pkgf.dir)
+  }
+  // app-main fn entry disclosure when symbols are loaded
+  if with_symbols {
+    match symbols.fn_sigs.get("main") {
+      Some(sig) => {
+        let root_kind = or_library(entry_kinds.get(canonical_dir(root)))
+        if root_kind == "app-main" {
+          symbols.fn_sigs["main"] = { ..sig, entry: "app-main", }
+        }
+      }
+      None => ()
+    }
+  }
   {
     root,
     packages,
@@ -114,6 +132,60 @@ pub fn load_program_world(
     config_reports,
     config,
     identities: derive_identities(symbols),
+    entry_kinds,
+  }
+}
+
+///|
+fn or_library(k : String?) -> String {
+  match k {
+    Some(s) => s
+    None => "library"
+  }
+}
+
+// T1.5: single disclosure line for analysis-scope
+
+///|
+pub fn entry_stats_line(world : ProgramWorld) -> String {
+  let mut app_main = 0
+  let mut test_pkgs = 0
+  let mut lib_pkgs = 0
+  world.entry_kinds.each(fn(_dir, kind) {
+    match kind {
+      "app-main" => app_main += 1
+      "test" => test_pkgs += 1
+      _ => lib_pkgs += 1
+    }
+  })
+  let base = "entries: pkgs(app-main=" +
+    app_main.to_string() +
+    ",test=" +
+    test_pkgs.to_string() +
+    ",library=" +
+    lib_pkgs.to_string() +
+    ")"
+  let mut lp = 0
+  let mut ffi = 0
+  let mut internal = 0
+  world.symbols.fn_sigs.each(fn(_k, sig) {
+    match sig.entry {
+      "library-pub" => lp += 1
+      "ffi-extern" => ffi += 1
+      _ => internal += 1
+    }
+  })
+  if world.symbols.fn_sigs.length() > 0 {
+    base +
+    " fns(library-pub=" +
+    lp.to_string() +
+    ",ffi-extern=" +
+    ffi.to_string() +
+    ",internal=" +
+    internal.to_string() +
+    ")"
+  } else {
+    base
   }
 }
 

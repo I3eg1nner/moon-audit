@@ -27,7 +27,11 @@ pub fn builtin_model_names() -> Array[String]
 
 pub fn canonical_dir(String) -> String
 
+pub fn classify_pkg(String) -> String
+
 pub fn collect_audit_files(String, Config) -> Array[(String, String)]
+
+pub fn collect_fn_sig(@list.List[@syntax.Parameter], String, PkgSymbols, @syntax.Type?, @syntax.ErrorType, Bool, @list.List[@syntax.TypeVarBinder], String) -> Unit
 
 pub fn collect_func_summaries(String, String, InterProceduralContext) -> Unit
 
@@ -82,6 +86,8 @@ pub fn dep_canonical_pkg(String) -> String
 pub fn derive_identities(PkgSymbols) -> WorldIdentities
 
 pub fn diff_findings(Array[Finding], Array[PrevFinding]) -> BaselineDiff
+
+pub fn entry_stats_line(ProgramWorld) -> String
 
 pub fn extend_ruleset_with_model(TaintRuleset, String) -> Bool
 
@@ -237,6 +243,10 @@ pub fn severity_level(Severity) -> Int
 
 pub fn severity_str(Severity) -> String
 
+pub fn sig_arrow_args(PkgSymbols, String) -> Array[Array[IRType?]]?
+
+pub fn sig_trait_params(PkgSymbols, String) -> Array[IRType?]?
+
 pub fn symbols_fingerprint(PkgSymbols) -> String
 
 pub fn taint_flows_to_findings(Array[TaintFlow], Severity) -> Array[Finding]
@@ -329,6 +339,23 @@ pub(all) struct Finding {
   fingerprint : String
 } derive(@debug.Debug)
 
+pub(all) struct FnP {
+  binder : String
+  kind : String
+  has_default : Bool
+  ty : IRType
+  arrow_args : Array[IRType?]
+} derive(@debug.Debug)
+
+pub(all) struct FnSig {
+  params : Array[FnP]
+  generic_constraints : Array[String]
+  return_ty : IRType
+  error_effect : String
+  is_async : Bool
+  entry : String
+} derive(@debug.Debug)
+
 pub(all) struct FuncTaintSummary {
   name : String
   file : String
@@ -362,7 +389,7 @@ pub(all) enum IRType {
   IRConcrete(String, Array[IRType])
   IRTraitObj(String)
   IRTypeParam(String)
-  IRFn
+  IRFn(String)
   IRUnit
 } derive(Eq, @debug.Debug)
 pub fn IRType::display(Self) -> String
@@ -443,6 +470,7 @@ pub(all) struct PkgSymbols {
   trait_params : Map[String, Array[IRType?]]
   fn_param_arrows : Map[String, Array[Array[IRType?]]]
   alias_arrows : Map[String, Array[IRType?]]
+  fn_sigs : Map[String, FnSig]
   value_types : Map[String, IRType]
   globals : Map[String, IRType]
   lib_fn_ret : Map[String, IRType]
@@ -489,6 +517,7 @@ pub(all) struct ProgramWorld {
   config_reports : Array[String]
   config : Config
   identities : WorldIdentities
+  entry_kinds : Map[String, String]
 }
 
 pub(all) struct Remediation {

@@ -28,6 +28,7 @@ pub(all) struct PkgSymbols {
   trait_params : Map[String, Array[IRType?]] // "Trait::m" -> declared param types
   fn_param_arrows : Map[String, Array[Array[IRType?]]] // fn -> per-param arrow arg types
   alias_arrows : Map[String, Array[IRType?]] // type alias -> arrow param types
+  fn_sigs : Map[String, FnSig] // T1.3 unified signature model
   value_types : Map[String, IRType] // const/value name -> declared type (.mbti)
   globals : Map[String, IRType] // top-level `let x : T = ...` annotated globals
   lib_fn_ret : Map[String, IRType] // library-model return types (extern etc.)
@@ -50,6 +51,7 @@ pub fn PkgSymbols::new() -> PkgSymbols {
     trait_params: Map([]),
     fn_param_arrows: Map([]),
     alias_arrows: Map([]),
+    fn_sigs: Map([]),
     value_types: Map([]),
     globals: Map([]),
     lib_fn_ret: Map([]),
@@ -134,7 +136,17 @@ pub fn collect_symbols(
           _ => fun_decl.decl_params
         }
         match sig_params_opt {
-          Some(ps) => collect_fn_param_arrows(ps, name, symbols)
+          Some(ps) =>
+            collect_fn_sig(
+              ps,
+              name,
+              symbols,
+              fun_decl.return_type,
+              fun_decl.error_type,
+              fun_decl.is_async != None,
+              fun_decl.quantifiers,
+              fn_entry_kind(fun_decl.vis, decl_body),
+            )
           None => ()
         }
         match fun_decl.return_type {
@@ -150,14 +162,35 @@ pub fn collect_symbols(
               None => ()
             }
             match sig_params_opt {
-              Some(ps) => collect_fn_param_arrows(ps, key, symbols)
+              Some(ps) =>
+                collect_fn_sig(
+                  ps,
+                  key,
+                  symbols,
+                  fun_decl.return_type,
+                  fun_decl.error_type,
+                  fun_decl.is_async != None,
+                  fun_decl.quantifiers,
+                  fn_entry_kind(fun_decl.vis, decl_body),
+                )
               None => ()
             }
           }
           None => ()
         }
       }
-      TopImpl(self_ty~, trait_~, method_name~, params~, ret_ty~, ..) => {
+      TopImpl(
+        self_ty~,
+        trait_~,
+        method_name~,
+        quantifiers~,
+        params~,
+        ret_ty~,
+        err_ty~,
+        body~,
+        vis~,
+        ..
+      ) => {
         let self_ty_name = match self_ty {
           Some(t) => type_to_string(t)
           None => "?"
@@ -165,7 +198,16 @@ pub fn collect_symbols(
         let key = self_ty_name + "::" + method_name.name
         symbols.impl_methods[key] = longident_str(trait_.name)
         symbols.fn_exists[key] = true
-        collect_fn_param_arrows(params, key, symbols)
+        collect_fn_sig(
+          params,
+          key,
+          symbols,
+          ret_ty,
+          err_ty,
+          false,
+          quantifiers,
+          fn_entry_kind(vis, body),
+        )
         match ret_ty {
           Some(ty) => symbols.fn_ret[key] = type_to_ir(ty, symbols)
           None => ()
@@ -175,6 +217,16 @@ pub fn collect_symbols(
         symbols.trait_names[decl.name.name] = true
         for m in decl.methods {
           let key = decl.name.name + "::" + m.name.name
+          collect_fn_sig(
+            m.params,
+            key,
+            symbols,
+            m.return_type,
+            m.error_type,
+            m.is_async != None,
+            m.quantifiers,
+            "internal", // trait method declaration (no body)
+          )
           let tys : Array[IRType?] = []
           for param in m.params {
             match param {
@@ -275,6 +327,18 @@ fn collect_fn_param_arrows(
     }
   }
   symbols.fn_param_arrows[key] = per_param
+}
+
+///|
+fn fn_entry_kind(vis : @syntax.Visibility, body : @syntax.DeclBody) -> String {
+  match body {
+    DeclStubs(_) => "ffi-extern"
+    _ =>
+      match vis {
+        Pub(..) => "library-pub"
+        _ => "internal"
+      }
+  }
 }
 
 ///|
@@ -397,7 +461,7 @@ pub fn scan_package_calls(
         }
         // trait-declared signature: backfill unannotated impl params
         let tkey = longident_str(trait_.name) + "::" + method_name.name
-        let declared = ctx.symbols.trait_params.get(tkey)
+        let declared = sig_trait_params(ctx.symbols, tkey)
         let backfill : Array[IRType?] = match declared {
           Some(tys) => tys
           None => []
@@ -712,7 +776,7 @@ fn restore_env(saved : Array[(String, IRType)], ctx : ScanCtx) -> Unit {
 pub fn type_to_ir(ty : @syntax.Type, symbols : PkgSymbols) -> IRType {
   match ty {
     Any(..) => IRUnresolved
-    Arrow(..) => IRFn
+    Arrow(..) => IRFn("?")
     Tuple(..) => IRConcrete("Tuple", [])
     Option(ty~, ..) => type_to_ir(ty, symbols)
     Object(cid) => {
@@ -948,7 +1012,7 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
       }
       let _ = infer_expr(func.body, ctx)
       restore_env(saved, ctx)
-      IRFn
+      IRFn("$closure")
     }
     If(cond~, ifso~, ifnot~, ..) => {
       let _ = infer_expr(cond, ctx)
@@ -998,7 +1062,7 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
       }
       let saved : Array[(String, IRType)] = []
       saved.push((nm, or_unresolved(ctx.env.get(nm))))
-      ctx.env[nm] = IRFn
+      ctx.env[nm] = IRFn(nm)
       let t = infer_expr(body, ctx)
       restore_env(saved, ctx)
       t
@@ -1017,7 +1081,7 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
         saved.push((binder.name, or_unresolved(ctx.env.get(binder.name))))
         match ty {
           Some(t) => ctx.env[binder.name] = type_to_ir(t, ctx.symbols)
-          None => ctx.env[binder.name] = IRFn
+          None => ctx.env[binder.name] = IRFn(binder.name)
         }
       }
       let t = infer_expr(body, ctx)
@@ -1030,7 +1094,7 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
         (Var(binder), Function(func~, ..)) => {
           let defer_body = register_closure(binder.name, func, ctx)
           let t = if defer_body {
-            IRFn // body walked lazily at first call site
+            IRFn("$defer") // body walked lazily at first call site
           } else {
             infer_expr(expr, ctx)
           }
@@ -1387,7 +1451,7 @@ fn visit_args(
   ctx : ScanCtx,
   start_index : Int,
 ) -> Unit {
-  let arrows = ctx.symbols.fn_param_arrows.get(callee)
+  let arrows = sig_arrow_args(ctx.symbols, callee)
   // builtin higher-order fallback: closure hints from the receiver's
   // parametric type (Map::each -> (K, V), Array::map -> (elem), ...)
   let builtin_cb = builtin_callback_params(ctx.last_recv_ty, callee)
@@ -1532,7 +1596,7 @@ fn infer_apply(func : @syntax.Expr, ctx : ScanCtx) -> IRType {
     Ident(id~, ..) => {
       let name = longident_str(id.name)
       match ctx.env.get(name) {
-        Some(IRFn) =>
+        Some(IRFn(_)) =>
           // var-bound closure call: resolve to its allocation site
           match ctx.closure_sites.get(name) {
             Some(site) => {

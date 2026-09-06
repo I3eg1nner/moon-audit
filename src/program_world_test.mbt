@@ -191,6 +191,7 @@ test "t1b_strict_identity_no_shortkey_cross_bind" {
     config_reports: [],
     config: Config::default(),
     identities: ids,
+    entry_kinds: Map([]),
   }
   inspect(
     world_identity_of(world, "fn", "pkgA::Foo::m") == Some("pkgA::Foo::m"),
@@ -200,4 +201,103 @@ test "t1b_strict_identity_no_shortkey_cross_bind" {
     world_identity_of(world, "fn", "pkgB::Foo::m") == None,
     content="true",
   )
+}
+
+// ---------------------------------------------------------------------------
+// T1c: FnSig model (T1.3) + entry policies (T1.5)
+// ---------------------------------------------------------------------------
+
+///|
+test "t1c_fnsig_labelled_param" {
+  let src = "pub fn go(x~ : Int, y~ : String) -> Unit { ignore(y) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  collect_symbols(impls.to_array(), symbols)
+  let sig = symbols.fn_sigs.get("go")
+  inspect(
+    match sig {
+      Some(_) => "true"
+      None => "false"
+    },
+    content="true",
+  )
+  let s = match sig {
+    Some(v) => v
+    None => abort("unreachable")
+  }
+  inspect(s.params.length(), content="2")
+  inspect(s.params[0].kind, content="labelled")
+  inspect(s.params[0].binder, content="x")
+  inspect(s.params[0].ty.display(), content="Int")
+  inspect(s.entry, content="library-pub")
+}
+
+///|
+test "t1c_fnsig_optional_default" {
+  let src = "pub fn go(x~ : Int = 3) -> Unit { ignore(x) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  collect_symbols(impls.to_array(), symbols)
+  match symbols.fn_sigs.get("go") {
+    Some(s) => {
+      inspect(s.params[0].kind, content="optional")
+      inspect(s.params[0].has_default, content="true")
+    }
+    None => inspect(false, content="true")
+  }
+}
+
+///|
+test "t1c_fnsig_generic_constraints" {
+  let src = "fn [T : Show + Eq] g(x : T) -> Unit { ignore(x) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  collect_symbols(impls.to_array(), symbols)
+  match symbols.fn_sigs.get("g") {
+    Some(s) =>
+      inspect(
+        match s.generic_constraints.length() >= 1 {
+          true => "true"
+          false => "false"
+        },
+        content="true",
+      )
+    None => inspect("false", content="true")
+  }
+}
+
+///|
+test "t1c_fnsig_error_and_arrow_param" {
+  // arrow param keeps arg types in the unified model; error effect recorded
+  let src = "fn h(cb : (Int, String) -> Unit) -> Unit raise { cb(1, \"x\") }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  collect_symbols(impls.to_array(), symbols)
+  match symbols.fn_sigs.get("h") {
+    Some(s) => {
+      inspect(s.params[0].arrow_args.length(), content="2")
+      inspect(
+        match s.error_effect != "none" {
+          true => "true"
+          false => "false"
+        },
+        content="true",
+      )
+      inspect(s.entry, content="internal")
+    }
+    None => inspect("false", content="true")
+  }
+}
+
+///|
+test "t1c_entry_stats_line" {
+  // pkg-level classification + fn-level kinds via the same world loader
+  let world = load_program_world("/data/my/moonbit-petgraph", Config::default())
+  let line = entry_stats_line(world)
+  inspect(line.has_prefix("entries: pkgs("), content="true")
+  // petgraph is a library: at least one library-pub fn sig disclosed
+  inspect(line.contains("fns(library-pub="), content="true")
+  // unified reads still resolve arrow hints through FnSig
+  let world2 = load_program_world("/data/my/mocket", Config::default())
+  inspect(entry_stats_line(world2).contains("ffi-extern="), content="true")
 }

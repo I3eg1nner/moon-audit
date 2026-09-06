@@ -8,7 +8,7 @@ pub(all) enum IRType {
   IRConcrete(String, Array[IRType]) // ("Request", []) / ("Array", [String])
   IRTraitObj(String) // trait object or generic-constraint receiver (M4)
   IRTypeParam(String) // in-scope generic type parameter
-  IRFn // function value / closure
+  IRFn(String) // function value / closure (id = sig/closure key)
   IRUnit
 } derive(Eq, Debug)
 
@@ -28,7 +28,7 @@ pub fn IRType::display(self : IRType) -> String {
       }
     IRTraitObj(t) => "trait:" + t
     IRTypeParam(p) => "T:" + p
-    IRFn => "fn"
+    IRFn(_) => "fn"
     IRUnit => "Unit"
   }
 }

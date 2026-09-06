@@ -96,7 +96,12 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
     findings: dedup_findings(findings),
     files_scanned,
     errors,
-    analysis_scope: build_analysis_scope(config, errors, incremental),
+    analysis_scope: build_analysis_scope(
+      config,
+      errors,
+      incremental,
+      entry_stats_line(world),
+    ),
   }
 }
 
@@ -105,6 +110,7 @@ fn build_analysis_scope(
   config : Config,
   errors : Array[String],
   incremental : Bool,
+  entries : String, // T1.5 entry stats line (pkg-level; fn-level if symbols)
 ) -> String {
   // T0.4: scan-scope disclosure. Minimal fields implemented: analyzer/
   // frontend version, excludes, parse-failure count. Reserved fields
@@ -126,6 +132,8 @@ fn build_analysis_scope(
   parse_failures.to_string() +
   "; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); incremental=" +
   (if incremental { "true" } else { "false" }) +
+  "; " +
+  entries +
   "; note=unanalyzed-is-not-safe"
 }
 
