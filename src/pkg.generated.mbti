@@ -25,6 +25,8 @@ pub fn build_summary(ScanResult, Array[RuleInfo]) -> ScanSummary
 
 pub fn builtin_model_names() -> Array[String]
 
+pub fn canonical_dir(String) -> String
+
 pub fn collect_audit_files(String, Config) -> Array[(String, String)]
 
 pub fn collect_func_summaries(String, String, InterProceduralContext) -> Unit
@@ -76,6 +78,8 @@ pub fn cwe770_info() -> RuleInfo
 pub fn cwe942_info() -> RuleInfo
 
 pub fn dep_canonical_pkg(String) -> String
+
+pub fn derive_identities(PkgSymbols) -> WorldIdentities
 
 pub fn diff_findings(Array[Finding], Array[PrevFinding]) -> BaselineDiff
 
@@ -163,7 +167,7 @@ pub fn load_env_merged(String) -> Map[String, String]
 
 pub fn load_llm_config(String) -> LLMConfig
 
-pub fn load_program_world(String, Config, with_symbols? : Bool) -> ProgramWorld
+pub fn load_program_world(String, Config, with_symbols? : Bool, conservative_alias? : Bool) -> ProgramWorld
 
 pub fn load_taint_rules(String) -> (TaintRuleset, String)
 
@@ -183,7 +187,7 @@ pub fn risk_score(ScanSummary) -> Double
 
 pub fn rule_id_str(RuleId) -> String
 
-pub fn run_call_graph(String, Config) -> CallGraph
+pub fn run_call_graph(String, Config, conservative_alias? : Bool) -> CallGraph
 
 pub fn run_cross_func_taint(@list.List[@syntax.Impl], String, String, Array[Finding], InterProceduralContext, ImportContext) -> Unit
 
@@ -219,7 +223,7 @@ pub fn run_flow_taint_func(@list.List[@syntax.Parameter]?, @syntax.Expr, String,
 
 pub fn run_flow_taint_func_top(@syntax.Expr, String, String, Severity, Array[Finding], rules? : TaintRuleset, output_sinks_enabled? : Bool) -> Unit
 
-pub fn run_ir_stats(String, Config) -> IRStatsResult
+pub fn run_ir_stats(String, Config, conservative_alias? : Bool) -> IRStatsResult
 
 pub fn run_taint_analysis(@list.List[@syntax.Impl], String, String, ImportContext) -> TaintState
 
@@ -238,6 +242,8 @@ pub fn symbols_fingerprint(PkgSymbols) -> String
 pub fn taint_flows_to_findings(Array[TaintFlow], Severity) -> Array[Finding]
 
 pub fn type_to_ir(@syntax.Type, PkgSymbols) -> IRType
+
+pub fn world_identity_of(ProgramWorld, String, String) -> String?
 
 pub fn world_pkg_imports(ProgramWorld, String) -> Array[String]
 
@@ -345,6 +351,7 @@ pub(all) struct IRStatsResult {
   mut receiver_dispatch : Int
   mut receiver_unknown : Int
   mut higher_calls : Int
+  mut alias_unresolved : Int
   sites : Array[CallSiteStat]
 }
 pub fn IRStatsResult::combined_resolution(Self) -> Int
@@ -425,6 +432,8 @@ pub(all) struct PkgFiles {
 }
 
 pub(all) struct PkgSymbols {
+  mut alias_mode : Bool
+  mut alias_unresolved : Int
   fn_exists : Map[String, Bool]
   fn_ret : Map[String, IRType]
   impl_methods : Map[String, String]
@@ -479,6 +488,7 @@ pub(all) struct ProgramWorld {
   workspace_members : Array[String]
   config_reports : Array[String]
   config : Config
+  identities : WorldIdentities
 }
 
 pub(all) struct Remediation {
@@ -623,6 +633,13 @@ pub(all) struct TraitCallbackEdge {
   trait_method : String
   note : String
 } derive(@debug.Debug)
+
+pub(all) struct WorldIdentities {
+  fns : Array[String]
+  types : Array[String]
+  traits : Array[String]
+  fields : Array[String]
+}
 
 // Type aliases
 

@@ -230,6 +230,11 @@ fn main {
             long="details",
             about="List all edges",
           ),
+          @argparse.FlagArg(
+            "conservative-alias",
+            long="conservative-alias",
+            about="Enable legacy short-key alias binding (default: strict)",
+          ),
         ],
         positionals=[
           @argparse.PositionArg("path", about="Project path to analyze", default_values=[
@@ -246,6 +251,11 @@ fn main {
             short='d',
             long="details",
             about="List unresolved call sites",
+          ),
+          @argparse.FlagArg(
+            "conservative-alias",
+            long="conservative-alias",
+            about="Enable legacy short-key alias binding (default: strict)",
           ),
         ],
         positionals=[
@@ -1028,7 +1038,19 @@ fn cmd_ir_stats(matches : @argparse.Matches) -> Unit {
   // measurement tools use the standard exclude set (examples/benchmarks
   // are not product code) instead of inheriting the tool repo's config
   let config = @audit.Config::default()
-  let stats = @audit.run_ir_stats(path, config)
+  let conservative = match matches.flags.get("conservative-alias") {
+    Some(v) => v
+    None => false
+  }
+  let stats = @audit.run_ir_stats(path, config, conservative_alias=conservative)
+  println(
+    "alias mode: " +
+    (if conservative {
+      "conservative (legacy short-key binding)"
+    } else {
+      "strict (default; fallback misses count as unknown(alias))"
+    }),
+  )
   println("files scanned:  " + stats.files_scanned.to_string())
   println("funcs scanned:  " + stats.funcs_scanned.to_string())
   println("call sites:     " + stats.total_calls.to_string())
@@ -1096,6 +1118,7 @@ fn cmd_ir_stats(matches : @argparse.Matches) -> Unit {
   let mut cascade = 0
   let mut higher = 0
   let mut unsupported = 0
+  let alias_unresolved = stats.alias_unresolved
   for site in stats.sites {
     // dispatch sites are CANDIDATES (reported above), not unknown
     let is_dispatch = site.recv_ty.has_prefix("trait:") ||
@@ -1117,7 +1140,10 @@ fn cmd_ir_stats(matches : @argparse.Matches) -> Unit {
     "  higher=" +
     higher.to_string() +
     "  unsupported=" +
-    unsupported.to_string(),
+    unsupported.to_string() +
+    "  alias=" +
+    alias_unresolved.to_string() +
+    "  (alias = strict-mode short-key fallback misses; see --conservative-alias)",
   )
   if details {
     println("")
@@ -1186,7 +1212,19 @@ fn cmd_call_graph(matches : @argparse.Matches) -> Unit {
   println("target: " + path)
   println("")
   let config = @audit.Config::default()
-  let cg = @audit.run_call_graph(path, config)
+  let conservative = match matches.flags.get("conservative-alias") {
+    Some(v) => v
+    None => false
+  }
+  let cg = @audit.run_call_graph(path, config, conservative_alias=conservative)
+  println(
+    "alias mode: " +
+    (if conservative {
+      "conservative (legacy short-key binding)"
+    } else {
+      "strict (default)"
+    }),
+  )
   println("direct edges:      " + cg.edges.length().to_string())
   println(
     "dispatch edges:    " +

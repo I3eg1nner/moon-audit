@@ -24,6 +24,16 @@ pub(all) struct PkgFiles {
 }
 
 ///|
+pub(all) struct WorldIdentities {
+  // T1.2: fully-qualified identity registry derived from the symbol tables
+  // (source of truth unchanged; derivation is ordered/deduped)
+  fns : Array[String] // "pkgpath::fn" / "Type::method" as registered
+  types : Array[String]
+  traits : Array[String]
+  fields : Array[String]
+}
+
+///|
 pub(all) struct ProgramWorld {
   root : String
   packages : Array[PkgFiles] // module source packages (deps excluded)
@@ -33,6 +43,7 @@ pub(all) struct ProgramWorld {
   workspace_members : Array[String] // moon.work member dirs (absolute)
   config_reports : Array[String] // official moon_config validation reports
   config : Config
+  identities : WorldIdentities // T1.2 derived registry (sorted, deduped)
 }
 
 ///|
@@ -40,7 +51,11 @@ pub fn load_program_world(
   root : String,
   config : Config,
   with_symbols? : Bool = true,
+  conservative_alias? : Bool = false, // T1.2: CLI default is STRICT
 ) -> ProgramWorld {
+  // T1.2 alias policy lands on the shared symbol table; PkgSymbols::new()
+  // keeps conservative=true so direct unit-test constructors are unchanged
+
   // 1. module package walk — the file-fact source for every CLI
   let packages : Array[PkgFiles] = []
   walk_packages(root, config, fn(pkg_dir, mbt_files) {
@@ -65,6 +80,7 @@ pub fn load_program_world(
     collect_mbti_dir(root, symbols)
     let (lib_rs, _) = load_taint_rules(root)
     lib_rs.apply_to_symbols(symbols)
+    symbols.alias_mode = conservative_alias
   }
   // 6. per-package alias maps
   let aliases : Map[String, Map[String, String]] = Map([])
@@ -97,6 +113,99 @@ pub fn load_program_world(
     workspace_members,
     config_reports,
     config,
+    identities: derive_identities(symbols),
+  }
+}
+
+// T1.2: derive the identity registry from the symbol tables.
+// Keys registered by symbol collection become canonical identities;
+// the registry is sorted and deduped so declaration order cannot
+// influence lookup results (acceptance T1-(c)).
+
+///|
+pub fn derive_identities(symbols : PkgSymbols) -> WorldIdentities {
+  let fns = identity_keys(symbols.fn_exists)
+  let types = identity_keys_of(symbols.struct_fields)
+  let traits = identity_keys(symbols.impl_methods)
+  let fields : Array[String] = []
+  symbols.struct_fields.each(fn(tyname, fields_map) {
+    fields_map.each(fn(fname, _) { fields.push(tyname + "." + fname) })
+  })
+  sort_dedup(fields)
+  { fns, types, traits, fields, }
+}
+
+///|
+fn[V] identity_keys(m : Map[String, V]) -> Array[String] {
+  let arr : Array[String] = []
+  m.each(fn(k, _) { arr.push(k) })
+  sort_dedup(arr)
+  arr
+}
+
+///|
+fn identity_keys_of(m : Map[String, Map[String, IRType]]) -> Array[String] {
+  let arr : Array[String] = []
+  m.each(fn(k, _) { arr.push(k) })
+  sort_dedup(arr)
+  arr
+}
+
+///|
+fn sort_dedup(arr : Array[String]) -> Unit {
+  arr.sort_by(fn(a, b) { a.compare(b) })
+  let mut i = 1
+  while i < arr.length() {
+    if arr[i] == arr[i - 1] {
+      let _ = arr.remove(i)
+    } else {
+      i += 1
+    }
+  }
+}
+
+// identity resolution: exact key -> the registered identity; strict mode
+// NEVER resolves through the short-key fallback (that path is exactly the
+// cross-binding risk T1.2 removes). Returns None in strict mode for
+// keys that only the fallback could satisfy.
+
+///|
+pub fn world_identity_of(
+  world : ProgramWorld,
+  kind : String,
+  key : String,
+) -> String? {
+  let table = match kind {
+    "fn" => world.identities.fns
+    "type" => world.identities.types
+    "trait" => world.identities.traits
+    "field" => world.identities.fields
+    _ => []
+  }
+  let mut idx : String? = None
+  for k in table {
+    if k == key {
+      idx = Some(k)
+      break
+    }
+  }
+  match idx {
+    Some(k) => Some(k)
+    None =>
+      if world.symbols.alias_mode {
+        // conservative: resolve via short-key suffix onto a registered id
+        let sk = short_key(key)
+        let mut hit : String? = None
+        for k in table {
+          if short_key(k) == sk {
+            hit = Some(k)
+            break
+          }
+        }
+        hit
+      } else {
+        None // strict: no cross-binding through the fallback
+      }
   }
 }
 
@@ -105,7 +214,7 @@ pub fn load_program_world(
 // map keys are canonical (forward-slash) so lookups are OS-independent
 
 ///|
-fn canonical_dir(dir : String) -> String {
+pub fn canonical_dir(dir : String) -> String {
   dir.replace(old="\\", new="/")
 }
 

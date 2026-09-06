@@ -15,6 +15,10 @@
 
 ///|
 pub(all) struct PkgSymbols {
+  // T1.2 alias policy: conservative(true)=short_key fallback binds (legacy);
+  // strict(false)=fallback miss counts as unresolved(reason=alias).
+  mut alias_mode : Bool
+  mut alias_unresolved : Int
   fn_exists : Map[String, Bool] // fn names defined in this package
   fn_ret : Map[String, IRType] // fn name -> annotated return type
   impl_methods : Map[String, String] // "SelfTy::method" -> trait path
@@ -35,6 +39,8 @@ pub(all) struct PkgSymbols {
 ///|
 pub fn PkgSymbols::new() -> PkgSymbols {
   let symbols : PkgSymbols = {
+    alias_mode: true, // unit-test constructors keep legacy behavior
+    alias_unresolved: 0,
     fn_exists: Map([]),
     fn_ret: Map([]),
     impl_methods: Map([]),
@@ -80,6 +86,7 @@ pub(all) struct IRStatsResult {
   mut receiver_dispatch : Int // trait object / type param receiver (M4)
   mut receiver_unknown : Int
   mut higher_calls : Int
+  mut alias_unresolved : Int // T1.2: strict-mode short-key fallback misses
   sites : Array[CallSiteStat]
 }
 
@@ -96,6 +103,7 @@ pub fn IRStatsResult::new() -> IRStatsResult {
     receiver_dispatch: 0,
     receiver_unknown: 0,
     higher_calls: 0,
+    alias_unresolved: 0,
     sites: [],
   }
 }
@@ -1967,18 +1975,22 @@ fn is_builtin_fn(name : String) -> Bool {
 // ── Project-level driver ──────────────────────────────────────────────────
 
 ///|
-pub fn run_ir_stats(root : String, config : Config) -> IRStatsResult {
+pub fn run_ir_stats(
+  root : String,
+  config : Config,
+  conservative_alias? : Bool = false,
+) -> IRStatsResult {
   let stats = IRStatsResult::new()
   // T1a-2: consume the unified ProgramWorld. Its loading pipeline
   // (module walk -> symbols -> deps -> .mbti -> lib models) reproduces
   // the previous phases 1-1.7 exactly; Phase 2 now reads the SAME world
   // facts (packages / symbols / aliases) instead of re-walking.
-  let world = load_program_world(root, config)
+  let world = load_program_world(root, config, conservative_alias~)
   for pkgf in world.packages {
     let key = canonical_dir(pkgf.dir)
     let aliases = match world.aliases.get(key) {
       Some(m) => m
-      None => pkg_alias_map(pkgf.dir) // fallback; unreachable in practice
+      None => Map([]) // world keys every package; dead branch by construction
     }
     for file in pkgf.files {
       stats.files_scanned += 1
@@ -1993,6 +2005,7 @@ pub fn run_ir_stats(root : String, config : Config) -> IRStatsResult {
       )
     }
   }
+  stats.alias_unresolved = world.symbols.alias_unresolved
   stats
 }
 
@@ -2080,12 +2093,22 @@ fn short_key(k : String) -> String {
 
 ///|
 pub fn get_impl_method(symbols : PkgSymbols, key : String) -> String? {
-  // resolution order: exact (qualified or short as written) FIRST;
-  // short_key suffix match is a LAST-RESORT fallback for receiver types
-  // whose package prefix is unknown at the call site
+  // T1.2: exact FIRST; short_key suffix is a FALLBACK governed by
+  // alias_mode (strict default at CLI: fallback misses stay unresolved
+  // and are counted with reason=alias instead of cross-binding)
   match symbols.impl_methods.get(key) {
     Some(t) => Some(t)
-    None => symbols.impl_methods.get(short_key(key))
+    None =>
+      match symbols.impl_methods.get(short_key(key)) {
+        Some(t) =>
+          if symbols.alias_mode {
+            Some(t)
+          } else {
+            symbols.alias_unresolved += 1
+            None
+          }
+        None => None
+      }
   }
 }
 
@@ -2099,19 +2122,40 @@ fn get_struct_fields(
 ) -> Map[String, IRType]? {
   match symbols.struct_fields.get(tyname) {
     Some(m) => Some(m)
-    None => symbols.struct_fields.get(short_key(tyname))
+    None =>
+      match symbols.struct_fields.get(short_key(tyname)) {
+        Some(m) =>
+          if symbols.alias_mode {
+            Some(m)
+          } else {
+            symbols.alias_unresolved += 1
+            None
+          }
+        None => None
+      }
   }
 }
 
 ///|
 fn get_fn_ret(symbols : PkgSymbols, key : String) -> IRType? {
   // resolution order: exact key; library-model types; short_key last resort
+  // (T1.2: last resort governed by alias_mode, see get_impl_method)
   match symbols.fn_ret.get(key) {
     Some(t) => Some(t)
     None =>
       match symbols.lib_fn_ret.get(key) {
         Some(t) => Some(t)
-        None => symbols.fn_ret.get(short_key(key))
+        None =>
+          match symbols.fn_ret.get(short_key(key)) {
+            Some(t) =>
+              if symbols.alias_mode {
+                Some(t)
+              } else {
+                symbols.alias_unresolved += 1
+                None
+              }
+            None => None
+          }
       }
   }
 }
@@ -2341,12 +2385,16 @@ pub fn CallGraph::site_coverage(self : CallGraph) -> Int {
 }
 
 ///|
-pub fn run_call_graph(root : String, config : Config) -> CallGraph {
+pub fn run_call_graph(
+  root : String,
+  config : Config,
+  conservative_alias? : Bool = false,
+) -> CallGraph {
   // T1a-3: consume the SAME ProgramWorld as run_ir_stats / scan_project.
   // This also fixes a parity gap: the private pipeline below did not apply
   // lib models (mongoose fn_types/callbacks), so lib-model return types now
   // feed call-graph resolution identically to ir-stats.
-  let world = load_program_world(root, config)
+  let world = load_program_world(root, config, conservative_alias~)
   let symbols = world.symbols
   // devirtualization index keyed by TRAIT IDENTITY ("Trait::method" ->
   // self types); impl_methods values carry the trait path. A method-name-only
@@ -2376,7 +2424,7 @@ pub fn run_call_graph(root : String, config : Config) -> CallGraph {
     let key = canonical_dir(pkgf.dir)
     let aliases = match world.aliases.get(key) {
       Some(m) => m
-      None => pkg_alias_map(pkgf.dir) // fallback; unreachable in practice
+      None => Map([]) // world keys every package; dead branch by construction
     }
     for file in pkgf.files {
       stats.files_scanned += 1
