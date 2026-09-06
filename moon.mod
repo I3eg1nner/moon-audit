@@ -16,6 +16,7 @@ preferred_target = "native"
 
 import {
   "moonbitlang/parser@0.3.18",
+  "moonbitlang/moon_config@0.3.14",
   "moonbitlang/lexer@0.3.15",
   "moonbitlang/x@0.5.1",
 }
