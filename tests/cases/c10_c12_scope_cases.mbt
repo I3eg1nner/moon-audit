@@ -4,7 +4,7 @@
 //   arm; after the match the outer tainted parameter x is unchanged.
 // Current: the pattern is bound BEFORE entering a branch scope, and the
 //   binding leaks to the outer environment, silencing the later sink. MISS.
-// Status: EXPECT-FAIL (G2 scope-before-bind, ROADMAP-T R4).
+// Status: PASS (R4 branch/block scopes + R3 declaration ids).
 fn case10_match_pattern_shadow(
   sink : (String) -> Unit,
   x : String,
@@ -20,7 +20,8 @@ fn case10_match_pattern_shadow(
 //   outer tainted parameter survives it.
 // Current: the block reuses the current environment without a scope, the
 //   inner clean binding leaks outward and silences the sink. MISS.
-// Status: EXPECT-FAIL (G2 block scope, ROADMAP-T R4).
+// Status: PASS (R4 block semantics: Let/LetMut/LetAnd/LetFn and Sequence
+//   each scope their bindings).
 fn case11_block_let_leak(
   sink : (String) -> Unit,
   x : String,
@@ -35,7 +36,8 @@ fn case11_block_let_leak(
 // Expected: ALERT — after rebinding, pair.0 is tainted via make_pair.
 // Current: the old component summary for the same variable name is reused,
 //   pair.0 reads the stale clean component. MISS.
-// Status: EXPECT-FAIL (G2/R5 value identity, ROADMAP-T R3/R5).
+// Status: PASS (R3/R5: rebinding allocates a new declaration id; stale
+//   component summaries become unreachable).
 fn make_pair_dirty(x : String) -> (String, String) {
   (x, x)
 }

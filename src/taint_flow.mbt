@@ -117,6 +117,13 @@ priv struct FlowCtx {
   // so ids stay unique across sibling branches
   scope_stack : Array[Int]
   scope_counter : Array[Int]
+  // R3 declaration identity: name_map maps "s<scope>:<name>" to the LATEST
+  // declaration key "d<decl-id>" for that scope slot; decl_counter is a
+  // shared box so ids are unique across branches and never reset — each
+  // `let`/pattern bind is a NEW declaration (its own env/sites/comps slot);
+  // assignment mutates the EXISTING declaration slot instead
+  name_map : Map[String, String]
+  decl_counter : Array[Int]
   // T2.3 direct raise payloads: every Raise pushes its value taint here;
   // the enclosing Try unions the buffer into its error payload (shared
   // reference across branch copies, like heap)
@@ -138,6 +145,8 @@ priv struct FlowCtx {
 fn FlowCtx::copy(self : FlowCtx) -> FlowCtx {
   let env : Map[String, Taint] = Map([])
   self.env.each(fn(k, v) { env[k] = v })
+  let name_map : Map[String, String] = Map([])
+  self.name_map.each(fn(k, v) { name_map[k] = v })
   let sites : Map[String, String] = Map([])
   self.sites.each(fn(k, v) { sites[k] = v })
   let scope_stack : Array[Int] = []
@@ -152,9 +161,17 @@ fn FlowCtx::copy(self : FlowCtx) -> FlowCtx {
     }
     tuple_comps[k] = ccopy
   })
-  // heap/record channels/raise buffer/scope counter are references:
+  // heap/record channels/raise buffer/scope+decl counters are references:
   // shared by design (monotone facts + id uniqueness)
-  { ..self, env, sites, scope_stack, tuple_comps, alloc_result: None, }
+  {
+    ..self,
+    env,
+    name_map,
+    sites,
+    scope_stack,
+    tuple_comps,
+    alloc_result: None,
+  }
 }
 
 // ── T2.1 scoped variable identity ────────────────────────────────────────
@@ -177,9 +194,10 @@ fn scope_pop(ctx : FlowCtx) -> Unit {
 fn scope_lookup_key(ctx : FlowCtx, name : String) -> String? {
   let mut i = ctx.scope_stack.length() - 1
   while i >= 0 {
-    let key = "s" + ctx.scope_stack[i].to_string() + ":" + name
-    if ctx.env.contains(key) {
-      return Some(key)
+    let nkey = "s" + ctx.scope_stack[i].to_string() + ":" + name
+    match ctx.name_map.get(nkey) {
+      Some(dkey) => if ctx.env.contains(dkey) { return Some(dkey) }
+      None => ()
     }
     i -= 1
   }
@@ -187,9 +205,15 @@ fn scope_lookup_key(ctx : FlowCtx, name : String) -> String? {
 }
 
 ///|
-fn env_bind(ctx : FlowCtx, name : String, t : Taint) -> Unit {
-  // new binding in the CURRENT scope (shadows outer same-name)
-  ctx.env["s" + current_scope_id(ctx).to_string() + ":" + name] = t
+fn env_bind(ctx : FlowCtx, name : String, t : Taint) -> String {
+  // R3: a NEW declaration gets a fresh id (never reused, never reset);
+  // same-scope same-name rebinds chain through name_map, so stale facts
+  // (env value, tuple components, alloc-site binding) become unreachable
+  ctx.decl_counter[0] += 1
+  let dkey = "d" + ctx.decl_counter[0].to_string()
+  ctx.name_map["s" + current_scope_id(ctx).to_string() + ":" + name] = dkey
+  ctx.env[dkey] = t
+  dkey
 }
 
 ///|
@@ -202,10 +226,10 @@ fn current_scope_id(ctx : FlowCtx) -> Int {
 
 ///|
 fn env_assign(ctx : FlowCtx, name : String, t : Taint) -> Unit {
-  // assignment updates the DEFINING scope's slot if one exists
+  // assignment MUTATES the defining declaration's slot (no new id)
   match scope_lookup_key(ctx, name) {
     Some(key) => ctx.env[key] = t
-    None => env_bind(ctx, name, t)
+    None => ignore(env_bind(ctx, name, t))
   }
 }
 
@@ -217,28 +241,27 @@ fn env_lookup(ctx : FlowCtx, name : String) -> Taint? {
   }
 }
 
-// record tuple-literal components for a simple Var binding (scoped)
+// R3: alloc-site bindings share the declaration identity — lookup/set
+// resolve a bare name to its CURRENT declaration slot (stale slots of
+// shadowed declarations are unreachable, so rebinding invalidates them)
 
 ///|
-fn record_tuple_comps(
-  pattern : @syntax.Pattern,
-  expr : @syntax.Expr,
-  ctx : FlowCtx,
-) -> Unit {
-  match (pattern, expr) {
-    (Var(binder), Tuple(exprs~, ..)) => {
-      let comps : Array[Taint] = []
-      for e in exprs {
-        comps.push(flow(e, ctx))
-      }
-      ctx.tuple_comps["s" +
-      current_scope_id(ctx).to_string() +
-      ":" +
-      binder.name] = comps
-    }
-    _ => ()
+fn sites_get(ctx : FlowCtx, name : String) -> String? {
+  match scope_lookup_key(ctx, name) {
+    Some(k) => ctx.sites.get(k)
+    None => ctx.sites.get(name)
   }
 }
+
+///|
+fn sites_set(ctx : FlowCtx, name : String, site : String) -> Unit {
+  match scope_lookup_key(ctx, name) {
+    Some(k) => ctx.sites[k] = site
+    None => ctx.sites[name] = site
+  }
+}
+
+// record tuple-literal components for a simple Var binding (scoped)
 
 // scoped tuple component lookup
 
@@ -287,6 +310,8 @@ pub fn run_flow_taint_func(
     alloc_result: None,
     scope_stack: [],
     scope_counter: [0],
+    name_map: Map([]),
+    decl_counter: [0],
     raise_buffer: [],
     tuple_comps: Map([]),
     record_field_sinks: None,
@@ -312,7 +337,7 @@ pub fn run_flow_taint_func(
           | Labelled(binder~, ..)
           | Optional(binder~, ..)
           | QuestionOptional(binder~, ..) =>
-            env_bind(ctx, binder.name, TaintedParam(binder.name))
+            ignore(env_bind(ctx, binder.name, TaintedParam(binder.name)))
           DiscardPositional(..) => ()
         }
       }
@@ -347,6 +372,8 @@ pub fn run_flow_taint_func_top(
     alloc_result: None,
     scope_stack: [],
     scope_counter: [0],
+    name_map: Map([]),
+    decl_counter: [0],
     raise_buffer: [],
     tuple_comps: Map([]),
     record_field_sinks: None,
@@ -380,7 +407,7 @@ fn resolve_binding_site(expr : @syntax.Expr, ctx : FlowCtx) -> String? {
       match expr {
         Ident(id~, ..) =>
           match id.name {
-            Ident(name~) => ctx.sites.get(name)
+            Ident(name~) => sites_get(ctx, name)
             Dot(..) => None
           }
         Field(record~, ..) =>
@@ -400,10 +427,10 @@ fn bind_site_to_pattern(
   ctx : FlowCtx,
 ) -> Unit {
   match (pat, site) {
-    (Var(binder), Some(s)) => ctx.sites[binder.name] = s
+    (Var(binder), Some(s)) => sites_set(ctx, binder.name, s)
     (Alias(pat~, alias_~, ..), Some(s)) => {
       bind_site_to_pattern(pat, site, ctx)
-      ctx.sites[alias_.name] = s
+      sites_set(ctx, alias_.name, s)
     }
     _ => ()
   }
@@ -625,7 +652,14 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
     }
     Constraint(expr~, ..) => flow(expr, ctx)
     Constr(..) => Clean
-    LabelledBlock(body~, ..) => flow(body, ctx)
+    LabelledBlock(body~, ..) => {
+      // R4: block expressions introduce a scope — `let` inside the block
+      // must not shadow outer bindings beyond the block (review c11)
+      scope_push(ctx)
+      let t = flow(body, ctx)
+      scope_pop(ctx)
+      t
+    }
     While(loop_cond~, loop_body~, ..) => {
       let _ = flow(loop_cond, ctx)
       // fixpoint: taint written in iteration N must be visible to the
@@ -644,7 +678,8 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
           Positional(binder~, ..)
           | Labelled(binder~, ..)
           | Optional(binder~, ..)
-          | QuestionOptional(binder~, ..) => env_bind(ctx, binder.name, Tainted)
+          | QuestionOptional(binder~, ..) =>
+            ignore(env_bind(ctx, binder.name, Tainted))
           DiscardPositional(..) => ()
         }
       }
@@ -700,8 +735,8 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
         t => {
           for binding in bindings {
             match binding.1 {
-              Some(binder) => env_bind(ctx, binder.name, t)
-              None => env_bind(ctx, binding.0.name, t)
+              Some(binder) => ignore(env_bind(ctx, binder.name, t))
+              None => ignore(env_bind(ctx, binding.0.name, t))
             }
           }
           Clean
@@ -716,60 +751,78 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       t
     }
     LetFn(func~, body~, ..) => {
+      // R4: the local function name is scoped to its body (block semantics)
+      scope_push(ctx)
       let _ = flow(Function(func~, loc=dummy_flow_loc()), ctx)
-      flow(body, ctx)
+      let t = flow(body, ctx)
+      scope_pop(ctx)
+      t
     }
     LetAnd(bindings~, body~, ..) => {
+      // R4: the binding group is scoped to its body (block semantics)
+      scope_push(ctx)
       let mut t = Clean
       for binding in bindings {
         let (_, _, func) = binding
         t = taint_or(t, flow(Function(func~, loc=dummy_flow_loc()), ctx))
       }
-      taint_or(t, flow(body, ctx))
+      let bt = taint_or(t, flow(body, ctx))
+      scope_pop(ctx)
+      bt
     }
     Let(pattern~, expr~, body~, ..) => {
-      // value-structure contract: tuple destructuring binds positionally so
-      // (tainted, "safe") keeps the second component clean (third review).
-      // For `let v = (a, b, ...)` we record components (single flow) and
-      // bind v to the fold — `v.1` later projects the exact component.
-      // `let v = (a, b, ...)`: record components (single flow) and bind v
-      // to their fold — later `v.1` projects the exact component
+      // value-structure contract (third review) + R3/R4/R5 (fifth review):
+      //   - RHS components are evaluated COMPLETELY before any binding
+      //     (single evaluation; `let (x, v) = ("safe", x)` reads the OUTER x)
+      //   - a Var bound to a tuple literal records components under the
+      //     declaration's OWN id — rebinding the same name allocates a new
+      //     declaration, so stale components become unreachable (R5)
+      scope_push(ctx) // R4: the binding is scoped to the let body
       match (pattern, expr) {
-        (Var(binder), Tuple(..)) => {
-          record_tuple_comps(pattern, expr, ctx)
-          let mut fold = Clean
-          match
-            ctx.tuple_comps.get(
-              "s" + current_scope_id(ctx).to_string() + ":" + binder.name,
-            ) {
-            Some(comps) => {
-              for c in comps {
-                fold = taint_or(fold, c)
-              }
-              env_bind(ctx, binder.name, fold)
-            }
-            None => ()
+        (Var(binder), Tuple(exprs~, ..)) => {
+          let comps : Array[Taint] = []
+          for e in exprs {
+            comps.push(flow(e, ctx))
           }
+          let mut fold = Clean
+          for c in comps {
+            fold = taint_or(fold, c)
+          }
+          let dkey = env_bind(ctx, binder.name, fold)
+          ctx.tuple_comps[dkey] = comps
         }
         _ => bind_let_taint(pattern, expr, ctx)
       }
       bind_site_to_pattern(pattern, resolve_binding_site(expr, ctx), ctx)
-      flow(body, ctx)
+      let t = flow(body, ctx)
+      scope_pop(ctx)
+      t
     }
     LetMut(binder~, expr~, body~, ..) => {
+      // R4: binding scoped to the let body (same block semantics as Let)
+      scope_push(ctx)
       let t = flow(expr, ctx)
-      env_bind(ctx, binder.name, t)
+      ignore(env_bind(ctx, binder.name, t))
       match resolve_binding_site(expr, ctx) {
-        Some(s) => ctx.sites[binder.name] = s
+        Some(s) => sites_set(ctx, binder.name, s)
         None => ()
       }
-      flow(body, ctx)
+      let bt = flow(body, ctx)
+      scope_pop(ctx)
+      bt
     }
     Sequence(exprs~, last_expr~, ..) => {
+      // R4: a statement block introduces a scope — `let` bindings inside
+      // `{ let x = "safe"; x }` do not leak outward (review c11). Function
+      // bodies, if/match branches and loop bodies arrive as Sequences too;
+      // an inner scope per block is exactly MoonBit's let-scoping rule.
+      scope_push(ctx)
       for e in exprs {
         let _ = flow(e, ctx)
       }
-      flow(last_expr, ctx)
+      let t = flow(last_expr, ctx)
+      scope_pop(ctx)
+      t
     }
     Tuple(exprs~, ..) => fold_taint(exprs, ctx)
     Record(fields~, ..) => {
@@ -805,7 +858,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
         Label(l) => {
           let heap_hit : Taint? = match flow_var_name(record) {
             Some(v) =>
-              match ctx.sites.get(v) {
+              match sites_get(ctx, v) {
                 Some(s) => heap_read(ctx, s, l.name)
                 None => None
               }
@@ -851,7 +904,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       // bounded heap: record the field fact on the receiver's alloc-site
       match base {
         Some(v) =>
-          match ctx.sites.get(v) {
+          match sites_get(ctx, v) {
             Some(s) =>
               match accessor {
                 Label(l) => heap_write(ctx, s, l.name, ft)
@@ -883,10 +936,13 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       let mut result = Clean
       for case in cases {
         let case_ctx = ctx.copy()
+        // R4: branch scope FIRST, then pattern + guard binding —
+        // `match "safe" { x => ... }` must not shadow the outer x
+        // beyond the branch (review c10)
+        scope_push(case_ctx)
         bind_pattern_taint(case.pattern, scrut, case_ctx)
         // constant patterns refine: `x is Some(...)`, literals
         let _ = case.guard_.map(fn(e) { flow(e, case_ctx) })
-        scope_push(case_ctx)
         result = taint_or(result, flow(case.body, case_ctx))
         scope_pop(case_ctx)
         branch_envs.push(case_ctx)
@@ -915,7 +971,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       let name = longident_str(var_.name)
       env_assign(ctx, name, t)
       match resolve_binding_site(expr, ctx) {
-        Some(s) => ctx.sites[name] = s
+        Some(s) => sites_set(ctx, name, s)
         None => () // stale site kept: bounded approximation (documented)
       }
       Clean
@@ -973,7 +1029,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       let t = flow(expr, ctx)
       for b in binders {
         match b {
-          Some(binder) => env_bind(ctx, binder.name, t)
+          Some(binder) => ignore(env_bind(ctx, binder.name, t))
           None => ()
         }
       }
@@ -1007,8 +1063,9 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       for case in catch_ {
         let case_ctx = ctx.copy()
         merge_env(case_ctx, body_ctx, case_ctx) // entry ∪ post-body state
-        bind_pattern_taint(case.pattern, err_t, case_ctx)
+        // R4: branch scope before pattern binding (same as Match)
         scope_push(case_ctx)
+        bind_pattern_taint(case.pattern, err_t, case_ctx)
         let t = flow(case.body, case_ctx)
         scope_pop(case_ctx)
         result = taint_or(result, t)
@@ -1020,8 +1077,9 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
             // noraise arm binds the SUCCESS value and runs on the happy path
             let arm_ctx = ctx.copy()
             merge_env(arm_ctx, body_ctx, arm_ctx)
-            bind_pattern_taint(case.pattern, body_t, arm_ctx)
+            // R4: branch scope before pattern binding (same as Match)
             scope_push(arm_ctx)
+            bind_pattern_taint(case.pattern, body_t, arm_ctx)
             let t = flow(case.body, arm_ctx)
             scope_pop(arm_ctx)
             result = taint_or(result, t)
@@ -1080,10 +1138,10 @@ fn fold_taint(exprs : @list.List[@syntax.Expr], ctx : FlowCtx) -> Taint {
 fn bind_pattern_taint(pat : @syntax.Pattern, t : Taint, ctx : FlowCtx) -> Unit {
   match pat {
     Any(..) => ()
-    Var(binder) => env_bind(ctx, binder.name, t)
+    Var(binder) => ignore(env_bind(ctx, binder.name, t))
     Alias(pat~, alias_~, ..) => {
       bind_pattern_taint(pat, t, ctx)
-      env_bind(ctx, alias_.name, t)
+      ignore(env_bind(ctx, alias_.name, t))
     }
     Constraint(pat~, ..) => bind_pattern_taint(pat, t, ctx)
     Tuple(pats~, ..) =>
@@ -1099,7 +1157,7 @@ fn bind_pattern_taint(pat : @syntax.Pattern, t : Taint, ctx : FlowCtx) -> Unit {
         None => ()
       }
     SpecialConstr(binder~, args~, ..) => {
-      env_bind(ctx, binder.name, t)
+      ignore(env_bind(ctx, binder.name, t))
       for arg in args {
         bind_pattern_taint(arg.pat, t, ctx)
       }
@@ -1158,10 +1216,16 @@ fn bind_let_taint(
       let parr = pats.to_array()
       let earr = exprs.to_array()
       if parr.length() == earr.length() {
+        // R4: evaluate the WHOLE right-hand side BEFORE binding any pattern
+        // variable — `let (x, value) = ("safe", x)` must read the outer x
+        // in the second component, not the freshly shadowed one
+        let ts : Array[Taint] = []
+        for e in earr {
+          ts.push(flow(e, ctx))
+        }
         let mut i = 0
         while i < parr.length() {
-          let ct = flow(earr[i], ctx)
-          bind_pattern_taint(parr[i], ct, ctx)
+          bind_pattern_taint(parr[i], ts[i], ctx)
           i += 1
         }
       } else {
@@ -1193,6 +1257,21 @@ fn merge_env(ctx : FlowCtx, a : FlowCtx, b : FlowCtx) -> Unit {
   b.env.each(fn(k, _) { keys.push(k) })
   for k in keys {
     ctx.env[k] = taint_or(or_clean(a.env.get(k)), or_clean(b.env.get(k)))
+  }
+  // R3: name resolution joins too — declarations only visible on one side
+  // are simply carried over (their env slot was joined above)
+  let nkeys : Array[String] = []
+  a.name_map.each(fn(k, _) { nkeys.push(k) })
+  b.name_map.each(fn(k, _) { nkeys.push(k) })
+  for k in nkeys {
+    match a.name_map.get(k) {
+      Some(v) => ctx.name_map[k] = v
+      None =>
+        match b.name_map.get(k) {
+          Some(v) => ctx.name_map[k] = v
+          None => ()
+        }
+    }
   }
 }
 
@@ -1609,7 +1688,7 @@ fn apply_param_field_sinks(
     // bounded heap lookup: simple var argument with a known alloc-site
     match flow_var_name(arg_e) {
       Some(v) =>
-        match ctx.sites.get(v) {
+        match sites_get(ctx, v) {
           Some(s) =>
             match heap_read(ctx, s, f) {
               Some(ft) =>
@@ -1916,6 +1995,8 @@ fn collect_summary_func(
     alloc_result: None,
     scope_stack: [],
     scope_counter: [0],
+    name_map: Map([]),
+    decl_counter: [0],
     raise_buffer: [],
     tuple_comps: Map([]),
     record_field_sinks: None,
@@ -1933,7 +2014,7 @@ fn collect_summary_func(
           | Optional(binder~, ..)
           | QuestionOptional(binder~, ..) => {
             param_names.push(binder.name)
-            env_bind(ctx, binder.name, TaintedParam(binder.name))
+            ignore(env_bind(ctx, binder.name, TaintedParam(binder.name)))
           }
           DiscardPositional(..) => ()
         }

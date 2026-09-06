@@ -36,7 +36,20 @@ OUT="$(timeout 300 "$ANALYZER" "$HERE" 2>/dev/null)" \
 echo "$OUT" | grep -q "files scanned" || fail 2 "analyzer produced no scan summary"
 echo "$OUT" | tail -3
 
-count() { echo "$OUT" | grep -c "cases/$1:" || true; }
+# R2/R4: per-case ISOLATED scans — a single project-wide scan dedups
+# identical sink snippets within a file (fingerprint = rule+snippet, no
+# line), which silently collapses same-shaped cases (c9 control+original,
+# c10/c11 both `sink(x)`). Each case therefore runs in its own project.
+count() {
+  local f="$1" tmp
+  tmp="$(mktemp -d)"
+  printf 'name = "iso-case"\nversion = "0.1.0"\n' > "$tmp/moon.mod"
+  : > "$tmp/moon.pkg"
+  cp "$HERE/taint-rules.json" "$tmp/taint-rules.json" 2>/dev/null || true
+  cp "$HERE/c0_helpers.mbt" "$HERE/$f" "$tmp/" 2>/dev/null || true
+  timeout 300 "$ANALYZER" "$tmp" 2>/dev/null | grep -c "$f:" || true
+  rm -rf "$tmp"
+}
 
 # ── expectation table ─────────────────────────────────────────────────────
 # format: file|status|current|wanted|gap-attribution
@@ -52,8 +65,8 @@ c5_branch_heap.mbt|XFAIL|0|1|G4
 c6_uncalled_closure.mbt|PASS|0|0|-
 c7_defer_order.mbt|PASS|0|0|-
 c8_default_param_call.mbt|PASS|0|0|-
-c9_orig_same_name_destructure.mbt|XFAIL|1|2|G2
-c10_c12_scope_cases.mbt|XFAIL|0|3|G2
+c9_orig_same_name_destructure.mbt|PASS|2|2|-
+c10_c12_scope_cases.mbt|PASS|3|3|-
 c13_c14_error_and_dispatch.mbt|XFAIL|0|1|G3
 "
 

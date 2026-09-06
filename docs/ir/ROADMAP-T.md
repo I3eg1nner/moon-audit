@@ -18,7 +18,7 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 | # | 缺口 | 现状证据（file:line，2026-09-05 @ 946a1ad） | 后果 |
 |---|---|---|---|
 | G1 | 抽象域合并不满足结合律 | `taint_or`（src/taint_flow.mbt:21）：`(Param(p), FieldRef)` 分支顺序决定结果——同参异构合并先到者胜 | 合并顺序影响溯源；不能作为可靠不动点求解基础 |
-| G2 | 求值与变量绑定混在一起 | ⚠️ 部分修复（T2 450d00e：闭包/分支覆盖与单次求值）；**第五轮重开**：原始反例 `let (x, value) = ("safe", x)` 仍漏报（先绑模式后求右值）；match 模式在分支作用域建立前绑定；块表达式 let 泄漏外层；元组重绑定复用旧分量；身份=“作用域号+变量名”，同作用域同名声明共享槽位 | c9（原始形态，EXPECT-FAIL）/c10/c11/c12 门禁锁定（tests/cases，归因 R3/R4/R5） |
+| G2 | 求值与变量绑定混在一起 | ✅ 已修复（第五轮 R3-R5）：声明级 ID + 先求值后绑定 + 分支/块作用域 + 值身份统一；c9/c10/c11/c12 全 PASS（tests/cases 逐例隔离门禁 + r3r4_*/r4_*/r5_* 单测）；同片段去重行号化修复 | 见上 |
 | G3 | 错误载荷没有直接传递 | ⚠️ 部分修复：直接载荷样例已修（C3，`raise Bad(query())`）；**第五轮重开**：嵌套 try 进入时 `raise_taints.clear()` 清掉外层已抛错误，内层处理吞掉外层污点错误 → 漏报；共享可清空缓冲非隔离错误出口 | c13（评审原始无参形态，EXPECT-FAIL，归因 R6） |
 | G4 | 分支堆状态不隔离 | `FlowCtx::copy`（src/taint_flow.mbt:125）env/sites 拷贝但 heap **共享**；`heap_write`（:281）直接覆盖字段 | 一个分支的 heap_write 可抹掉另一分支已记录污点 |
 | G5 | 循环不是完整不动点 | `flow_to_fixpoint`（src/taint_flow.mbt:83）最多 3 遍，只比较变量环境 fingerprint（env_fingerprint 不含 heap/sites） | 较长传播链、零次循环体、堆变化不可靠 |
@@ -46,9 +46,9 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 ### 第五轮立即整改 R1-R8（2026-09-05）
 - [x] R1 原始反例恢复：c9（评审同名解构原始形态，含对照）/c10+c11+c12（match 遮蔽、块泄漏、元组重绑定）/c13（嵌套 try 原始无参形态）/c14（空候选 trait，供 R7）；新增只补充不替换，c1..c8 保留
 - [x] R2 真门禁：run.sh 逐例断言（PASS 精确计数/XFAIL 注册 gap，双向漂移均非零退出）；基础设施失败 exit 2；`ANALYZER=/bin/false` 实测非零；scope 披露 0(reserved)→unknown(not-measured)
-- [ ] R3 按声明建立变量 ID（同名声明不同 ID，分析前确定）
-- [ ] R4 绑定顺序（右值完整求值后绑模式；match/catch 先建分支作用域）
-- [ ] R5 值与附加信息统一身份（重绑定/赋值失效旧信息）
+- [x] R3 按声明建立变量 ID：name_map("s<scope>:<name>")→"d<decl-id>"（共享计数器，跨分支唯一、永不重置）；env/sites/tuple_comps 全部挂声明 id；赋值改槽位不换 id。锚点：r3_same_scope_scalar_rebind_chains
+- [x] R4 绑定顺序：先收集全部 RHS 分量再绑模式（c9 原始反例修复）；Match/catch/noraise 分支作用域先于模式绑定（c10）；裸块 `{let x=..; x}` 实证为 Let 节点（无 Sequence 包裹），由 Let/LetMut/LetAnd/LetFn/Sequence 各自块作用域修复（c11）。锚点：r3r4_orig_same_name_destructure_reports / r4_match_pattern_shadow_scoped / r4_block_let_does_not_leak；tests/cases c9 2/2、c10_c12 3/3
+- [x] R5 值与附加信息统一身份：重绑定=新声明 id，旧分量/位点键不可达即失效（c12）。附带产品缺陷修复：dedup_findings 键加入行号（同片段不同行=不同漏洞须分别报告；fingerprint 本体保持无行号，SARIF/baseline 身份稳定）。锚点：r5_tuple_rebind_invalidates_stale_components + r5_tuple_literal_components_still_project（负对照）
 - [ ] R6 错误出口隔离（无共享可清空缓冲；嵌套 handler 只消费自己的错误）
 - [ ] R7 调用点分类（非空目标集才算 candidate；不能同时 candidate+unresolved；c14 断言待接）
 - [ ] R8 状态收紧（本节即执行：T0 降部分、G2/G3 重开、未测量输出 unknown）

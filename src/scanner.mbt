@@ -125,10 +125,21 @@ fn build_analysis_scope(
 
 ///|
 fn dedup_findings(findings : Array[Finding]) -> Array[Finding] {
+  // Dedup key includes the line: two call sites with identical snippet text
+  // at DIFFERENT lines are distinct vulnerabilities and must both report
+  // (round-5 gate: c9 original+control collapsed to one alert). The
+  // Finding.fingerprint itself stays line-independent — SARIF
+  // partialFingerprints and the baseline diff keep their stable identity.
   let seen : Map[String, Bool] = Map([])
   let result : Array[Finding] = []
   for f in findings {
-    let key = f.file + ":" + f.fingerprint + ":" + rule_id_str(f.rule_id)
+    let key = f.file +
+      ":" +
+      f.fingerprint +
+      ":" +
+      rule_id_str(f.rule_id) +
+      ":" +
+      f.line.to_string()
     if !seen.contains(key) {
       seen[key] = true
       result.push(f)

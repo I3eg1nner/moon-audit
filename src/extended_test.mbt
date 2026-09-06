@@ -693,3 +693,68 @@ test "t2_tuple_component_zero_still_tainted" {
   run_cwe113(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() > 0)
 }
+
+// ---------------------------------------------------------------------------
+// R3/R4/R5 (round-5): declaration ids, eval-then-bind, value identity
+// ---------------------------------------------------------------------------
+
+///|
+test "r3r4_orig_same_name_destructure_reports" {
+  // review c9 ORIGINAL: RHS evaluated fully before pattern binding, so the
+  // second component reads the OUTER tainted x
+  let source = "fn foo(resp : Response, x : String) -> Unit { let (x, value) = (\"safe\", x); resp.set_header(\"H\", value) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 1)
+}
+
+///|
+test "r4_match_pattern_shadow_scoped" {
+  // review c10: `match "safe" { x => ... }` must not silence outer x
+  let source = "fn foo(resp : Response, x : String) -> Unit { match \"safe\" { x => ignore(x) }; resp.set_header(\"H\", x) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 1)
+}
+
+///|
+test "r4_block_let_does_not_leak" {
+  // review c11: the block-scoped x must not shadow the outer param
+  let source = "fn foo(resp : Response, x : String) -> Unit { let _v = { let x = \"safe\"; x }; resp.set_header(\"H\", x) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 1)
+}
+
+///|
+test "r5_tuple_rebind_invalidates_stale_components" {
+  // review c12: rebinding `pair` must not reuse the old clean components
+  let source = "fn mk(x : String) -> (String, String) { (x, x) } fn foo(resp : Response, x : String) -> Unit { let pair = (\"safe\", \"safe\"); ignore(pair); let pair = mk(x); resp.set_header(\"H\", pair.0) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 1)
+}
+
+///|
+test "r5_tuple_literal_components_still_project" {
+  // negative control: clean components of a tuple literal stay clean
+  let source = "fn foo(resp : Response, x : String) -> Unit { let pair = (x, \"safe\"); ignore(pair.0); resp.set_header(\"H\", pair.1) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "r3_same_scope_scalar_rebind_chains" {
+  // same-scope rebind: the RHS reads the PREVIOUS declaration
+  let source = "fn foo(resp : Response, x : String) -> Unit { let y = \"safe\"; let y = x; resp.set_header(\"H\", y) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 1)
+}

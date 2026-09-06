@@ -598,3 +598,14 @@ CWE-113 候选待分诊。
 **T 路线指针**：ROADMAP-T.md（T0✅→T1 ProgramWorld→T2 HIR/CFG→T3 求解器→T4 过程间
 →T6 框架化→T7 规模→T8 对标；T5 库模型贯穿，T8 测试设施自 T0 起步——本轮 tests/cases
 即其雏形）。
+
+## 2026-09-05 · 第五轮 R3/R4/R5（声明级 ID + 绑定顺序 + 值身份）
+
+- R3：name_map→d<id> 身份层（共享计数器，分支间唯一、永不重置）；env/sites/tuple_comps 挂声明 id
+- R4：RHS 先完整求值再绑模式（c9 原始反例转绿）；Match/catch/noraise 分支作用域先于模式绑定（c10）；
+  关键实证：裸块 `{let x="safe"; x}` 解析为 Let 节点（无 Sequence 包裹）——由 Let/LetMut/LetAnd/LetFn/Sequence
+  各自带块作用域修复（c11）；行为探针步进定位优先于 AST debug
+- R5：重绑定=新声明，旧分量不可达（c12）；附带产品缺陷：dedup 键加入行号（同片段双漏洞只报一是真缺陷），
+  fingerprint 本体保持无行号（SARIF/baseline 身份稳定）
+- 门禁：run.sh 改逐例隔离扫描（去重伪影根治）；c9 2/2、c10_c12 3/3 转 PASS；c5(G4)/c13(G3) 保持 XFAIL
+- 验证：197/197 × native（新增 6 测试含 2 负对照）；ANALYZER=/bin/false 仍 exit 2；三目标 FP=0
