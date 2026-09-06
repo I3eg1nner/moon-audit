@@ -221,9 +221,10 @@
 ## Phase V1：错误流 + 值结构契约（2026-09-05 第三轮评审整改）
 - [x] Try 分支合并：body/catches/noraise 三类出口状态 fork+merge，返回值 join
       （修"正常返回污点丢失"漏报）
-- [x] 错误载荷【部分实现/T0.3 降级】：catch 模式绑定错误值，保守近似 = body 结果污点 ∪ body 状态任意污点（环境猜测而非直接传递 = G3；`raise Bad(f())` 直达形态漏报，见 tests/cases/effects-review.mbt C3）
-      （修"错误携带污点"漏报；已知保守界见 CONTRACTS.md"已知保守界"条目：
-      形参并集导致干净 body + 常量错误载荷时仍过报，方向为过报不漏报，HIR/CFG 消解）
+- [x] 错误载荷【已端到端验证/T2 450d00e 升级】：catch 模式绑定 + `raise_taints` 栈直接传递
+      （`raise Bad(f())` 直达形态与临时变量版一致：`t2_raise_direct_payload_alerts_in_catch`、
+      `t2_raise_temp_var_version_behaves_identically`、tests/cases C3；
+      残余保守界 = err_t 的 env 并集（过报方向，HIR/CFG 消解），见 CONTRACTS.md 条目）
 - [x] noraise 成功分支：taint_flow + tyrecon 双侧接入（成功值绑定 + 调用图纳入；
       petgraph 解析率 69% 不变但调用点 +35，自举 +25）
 - [x] 异常分支清洗陷阱：catch 副本环境内清洗，正常路径污点保留于合并（负对照锁定）

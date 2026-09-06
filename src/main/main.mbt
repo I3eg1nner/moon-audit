@@ -1202,7 +1202,7 @@ fn cmd_call_graph(matches : @argparse.Matches) -> Unit {
     "candidate-set size: total dispatch edges / sites with candidates = " +
     cg.dispatch_edges.length().to_string() +
     "/" +
-    candidate_sites(cg).to_string() +
+    cg.candidate_sites.to_string() +
     "  (avg " +
     avg_set_size(cg) +
     ")",
@@ -1234,36 +1234,10 @@ fn cmd_call_graph(matches : @argparse.Matches) -> Unit {
 }
 
 ///|
-fn candidate_sites(cg : @audit.CallGraph) -> Int {
-  // distinct callers contributing dispatch edges
-  let callers : Array[String] = []
-  for e in cg.dispatch_edges {
-    let idx = find_arrow_sep(e)
-    let caller = if idx > 0 { Show::to_string(e[:idx]) } else { e }
-    if !callers.contains(caller) {
-      callers.push(caller)
-    }
-  }
-  callers.length()
-}
-
-///|
-fn find_arrow_sep(e : String) -> Int {
-  let sep = " -> "
-  let mut best = -1
-  let mut i = 0
-  while i <= e.length() - sep.length() {
-    if e[i:i + sep.length()] == sep {
-      best = i
-    }
-    i += 1
-  }
-  best
-}
 
 ///|
 fn avg_set_size(cg : @audit.CallGraph) -> String {
-  let sites = candidate_sites(cg)
+  let sites = cg.candidate_sites
   if sites == 0 {
     return "0"
   }

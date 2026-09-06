@@ -572,3 +572,29 @@ m4lite_source_to_object_cross_2_layers_to_sink）+ 已知保守界条目 + TODO:
   作用域栈天然消除该类 save/restore 错误；调试期间一次"编译失败+旧二进制"
   造成误判（hit=Y 却以为仍在报），build tail 必须确认成功再下结论
 - 验收：191/191 × native；FP 三目标 0；tests/cases C1/C2/C3 全部按期望
+
+## 2026-09-05 · 第四轮评审整改（T0 全部 + T2 首批；T1/T3-T8 落档）
+
+**评审定调接受**：当前 = 局部类型重建+数据流的安全扫描器，非 Tai-e 式框架。
+8 项结构性缺口（G1-G8）全文入 ROADMAP-T.md 权威清单（含 file:line 证据）。
+
+**本轮修复 3 项（T2 首批，450d00e）**：
+- G2 求值/绑定纠缠 → 作用域栈变量 ID + sink 实参单次求值（t2_scope_*/t2_single_eval_* 测试）
+- G3 错误载荷直达 → raise_taints 栈直接传递（t2_raise_* 两测试 + C3 端到端）
+- 元组分量投影扩展（.0/.1 路径，t2_tuple_component_projection_via_field）
+- T0：tests/cases 反例工程（8 类一条命令重现）+ 指标五数分离（默认实参调用点入图、
+  coverage 分母=调用点）+ 四级状态词汇 + scan scope 披露（analyzer/parser 版本、
+  parse-failures、unanalyzed-is-not-safe）
+
+**gate6**：静态 PASS + supervisor 代跑运行时全绿（191/191×4、FP 0/0/0、run.sh 重现）；
+P1（文档时序错位：t0docs 先写缺口表、t2first 后修代码）+ P2（candidate_sites 以调用者
+数充当位点数）→ 本集成轮修复：G2/G3 行/CONTRACTS/TODO 同步"已端到端验证"+测试锚点，
+显示改用 cg.candidate_sites 字段。
+
+**语料第五次快照**：护栏第六次连续（luna 历史范围=luna/ 子目录 0）；crescent 5 /
+mars 9 逐条稳定；**新发现** luna 仓库 sol/ 工作区（护栏范围外新上游代码）7 条带溯源
+CWE-113 候选待分诊。
+
+**T 路线指针**：ROADMAP-T.md（T0✅→T1 ProgramWorld→T2 HIR/CFG→T3 求解器→T4 过程间
+→T6 框架化→T7 规模→T8 对标；T5 库模型贯穿，T8 测试设施自 T0 起步——本轮 tests/cases
+即其雏形）。

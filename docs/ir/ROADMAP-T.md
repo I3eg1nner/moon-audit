@@ -18,8 +18,8 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 | # | 缺口 | 现状证据（file:line，2026-09-05 @ 946a1ad） | 后果 |
 |---|---|---|---|
 | G1 | 抽象域合并不满足结合律 | `taint_or`（src/taint_flow.mbt:21）：`(Param(p), FieldRef)` 分支顺序决定结果——同参异构合并先到者胜 | 合并顺序影响溯源；不能作为可靠不动点求解基础 |
-| G2 | 求值与变量绑定混在一起 | `bind_let_taint` 求值即绑定；`header_value_taint` 对同一实参二次 `flow()` | 等价源码改写（临时变量/一致改名）改变告警结果 |
-| G3 | 错误载荷没有直接传递 | `Raise`（src/taint_flow.mbt:752）丢弃 err_value 污点，仅 `Clean`；catch 侧从环境猜测（err_t = body∪env_any） | `raise Bad(query())` 漏报，先存临时变量却能检出 |
+| G2 | 求值与变量绑定混在一起 | ✅ 已修复（T2 450d00e）：作用域栈变量 ID（闭包/分支绑定不泄漏不覆盖）；sink 实参单次求值 | `t2_scope_closure_param_no_longer_clobbers_outer_var`、`t2_single_eval_sink_arg_reported_exactly_once`；等价改写（临时变量/改名）行为一致 |
+| G3 | 错误载荷没有直接传递 | ✅ 已修复（T2 450d00e）：`raise_taints` 栈直接传递载荷污点，`err_t = 载荷(主) ∪ body ∪ env`；残余 = env 并集保守界（过报方向，HIR/CFG 消解） | `raise Bad(query())` 与临时变量版行为一致（`t2_raise_temp_var_version_behaves_identically`）；tests/cases C3 端到端 |
 | G4 | 分支堆状态不隔离 | `FlowCtx::copy`（src/taint_flow.mbt:125）env/sites 拷贝但 heap **共享**；`heap_write`（:281）直接覆盖字段 | 一个分支的 heap_write 可抹掉另一分支已记录污点 |
 | G5 | 循环不是完整不动点 | `flow_to_fixpoint`（src/taint_flow.mbt:83）最多 3 遍，只比较变量环境 fingerprint（env_fingerprint 不含 heap/sites） | 较长传播链、零次循环体、堆变化不可靠 |
 | G6 | 摘要不可组合 | 收集时 `ictx: None`（src/taint_flow.mbt:214）——收集期读不到其他摘要；`ret_from`（:1718-1778）生成但调用点无消费路径 | 两遍收集≠递归求解；返回值告警可能只是实参整体传播的兜底 |
@@ -62,7 +62,7 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 - 验收：已知失败一条命令重现（`cd tests/cases && moon check`——独立可编译反例工程，
       8 样例每条标注 G# 与期望/当前行为差）；每项能力有正/负/组合例
 - 实现位置：scope 披露 src/scanner.mbt build_analysis_scope + src/output.mbt（文本/JSON）；
-  指标分列 src/main/main.mbt cmd_ir_stats/cmd_call_graph；反例 tests/cases/effects-review.mbt
+  指标分列 src/main/main.mbt cmd_ir_stats/cmd_call_graph；反例 tests/cases/（c1–c8 每文件一类，run.sh 一条命令重现）
 
 ## T1 统一 ProgramWorld（后续分析的共同输入）
 
@@ -180,7 +180,7 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 | 能力 | 原表述 | 降级后状态 | 缺口 |
 |---|---|---|---|
 | 元组结构传播 | 已实现（Tuple 逐位绑定） | 部分实现（仅 Let/Match 右值为 Tuple 字面量时逐位） | Match scrutinee 整体绑定（过报方向）；enum 载荷位置投影缺失（T2.3） |
-| 错误载荷传递 | 已实现（错误载荷模式绑定） | 部分实现（环境猜测近似，非直接传递） | G3：Raise 丢弃值；err_t=形参并集保守界 |
+| 错误载荷传递 | 已实现（错误载荷模式绑定） | 已端到端验证（T2 450d00e：raise 载荷直接传递；`t2_raise_direct_payload_alerts_in_catch` + C3） | 残余：err_t 的 env 并集保守界（过报方向，HIR/CFG 消解） |
 | 返回摘要 | ret_from 已生成 | 部分实现（已生成未消费） | G6：调用点无消费路径，返回值告警可能来自实参兜底 |
 | 立即回调 | 库模型 v2 回调分类 | 部分实现（仅解析已分类，求解未接线） | 延迟回调（Iter::map）按即时处理；trait 再入边未入调用图 |
 | 调用图 | CHA+去虚化 | 部分实现（候选边 ≠ 已绑定） | G8：候选边计入 coverage 口径虚高；短名匹配未废除 |

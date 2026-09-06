@@ -12,8 +12,8 @@
 
 | 位置类别 | 投影语义 | 状态 | 锚点 |
 |---|---|---|---|
-| 元组分量 `.0/.1` | Tuple 模式 × Tuple 字面量右值**逐位绑定**；形状不匹配保守回退整体（过报不漏报） | 🔶 部分实现（**已端到端验证**仅限字面量右值场景；Match scrutinee 与别名传递仍整体绑定，等价改写可改变结果 = G2/T2.3） | `v1_tuple_component_clean_no_report`（`(tainted, "safe")` 第二分量 Clean） |
-| enum 载荷位置 | catch/Match 的 `Constr` 解构把（错误值/ scrutinee）污点投影到载荷变量；`Err(Bad(x))` 两层投影 | 🔶 部分实现（catch 侧**已端到端验证**；但错误值经环境猜测而非直接传递 = G3，`raise Bad(f())` 直达形态漏报，见 tests/cases C3） | `v1_error_payload_taint_reports`（错误载荷→header 告警） |
+| 元组分量 `.0/.1` | Tuple 模式 × Tuple 字面量右值**逐位绑定**；形状不匹配保守回退整体（过报不漏报） | 🔶 部分实现（字面量右值 + `.0/.1` 投影**已端到端验证**（T2：`t2_tuple_component_projection_via_field`）；Match scrutinee 与别名传递仍整体绑定，显式 HIR 消解） | `v1_tuple_component_clean_no_report`（`(tainted, "safe")` 第二分量 Clean） |
+| enum 载荷位置 | catch/Match 的 `Constr` 解构把（错误值/ scrutinee）污点投影到载荷变量；`Err(Bad(x))` 两层投影 | ✅ **已端到端验证**（T2 450d00e：`raise_taints` 栈直接传递，`raise Bad(f())` 直达检出；残余 = err_t 的 env 并集保守界，过报方向，HIR/CFG 消解） | `v1_error_payload_taint_reports`（错误载荷→header 告警） |
 | struct 字段 | 对象级字段污点表（field_taint，A3 堆切片）；写入即污染对象槽位 | ✅ | A3 验收测试 `m4lite_source_to_object_cross_2_layers_to_sink` |
 | 容器元素摘要位 | Map/Array 存入污点 → 容器摘要位污染；读取返回该位 | ⬜ M5（需字段敏感堆求解） | — |
 | 闭包捕获槽位 | 捕获环境按槽位携带污点；逃逸分析区分立即/延迟执行 | ⬜ M5（依赖库模型 v2 的 timing 语义） | — |

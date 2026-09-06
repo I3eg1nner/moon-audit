@@ -129,3 +129,23 @@ TODO 记录的 "mio" 在 GitHub/mooncakes 均未定位（疑改名/删除），�
    - **后续动作**：redirect/trailing_slash/request_id 三类模式值得纳入 mars 适配规则或
      上游报告（上游 github.com/mizchi/mars.mbt）
 5. 解析率全距 57-87%，中位 ~76%；平均较第三次无回退（旧 7 项目全部 ≥ 持平）
+
+
+## 第五次快照（2026-09-05，第四轮整改 T0+T2 首批后）
+
+范围：护栏 6 修复项目 + crescent/mars TP 语料 + 三本地目标（timeout 300 内完成）。
+
+| 项目 | findings | 状态 |
+|---|---|---|
+| async / cmark / rabbita / mocket / luna(workspace luna/) | 0 ×5 | 护栏第六次连续 ✅ |
+| crescent | 5（逐行一致） | TP 第五次稳定 ✅ |
+| mars.mbt | 9（逐条一致） | 与第四次分诊表吻合 ✅ |
+| mocket / petgraph / 自举 | 0 / 0 / 0 | FP 持平 ✅ |
+
+**新发现（护栏范围外，非回归）**：luna 仓库 `sol/` 工作区（上游 33b24fe 2026-07-30
+新增服务端运行时，历史护栏只覆盖 luna/ 子目录）检出 **7 条 CWE-113 候选**，均带参数
+溯源（security_headers.mbt:188/275 "via parameter value"、runtime_static_serving.mbt:45-46
+content_type/cache_control、sol_routes_register / server_island 路由策略）——模式与
+mars 分诊的回显/配置注入向量同类，**待人工分诊后可上游报告**（PR 风格同 README 表）。
+另有 14 个实验性文件解析失败（experiments/css-factorize，非产品代码，parse-failures
+已在 scope 披露中计数）。
