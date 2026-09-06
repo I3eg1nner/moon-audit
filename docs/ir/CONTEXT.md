@@ -799,3 +799,14 @@ t51 测试路径拼接留待下次触碰。
 
 矩阵：269/269 × native，deny-warn/fmt/info 全绿；T5.1/T5.3/T5.5 ROADMAP 勾选（同 feature commit）。
 路线剩余：T4.4/T4.5 过程间 pt 传播与证据溯源、T5.2/T5.4、T6 框架化、T7 上下文/增量、T8 评估。
+
+## 2026-09-06 · T6 批次（框架化薄切）收官
+- **T6.1+T6.2 薄切**（cde5a8f）：AnalysisRegistry——分析 ID/依赖闭包/拓扑排序/memoize，
+  scan 与 call-graph CLI 改经 registry（行为零变化，双二进制 6/6 SAME）；未知 ID 报错测试锁定
+- **T6.4 + T4.5 薄切**（eb7ce21）：`dump-analyses` 子命令——六文件导出
+  （analysis-plan 依赖拓扑序 / hir-traces / taint-findings / call-graph / points-to /
+  live-vars），每节 provenance；petgraph 冒烟：5787 行 HIR trace / 1458 边 / 416 pts / 209 live
+- gate16 PASS（runtime legs by supervisor）：275/275、FP 0/0/0、scan diff=帮助行、CI 三平台绿
+- P2 处置：t6b_dump 测试补 taint-findings 断言（five→six）；dump 结果共享消费登记 T6.2 深化项；
+  CLI 直连路径文档化薄切边界（registry fallback 不可达）；make_t6_fixture 裸拼接留下次顺手
+- 状态：T6.1 ✅ / T6.2 薄切（结果共享深化留）/ T6.3 未启（Tai-e 插件机制对齐）/ T6.4 薄切（span 级 provenance 留）

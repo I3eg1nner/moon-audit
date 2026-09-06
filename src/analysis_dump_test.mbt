@@ -39,13 +39,14 @@ fn dump_file_non_empty(dir : String, name : String) -> Bool {
 }
 
 ///|
-test "t6b_dump_all_five_files_present_and_non_empty" {
+test "t6b_dump_all_six_files_present_and_non_empty" {
   let root = make_dump_probe()
   let dir = test_tmp("t6b_dump_out")
   dump_analyses(dir, root, Config::default())
-  // the four data files + the plan
+  // the five data files + the plan (gate16 P2: taint-findings was missed)
   inspect(dump_file_non_empty(dir, "analysis-plan.txt"), content="true")
   inspect(dump_file_non_empty(dir, "hir-traces.txt"), content="true")
+  inspect(dump_file_non_empty(dir, "taint-findings.txt"), content="true")
   inspect(dump_file_non_empty(dir, "call-graph.txt"), content="true")
   inspect(dump_file_non_empty(dir, "points-to.txt"), content="true")
   inspect(dump_file_non_empty(dir, "live-vars.txt"), content="true")

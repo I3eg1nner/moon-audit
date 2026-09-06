@@ -227,7 +227,9 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       实测两者均 0，无解读分歧，但跨命令对比时须按此口径分别解读
 - [ ] T4.4 动态发现目标：接收者与闭包指向集产生调用边，新边产生新约束；
       trait/泛型实例/用户回调参与联动
-- [ ] T4.5 证据来源：数据流事实记录产生位置/调用关系/模型依据，支持跨函数诊断路径
+- [~] T4.5 证据来源：数据流事实记录产生位置/调用关系/模型依据，支持跨函数诊断路径
+      （薄切：dump-analyses 每节 provenance——fn @ file / file:line+rule+fingerprint /
+      iterations+converged；语句级与跨函数链路 provenance 留全量，见 T6.4 薄切边界）
 - 验收：跨三层调用/直接与相互递归/共享对象/返回闭包/trait 对象；
   检出不依赖"所有实参污点传给所有返回值"的兜底
 
@@ -273,7 +275,10 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       （薄切：scan 与 call-graph CLI 已改经 registry 请求（行为零变化，双二进制
       mocket/petgraph scan+cg+ir-stats 6/6 SAME）；薄切边界——适配层复用整项目
       入口点，各适配器可能重复走 load_program_world（单事实源不变），
-      ir-stats/live-vars 仍直连，深化=直接传 world 进各引擎）
+      ir-stats/live-vars 仍直连，深化=直接传 world 进各引擎；
+      gate16 残留：dump-analyses 请求全 4 分析但仅消费 TaintFlow/CallGraph 聚合，
+      PointsTo/LiveVars 结果弃用且 per-fn 段重复求解同约束——深化=registry 结果
+      共享消费，单次约束求解复用）
 - [ ] T6.3 插件扩展点：库模型/回调/错误/污点插件响应新调用边/新对象/新指向事实
       （对齐 Tai-e 指针分析插件机制）
 - [~] T6.4 调试能力：导出 HIR/CFG/调用图/指向集/摘要/分析计划；
