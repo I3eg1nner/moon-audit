@@ -151,7 +151,8 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 
 ## T2 真正的 HIR/CFG（当前最重要主线）
 
-- [ ] T2.1 求值顺序：表达式生成显式临时值；实参只求值一次（修 G2）；
+- [x] T2.1（薄切）求值顺序：Apply/DotApply/Let 路径降级为显式语句层（src/hir.mbt Stmt/RhsKind/ValuePos）——每实参恰一次的 LetEvalTemp 结构性保证 + CallStmt/SinkStmt 追踪（hir_trace，分支副本共享）；完整等价改写鲁棒性待 T2.2 CFG 直接执行该 IR（部分实现）；
+- [x] T2.3（薄切）结构化值位置：tuple 分量 (decl, idx) 与 enum 载荷 (decl, ctor, idx) 统一位置表 struct_comps 替代字符串键 tuple_comps；Match 的 Constr 模式对 Var scrutinee 经位置精确投影（Pair("safe", q) 第一分量 Clean——整体绑定会过报）；嵌套模式仍回退整体（部分实现）；
       模式右值先求完再绑定
 - [ ] T2.2 完整控制流：短路/分支/模式 guard/循环/break/continue/return/
       raise/catch/noraise/各退出路径上的 defer

@@ -128,10 +128,15 @@ priv struct FlowCtx {
   // the enclosing Try unions the buffer into its error payload (shared
   // reference across branch copies, like heap)
   raise_buffer : Array[Taint]
-  // T2.1 bounded value structure: components of a tuple-LITERAL binding,
-  // keyed by scoped variable key — `pair.1` projects the exact component
-  // (G2 shadowing counterexample: (tainted, "safe") second read is clean)
-  tuple_comps : Map[String, Array[Taint]]
+  // T2.3 structured value positions: decl key -> ctor ("#tuple" for plain
+  // tuples) -> component taints. Projections address (decl, ctor, idx) —
+  // the G2 shadowing counterexample projects the exact component, and
+  // enum payload positions survive rebinding (stale decls unreachable)
+  struct_comps : Map[String, Map[String, Array[Taint]]]
+  // T2.1 HIR statement trace (shared reference: branch copies append to
+  // the same sequence) + temp id counter (shared for uniqueness)
+  hir_trace : Array[Stmt]
+  hir_temp_ctr : Array[Int]
   // param-field sink recording channel ("param|field") for summaries
   mut record_field_sinks : Array[String]?
   taint_rules : TaintRuleset // project DSL entries (ADD to built-ins)
@@ -153,23 +158,29 @@ fn FlowCtx::copy(self : FlowCtx) -> FlowCtx {
   for id in self.scope_stack {
     scope_stack.push(id)
   }
-  let tuple_comps : Map[String, Array[Taint]] = Map([])
-  self.tuple_comps.each(fn(k, v) {
-    let ccopy : Array[Taint] = []
-    for c in v {
-      ccopy.push(c)
-    }
-    tuple_comps[k] = ccopy
+  let struct_comps : Map[String, Map[String, Array[Taint]]] = Map([])
+  self.struct_comps.each(fn(k, m) {
+    let mcopy : Map[String, Array[Taint]] = Map([])
+    m.each(fn(ctor, arr) {
+      let ccopy : Array[Taint] = []
+      for c in arr {
+        ccopy.push(c)
+      }
+      mcopy[ctor] = ccopy
+    })
+    struct_comps[k] = mcopy
   })
   // heap/record channels/raise buffer/scope+decl counters are references:
-  // shared by design (monotone facts + id uniqueness)
+  // shared by design (monotone facts + id uniqueness). hir_trace and
+  // hir_temp_ctr are references too: the statement sequence is global to
+  // the function analysis (the trace observes all branches)
   {
     ..self,
     env,
     name_map,
     sites,
     scope_stack,
-    tuple_comps,
+    struct_comps,
     alloc_result: None,
   }
 }
@@ -267,19 +278,106 @@ fn sites_set(ctx : FlowCtx, name : String, site : String) -> Unit {
 
 ///|
 fn tuple_comp_lookup(ctx : FlowCtx, name : String, idx : Int) -> Taint? {
+  // T2.3: projection addressed by (decl, "#tuple", idx)
   match scope_lookup_key(ctx, name) {
-    Some(key) =>
-      match ctx.tuple_comps.get(key) {
-        Some(comps) =>
-          if idx >= 0 && idx < comps.length() {
-            Some(comps[idx])
-          } else {
-            None
-          }
-        None => None
-      }
+    Some(key) => comps_get(ctx, key, "#tuple", idx)
     None => None
   }
+}
+
+///|
+fn ctor_payload_lookup(
+  ctx : FlowCtx,
+  name : String,
+  ctor : String,
+  idx : Int,
+) -> Taint? {
+  match scope_lookup_key(ctx, name) {
+    Some(key) => comps_get(ctx, key, ctor, idx)
+    None => None
+  }
+}
+
+// bind a Constr pattern against recorded (decl, ctor, idx) positions;
+// returns false when no position info exists (caller falls back to whole)
+
+///|
+fn project_ctor_positions(
+  scrut_expr : @syntax.Expr,
+  pattern : @syntax.Pattern,
+  ctx : FlowCtx,
+  whole : Taint,
+) -> Bool {
+  match (scrut_expr, pattern) {
+    (Ident(id~, ..), Constr(constr~, args~, ..)) => {
+      // scrutinee must be a simple identifier with recorded positions
+      let scrut_name = match id.name {
+        Ident(name~) => name
+        Dot(..) => return false
+      }
+      let matched : Bool = match args {
+        Some(list) => list.length() > 0
+        None => false
+      }
+      if !matched {
+        return false
+      }
+      let list = match args {
+        Some(l) => l
+        None => return false
+      }
+      // every sub-pattern must itself be a simple Var (position projection)
+      let mut all_var = true
+      for arg in list {
+        match arg.pat {
+          Var(_) => ()
+          _ => all_var = false
+        }
+      }
+      if !all_var {
+        return false
+      }
+      let mut i = 0
+      for arg in list {
+        match arg.pat {
+          Var(binder) =>
+            match ctor_payload_lookup(ctx, scrut_name, constr.name.name, i) {
+              Some(t) => ignore(env_bind(ctx, binder.name, t))
+              None =>
+                // position unknown: fall back to whole for this binder
+                ignore(env_bind(ctx, binder.name, whole))
+            }
+          _ => ()
+        }
+        i += 1
+      }
+      true
+    }
+    _ => false
+  }
+}
+
+// T2.1 trace emission: materialize arg temps + the call statement
+
+///|
+fn hir_emit_call(ctx : FlowCtx, target : String, temps : Array[Int]) -> Unit {
+  ctx.hir_trace.push(CallStmt(target, temps.copy()))
+}
+
+///|
+fn hir_temps_from_pairs(ctx : FlowCtx, n : Int) -> Array[Int] {
+  let temps : Array[Int] = []
+  for i in 0..<n {
+    let tid = hir_fresh_temp(ctx)
+    ctx.hir_trace.push(LetEvalTemp(tid, i))
+    temps.push(tid)
+  }
+  temps
+}
+
+///|
+fn hir_emit_sink(ctx : FlowCtx, kind : String, temps : Array[Int]) -> Unit {
+  ctx.hir_trace.push(SinkStmt(kind, temps.copy()))
 }
 
 // ── entry: analyze one top-level function ─────────────────────────────────
@@ -313,7 +411,9 @@ pub fn run_flow_taint_func(
     name_map: Map([]),
     decl_counter: [0],
     raise_buffer: [],
-    tuple_comps: Map([]),
+    struct_comps: Map([]),
+    hir_trace: [],
+    hir_temp_ctr: [0],
     record_field_sinks: None,
     ictx,
     taint_rules: match rules {
@@ -375,7 +475,9 @@ pub fn run_flow_taint_func_top(
     name_map: Map([]),
     decl_counter: [0],
     raise_buffer: [],
-    tuple_comps: Map([]),
+    struct_comps: Map([]),
+    hir_trace: [],
+    hir_temp_ctr: [0],
     record_field_sinks: None,
     ictx: None,
     taint_rules: match rules {
@@ -516,6 +618,13 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
     Apply(func~, args~, ..) => {
       // T2.1: every argument expression flows exactly once
       let arg_pairs = flow_args_pairs(args, ctx)
+      // statement layer: temps + call trace (args already flowed once)
+      let hir_target = match apply_func_name(func) {
+        Some(n) => n
+        None => "<computed>"
+      }
+      let hir_temps = hir_temps_from_pairs(ctx, arg_pairs.length())
+      hir_emit_call(ctx, hir_target, hir_temps)
       let arg_taint_arr : Array[Taint] = []
       for p in arg_pairs {
         arg_taint_arr.push(p.taint)
@@ -537,6 +646,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
             let slot = or_slot(ctx.taint_rules.sink_value_slot(name))
             let value_taint = value_taint_at(arg_pairs, slot)
             if is_tainted(value_taint) {
+              hir_emit_sink(ctx, "header:" + name, hir_temps)
               report_cwe113(ctx, expr, value_taint)
             }
           }
@@ -570,6 +680,9 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       let recv_taint = flow(self, ctx)
       // T2.1: every argument expression flows exactly once
       let arg_pairs = flow_args_pairs(args, ctx)
+      // statement layer: receiver temp first, then args (method-call form)
+      let hir_temps = hir_temps_from_pairs(ctx, arg_pairs.length() + 1)
+      hir_emit_call(ctx, method_name.name, hir_temps)
       let arg_taint = pairs_aggregate(arg_pairs)
       let combined = taint_or(recv_taint, arg_taint)
       let mname = method_name.name
@@ -582,6 +695,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
         let slot = or_slot(ctx.taint_rules.sink_value_slot(mname))
         let value_taint = value_taint_at(arg_pairs, slot)
         if is_tainted(value_taint) {
+          hir_emit_sink(ctx, "header:" + mname, hir_temps)
           report_cwe113(ctx, expr, value_taint)
         }
         Clean
@@ -780,16 +894,50 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       scope_push(ctx) // R4: the binding is scoped to the let body
       match (pattern, expr) {
         (Var(binder), Tuple(exprs~, ..)) => {
+          // T2.1+T2.3: lower through the statement layer — each component
+          // evaluated ONCE into a temp, then positions bound to the decl
           let comps : Array[Taint] = []
+          let temps : Array[Int] = []
+          let mut arg_idx = 0
           for e in exprs {
-            comps.push(flow(e, ctx))
+            let tid = hir_fresh_temp(ctx)
+            ctx.hir_trace.push(LetEvalTemp(tid, arg_idx))
+            let t = flow(e, ctx)
+            comps.push(t)
+            temps.push(tid)
+            arg_idx += 1
           }
           let mut fold = Clean
           for c in comps {
             fold = taint_or(fold, c)
           }
           let dkey = env_bind(ctx, binder.name, fold)
-          ctx.tuple_comps[dkey] = comps
+          ctx.hir_trace.push(BindTuplePositions(dkey, temps.copy()))
+          comps_set(ctx, dkey, "#tuple", comps)
+        }
+        (Var(binder), Apply(func=Constr(constr~, ..), args~, ..)) => {
+          // T2.3: enum payload positions — `let v = Some(dirty)` parses as
+          // Apply(Constr(Some), [dirty]); record (decl, "Some", 0) so
+          // later Constr patterns project the exact payload position
+          let payload : Array[Taint] = []
+          let temps : Array[Int] = []
+          let mut i = 0
+          for arg in args {
+            let tid = hir_fresh_temp(ctx)
+            ctx.hir_trace.push(LetEvalTemp(tid, i))
+            payload.push(flow(arg.value, ctx))
+            temps.push(tid)
+            i += 1
+          }
+          let mut fold = Clean
+          for p in payload {
+            fold = taint_or(fold, p)
+          }
+          let dkey = env_bind(ctx, binder.name, fold)
+          ctx.hir_trace.push(BindCtorPositions(dkey, constr.name.name, temps))
+          if payload.length() > 0 {
+            comps_set(ctx, dkey, constr.name.name, payload)
+          }
         }
         _ => bind_let_taint(pattern, expr, ctx)
       }
@@ -940,7 +1088,12 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
         // `match "safe" { x => ... }` must not shadow the outer x
         // beyond the branch (review c10)
         scope_push(case_ctx)
-        bind_pattern_taint(case.pattern, scrut, case_ctx)
+        // T2.3: exact payload projection — a Constr pattern over a Var
+        // scrutinee with recorded positions binds each sub-pattern to
+        // its (decl, ctor, idx) component instead of the whole taint
+        if !project_ctor_positions(expr, case.pattern, case_ctx, scrut) {
+          bind_pattern_taint(case.pattern, scrut, case_ctx)
+        }
         // constant patterns refine: `x is Some(...)`, literals
         let _ = case.guard_.map(fn(e) { flow(e, case_ctx) })
         result = taint_or(result, flow(case.body, case_ctx))
@@ -2041,7 +2194,9 @@ fn collect_summary_func(
     name_map: Map([]),
     decl_counter: [0],
     raise_buffer: [],
-    tuple_comps: Map([]),
+    struct_comps: Map([]),
+    hir_trace: [],
+    hir_temp_ctr: [0],
     record_field_sinks: None,
     ictx: None,
     taint_rules: TaintRuleset::empty(),
@@ -2186,4 +2341,62 @@ fn find_bar_from(s : String, from : Int) -> Int {
     i += 1
   }
   -1
+}
+
+// T2a: run the flow engine and return the HIR statement trace (whitebox
+// entry for tests and future diagnostics; mirrors run_flow_taint_func)
+
+///|
+pub fn run_flow_taint_trace(
+  params : @list.List[@syntax.Parameter]?,
+  body : @syntax.Expr,
+  file : String,
+  source : String,
+  severity : Severity,
+  findings : Array[Finding],
+) -> Array[Stmt] {
+  let ctx : FlowCtx = {
+    env: Map([]),
+    findings,
+    file,
+    source,
+    severity,
+    record_sinks: None,
+    record_returns: None,
+    record_fields: None,
+    sites: Map([]),
+    heap: Map([]),
+    alloc_result: None,
+    scope_stack: [],
+    scope_counter: [0],
+    name_map: Map([]),
+    decl_counter: [0],
+    raise_buffer: [],
+    struct_comps: Map([]),
+    hir_trace: [],
+    hir_temp_ctr: [0],
+    record_field_sinks: None,
+    ictx: None,
+    taint_rules: TaintRuleset::empty(),
+    output_sinks_enabled: true,
+  }
+  scope_push(ctx) // function scope
+  match params {
+    Some(ps) =>
+      for param in ps {
+        match param {
+          Positional(binder~, ..)
+          | Labelled(binder~, ..)
+          | Optional(binder~, ..)
+          | QuestionOptional(binder~, ..) =>
+            ignore(env_bind(ctx, binder.name, TaintedParam(binder.name)))
+          DiscardPositional(..) => ()
+        }
+      }
+    None => ()
+  }
+  let _ = flow(body, ctx)
+  ctx.raise_buffer.clear()
+  scope_pop(ctx)
+  ctx.hir_trace
 }
