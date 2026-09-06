@@ -186,7 +186,11 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       仅满足唯一目标条件才允许强更新
 - [~] T3.3 循环不动点（薄切 2026-09-06）：SecurityFact join 稳定性判据替换指纹比较（env 活跃槽位解析视图 + loop_exits 折叠 join + **heap 事实**全量入快照——站点键语法级稳定）；预算 = min(体语句数+2, 8)，超限计 loop-fixpoint-exhausted 进 scope 披露（实测 mocket 4 / petgraph 30 / 自举 0，为强更新震荡类的诚实不完整标记）；同位点重复告警行级去重（与外层 dedup 粒度一致）；新单测 t3b_loop_convergence_under_budget（5 层跨迭代链 6 遍收敛 < 预算 8）+ t3b_budget_exhaustion_disclosed（10 层链超限披露）；三遍魔数删除——剩余：全局 worklist（循环内单遍仍 AST 序）、widening、预算耗尽时的保守上近似替代
       有限抽象或显式 widening；预算耗尽必须标记不完整
-- [ ] T3.4 第二种分析：同一 CFG+求解框架实现活跃变量+常量传播→组合死代码分析
+- [x] T3.4（薄切）第二种分析：活跃变量已在共享 HIR 语句层上实现（`ir-stats --live-vars`；
+      src/live_vars.mbt 仅消费 Array[Stmt]，静态契约=零 taint_flow 依赖；3 单测：顺序
+      kill/use、分支并集、循环回边）。TRACE 语义边界：thin 层中 temp 是值身份、decl 是
+      存储别名——decl 的直接 use 需 T2.1 后续（变量读取入 trace）才完全可见。
+- [ ] T3.4（余）常量传播 + 死代码组合
       （Tai-e 死代码示例为直接参照）
 - 验收：合并运算性质通过测试；循环/分支/工作队列顺序不改变不动点；
   第二种分析不重新解释 AST

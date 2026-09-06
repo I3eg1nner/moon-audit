@@ -257,6 +257,11 @@ fn main {
             long="conservative-alias",
             about="Enable legacy short-key alias binding (default: strict)",
           ),
+          @argparse.FlagArg(
+            "live-vars",
+            long="live-vars",
+            about="T3.4: live-variable summary per function on the HIR statement layer",
+          ),
         ],
         positionals=[
           @argparse.PositionArg("path", about="Project path to analyze", default_values=[
@@ -1026,9 +1031,43 @@ fn cmd_deep_audit(matches : @argparse.Matches) -> Unit {
 }
 
 ///|
+// enumerate .mbt source files under root with the standard excludes
+
+///|
+fn collect_mbt_files(root : String) -> Array[String] {
+  let out : Array[String] = []
+  fn walk(dir : String) -> Unit {
+    let entries = @fs.read_dir(dir) catch { _ => return }
+    for entry in entries {
+      if entry.has_prefix(".") ||
+        entry == "_build" ||
+        entry == "examples" ||
+        entry == "benchmarks" {
+        continue
+      }
+      let full = @path.Path(dir).join(@path.Path(entry)).0
+      let is_dir = @fs.is_dir(full) catch { _ => false }
+      if is_dir {
+        walk(full)
+      } else if entry.has_suffix(".mbt") &&
+        !entry.has_suffix("_test.mbt") &&
+        !entry.has_suffix("_wbtest.mbt") {
+        out.push(full)
+      }
+    }
+  }
+  walk(root)
+  out
+}
+
+///|
 fn cmd_ir_stats(matches : @argparse.Matches) -> Unit {
   let path = get_val(matches, "path", ".")
   let details = match matches.flags.get("details") {
+    Some(v) => v
+    None => false
+  }
+  let live_vars = match matches.flags.get("live-vars") {
     Some(v) => v
     None => false
   }
@@ -1145,6 +1184,43 @@ fn cmd_ir_stats(matches : @argparse.Matches) -> Unit {
     alias_unresolved.to_string() +
     "  (alias = strict-mode short-key fallback misses; see --conservative-alias)",
   )
+  if live_vars {
+    // T3.4: second analysis on the SAME HIR statement layer — no taint
+    // semantics involved (live_vars consumes Array[Stmt] only)
+    println("")
+    println("live variables (T3.4, shared HIR layer):")
+    let mut total_fns = 0
+    let mut total_decls = 0
+    let mut total_dead = 0
+    let files = collect_mbt_files(path)
+    for file in files {
+      let source = @fs.read_file_to_string(file) catch { _ => continue }
+      let (impls, _) = @parser.parse_string(source, name=file)
+      for pair in @audit.collect_fn_traces(impls, file, source) {
+        total_fns += 1
+        let summary = @audit.live_vars_of_trace(pair.1)
+        total_decls += summary.total
+        total_dead += summary.dead
+        println(
+          "  " +
+          pair.0 +
+          ": " +
+          @audit.live_vars_line(summary) +
+          "  | " +
+          @audit.live_vars_examples(summary, 2),
+        )
+      }
+    }
+    println(
+      "  -- " +
+      total_fns.to_string() +
+      " funcs, " +
+      total_decls.to_string() +
+      " decls, " +
+      total_dead.to_string() +
+      " dead",
+    )
+  }
   if details {
     println("")
     println("unknown-site reasons (per site):")

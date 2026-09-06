@@ -694,6 +694,8 @@ pub fn run_flow_taint_func(
   ictx? : InterProceduralContext,
   rules? : TaintRuleset,
   output_sinks_enabled? : Bool,
+  fn_name? : String, // T3.4: live-vars driver labels the trace
+  hir_out? : Array[(String, Array[Stmt])], // append (name, trace) at exit
 ) -> Unit {
   let ctx : FlowCtx = {
     env: Map([]),
@@ -755,6 +757,16 @@ pub fn run_flow_taint_func(
   run_defers(ctx)
   ctx.raise_buffer.clear() // raises escaping this function: error exit (P3)
   scope_pop(ctx)
+  match hir_out {
+    Some(out) => {
+      let name = match fn_name {
+        Some(n) => n
+        None => "<anon>"
+      }
+      out.push((name, ctx.hir_trace.copy()))
+    }
+    None => ()
+  }
 }
 
 ///|
@@ -3114,4 +3126,87 @@ pub fn collect_mutate_receivers(
     LetAnd(body~, ..) => collect_mutate_receivers(body, out)
     _ => ()
   }
+}
+
+// ── T3.4 driver: per-function HIR traces for the live-vars analysis ──────
+// Mirrors run_cwe113's top-level iteration; findings go to a scratch array
+// (trace collection only — the scan pipeline is unaffected).
+
+///|
+pub fn collect_fn_traces(
+  impls : @list.List[@syntax.Impl],
+  file : String,
+  source : String,
+) -> Array[(String, Array[Stmt])] {
+  let out : Array[(String, Array[Stmt])] = []
+  let scratch : Array[Finding] = []
+  for item in impls {
+    match item {
+      TopFuncDef(fun_decl~, decl_body~, ..) =>
+        match decl_body {
+          DeclBody(expr=Function(func~, ..)) =>
+            run_flow_taint_func(
+              Some(func.parameters),
+              func.body,
+              file,
+              source,
+              Info,
+              scratch,
+              fn_name=fun_decl.name.name,
+              hir_out=out,
+            )
+          DeclBody(expr=body) =>
+            run_flow_taint_func(
+              fun_decl.decl_params,
+              body,
+              file,
+              source,
+              Info,
+              scratch,
+              fn_name=fun_decl.name.name,
+              hir_out=out,
+            )
+          _ => ()
+        }
+      TopImpl(method_name~, params~, body~, ..) =>
+        match body {
+          DeclBody(expr=Function(func~, ..)) =>
+            run_flow_taint_func(
+              Some(func.parameters),
+              func.body,
+              file,
+              source,
+              Info,
+              scratch,
+              fn_name=method_name.name,
+              hir_out=out,
+            )
+          DeclBody(expr=body) =>
+            run_flow_taint_func(
+              Some(params),
+              body,
+              file,
+              source,
+              Info,
+              scratch,
+              fn_name=method_name.name,
+              hir_out=out,
+            )
+          _ => ()
+        }
+      TopExpr(expr~, ..) =>
+        run_flow_taint_func(
+          None,
+          expr,
+          file,
+          source,
+          Info,
+          scratch,
+          fn_name="<top>",
+          hir_out=out,
+        )
+      _ => ()
+    }
+  }
+  out
 }

@@ -34,6 +34,8 @@ pub fn collect_audit_files(String, Config) -> Array[(String, String)]
 
 pub fn collect_fn_sig(@list.List[@syntax.Parameter], String, PkgSymbols, @syntax.Type?, @syntax.ErrorType, Bool, @list.List[@syntax.TypeVarBinder], String) -> Unit
 
+pub fn collect_fn_traces(@list.List[@syntax.Impl], String, String) -> Array[(String, Array[Stmt])]
+
 pub fn collect_func_summaries(String, String, InterProceduralContext) -> Unit
 
 pub fn collect_func_summaries_flow(@list.List[@syntax.Impl], String, InterProceduralContext, rules? : TaintRuleset) -> Unit
@@ -180,6 +182,12 @@ pub fn is_sanitized_expr(@syntax.Expr) -> Bool
 
 pub fn list_all_rules() -> Array[RuleInfo]
 
+pub fn live_vars_examples(LiveVarsSummary, Int) -> String
+
+pub fn live_vars_line(LiveVarsSummary) -> String
+
+pub fn live_vars_of_trace(Array[Stmt]) -> LiveVarsSummary
+
 pub fn load_baseline(String) -> Map[String, Bool]
 
 pub fn load_changed_files(String) -> Array[String]
@@ -254,7 +262,7 @@ pub fn run_cwe770(@list.List[@syntax.Impl], String, String, Array[Finding], Seve
 
 pub fn run_cwe942(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
-pub fn run_flow_taint_func(@list.List[@syntax.Parameter]?, @syntax.Expr, String, String, Severity, Array[Finding], ictx? : InterProceduralContext, rules? : TaintRuleset, output_sinks_enabled? : Bool) -> Unit
+pub fn run_flow_taint_func(@list.List[@syntax.Parameter]?, @syntax.Expr, String, String, Severity, Array[Finding], ictx? : InterProceduralContext, rules? : TaintRuleset, output_sinks_enabled? : Bool, fn_name? : String, hir_out? : Array[(String, Array[Stmt])]) -> Unit
 
 pub fn run_flow_taint_func_top(@syntax.Expr, String, String, Severity, Array[Finding], rules? : TaintRuleset, output_sinks_enabled? : Bool) -> Unit
 
@@ -473,6 +481,20 @@ pub(all) struct LibModelCallback {
   placeholders : Array[String]
   timing : CallbackTiming
 } derive(@debug.Debug)
+
+pub(all) struct LiveVarInfo {
+  decl : String
+  def_site : Int
+  last_use : Int
+}
+
+pub(all) struct LiveVarsSummary {
+  infos : Array[LiveVarInfo]
+  total : Int
+  live : Int
+  dead : Int
+}
+pub fn LiveVarsSummary::dead_ratio(Self) -> Int
 
 pub(all) struct Location {
   file : String
