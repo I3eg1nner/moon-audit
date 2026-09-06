@@ -739,3 +739,18 @@ crescent 5 逐条稳定、CI 三平台绿 e2a1a1a）。
 
 T2.5 登记未竟（薄切边界，如实）：hir_trace 闭包调用双 CallStmt（外层+分配点各 fresh temps）、
 LetMut 绑定闭包仍创建期执行 body——均在 ROADMAP T2.5 剩余项。
+
+## 2026-09-06 · T4.1 薄切：ret_from 调用点真实消费（G6 修复第一步）
+- 三形态接线：Apply 自由函数 / `Type::method` 静态方法（apply_func_name 原返回
+  None → 新 callee_summary_name + 短名回退查找）/ DotApply（接收者→param0，
+  positional args 偏移 +1）
+- 精化语义：摘要命中且实参真实绑定 ret_from 参数 → 返回值=该参数集 join
+  （溯源保留），替换实参并集兜底；无摘要/无绑定命中保持兜底（未解析不精化——
+  诚实下界）；t41 判别测试证明无关参数不再过报（旧兜底必报、精化后 0 findings）
+- apply_param_field_sinks / apply_field_taint_side_effect 补 DotApply 形态
+  （confirm_field_sink 共享堆确认核心）
+- 验证：246/246 × native（+3 验收测试：命中传播/无关对照/方法形态）；
+  deny-warn/fmt/info 门清；run.sh 双门禁；FP 三目标 0/0/0；crescent 5 稳定；
+  ir-stats 不受影响（tyrecon 零改动）
+- 已知边界（登记 ROADMAP T4.1 未竟）：错误载荷通道、SCC 迭代（T4.2）、
+  短名摘要键碰撞（T1.4）

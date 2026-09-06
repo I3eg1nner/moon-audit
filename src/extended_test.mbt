@@ -974,3 +974,53 @@ test "t2_5_shared_struct_capture_field_mutate_visible" {
   run_cwe113(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() > 0)
 }
+
+///|
+test "t41_ret_from_consumed_refines_return_into_sink" {
+  // (a) summary hit: id3's ret_from=[x], the tainted arg maps to x ->
+  // refined return (provenance preserved) reaches the header sink
+  let source = "fn id3(x : String) -> String { x } pub fn go(resp : Response, dirty : String) -> Unit { let v = id3(dirty); resp.set_header(\"X\", v) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let ictx = InterProceduralContext::new()
+  collect_func_summaries_flow(impls, "test.mbt", ictx)
+  inspect(ictx.summaries.contains("id3"), content="true")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error, ictx~)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "t41_unrelated_param_not_in_ret_from_does_not_propagate" {
+  // (b) discriminator: tag's ret_from=[tag] only; `dirty` binds to base
+  // (∉ ret_from), "safe" binds to tag (clean) -> refined Clean. The old
+  // args-union fallback would taint v via `dirty` and OVER-report.
+  let source = "fn tag(base : String, tag : String) -> String { tag } pub fn go(resp : Response, dirty : String) -> Unit { let v = tag(dirty, \"safe\"); resp.set_header(\"X\", v) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let ictx = InterProceduralContext::new()
+  collect_func_summaries_flow(impls, "test.mbt", ictx)
+  // sanity: ret_from records ONLY `tag` (base does not flow to return)
+  match ictx.summaries.get("tag") {
+    Some(s) => {
+      inspect(s.ret_from.length(), content="1")
+      inspect(s.ret_from[0], content="tag")
+    }
+    None => inspect(true, content="false")
+  }
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error, ictx~)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "t41_method_form_type_method_consumes_summary" {
+  // (c) static method form `B::make(recv, arg)` consumes the TopImpl
+  // summary (keyed short "make"): ret_from=[s], arg1 taints the return
+  let source = "pub trait W { fn make(Self, s : String) -> String } pub struct B {} pub impl W for B with fn make(self, s) -> String { s } pub fn go(resp : Response, dirty : String) -> Unit { let bb = B::{}; let v = B::make(bb, dirty); resp.set_header(\"X\", v) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let ictx = InterProceduralContext::new()
+  collect_func_summaries_flow(impls, "test.mbt", ictx)
+  inspect(ictx.summaries.contains("make"), content="true")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error, ictx~)
+  assert_true(findings.length() > 0)
+}

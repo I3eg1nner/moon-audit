@@ -1220,12 +1220,21 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
                     if ctx.taint_rules.source_hit(name) {
                       Tainted
                     } else {
-                      arg_taint
+                      // T4.1: consume ret_from when a summary binds —
+                      // refinement over the args-union fallback
+                      match apply_ret_from(func, args, arg_pairs, ctx) {
+                        Some(t) => t
+                        None => arg_taint
+                      }
                     }
                 }
               }
             }
-            None => arg_taint
+            None =>
+              match apply_ret_from(func, args, arg_pairs, ctx) {
+                Some(t) => t
+                None => arg_taint
+              }
           }
           let _ = flow(func, ctx)
           ret
@@ -1242,6 +1251,11 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       let arg_taint = pairs_aggregate(arg_pairs)
       let combined = taint_or(recv_taint, arg_taint)
       let mname = method_name.name
+      // T4.1: method-form summary consumption (receiver binds param 0)
+      apply_field_taint_side_effect_dot(
+        mname, self, args, ctx, arg_pairs, recv_taint,
+      )
+      apply_param_field_sinks_dot(mname, self, args, ctx, expr)
       let is_sink = is_header_setter(mname) ||
         ctx.taint_rules.header_sink_hit(mname)
       let ret = if is_sink {
@@ -1275,7 +1289,13 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
             if ctx.taint_rules.source_hit(mname) {
               Tainted
             } else {
-              combined
+              // T4.1: method form consumes ret_from with the receiver
+              // bound to param 0 (self), positional args shifted by one
+              match
+                apply_ret_from_dot(mname, args, arg_pairs, ctx, recv_taint) {
+                Some(t) => t
+                None => combined
+              }
             }
         }
       }
@@ -2514,6 +2534,194 @@ fn param_index(params : Array[String], name : String) -> Int? {
 // arg_taints are the single-pass flow results in argument order.
 
 ///|
+// T4.1: callee name for summary lookup — free functions (Ident) and the
+// static method form `Type::method` (Method callee); DotApply callers pass
+// the method name directly
+
+///|
+fn callee_summary_name(func : @syntax.Expr) -> String? {
+  match func {
+    Ident(id~, ..) =>
+      match id.name {
+        Ident(name~) => Some(name)
+        Dot(id~, ..) => Some(id)
+      }
+    Method(type_name~, method_name~, ..) => {
+      // summaries are keyed by short name (T1.4 will qualify); resolve
+      // "Type::method" to its long form and fall back to the short key
+      let tn = match type_name.name {
+        Ident(name~) => name
+        Dot(pkg~, id~) => pkg + "::" + id
+      }
+      Some(tn + "::" + method_name.name)
+    }
+    _ => None
+  }
+}
+
+// summary lookup with short-name fallback: long "Type::method" keys hit
+// the collection-side short keys ("method")
+
+///|
+fn summary_lookup(
+  ictx : InterProceduralContext,
+  name : String,
+) -> FuncTaintSummary? {
+  match ictx.summaries.get(name) {
+    Some(s) => Some(s)
+    None => {
+      let idx = find_last(name, "::")
+      if idx > 0 {
+        ictx.summaries.get(Show::to_string(name[idx + 2:]))
+      } else {
+        None
+      }
+    }
+  }
+}
+
+// T4.1: consume ret_from at a call site — surgical refinement over the
+// args-union fallback. When a summary exists AND at least one argument
+// binds to a ret_from param, the refined return value is the join over
+// those args only (provenance preserved), so unrelated args no longer
+// taint the result. No binding hit -> None (caller keeps the fallback:
+// unresolved callees are never refined — honest under-resolution).
+
+///|
+fn apply_ret_from(
+  func : @syntax.Expr,
+  args : @list.List[@syntax.Argument],
+  arg_pairs : Array[ArgTaint],
+  ctx : FlowCtx,
+) -> Taint? {
+  let ictx = match ctx.ictx {
+    Some(i) => i
+    None => return None
+  }
+  let name = match callee_summary_name(func) {
+    Some(n) => n
+    None => return None
+  }
+  let summary = match summary_lookup(ictx, name) {
+    Some(s) => s
+    None => return None
+  }
+  ret_from_join(summary, args, arg_pairs, 0)
+}
+
+// shared join core; `offset` shifts positional args past an implicit
+// receiver param (DotApply: receiver binds param 0)
+
+///|
+fn ret_from_join(
+  summary : FuncTaintSummary,
+  args : @list.List[@syntax.Argument],
+  arg_pairs : Array[ArgTaint],
+  offset : Int,
+) -> Taint? {
+  if summary.ret_from.length() == 0 {
+    return None
+  }
+  let taint_at = args_taint_at_params(summary, args, arg_pairs, offset)
+  let mut refined : Taint? = None
+  let mut mapped_any = false
+  for p in summary.ret_from {
+    let pi = match param_index(summary.params, p) {
+      Some(i) => i
+      None => continue
+    }
+    if pi >= taint_at.length() {
+      continue
+    }
+    mapped_any = true
+    refined = Some(taint_or(or_taint(refined), taint_at[pi]))
+  }
+  if mapped_any {
+    refined
+  } else {
+    None
+  }
+}
+
+// T4.1: DotApply ret_from — receiver binds param 0, args shifted by one
+
+///|
+fn apply_ret_from_dot(
+  mname : String,
+  args : @list.List[@syntax.Argument],
+  arg_pairs : Array[ArgTaint],
+  ctx : FlowCtx,
+  recv_taint : Taint,
+) -> Taint? {
+  let ictx = match ctx.ictx {
+    Some(i) => i
+    None => return None
+  }
+  let summary = match summary_lookup(ictx, mname) {
+    Some(s) => s
+    None => return None
+  }
+  let no_recv_args : @list.List[@syntax.Argument] = args
+  let joined = ret_from_join(summary, no_recv_args, arg_pairs, 1)
+  // receiver taint contributes when param 0 (self) is in ret_from
+  let mut result = joined
+  if summary.ret_from.length() > 0 &&
+    summary.params.length() > 0 &&
+    summary.ret_from.contains(summary.params[0]) {
+    result = Some(taint_or(or_taint(result), recv_taint))
+  }
+  result
+}
+
+// per-param taints from already-flowed pairs (labelled by name,
+// positional by order; `offset` reserves leading params for the receiver)
+
+///|
+fn args_taint_at_params(
+  summary : FuncTaintSummary,
+  args : @list.List[@syntax.Argument],
+  arg_pairs : Array[ArgTaint],
+  offset : Int,
+) -> Array[Taint] {
+  let taint_at : Array[Taint] = []
+  let mut n = 0
+  while n < summary.params.length() {
+    taint_at.push(Clean)
+    n += 1
+  }
+  let mut pos = offset
+  let mut ai = 0
+  for arg in args {
+    let t = if ai < arg_pairs.length() { arg_pairs[ai].taint } else { Clean }
+    let pidx = match arg.kind {
+      Labelled(l) | LabelledPun(l) => param_index(summary.params, l.name)
+      _ => if pos < summary.params.length() { Some(pos) } else { None }
+    }
+    match pidx {
+      Some(pi) => if pi < taint_at.length() { taint_at[pi] = t }
+      None => ()
+    }
+    match arg.kind {
+      Labelled(_)
+      | LabelledPun(_)
+      | LabelledOption(..)
+      | LabelledOptionPun(..) => ()
+      _ => pos += 1
+    }
+    ai += 1
+  }
+  taint_at
+}
+
+///|
+fn or_taint(t : Taint?) -> Taint {
+  match t {
+    Some(v) => v
+    None => Clean
+  }
+}
+
+///|
 fn apply_param_field_sinks(
   func : @syntax.Expr,
   args : @list.List[@syntax.Argument],
@@ -2524,11 +2732,11 @@ fn apply_param_field_sinks(
     Some(i) => i
     None => return
   }
-  let name = match apply_func_name(func) {
+  let name = match callee_summary_name(func) {
     Some(n) => n
     None => return
   }
-  let summary = match ictx.summaries.get(name) {
+  let summary = match summary_lookup(ictx, name) {
     Some(s) => s
     None => return
   }
@@ -2584,6 +2792,179 @@ fn apply_param_field_sinks(
   }
 }
 
+// T4.1: method-form conditional field sinks — receiver binds param 0,
+// positional args map to params 1..; heap confirm identical to the
+// free-function form
+
+///|
+fn apply_param_field_sinks_dot(
+  mname : String,
+  recv_expr : @syntax.Expr,
+  args : @list.List[@syntax.Argument],
+  ctx : FlowCtx,
+  call_expr : @syntax.Expr,
+) -> Unit {
+  let ictx = match ctx.ictx {
+    Some(i) => i
+    None => return
+  }
+  let summary = match summary_lookup(ictx, mname) {
+    Some(s) => s
+    None => return
+  }
+  if summary.param_field_sinks.length() == 0 {
+    return
+  }
+  for pair in summary.param_field_sinks {
+    let (p, f) = pair
+    let pi = match param_index(summary.params, p) {
+      Some(i) => i
+      None => continue
+    }
+    // param 0 -> receiver expression; param i>0 -> positional arg i-1
+    let arg_e = if pi == 0 {
+      Some(recv_expr)
+    } else {
+      nth_positional_arg(args, pi - 1)
+    }
+    match arg_e {
+      Some(e) => confirm_field_sink(ctx, e, f, call_expr)
+      None => ()
+    }
+  }
+}
+
+// T4.1: method-form field-write side effect — receiver binds param 0
+
+///|
+fn apply_field_taint_side_effect_dot(
+  mname : String,
+  recv_expr : @syntax.Expr,
+  args : @list.List[@syntax.Argument],
+  ctx : FlowCtx,
+  arg_pairs : Array[ArgTaint],
+  recv_taint : Taint,
+) -> Unit {
+  let ictx = match ctx.ictx {
+    Some(i) => i
+    None => return
+  }
+  let summary = match summary_lookup(ictx, mname) {
+    Some(s) => s
+    None => return
+  }
+  if summary.field_taint.length() == 0 {
+    return
+  }
+  // taint per param: receiver -> param 0, args -> params 1..N
+  let taint_at = args_taint_at_params(summary, args, arg_pairs, 1)
+  if summary.params.length() > 0 {
+    taint_at[0] = recv_taint
+  }
+  summary.field_taint.each(fn(r, entries) {
+    let ri = match param_index(summary.params, r) {
+      Some(i) => i
+      None => return // continue outer
+    }
+    if ri >= taint_at.length() {
+      return
+    }
+    // receiver param r must map to a simple var here (bounded model)
+    let r_expr = if ri == 0 {
+      Some(recv_expr)
+    } else {
+      nth_positional_arg(args, ri - 1)
+    }
+    let r_var = match r_expr {
+      Some(e) => flow_var_name(e)
+      None => return
+    }
+    for entry in entries {
+      let (f, src) = entry
+      let si = match param_index(summary.params, src) {
+        Some(i) => i
+        None => continue
+      }
+      if si < taint_at.length() && is_tainted(taint_at[si]) {
+        // taint flows: src param -> field f of receiver-side param r
+        match r_var {
+          Some(v) => apply_field_write_to_var(ctx, v, f, taint_at[si])
+          None => ()
+        }
+      }
+    }
+  })
+}
+
+// record a field write on the caller side: var's alloc-site field becomes
+// tainted (source-derived provenance preserved)
+
+///|
+fn apply_field_write_to_var(
+  ctx : FlowCtx,
+  v : String,
+  f : String,
+  t : Taint,
+) -> Unit {
+  match sites_get(ctx, v) {
+    Some(s) => heap_write(ctx, s, f, t)
+    None => ()
+  }
+}
+
+// extract the expr for positional arg index n (0-based), skipping labelled
+
+///|
+fn nth_positional_arg(
+  args : @list.List[@syntax.Argument],
+  n : Int,
+) -> @syntax.Expr? {
+  let mut pos = 0
+  for arg in args {
+    match arg.kind {
+      Labelled(_)
+      | LabelledPun(_)
+      | LabelledOption(..)
+      | LabelledOptionPun(..) => ()
+      _ => {
+        if pos == n {
+          return Some(arg.value)
+        }
+        pos += 1
+      }
+    }
+  }
+  None
+}
+
+// bounded heap lookup: simple var with a known alloc-site whose field fact
+// confirms the conditional sink — shared by both call forms
+
+///|
+fn confirm_field_sink(
+  ctx : FlowCtx,
+  arg_e : @syntax.Expr,
+  f : String,
+  call_expr : @syntax.Expr,
+) -> Unit {
+  match flow_var_name(arg_e) {
+    Some(v) =>
+      match sites_get(ctx, v) {
+        Some(s) =>
+          match heap_read(ctx, s, f) {
+            Some(ft) =>
+              match ft {
+                TaintedFieldRef(_, _) => () // still conditional: skip
+                _ => if is_tainted(ft) { report_cwe113(ctx, call_expr, ft) }
+              }
+            None => ()
+          }
+        None => ()
+      }
+    None => ()
+  }
+}
+
 ///|
 fn apply_field_taint_side_effect(
   func : @syntax.Expr,
@@ -2595,11 +2976,11 @@ fn apply_field_taint_side_effect(
     Some(i) => i
     None => return
   }
-  let name = match apply_func_name(func) {
+  let name = match callee_summary_name(func) {
     Some(n) => n
     None => return
   }
-  let summary = match ictx.summaries.get(name) {
+  let summary = match summary_lookup(ictx, name) {
     Some(s) => s
     None => return
   }
