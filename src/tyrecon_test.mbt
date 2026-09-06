@@ -1,6 +1,15 @@
 // M1 type-reconstruction spike unit tests (see docs/ir/PLAN.md)
 
 ///|
+fn pjoin(base : String, seg : String) -> String {
+  @path.Path(
+    // OS-native path join: Windows native fs (FindFirstFileW in x/fs) is not
+    // reliable with forward-slash string paths; @path.join normalizes them
+    base,
+  ).join(@path.Path(seg)).0
+}
+
+///|
 fn test_tmp(sub : String) -> String {
   // cross-platform temp base without @sys (unavailable in lib tests):
   // try /tmp first; on Windows that fails, fall back to a relative dir
@@ -13,11 +22,11 @@ fn test_tmp(sub : String) -> String {
         @fs.create_dir("./moon_audit_test_tmp") catch {
           _ => ()
         }
-        return "./moon_audit_test_tmp/" + sub
+        return pjoin("./moon_audit_test_tmp", sub)
       }
     },
   )
-  "/tmp/" + sub
+  pjoin("/tmp", sub)
 }
 
 ///|
@@ -192,7 +201,7 @@ test "phase2_mbti_ingestion" {
   @fs.create_dir(dir) catch {
     _ => ()
   }
-  let f = dir + "/pkg.generated.mbti"
+  let f = pjoin(dir, "pkg.generated.mbti")
   @fs.write_string_to_file(f, "package \"x/y\"\n\npub fn dep_pub(Int) -> Int\n") catch {
     _ => ()
   }
@@ -213,7 +222,7 @@ test "phase2a_mbti_type_trait_impl_ingestion" {
   @fs.create_dir(dir) catch {
     _ => ()
   }
-  let f = dir + "/pkg.generated.mbti"
+  let f = pjoin(dir, "pkg.generated.mbti")
   @fs.write_string_to_file(
     f, "package \"x/y\"\n\npub struct Holder {\n  payload : Token2\n}\n\npub trait Tokenizer {\n  fn token(Self) -> String\n}\n\npub impl Tokenizer for Token2\n\npub fn Token2::token(Self) -> String\n",
   ) catch {
@@ -243,7 +252,7 @@ test "phase2a_mbti_trait_backfill_and_const" {
   @fs.create_dir(dir) catch {
     _ => ()
   }
-  let f = dir + "/pkg.generated.mbti"
+  let f = pjoin(dir, "pkg.generated.mbti")
   @fs.write_string_to_file(
     f, "package \"x/y\"\n\npub trait Writer2 {\n  fn output(Self, String) -> Unit\n}\n\npub let limit : Int\n",
   ) catch {
@@ -271,7 +280,7 @@ test "phase2a_mbti_source_wins" {
   @fs.create_dir(dir) catch {
     _ => ()
   }
-  let f = dir + "/pkg.generated.mbti"
+  let f = pjoin(dir, "pkg.generated.mbti")
   @fs.write_string_to_file(
     f, "package \"x/y\"\n\npub fn conflicted() -> MbtiType\n\npub fn only_in_mbti() -> Int\n",
   ) catch {
@@ -337,7 +346,7 @@ test "phase2b_devirtualized_dispatch_edge" {
     _ => ()
   }
   let snippet = "pub trait Alpha { fn act(Self) -> Unit } pub struct B { v : Int } pub impl Alpha for B with fn act(self) -> Unit { ignore(self.v) } pub fn f(x : &Alpha) -> Unit { x.act() }"
-  @fs.write_string_to_file(dir + "/lib.mbt", "// probe\n" + snippet + "\n") catch {
+  @fs.write_string_to_file(pjoin(dir, "lib.mbt"), "// probe\n" + snippet + "\n") catch {
     _ => ()
   }
   let cg = run_call_graph(test_tmp("p2b_cg"), Config::default())
@@ -550,7 +559,7 @@ fn e2_setup_dep_mbti() -> String raise {
   @fs.create_dir(dir) catch {
     _ => ()
   }
-  let f = dir + "/pkg.generated.mbti"
+  let f = pjoin(dir, "pkg.generated.mbti")
   @fs.write_string_to_file(
     f, "package \"acme/dep\"\n\npub fn make() -> Req\n\npub fn Req::hello(Self) -> String\n",
   )
@@ -639,7 +648,7 @@ test "gate3_p2_1_dep_canonical_pkg_strips_source_layout" {
   // self-contained fixture (CI has no /data/my checkout): build a
   // .mooncakes-like tree in /tmp with source="src" layout
   let root = test_tmp("gate3_p2_1_fixture")
-  let async_src = root + "/.mooncakes/moonbitlang/async/src"
+  let async_src = pjoin(root, ".mooncakes/moonbitlang/async/src")
   // create_dir is not recursive: build the chain level by level (root first)
   @fs.create_dir(root) catch {
     _ => ()
@@ -653,7 +662,7 @@ test "gate3_p2_1_dep_canonical_pkg_strips_source_layout" {
   }
   // dep_canonical_pkg reads the REPO-ROOT moon.mod (like the real async repo)
   @fs.write_string_to_file(
-    root + "/.mooncakes/moonbitlang/async/moon.mod",
+    pjoin(root, ".mooncakes/moonbitlang/async/moon.mod"),
     "name = \"moonbitlang/async\"\nsource = \"src\"\n",
   ) catch {
     _ => ()
@@ -755,7 +764,7 @@ test "taint_dsl_load_from_file" {
   @fs.create_dir(dir) catch {
     _ => ()
   }
-  let f = dir + "/taint-rules.json"
+  let f = pjoin(dir, "taint-rules.json")
   @fs.write_string_to_file(
     f, "{ \"sources\": [{ \"method\": \"fetch_input\", \"kind\": \"QueryParam\" }], \"sinks\": [{ \"method\": \"custom_set\", \"kind\": \"HeaderValue\", \"value_slot\": 1 }], \"sanitizers\": [{ \"method\": \"cleanse\" }] }",
   ) catch {
@@ -977,7 +986,7 @@ test "gate4_extends_combined_path_applies_model" {
   @fs.create_dir(dir) catch {
     _ => ()
   }
-  let f = dir + "/.moon-audit.json"
+  let f = pjoin(dir, ".moon-audit.json")
   @fs.write_string_to_file(f, "{\"taint\": {\"extends\": [\"mongoose\"]}}") catch {
     _ => ()
   }
@@ -1031,7 +1040,7 @@ test "gate4_extends_with_extern_decl_e2e" {
 test "gate4_scan_project_level_e2e" {
   // full scan_project path (equivalent to CLI): rules from project root
   let dir = test_tmp("g4_scanproj")
-  let src_dir = dir + "/src"
+  let src_dir = pjoin(dir, "src")
   @fs.create_dir(dir) catch {
     _ => ()
   }
@@ -1039,20 +1048,20 @@ test "gate4_scan_project_level_e2e" {
     _ => ()
   }
   @fs.write_string_to_file(
-    dir + "/moon.mod",
+    pjoin(dir, "moon.mod"),
     "name = \"g4p\"\nversion = \"0.1.0\"\n",
   )
-  @fs.write_string_to_file(src_dir + "/moon.pkg", "") catch {
+  @fs.write_string_to_file(pjoin(src_dir, "moon.pkg"), "") catch {
     _ => ()
   }
   @fs.write_string_to_file(
-    src_dir + "/lib.mbt",
+    pjoin(src_dir, "lib.mbt"),
     "extern \"c\" fn ws_send_native(a : Bytes, b : Bytes) -> Unit = \"ws_send_native\"\npub fn handle(req : Req, id : Bytes) -> Unit { ws_send_native(id, req.body()) }\n",
   ) catch {
     _ => ()
   }
   @fs.write_string_to_file(
-    dir + "/.moon-audit.json",
+    pjoin(dir, ".moon-audit.json"),
     "{\"taint\": {\"extends\": [\"mongoose\"]}}",
   ) catch {
     _ => ()
@@ -1069,7 +1078,7 @@ test "libmodel_v2_callback_timing_and_trait_edges_parse" {
   @fs.create_dir(dir) catch {
     _ => ()
   }
-  let f = dir + "/taint-rules.json"
+  let f = pjoin(dir, "taint-rules.json")
   @fs.write_string_to_file(
     f, "{ \"callbacks\": { \"Array::map\": [\"T\"], \"Iter::map\": { \"slots\": [\"T\"], \"timing\": \"deferred\" } }, \"trait_edges\": [ { \"method\": \"Map::get\", \"trait_method\": \"hash\", \"note\": \"lookup calls key Hash/Eq impls\" } ] }",
   ) catch {
@@ -1136,16 +1145,16 @@ test "r7_empty_candidate_set_counts_unknown" {
     _ => ()
   }
   @fs.write_string_to_file(
-    dir + "/moon.mod",
+    pjoin(dir, "moon.mod"),
     "name = \"r7noimpl\"\nversion = \"0.1.0\"\n",
   ) catch {
     _ => ()
   }
-  @fs.write_string_to_file(dir + "/moon.pkg", "") catch {
+  @fs.write_string_to_file(pjoin(dir, "moon.pkg"), "") catch {
     _ => ()
   }
   @fs.write_string_to_file(
-    dir + "/lib.mbt",
+    pjoin(dir, "lib.mbt"),
     "trait NoAction { act(Self) -> Unit }\nfn dispatch2(a : &NoAction) -> Unit { a.act() }\n",
   ) catch {
     _ => ()

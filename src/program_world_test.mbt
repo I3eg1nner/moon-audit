@@ -9,40 +9,40 @@ fn make_t1a1_fixture() -> String {
     _ => ()
   }
   let mut cur = root
-  for seg in ["/.mooncakes", "/fixture", "/dep"] {
-    cur = cur + seg
+  for seg in [".mooncakes", "fixture", "dep"] {
+    cur = pjoin(cur, seg)
     @fs.create_dir(cur) catch {
       _ => ()
     }
   }
-  @fs.create_dir(root + "/src") catch {
+  @fs.create_dir(pjoin(root, "src")) catch {
     _ => ()
   }
-  let src = root + "/src"
+  let src = pjoin(root, "src")
   let dep = cur
   @fs.write_string_to_file(
-    root + "/moon.mod",
+    pjoin(root, "moon.mod"),
     "name = \"fixture/app\"\nversion = \"0.1.0\"\n",
   ) catch {
     _ => ()
   }
-  @fs.write_string_to_file(src + "/moon.pkg", "import { \"fixture/dep\" }") catch {
+  @fs.write_string_to_file(pjoin(src, "moon.pkg"), "import { \"fixture/dep\" }") catch {
     _ => ()
   }
   @fs.write_string_to_file(
-    src + "/lib.mbt",
+    pjoin(src, "lib.mbt"),
     "pub fn app_fn(x : Int) -> Int { x + 1 }",
   ) catch {
     _ => ()
   }
   @fs.write_string_to_file(
-    dep + "/dep.mbt",
+    pjoin(dep, "dep.mbt"),
     "pub fn dep_fn(y : Int) -> Int { y * 2 }",
   ) catch {
     _ => ()
   }
   @fs.write_string_to_file(
-    dep + "/pkg.generated.mbti",
+    pjoin(dep, "pkg.generated.mbti"),
     "package \"fixture/dep\"\n\npub fn ifn(String) -> String\n",
   ) catch {
     _ => ()
@@ -88,7 +88,10 @@ test "t1a1_alias_map_and_official_imports" {
   inspect(all_keyed, content="false")
   // forward-slash lookups must work on every OS (map keys are canonical;
   // walk_packages yields OS separators on Windows — T1a-1 CI lesson)
-  let src_dir = root + "/src"
+  // non-vacuous guard: if the fixture failed to materialize on some OS the
+  // all_keyed probe above would pass vacuously — pin package count first
+  inspect(world.packages.length() >= 1, content="true") // src (dep lives under excluded .mooncakes)
+  let src_dir = pjoin(root, "src")
   let imports = world_pkg_imports(world, src_dir)
   inspect(imports.length() >= 1, content="true")
   let has_dep = imports.any(fn(i) { i == "fixture/dep" })
@@ -294,26 +297,29 @@ test "t1c_entry_stats_line" {
   // self-contained fixture (CI has no /data corpus): a library pkg with a
   // pub fn (library-pub) and an extern stub (ffi-extern) must be disclosed
   let root = test_tmp("t1c_entry")
-  let dir = root + "/src"
+  let dir = pjoin(root, "src")
   @fs.create_dir(root) catch {
     _ => ()
   }
   @fs.create_dir(dir) catch {
     _ => ()
   }
-  @fs.write_string_to_file(root + "/moon.mod", "name = \"t1c/e\"\n") catch {
+  @fs.write_string_to_file(pjoin(root, "moon.mod"), "name = \"t1c/e\"\n") catch {
     _ => ()
   }
-  @fs.write_string_to_file(dir + "/moon.pkg", "") catch {
+  @fs.write_string_to_file(pjoin(dir, "moon.pkg"), "") catch {
     _ => ()
   }
   @fs.write_string_to_file(
-    dir + "/stub.mbt",
+    pjoin(dir, "stub.mbt"),
     "extern \"c\" fn raw(p : Int) -> Int",
   ) catch {
     _ => ()
   }
-  @fs.write_string_to_file(dir + "/lib.mbt", "pub fn api(x : Int) -> Int { x }") catch {
+  @fs.write_string_to_file(
+    pjoin(dir, "lib.mbt"),
+    "pub fn api(x : Int) -> Int { x }",
+  ) catch {
     _ => ()
   }
   let world = load_program_world(root, Config::default())
@@ -331,7 +337,7 @@ test "p1fix_mbti_func_sig_via_fnsig_sole_source" {
   @fs.create_dir(root) catch {
     _ => ()
   }
-  let f = root + "/pkg.generated.mbti"
+  let f = pjoin(root, "pkg.generated.mbti")
   @fs.write_string_to_file(
     f, "package \"p1/dep\"\n\npub fn run_cb((Int) -> Unit) -> Unit\n",
   ) catch {
@@ -364,7 +370,7 @@ test "p1fix_mbti_trait_params_via_fnsig_derivation" {
   @fs.create_dir(root) catch {
     _ => ()
   }
-  let f = root + "/pkg.generated.mbti"
+  let f = pjoin(root, "pkg.generated.mbti")
   @fs.write_string_to_file(
     f, "package \"p1/dep\"\n\npub(open) trait Sink {\n  put(Self, Int) -> Unit\n}\n",
   ) catch {

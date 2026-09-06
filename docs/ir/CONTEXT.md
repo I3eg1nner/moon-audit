@@ -653,3 +653,9 @@ CWE-113 候选待分诊。
 - 过程教训：工人自报数字含提交前中间态（1489/1941 等三处失真），gate9
   运行时复验纠正——自报数字不得直接入档，双二进制复验为准
 - 下一步：T1c = T1.3 完整签名（废弃 IRFn）+ T1.5 入口策略
+
+## 2026-09-06 · Windows 路径治理（gate10b 后续）
+- 教训固化：Windows native fs（x/fs 的 FindFirstFileW）对正斜杠字符串路径不可靠——
+  测试 fixture 的全部文件系统操作路径必须经 @path.join（新助手 pjoin）；
+  canonical 查询键（aliases/imports map 查询）保持正斜杠由 canonical_dir 统一
+- t1a1 测试加非空转护栏（packages >= 1 先行断言），Windows 端故障未来可精确定位
