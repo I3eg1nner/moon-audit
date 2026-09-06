@@ -18,8 +18,8 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 | # | 缺口 | 现状证据（file:line，2026-09-05 @ 946a1ad） | 后果 |
 |---|---|---|---|
 | G1 | 抽象域合并不满足结合律 | `taint_or`（src/taint_flow.mbt:21）：`(Param(p), FieldRef)` 分支顺序决定结果——同参异构合并先到者胜 | 合并顺序影响溯源；不能作为可靠不动点求解基础 |
-| G2 | 求值与变量绑定混在一起 | ✅ 已修复（T2 450d00e）：作用域栈变量 ID（闭包/分支绑定不泄漏不覆盖）；sink 实参单次求值 | `t2_scope_closure_param_no_longer_clobbers_outer_var`、`t2_single_eval_sink_arg_reported_exactly_once`；等价改写（临时变量/改名）行为一致 |
-| G3 | 错误载荷没有直接传递 | ✅ 已修复（T2 450d00e）：`raise_taints` 栈直接传递载荷污点，`err_t = 载荷(主) ∪ body ∪ env`；残余 = env 并集保守界（过报方向，HIR/CFG 消解） | `raise Bad(query())` 与临时变量版行为一致（`t2_raise_temp_var_version_behaves_identically`）；tests/cases C3 端到端 |
+| G2 | 求值与变量绑定混在一起 | ⚠️ 部分修复（T2 450d00e：闭包/分支覆盖与单次求值）；**第五轮重开**：原始反例 `let (x, value) = ("safe", x)` 仍漏报（先绑模式后求右值）；match 模式在分支作用域建立前绑定；块表达式 let 泄漏外层；元组重绑定复用旧分量；身份=“作用域号+变量名”，同作用域同名声明共享槽位 | c9（原始形态，EXPECT-FAIL）/c10/c11/c12 门禁锁定（tests/cases，归因 R3/R4/R5） |
+| G3 | 错误载荷没有直接传递 | ⚠️ 部分修复：直接载荷样例已修（C3，`raise Bad(query())`）；**第五轮重开**：嵌套 try 进入时 `raise_taints.clear()` 清掉外层已抛错误，内层处理吞掉外层污点错误 → 漏报；共享可清空缓冲非隔离错误出口 | c13（评审原始无参形态，EXPECT-FAIL，归因 R6） |
 | G4 | 分支堆状态不隔离 | `FlowCtx::copy`（src/taint_flow.mbt:125）env/sites 拷贝但 heap **共享**；`heap_write`（:281）直接覆盖字段 | 一个分支的 heap_write 可抹掉另一分支已记录污点 |
 | G5 | 循环不是完整不动点 | `flow_to_fixpoint`（src/taint_flow.mbt:83）最多 3 遍，只比较变量环境 fingerprint（env_fingerprint 不含 heap/sites） | 较长传播链、零次循环体、堆变化不可靠 |
 | G6 | 摘要不可组合 | 收集时 `ictx: None`（src/taint_flow.mbt:214）——收集期读不到其他摘要；`ret_from`（:1718-1778）生成但调用点无消费路径 | 两遍收集≠递归求解；返回值告警可能只是实参整体传播的兜底 |
@@ -41,9 +41,19 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 
 禁用：把"已解析"当作"已绑定"；把"单测通过"当作"端到端验证"；未分析 ≠ 安全。
 
-## T0 纠正验收与完成状态 ✅（2026-09-05 本轮执行）
+## T0 纠正验收与完成状态 ⚠️ 部分完成（第五轮 R8 降级）
 
-- [x] T0.1 反例固化 → tests/cases/（8 反例每类一文件 c1..c8 + c0_helpers + run.sh
+### 第五轮立即整改 R1-R8（2026-09-05）
+- [x] R1 原始反例恢复：c9（评审同名解构原始形态，含对照）/c10+c11+c12（match 遮蔽、块泄漏、元组重绑定）/c13（嵌套 try 原始无参形态）/c14（空候选 trait，供 R7）；新增只补充不替换，c1..c8 保留
+- [x] R2 真门禁：run.sh 逐例断言（PASS 精确计数/XFAIL 注册 gap，双向漂移均非零退出）；基础设施失败 exit 2；`ANALYZER=/bin/false` 实测非零；scope 披露 0(reserved)→unknown(not-measured)
+- [ ] R3 按声明建立变量 ID（同名声明不同 ID，分析前确定）
+- [ ] R4 绑定顺序（右值完整求值后绑模式；match/catch 先建分支作用域）
+- [ ] R5 值与附加信息统一身份（重绑定/赋值失效旧信息）
+- [ ] R6 错误出口隔离（无共享可清空缓冲；嵌套 handler 只消费自己的错误）
+- [ ] R7 调用点分类（非空目标集才算 candidate；不能同时 candidate+unresolved；c14 断言待接）
+- [ ] R8 状态收紧（本节即执行：T0 降部分、G2/G3 重开、未测量输出 unknown）
+
+- [x] T0.1 反例固化（第五轮升级：R1 原始形态补充 + R2 真断言门禁）→ tests/cases/（c1..c14
       一条命令重现：
       同名解构/重复求值/错误载荷/循环/分支堆/未调用闭包/defer/默认参数，
       每文件头注明 期望/当前行为 与对应 G#；C8 的默认实参调用缺失已随 T0.2(a) 修复）

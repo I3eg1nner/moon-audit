@@ -118,7 +118,7 @@ fn build_analysis_scope(
   config.exclude.join(", ") +
   "]; parse-failures=" +
   parse_failures.to_string() +
-  "; unsupported-semantics=0(reserved); timeouts=0(reserved); incremental=" +
+  "; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); incremental=" +
   (if incremental { "true" } else { "false" }) +
   "; note=unanalyzed-is-not-safe"
 }
