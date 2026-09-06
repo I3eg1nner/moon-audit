@@ -609,3 +609,21 @@ CWE-113 候选待分诊。
   fingerprint 本体保持无行号（SARIF/baseline 身份稳定）
 - 门禁：run.sh 改逐例隔离扫描（去重伪影根治）；c9 2/2、c10_c12 3/3 转 PASS；c5(G4)/c13(G3) 保持 XFAIL
 - 验证：197/197 × native（新增 6 测试含 2 负对照）；ANALYZER=/bin/false 仍 exit 2；三目标 FP=0
+
+## 2026-09-05 · 第五轮评审整改（R1-R8 全闭环，integrate6 收口）
+
+**评审三项 P0 / 两项 P1 → 修复对照**
+| 评审发现 | 修复 | 锚点 |
+|---|---|---|
+| P0 原始同名解构仍漏报（"G2 已修复"不成立） | R3 声明级 ID（d<decl-id> 共享计数器）+ R4 先求值后绑定 | c9 原始形态逐字恢复 2/2 PASS；r3r4_orig_same_name_destructure_reports |
+| P0 作用域不完整（match 遮蔽/块泄漏/元组重绑定三新漏报） | R4 分支作用域先于模式绑定；块表达式 Let 作用域收束；R5 重绑定=新声明 id，旧分量失效 | c10_c12 3/3 PASS；r4_match_pattern_shadow_scoped / r4_block_let_does_not_leak / r5_tuple_rebind_invalidates_stale_components |
+| P0 嵌套 try 清掉外层错误事实 | R6 错误出口隔离：Try 快照外层 raise、body 独立作用域、退出恢复+按 catch 可反驳性传播 | c13 原始无参形态 PASS；r6_nested_try_error_exit_isolation |
+| P1 空候选集计入覆盖（1 trait 调用→100%） | R7 解析后非空目标集才分类 candidate；空集→unknown(no-impls) | r7_empty_candidate_set_counts_unknown；run.sh C14 断言 0/1 |
+| P1 run.sh 非真门禁（/bin/false 仍 exit 0） | R2 逐例断言（PASS 精确计数/XFAIL 双向漂移检测）+ 基础设施失败 exit 2；0(reserved)→unknown(not-measured) | ANALYZER=/bin/false 实测非零 |
+
+**七类自动断言**（评审验收标准）：原始解构/块遮蔽/模式遮蔽/元组重绑定/嵌套错误/空候选/分析器故障——全部在 run.sh + 单测双通道落地，GATE-OK exit 0。
+
+**语料快照（第六次）**：护栏 cmark/rabbita/async 0 ✓、crescent 5 逐条一致 ✓；**mars 9→12**：新增 3 条（redirect.mbt:177/183/200）经源码核实为与已分诊 TP 候选完全相同的 `ctx.path()→Location` 模式——R4 语义修复浮出的合法发现，非回归；mars 分诊更新为 TP 候选 ×8 / FP 嫌疑 ×4。
+
+**验证**：200/200 × 4 targets、deny-warn/fmt/info 门绿、run.sh GATE-OK（唯一 XFAIL=G4 分支堆，T3 领域已登记）。
+**教训**：完成标记必须以"原始反例逐字恢复+自动断言"为准，替代性写法的测试不能宣称原始反例已修。

@@ -119,7 +119,13 @@ TODO 记录的 "mio" 在 GitHub/mooncakes 均未定位（疑改名/删除），�
 1. **修复护栏不破**：6 已修复项目 0 findings（**第四次连续**，扩容后新代码路径零 FP 回归）
 2. **TP 语料稳定**：crescent 5 条（CORS:6 / Cookie:35,48,49 / DoS:99）第四次逐行一致
 3. **新项目全部 clean**：11 个新增项目 0 findings（其中 openseek 909 文件为最大语料）
-4. **mars.mbt 9 条新检出（Hono 风格框架，未适配规则）人工分诊**：
+4. **mars.mbt 12 条（第六次快照 9→12，R4 语义修复浮出）人工分诊更新**：
+   - 新增 3 条（redirect.mbt:177/183/200）经源码核实为 `ctx.path()→Location` 同款 TP 模式
+     （www_redirect 的三处分支，此前因绑定顺序/作用域缺陷漏报）
+   - **TP 候选 ×8**：redirect 118/133/159/177/183/200 + trailing_slash:163 + request_id:53
+   - **FP 嫌疑 ×4**：basic_auth:84 / etag:152 / compress:197 / cache_control:192
+   - 原始记录：
+
    - **TP 候选 ×5**：redirect.mbt:118/133/159（Location ← `ctx.path()` 用户输入经变换）、
      trailing_slash.mbt:163（Location ← 用户路径规范化）、
      request_id.mbt:53（`use_existing` 模式将用户请求头值直接回写响应头——回显向量）
