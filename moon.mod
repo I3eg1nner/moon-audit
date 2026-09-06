@@ -19,4 +19,5 @@ import {
   "moonbitlang/moon_config@0.3.14",
   "moonbitlang/lexer@0.3.15",
   "moonbitlang/x@0.5.1",
+  "moonbitlang/quickcheck@0.14.0",
 }

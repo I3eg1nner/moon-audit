@@ -99,3 +99,83 @@ test "acceptance: symbols_fingerprint is stable across insertion order" {
   s3.impl_methods["A::g"] = "T"
   assert_true(symbols_fingerprint(s1) != symbols_fingerprint(s3))
 }
+
+// ── T8.4: precision ledger ────────────────────────────────────────────────
+
+///|
+fn ledger_finding(fp : String, rule : String, cwe? : Int = 113) -> Finding {
+  {
+    rule_id: { cwe, variant: rule, },
+    severity: Warning,
+    confidence: Medium,
+    message: "m",
+    file: "f.mbt",
+    line: 1,
+    column: 1,
+    end_line: 1,
+    end_column: 2,
+    snippet: "s",
+    fingerprint: fp,
+  }
+}
+
+///|
+fn ledger_prev(fp : String, rule : String) -> PrevFinding {
+  { fingerprint: fp, rule_id: rule, file: "f.mbt", line: 1, message: "m", }
+}
+
+///|
+test "t8_4_ledger_aggregation_correct" {
+  // current: new-A (untriaged), new-B (triaged confirmed), keep-C (untriaged),
+  //          keep-D (triaged fp); prev also had resolved-R
+  // PrevFinding.rule_id must match rule_id_str output ("CWE-xxx/variant")
+  let prev = [
+    ledger_prev("B", "CWE-113/crlf-injection"), // B same fingerprint as a
+    // current finding => neither new nor resolved (dropped from cur2)
+    ledger_prev("C", "CWE-113/crlf-injection"),
+    ledger_prev("D", "CWE-942/cors-credentials"),
+    ledger_prev("R", "CWE-942/cors-credentials"),
+  ]
+  let cur2 = [
+    ledger_finding("A", "crlf-injection"),
+    ledger_finding("E", "crlf-injection"),
+    ledger_finding("C", "crlf-injection"),
+    ledger_finding("D", "cors-credentials", cwe=942),
+  ]
+  let diff = diff_findings(cur2, prev)
+  let triage : Map[String, String] = Map([])
+  triage["E"] = "confirmed"
+  triage["D"] = "fp"
+  let ledger = build_ledger(diff, triage)
+  for l in ledger {
+    println("[dbg] ledger rule=" + l.rule_id)
+  }
+  inspect(ledger.length(), content="2")
+  // rule order sorted: CWE-113/... < CWE-942/... (string compare)
+  inspect(ledger[0].rule_id, content="CWE-113/crlf-injection")
+  inspect(ledger[0].tp_candidates, content="1") // A
+  inspect(ledger[0].confirmed, content="1") // E
+  inspect(ledger[0].untriaged, content="1") // C
+  inspect(ledger[1].rule_id, content="CWE-942/cors-credentials")
+  inspect(ledger[1].fp_suspects, content="2") // D(fp) + R(resolved)
+  inspect(ledger[1].untriaged, content="0")
+  // format includes the corpus summary line
+  let text = format_ledger(ledger)
+  inspect(text.contains("corpus: tp-candidates=1"), content="true")
+  inspect(text.contains("confirmed=1"), content="true")
+}
+
+///|
+test "t8_4_ledger_empty_input" {
+  let diff : BaselineDiff = {
+    new_findings: [],
+    resolved: [],
+    unchanged: [],
+    prev_total: 0,
+    current_total: 0,
+  }
+  let ledger = build_ledger(diff, Map([]))
+  inspect(ledger.length(), content="0")
+  let text = format_ledger(ledger)
+  inspect(text.contains("corpus: tp-candidates=0"), content="true")
+}

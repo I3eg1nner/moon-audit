@@ -24,6 +24,8 @@ pub fn analyze_mod_imports(String) -> ImportContext
 
 pub fn append_ruleset(TaintRuleset, TaintRuleset, String, Array[String]) -> Unit
 
+pub fn build_ledger(BaselineDiff, Map[String, String]) -> Array[RuleLedger]
+
 pub fn build_summary(ScanResult, Array[RuleInfo]) -> ScanSummary
 
 pub fn builtin_model_names() -> Array[String]
@@ -131,6 +133,8 @@ pub fn format_baseline_diff(BaselineDiff) -> String
 pub fn format_json(ScanResult) -> String
 
 pub fn format_json_with_diff(ScanResult, BaselineDiff) -> String
+
+pub fn format_ledger(Array[RuleLedger]) -> String
 
 pub fn format_llm_report(Array[LLMAnalysisResult]) -> String
 
@@ -699,6 +703,14 @@ pub(all) struct RuleInfo {
   description : String
   default_severity : Severity
 }
+
+pub(all) struct RuleLedger {
+  rule_id : String
+  mut tp_candidates : Int
+  mut fp_suspects : Int
+  mut confirmed : Int
+  mut untriaged : Int
+} derive(@debug.Debug)
 
 pub(all) struct RuleStat {
   rule_id : String

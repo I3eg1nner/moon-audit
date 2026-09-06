@@ -182,3 +182,90 @@ test "t3a_view_rules_documented_shapes" {
     content="tainted",
   )
 }
+
+// ── T8.3: property-based tests (moonbitlang/quickcheck, 100 random cases) ─
+// Generator builds facts through join-folding only, so the representation
+// is canonical (src sets are ordered+deduplicated) exactly like production.
+
+///|
+fn gen_fact() -> @gen.Gen[SecurityFact] {
+  let reach_arr : Array[Reach] = [Reachable, Unreachable]
+  let reach_gen = @gen.one_of_array(reach_arr)
+  let unknown_gen = @gen.one_of_array([true, false])
+  let src_elem = @gen.one_of_array([
+    "env", "req", "user", "req.body", "user.token", "p.f",
+  ])
+  // 0..3 sources, joined into one fact (canonical by construction)
+  @gen.Gen::bind(@gen.Gen::array_with_size(src_elem, 3), fn(elems) {
+    @gen.liftA3(
+      fn(r : Reach, u : Bool, ss : Array[String]) {
+        let base : SecurityFact = { reach: r, src: [], unknown: u, }
+        let mut f = base
+        for s in ss {
+          f = f.join(SecurityFact::from_source(s))
+        }
+        f
+      },
+      reach_gen,
+      unknown_gen,
+      @gen.pure(elems),
+    )
+  })
+}
+
+///|
+test "t8_3_property_join_idempotent_100" {
+  @quickcheck.quick_check(
+    @quickcheck.forall(gen_fact(), fn(a : SecurityFact) { a.join(a) == a }),
+    max_success=100,
+  )
+}
+
+///|
+test "t8_3_property_join_commutative_100" {
+  let pair_gen : @gen.Gen[(SecurityFact, SecurityFact)] = @gen.liftA2(
+    fn(a, b) { (a, b) },
+    gen_fact(),
+    gen_fact(),
+  )
+  @quickcheck.quick_check(
+    @quickcheck.forall(pair_gen, fn(p : (SecurityFact, SecurityFact)) {
+      p.0.join(p.1) == p.1.join(p.0)
+    }),
+    max_success=100,
+  )
+}
+
+///|
+test "t8_3_property_join_associative_100" {
+  let triple_gen : @gen.Gen[(SecurityFact, SecurityFact, SecurityFact)] = @gen.liftA3(
+    fn(a, b, c) { (a, b, c) },
+    gen_fact(),
+    gen_fact(),
+    gen_fact(),
+  )
+  @quickcheck.quick_check(
+    @quickcheck.forall(triple_gen, fn(
+      p : (SecurityFact, SecurityFact, SecurityFact),
+    ) {
+      p.0.join(p.1).join(p.2) == p.0.join(p.1.join(p.2))
+    }),
+    max_success=100,
+  )
+}
+
+///|
+test "t8_3_property_leq_compatible_with_join_100" {
+  // join is an upper bound of both operands (lattice compatibility)
+  let pair_gen2 : @gen.Gen[(SecurityFact, SecurityFact)] = @gen.liftA2(
+    fn(a, b) { (a, b) },
+    gen_fact(),
+    gen_fact(),
+  )
+  @quickcheck.quick_check(
+    @quickcheck.forall(pair_gen2, fn(p : (SecurityFact, SecurityFact)) {
+      p.0.leq(p.0.join(p.1)) && p.1.leq(p.0.join(p.1))
+    }),
+    max_success=100,
+  )
+}

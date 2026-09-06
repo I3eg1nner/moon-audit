@@ -23,6 +23,11 @@ fn main {
         about="T7.4: print per-stage timings (world-load/symbols/analysis/output)",
       ),
       @argparse.FlagArg(
+        "ledger",
+        long="ledger",
+        about="With --baseline-report: print the per-rule precision ledger (tp-candidates/fp-suspects/confirmed/untriaged) + corpus summary",
+      ),
+      @argparse.FlagArg(
         "fail-on-error",
         long="fail-on-error",
         about="Exit with code 1 when error-level findings exist (for CI gating)",
@@ -632,6 +637,26 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
   match (diff, machine_output, quiet) {
     (Some(d), false, false) => println(@audit.format_baseline_diff(d))
     _ => ()
+  }
+  // T8.4: precision ledger (thin slice: empty triage map; triage-file input
+  // is the documented remainder in docs/ir/ACCEPTANCE.md)
+  let ledger_on = match matches.flags.get("ledger") {
+    Some(v) => v
+    None => false
+  }
+  if ledger_on {
+    match diff {
+      Some(d) => {
+        let triage : Map[String, String] = Map([])
+        println(@audit.format_ledger(@audit.build_ledger(d, triage)))
+      }
+      None =>
+        if !quiet {
+          println(
+            "moon-audit: note: --ledger requires --baseline-report; skipped",
+          )
+        }
+    }
   }
   if result.errors.length() > 0 && !quiet && !machine_output {
     println("")

@@ -312,9 +312,10 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 
 - [ ] T8.1 固定语料：记录提交与依赖版本；官方 core/async 模式 + 真实应用/库 + 人工反例
 - [ ] T8.2 独立调用图观测：动态插桩不限于静态已识别调用点；动态未观测边不算静态误报
-- [ ] T8.3 属性与等价改写测试：官方 core/quickcheck 测抽象域性质/作用域/临时变量/
+- [x] T8.3 属性测试（薄切）：quickcheck@0.14 真依赖（`for "test"` 导入），SecurityFact join 三性质+leq 相容 100 随机例×4（abstract_domain_test.mbt t8_3_*）；等价改写属性测试留余
+- [ ] T8.3 等价改写属性测试：作用域/临时变量等（薄切未竟）
       模型加载一致性；自动缩减失败样例
-- [ ] T8.4 精度账本：按规则记录确认后 TP/FP/FN；按语义特性记录未知与未支持范围；
+- [x] T8.4 精度账本（薄切）：--ledger 按规则四态聚合（tp_candidates/fp_suspects/confirmed/untriaged）+corpus 汇总；CLI 传空 triage（薄切边界），triage 文件回填留余（ACCEPTANCE.md 口径节）
       LLM 分诊与静态结果分开
 - [ ] T8.5 兼容矩阵：固定稳定工具链 + 升级预警；区分 OS/分析器后端/被分析程序后端
 - [ ] T8.6 对照实验：语义可比小程序对照分析事实；真实项目评估效果；

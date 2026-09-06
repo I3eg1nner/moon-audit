@@ -11,3 +11,8 @@ import {
   "moonbitlang/core/env",
   "moonbitlang/core/list",
 }
+
+import {
+  "moonbitlang/quickcheck",
+  "moonbitlang/quickcheck/gen",
+} for "test"

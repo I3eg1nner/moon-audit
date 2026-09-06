@@ -103,3 +103,26 @@ symbols_fingerprint = FNV1a( sort( fn_ret/impl_methods/struct_fields/
 - [ ] 动态调用边插桩实现（Phase-4 验收项）
 - [ ] 摘要传递闭包失效（Phase-3 SCC 摘要落地时）
 - [ ] 语料版本 pin 的自动 TP/FP 报告生成（scripts/regression.sh 扩展）
+
+## T8.4 精度账本口径（--ledger，配合 --baseline-report）
+
+四态语义（`build_ledger`，与测试 `t8_4_ledger_aggregation_correct` 锁定）：
+
+| 状态 | 定义 | 计入来源 |
+|---|---|---|
+| tp_candidates | 新发现且未分诊 | new_findings（无 triage 记录） |
+| confirmed | 已确认为真阳 | new/unchanged 且 triage[fingerprint]="confirmed" |
+| fp_suspects | FP 嫌疑 | triage[fingerprint]="fp" **或** resolved（消失：上游已修或本就 FP） |
+| untriaged | 存量未分诊 | unchanged（无 triage 记录） |
+
+- 输出：按规则聚合表 + `corpus:` 汇总行（四态总数）
+- **薄切边界**：CLI `--ledger` 目前传空 triage 表（new 全部计 tp_candidates、unchanged 全部
+  untriaged、resolved 全部 fp_suspects）；triage 文件输入（人工/LLM 分诊结果回填）是
+  T8.4 剩余项，接入后 confirmed 状态才有非零来源
+- LLM 分诊结果与静态账本分开报告（评审要求）
+
+## T8.3 属性测试口径
+
+- 依赖：moonbitlang/quickcheck@0.14.0（`import ... for "test"`，官方 core 同款模式）
+- 生成器只经 join 折叠构造事实（表示与生产同源 canonical：src 有序去重）
+- 100 随机例 × 4 性质：join 幂等/交换/结合 + leq 与 join 相容（上界）

@@ -334,3 +334,113 @@ pub fn symbols_fingerprint(symbols : PkgSymbols) -> String {
   }
   fnv1a(parts)
 }
+
+// ── T8.4: precision ledger (per-rule four-state triage aggregation) ───────
+//
+// State semantics (aligned with docs/ir/ACCEPTANCE.md ledger section):
+//   tp_candidates : NEW findings not yet triaged (default state for new)
+//   confirmed     : findings (new or unchanged) marked "confirmed" in triage
+//   fp_suspects   : findings marked "fp" in triage, plus RESOLVED findings
+//                   (disappeared vs previous: either fixed upstream or was FP)
+//   untriaged     : UNCHANGED findings not in triage (existing inventory)
+
+///|
+pub(all) struct RuleLedger {
+  rule_id : String
+  mut tp_candidates : Int
+  mut fp_suspects : Int
+  mut confirmed : Int
+  mut untriaged : Int
+} derive(Debug)
+
+///|
+pub fn build_ledger(
+  diff : BaselineDiff,
+  triage : Map[String, String],
+) -> Array[RuleLedger] {
+  let per_rule : Map[String, RuleLedger] = Map([])
+  fn entry(rule : String) -> RuleLedger {
+    match per_rule.get(rule) {
+      Some(e) => e
+      None => {
+        let e : RuleLedger = {
+          rule_id: rule,
+          tp_candidates: 0,
+          fp_suspects: 0,
+          confirmed: 0,
+          untriaged: 0,
+        }
+        per_rule[rule] = e
+        e
+      }
+    }
+  }
+  for f in diff.new_findings {
+    let e = entry(rule_id_str(f.rule_id))
+    match triage.get(f.fingerprint) {
+      Some("confirmed") => e.confirmed += 1
+      Some("fp") => e.fp_suspects += 1
+      _ => e.tp_candidates += 1
+    }
+  }
+  for f in diff.unchanged {
+    let e = entry(rule_id_str(f.rule_id))
+    match triage.get(f.fingerprint) {
+      Some("confirmed") => e.confirmed += 1
+      Some("fp") => e.fp_suspects += 1
+      _ => e.untriaged += 1
+    }
+  }
+  for p in diff.resolved {
+    // disappeared: fixed upstream or was an FP — both count as FP-suspect
+    // until an external fix record says otherwise (thin-slice boundary)
+    let e = entry(p.rule_id)
+    e.fp_suspects += 1
+  }
+  let out : Array[RuleLedger] = []
+  per_rule.each(fn(_k, v) { out.push(v) })
+  out.sort_by(fn(a, b) { a.rule_id.compare(b.rule_id) })
+  out
+}
+
+///|
+pub fn format_ledger(ledgers : Array[RuleLedger]) -> String {
+  let buf = StringBuilder()
+  buf.write_string("Precision ledger (per rule):\n")
+  buf.write_string(
+    "  rule                          tp-cand  fp-susp  confirmed  untriaged\n",
+  )
+  let mut tc = 0
+  let mut fs = 0
+  let mut cf = 0
+  let mut ut = 0
+  for l in ledgers {
+    buf.write_string(
+      "  " +
+      Show::to_string(
+        (l.rule_id + "                                    ")[0:30],
+      ) +
+      Show::to_string((l.tp_candidates.to_string() + "            ")[0:10]) +
+      Show::to_string((l.fp_suspects.to_string() + "            ")[0:10]) +
+      Show::to_string((l.confirmed.to_string() + "                ")[0:14]) +
+      l.untriaged.to_string() +
+      "\n",
+    )
+    tc += l.tp_candidates
+    fs += l.fp_suspects
+    cf += l.confirmed
+    ut += l.untriaged
+  }
+  buf.write_string(
+    "  corpus: tp-candidates=" +
+    tc.to_string() +
+    " fp-suspects=" +
+    fs.to_string() +
+    " confirmed=" +
+    cf.to_string() +
+    " untriaged=" +
+    ut.to_string() +
+    "\n",
+  )
+  buf.to_string()
+}
