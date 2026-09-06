@@ -1,6 +1,7 @@
 // ── C5 (G4) branch heap isolation ────────────────────────────────────────
 // One branch overwrites a tainted record field; the other branch's taint
-// must survive the merge. Current: shared heap channel can erase it.
+// must survive the merge. FIXED (G4): heap fork/join with fact-level
+// weak merge + virtual sites for receivers without visible allocation.
 fn case5_branch_heap(
   mk : () -> Box,
   sink : (String) -> Unit,

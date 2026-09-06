@@ -61,7 +61,7 @@ c1_shadowed_component.mbt|PASS|0|0|-
 c2_double_evaluation.mbt|PASS|1|1|-
 c3_raise_payload.mbt|PASS|2|2|-
 c4_loop_propagation.mbt|PASS|1|1|-
-c5_branch_heap.mbt|XFAIL|0|1|G4
+c5_branch_heap.mbt|PASS|1|1|-
 c6_uncalled_closure.mbt|PASS|0|0|-
 c7_defer_order.mbt|PASS|0|0|-
 c8_default_param_call.mbt|PASS|0|0|-

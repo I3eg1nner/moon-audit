@@ -704,3 +704,15 @@ CWE-113 候选待分诊。
   run.sh 双门禁、FP 0/0/0、远端 CI c80da71 三平台绿）
 - P2 转后续：to_taint_view/taint_view_of 双转写统一（T3b 后续触碰时）、嵌套块 defer 排空序
   （T2.2 未竟域登记）、ROADMAP G1 行 T3.1 根除标注（本次已补）
+
+## 2026-09-06 · G4 分支堆隔离（T2/T3 批次第一切）
+- FlowCtx::copy heap 深拷贝（分支私有）；merge_env/merge_envs 增 merge_heap_into
+  （field-key taint_or 弱合并——SecurityFact 格性质保证 join 无序且幂等）
+- 第二层根因：c5 的 b=mk() 无可见分配位点 → Mutate/Field 堆通道不启用——
+  补虚拟位点（变量声明槽位 "var:<dkey>"，别名不追踪=文档化近似）
+- c5（run.sh 唯一 XFAIL）转 PASS；XFAIL 清零（0 tracked misses）
+- 新增 3 单测（顺序无关 join×2 + 分支内读前状态隔离）；237/237 × native
+- 性能：自举 2.382s → 2.433s（+2.1%，可忽略）；双二进制 mocket/petgraph ±0
+- 测试坑记录：output-sink 名（如 sink()）依赖 lib-model 配置——单测场景
+  必须用 resp.set_header 全场景路径；未知名调用（input()）在空符号表下回退
+  Clean，污点须用真实参数承载

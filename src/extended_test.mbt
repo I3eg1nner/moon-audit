@@ -891,3 +891,39 @@ test "t3b_budget_exhaustion_disclosed" {
   inspect(findings.length(), content="0")
   loop_budget_reset()
 }
+
+// ---------------------------------------------------------------------------
+// G4 branch-heap isolation (c5 root fix)
+// ---------------------------------------------------------------------------
+
+///|
+test "g4_branch_heap_isolation_one_branch_cannot_erase" {
+  // then-branch writes CLEAN over the field; else-branch taints it —
+  // the join must keep the taint regardless of branch ORDER
+  let source = "fn go(box : Box, dirty : String, resp : Response) -> Unit { if box.flag { box.value = \"clean\" } else { box.value = dirty }; resp.set_header(\"X\", box.value) }"
+  let (impls, _) = @parser.parse_string(source, name="t.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "t.mbt", source, findings, Error)
+  assert_true(findings.length() == 1)
+}
+
+///|
+test "g4_branch_heap_isolation_reversed_order" {
+  // same shape, branches swapped: join is order-independent (lattice)
+  let source = "fn go(box : Box, dirty : String, resp : Response) -> Unit { if box.flag { box.value = dirty } else { box.value = \"clean\" }; resp.set_header(\"X\", box.value) }"
+  let (impls, _) = @parser.parse_string(source, name="t.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "t.mbt", source, findings, Error)
+  assert_true(findings.length() == 1)
+}
+
+///|
+test "g4_branch_heap_in_branch_read_sees_prefork_state" {
+  // a read INSIDE the else branch sees the pre-fork fact, not the
+  // then-branch's write (isolation); both branches clean => no alert
+  let source = "fn go(box : Box, resp : Response) -> Unit { if box.flag { box.value = \"x\" } else { resp.set_header(\"X\", box.value) } }"
+  let (impls, _) = @parser.parse_string(source, name="t.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "t.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}

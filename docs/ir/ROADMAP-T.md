@@ -20,7 +20,7 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 | G1 | 抽象域合并不满足结合律（T3.1 已根除：SecurityFact join by construction 幂等/交换/结合） | `taint_or`（src/taint_flow.mbt:21）：`(Param(p), FieldRef)` 分支顺序决定结果——同参异构合并先到者胜 | 合并顺序影响溯源；不能作为可靠不动点求解基础 |
 | G2 | 求值与变量绑定混在一起 | ✅ 已修复（第五轮 R3-R5）：声明级 ID + 先求值后绑定 + 分支/块作用域 + 值身份统一；c9/c10/c11/c12 全 PASS（tests/cases 逐例隔离门禁 + r3r4_*/r4_*/r5_* 单测）；同片段去重行号化修复 | 见上 |
 | G3 | 错误载荷没有直接传递 | ⚠️ 部分（第五轮 R6 后）：直接载荷样例（C3）与嵌套 try 外层错误存活（c13）均已修；错误出口隔离按词法嵌套归属（不可反驳 catch 消费自己的 raise，构造器-only catch 保守传播）；**完整错误传播语义（类型精确匹配/堆副作用分出口）见 T2/T3 验收** | c13 PASS + r6_nested_try_error_exit_isolation / r6_inner_constr_only_catch_propagates_unmatched |
-| G4 | 分支堆状态不隔离 | `FlowCtx::copy`（src/taint_flow.mbt:125）env/sites 拷贝但 heap **共享**；`heap_write`（:281）直接覆盖字段 | 一个分支的 heap_write 可抹掉另一分支已记录污点 |
+| G4 | 分支堆状态不隔离 | `FlowCtx::copy`（src/taint_flow.mbt:125）env/sites 拷贝但 heap **共享**；`heap_write`（:281）直接覆盖字段 |一个分支的 heap_write 可抹掉另一分支已记录污点 **G4 已根除（T2/T3 批次）：heap fork/join 弱合并 + 虚拟位点（c5 唯一 XFAIL 转绿，run.sh 0 tracked misses）**|
 | G5 | 循环不是完整不动点 | `flow_to_fixpoint`（src/taint_flow.mbt:83）最多 3 遍，只比较变量环境 fingerprint（env_fingerprint 不含 heap/sites） | 较长传播链、零次循环体、堆变化不可靠 |
 | G6 | 摘要不可组合 | 收集时 `ictx: None`（src/taint_flow.mbt:214）——收集期读不到其他摘要；`ret_from`（:1718-1778）生成但调用点无消费路径 | 两遍收集≠递归求解；返回值告警可能只是实参整体传播的兜底 |
 | G7 | 库模型加载路径分叉 | v2 字段（cb_timing/trait_edges）仅解析；`resolve_extends`（src/taint_rules.mbt:124）合并子模型时仅 v1 形式 | 同一模型放内联/独立/extends 位置可能产生不同结果 |
@@ -175,7 +175,7 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 
 - [~] T3.1 重做抽象域（薄切 2026-09-06）：SecurityFact{reach, src:有序去重来源集, unknown}（src/abstract_domain.mbt）——join=集合并 **by construction 幂等/交换/结合**（t3a_* 属性测试：幂等/交换/结合/单位元+单调+bottom）；`taint_or` 改为格 join+视图投影，**16 对全组合差分锁定零行为变化**（t3a_differential_16_pairs_vs_legacy_table，232/232，FP 三目标 0）；G1（合并非结合）就 join 算子根除——剩余：值结构与指向集合分离表示（TaintedFieldRef 暂编码 'p.f' 入 src，T4 指针约束落地时结构化）
       安全属性不混在一个枚举（修 G1：合并需幂等+交换+结合，性质测试锁定）
-- [ ] T3.2 状态合并：变量/堆/别名/出口分别合并；分支状态隔离（修 G4）；
+- [x] T3.2 状态合并：分支状态隔离 ✓（G4：heap fork/join 弱合并，2026-09-06；别名/出口分离合并仍开放）
       仅满足唯一目标条件才允许强更新
 - [~] T3.3 循环不动点（薄切 2026-09-06）：SecurityFact join 稳定性判据替换指纹比较（env 活跃槽位解析视图 + loop_exits 折叠 join + **heap 事实**全量入快照——站点键语法级稳定）；预算 = min(体语句数+2, 8)，超限计 loop-fixpoint-exhausted 进 scope 披露（实测 mocket 4 / petgraph 30 / 自举 0，为强更新震荡类的诚实不完整标记）；同位点重复告警行级去重（与外层 dedup 粒度一致）；新单测 t3b_loop_convergence_under_budget（5 层跨迭代链 6 遍收敛 < 预算 8）+ t3b_budget_exhaustion_disclosed（10 层链超限披露）；三遍魔数删除——剩余：全局 worklist（循环内单遍仍 AST 序）、widening、预算耗尽时的保守上近似替代
       有限抽象或显式 widening；预算耗尽必须标记不完整

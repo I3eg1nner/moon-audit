@@ -432,10 +432,22 @@ fn FlowCtx::copy(self : FlowCtx) -> FlowCtx {
     })
     struct_comps[k] = mcopy
   })
-  // heap/record channels/raise buffer/scope+decl counters are references:
-  // shared by design (monotone facts + id uniqueness). hir_trace and
-  // hir_temp_ctr are references too: the statement sequence is global to
-  // the function analysis (the trace observes all branches)
+  // G4 branch-heap isolation: heap facts are PER-BRANCH state. A branch
+  // copy owns a deep copy of the fork-point heap; strong field writes
+  // (Mutate) stay local to the branch, and join points weak-merge facts
+  // (field-key taint_or) — one branch can no longer erase another's
+  // taint by overwriting the same field.
+  let heap : Map[String, Map[String, Taint]] = Map([])
+  self.heap.each(fn(site, fm) {
+    let fcopy : Map[String, Taint] = Map([])
+    fm.each(fn(f, ft) { fcopy[f] = ft })
+    heap[site] = fcopy
+  })
+  // record channels/raise buffer/scope+decl counters remain shared
+  // references by design (monotone facts + id uniqueness; R6 scopes the
+  // raise buffer manually). hir_trace and hir_temp_ctr are references
+  // too: the statement sequence is global to the function analysis (the
+  // trace observes all branches)
   {
     ..self,
     env,
@@ -443,6 +455,7 @@ fn FlowCtx::copy(self : FlowCtx) -> FlowCtx {
     sites,
     scope_stack,
     struct_comps,
+    heap,
     alloc_result: None,
   }
 }
@@ -517,6 +530,25 @@ fn env_lookup(ctx : FlowCtx, name : String) -> Taint? {
 // R3: alloc-site bindings share the declaration identity — lookup/set
 // resolve a bare name to its CURRENT declaration slot (stale slots of
 // shadowed declarations are unreachable, so rebinding invalidates them)
+
+///|
+// G4 c5: a receiver WITHOUT a visible alloc-site (e.g. obtained from an
+// opaque call `let b = mk()`) still gets field-sensitive treatment: the
+// variable's declaration slot is used as a VIRTUAL site. Aliases are not
+// tracked (documented approximation) — writes/reads through the same
+// binding see the same facts, and branch fork/join isolates them.
+
+///|
+fn heap_site_of(ctx : FlowCtx, name : String) -> String? {
+  match sites_get(ctx, name) {
+    Some(s) => Some(s)
+    None =>
+      match scope_lookup_key(ctx, name) {
+        Some(k) => Some("var:" + k)
+        None => None
+      }
+  }
+}
 
 ///|
 fn sites_get(ctx : FlowCtx, name : String) -> String? {
@@ -1316,7 +1348,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
         Label(l) => {
           let heap_hit : Taint? = match flow_var_name(record) {
             Some(v) =>
-              match sites_get(ctx, v) {
+              match heap_site_of(ctx, v) {
                 Some(s) => heap_read(ctx, s, l.name)
                 None => None
               }
@@ -1362,7 +1394,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       // bounded heap: record the field fact on the receiver's alloc-site
       match base {
         Some(v) =>
-          match sites_get(ctx, v) {
+          match heap_site_of(ctx, v) {
             Some(s) =>
               match accessor {
                 Label(l) => heap_write(ctx, s, l.name, ft)
@@ -1776,6 +1808,28 @@ fn env_any_taint(ctx : FlowCtx) -> Taint {
 }
 
 ///|
+// G4: weak heap join at control-flow merge points — per field key the
+// joined fact is taint_or over all branch heaps (lattice join: facts
+// from a branch that overwrote a field never erase another branch's)
+
+///|
+fn merge_heap_into(dst : FlowCtx, srcs : Array[FlowCtx]) -> Unit {
+  for src in srcs {
+    src.heap.each(fn(site, fm) {
+      match dst.heap.get(site) {
+        Some(dfm) =>
+          fm.each(fn(f, ft) { dfm[f] = taint_or(or_clean(dfm.get(f)), ft) })
+        None => {
+          let fcopy : Map[String, Taint] = Map([])
+          fm.each(fn(f, ft) { fcopy[f] = ft })
+          dst.heap[site] = fcopy
+        }
+      }
+    })
+  }
+}
+
+///|
 fn merge_env(ctx : FlowCtx, a : FlowCtx, b : FlowCtx) -> Unit {
   let keys : Array[String] = []
   a.env.each(fn(k, _) { keys.push(k) })
@@ -1783,6 +1837,8 @@ fn merge_env(ctx : FlowCtx, a : FlowCtx, b : FlowCtx) -> Unit {
   for k in keys {
     ctx.env[k] = taint_or(or_clean(a.env.get(k)), or_clean(b.env.get(k)))
   }
+  // G4: heap facts join weakly at this merge point
+  merge_heap_into(ctx, [a, b])
   // R3: name resolution joins too — declarations only visible on one side
   // are simply carried over (their env slot was joined above)
   let nkeys : Array[String] = []
@@ -1805,6 +1861,8 @@ fn merge_envs(ctx : FlowCtx, branches : Array[FlowCtx]) -> Unit {
   if branches.length() == 0 {
     return
   }
+  // G4: heap facts join weakly at this merge point
+  merge_heap_into(ctx, branches)
   let keys : Array[String] = []
   for br in branches {
     br.env.each(fn(k, _) { keys.push(k) })
