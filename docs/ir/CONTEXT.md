@@ -779,3 +779,23 @@ points_to.mbt 头注释标注。
 
 **T4 批次后格局**：Tai-e 式"指针/调用图/摘要协同"最小骨架已立（T4.1/T4.2/
 T4.3 薄切完成）；T4.4/T4.5（过程间传播、证据来源）为下一批。251→258 测试。
+
+## 2026-09-06 · T5 批次收官（integrate14）
+
+三薄切交付 + gate15 PASS（运行腿由 supervisor 代跑）：
+- **T5.1 统一模型解析**（fa7f436）：三入口（内联 taint 节/独立 taint-rules.json/extends）单一
+  parse_ruleset_json+append_ruleset 管线；未知字段警告不静默（model-warnings 披露）；
+  extends 组合路径修复（gate4 遗留 size() 重复计数 bug 顺带修复）
+- **T5.3 回调时机**（c99c4d2）：cb_timing 引擎消费——immediate 在调用点执行（形参污点绑定），
+  deferred 记录事实不执行（model-key@L 行级溯源）；内置 core-callbacks 模型；
+  无模型=默认 immediate 行为不变
+- **T5.5 完整符号清污**（f9819b9）：sanitize/escape/encode 子串自动清污删除——六符号精确白名单
+  （语料实证）+ DSL sanitizer_hit 精确条目；**风险项验证：crescent 5 TP 逐行稳定（6/35/48/49/99），
+  三目标 FP 0/0/0，零回升**
+
+gate15 P2 处置（本 commit）：RULES-DSL 陈旧子串表述修正 + 孤立表格行修复；
+ROADMAP T5.3 登记 builtin 后缀碰撞（Iter::map 恒遮蔽 Array::map，opt-in 漏报方向已文档化）；
+t51 测试路径拼接留待下次触碰。
+
+矩阵：269/269 × native，deny-warn/fmt/info 全绿；T5.1/T5.3/T5.5 ROADMAP 勾选（同 feature commit）。
+路线剩余：T4.4/T4.5 过程间 pt 传播与证据溯源、T5.2/T5.4、T6 框架化、T7 上下文/增量、T8 评估。

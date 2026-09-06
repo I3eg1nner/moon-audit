@@ -248,7 +248,8 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       内置 core-callbacks 模型（Array::map/filter/sort_by=immediate、Iter::map=deferred）；
       无模型=默认 immediate 行为不变（t53 三测试：immediate 执行/deferred 不执行+事实/
       无模型不变）。**未竟（登记 T5.3 剩余）**：延迟回调的"推进点"执行建模（当前记录
-      事实但不执行——方向为漏报）；参数/返回值/错误效应经回调的传播；接收者类型精确匹配
+      事实但不执行——方向为漏报）；参数/返回值/错误效应经回调的传播；接收者类型精确匹配；
+      内置模型后缀碰撞（gate15 P2）：`map` 调用按后缀匹配首个 Deferred 条目命中时 `Iter::map` 恒遮蔽 `Array::map`——修复方向=精确符号匹配或最长后缀优先（opt-in 场景方向为漏报，已文档化）
 - [ ] T5.4 扩展系统与框架模型：语料实际使用的文件/网络/异步/取消/FFI；
       外部对象与回调边界明确
 - [x] T5.5 规则绑定完整符号与安全上下文（部分：子串清除已完成）：sanitize/escape/encode

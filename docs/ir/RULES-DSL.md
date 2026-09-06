@@ -35,7 +35,7 @@
 |---|---|
 | `classify_source_method`（query/param/body/header 提取） | `TaintRuleset::source_hit` 命中 → 结果 `Tainted` |
 | `is_header_setter`（set_header/add_header/append_header） | `TaintRuleset::header_sink_hit`（kind 空或 HeaderValue） |
-| `is_sanitize_call_name`（sanitize/escape/encode 子串） | `TaintRuleset::sanitizer_hit` 精确匹配 |
+| `is_sanitize_call_name`（六符号精确白名单：html_escape/escape_html/url_encode/encode_uri/crlf_strip/sanitize_header_value；T5.5 起子串匹配已删除） | `TaintRuleset::sanitizer_hit` 精确匹配 |
 | `header_value_taint`（位置 1 / `value=` 标签） | `sink_value_slot` 覆盖位置索引 |
 
 CRLF 剥离链判定（`replace_all` old/new 槽位语义）**暂不开放配置**——
@@ -75,6 +75,10 @@ CRLF 剥离链判定（`replace_all` old/new 槽位语义）**暂不开放配置
 | `extends` | 递归解析（模型可 extends 模型，搜索目录=其 libmodels 的父目录）；**环检测**（`extends cycle detected` 警告并跳过）；嵌套模型先解析完自身 extends 再整体合并一次 |
 
 **未知字段**：任何层级的未知字段（顶层/规则对象/v2 回调/trait_edge 条目）产生 `unknown field '<k>'` 警告——**不静默丢弃**；scan 输出的 `analysis-scope` 披露 `model-warnings=N(measured, T5.1 pipeline)`。
+### v2 字段语义
+
+| 字段 | 语义 |
+|---|---|
 | `types` | 函数 → 返回类型表达式（`Server`、`Map[Int, String]`、`@pkg.Name`）——注册进符号表供 ir-stats/call-graph 解析 FFI 链 |
 | `callbacks` | 高阶方法回调形参占位符：`K`/`V`/`E` 从接收者泛型实参解析，其余按类型表达式解析 |
 | sink `kind: "Output"` | 输出通道 sink → **CWE-116/tainted-output**（新规则，默认开启；仅由模型/DSL 触发，无配置项目不受影响；`value_slot` 指定污点实参位） |
