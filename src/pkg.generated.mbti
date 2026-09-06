@@ -52,6 +52,8 @@ pub fn collect_mbti_trait_method(@mbti_ast.TraitMethodSig, String, PkgSymbols) -
 
 pub fn collect_mutate_receivers(@syntax.Expr, Array[String]) -> Unit
 
+pub fn collect_summaries_scc(Array[SummaryUnit], InterProceduralContext) -> Unit
+
 pub fn collect_symbols(Array[@syntax.Impl], PkgSymbols) -> Unit
 
 pub fn collect_workspace_members(@moon_config.Ast, String, Array[String]) -> Unit
@@ -101,6 +103,8 @@ pub fn diff_findings(Array[Finding], Array[PrevFinding]) -> BaselineDiff
 pub fn entry_stats_line(ProgramWorld) -> String
 
 pub fn extend_ruleset_with_model(TaintRuleset, String) -> Bool
+
+pub fn extract_summary_units(@list.List[@syntax.Impl], String) -> Array[SummaryUnit]
 
 pub fn fact_of_field_ref(String, String) -> SecurityFact
 
@@ -449,6 +453,7 @@ pub fn ImportContext::empty() -> Self
 
 pub(all) struct InterProceduralContext {
   summaries : Map[String, FuncTaintSummary]
+  mut not_converged : Int
 }
 pub fn InterProceduralContext::new() -> Self
 
@@ -672,6 +677,14 @@ pub(all) enum Stmt {
   AssignStmt(String, Int)
 }
 pub fn Stmt::show(Self) -> String
+
+pub(all) struct SummaryUnit {
+  name : String
+  params : @list.List[@syntax.Parameter]?
+  body : @syntax.Expr
+  file : String
+  line : Int
+}
 
 pub(all) struct TaintFlow {
   source : TaintSource

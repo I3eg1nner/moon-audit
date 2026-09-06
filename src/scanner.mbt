@@ -24,24 +24,34 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
   // call-graph — file facts come from the SAME single walk (symbols skipped:
   // rule summaries are flow-engine based and do not consume PkgSymbols).
   let world = load_program_world(root, config, with_symbols=false)
-  // P3 pre-pass (two-pass fixpoint substitute, documented in CONTEXT.md):
-  // collect ALL module summaries BEFORE scanning so call sites in any file
-  // can consume field-write/return summaries of functions defined elsewhere.
-  // Conservative replacement for SCC-based fixpoint: collection currently
-  // does not consume other summaries, so pass 2 (in the scan walk below)
-  // recomputes identical values; when collection becomes summary-consuming,
-  // this double walk converges toward the fixpoint.
+  // T4.2 pre-pass: SCC-ordered iterative summary collection (replaces the
+  // fixed two-pass). Collection CONSUMES callee summaries (ret_from +
+  // param_sinks transitivity), so order matters: Tarjan SCC emits
+  // callee-first; cyclic SCCs (recursion) iterate to the union-lattice
+  // fixpoint under a |SCC|+2 sweep budget — exhaustion counted in
+  // interproc_ctx.not_converged and disclosed in analysis-scope.
   let mod_is_web = mod_imports.has_mocket ||
     mod_imports.has_crescent ||
     mod_imports.has_rabbita
   if mod_is_web {
+    let scc_units : Array[SummaryUnit] = []
     for pkgf in world.packages {
-      for file in pkgf.files {
-        let source = @fs.read_file_to_string(file) catch { _ => continue }
-        let (impls, _) = @parser.parse_string(source, name=file)
-        collect_func_summaries_flow(impls, file, interproc_ctx)
+      let pkg_web = mod_is_web ||
+        ({
+          let pi = analyze_imports(pkgf.dir)
+          pi.has_mocket || pi.has_crescent || pi.has_rabbita
+        })
+      if pkg_web {
+        for file in pkgf.files {
+          let source = @fs.read_file_to_string(file) catch { _ => continue }
+          let (impls, _) = @parser.parse_string(source, name=file)
+          for u in extract_summary_units(impls, file) {
+            scc_units.push(u)
+          }
+        }
       }
     }
+    collect_summaries_scc(scc_units, interproc_ctx)
   }
   // Phase 1: Regular rules + collect function summaries
   for pkgf in world.packages {
@@ -62,7 +72,8 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
       for report in reports {
         errors.push("Parse error in " + file + ": " + report.to_string())
       }
-      collect_func_summaries_flow(impls, file, interproc_ctx)
+      // T4.2: summaries are solved once, globally, in the SCC pre-pass
+      // (this in-walk re-collection was pass 2 of the fixed two-pass)
       let should_scan = if incremental {
         is_changed_file(file, changed_set)
       } else {
@@ -105,6 +116,7 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
       errors,
       incremental,
       entry_stats_line(world),
+      interproc_ctx.not_converged,
     ),
   }
 }
@@ -115,6 +127,7 @@ fn build_analysis_scope(
   errors : Array[String],
   incremental : Bool,
   entries : String, // T1.5 entry stats line (pkg-level; fn-level if symbols)
+  summary_not_converged : Int, // T4.2: cyclic SCCs that exhausted the budget
 ) -> String {
   // T0.4: scan-scope disclosure. Minimal fields implemented: analyzer/
   // frontend version, excludes, parse-failure count. Reserved fields
@@ -136,7 +149,9 @@ fn build_analysis_scope(
   parse_failures.to_string() +
   "; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=" +
   loop_budget.exhausted.to_string() +
-  "(measured, env possibly incomplete beyond cap); incremental=" +
+  "(measured, env possibly incomplete beyond cap); summary-scc-not-converged=" +
+  summary_not_converged.to_string() +
+  "(measured); incremental=" +
   (if incremental { "true" } else { "false" }) +
   "; " +
   entries +

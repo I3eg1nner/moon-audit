@@ -23,11 +23,14 @@ pub(all) struct FuncTaintSummary {
 ///|
 pub(all) struct InterProceduralContext {
   summaries : Map[String, FuncTaintSummary]
+  // T4.2: cyclic SCCs that exhausted their convergence budget (|SCC|+2
+  // sweeps) — disclosed in analysis-scope, never silently truncated
+  mut not_converged : Int
 }
 
 ///|
 pub fn InterProceduralContext::new() -> InterProceduralContext {
-  { summaries: Map([]), }
+  { summaries: Map([]), not_converged: 0, }
 }
 
 ///|

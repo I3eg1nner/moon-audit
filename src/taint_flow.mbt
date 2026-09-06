@@ -1237,6 +1237,8 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
               }
           }
           let _ = flow(func, ctx)
+          // T4.2 transitivity: callee param_sinks projected onto the caller
+          maybe_record_transitive_sink(func, args, arg_pairs, ctx)
           ret
         }
       }
@@ -2609,6 +2611,53 @@ fn apply_ret_from(
   ret_from_join(summary, args, arg_pairs, 0)
 }
 
+// T4.2: during SUMMARY COLLECTION only (record_sinks channel armed), a
+// callee whose param i reaches a header sink taints the CALLER's param
+// bound at argument position i — recursive sink chains then converge
+// under the SCC driver. Scan mode (record_sinks=None) is unaffected.
+
+///|
+fn maybe_record_transitive_sink(
+  func : @syntax.Expr,
+  args : @list.List[@syntax.Argument],
+  arg_pairs : Array[ArgTaint],
+  ctx : FlowCtx,
+) -> Unit {
+  let arr = match ctx.record_sinks {
+    Some(a) => a
+    None => return
+  }
+  let ictx = match ctx.ictx {
+    Some(i) => i
+    None => return
+  }
+  let name = match callee_summary_name(func) {
+    Some(n) => n
+    None => return
+  }
+  let summary = match summary_lookup(ictx, name) {
+    Some(s) => s
+    None => return
+  }
+  if summary.param_sinks.length() == 0 {
+    return
+  }
+  let taint_at = args_taint_at_params(summary, args, arg_pairs, 0)
+  summary.param_sinks.each(fn(p, _sinks) {
+    let pi = match param_index(summary.params, p) {
+      Some(i) => i
+      None => return
+    }
+    if pi >= taint_at.length() {
+      return
+    }
+    match taint_at[pi] {
+      TaintedParam(cp) => if !arr.contains(cp) { arr.push(cp) }
+      _ => ()
+    }
+  })
+}
+
 // shared join core; `offset` shifts positional args past an implicit
 // receiver param (DotApply: receiver binds param 0)
 
@@ -3256,7 +3305,9 @@ fn collect_summary_func(
     record_field_sinks: None,
     defers: [],
     loop_exits: [],
-    ictx: None,
+    // T4.2: collection consumes callee summaries so recursive chains
+    // converge under the SCC driver (ret_from + param_sinks transitivity)
+    ictx: Some(ictx),
     taint_rules: TaintRuleset::empty(),
     output_sinks_enabled: true,
   }
