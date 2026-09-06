@@ -192,6 +192,12 @@ pub fn load_program_world(String, Config, with_symbols? : Bool, conservative_ali
 
 pub fn load_taint_rules(String) -> (TaintRuleset, String)
 
+pub fn loop_budget_reset() -> Unit
+
+pub fn loop_fixpoint_exhausted_count() -> Int
+
+pub fn loop_fixpoint_last_iterations() -> Int
+
 pub fn materialize_trait_from_sig(PkgSymbols, String) -> Unit
 
 pub fn merge_imports(ImportContext, ImportContext) -> ImportContext

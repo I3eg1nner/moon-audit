@@ -69,51 +69,262 @@ fn is_tainted(t : Taint) -> Bool {
   t != Clean
 }
 
-// serialize taint env for loop fixpoint comparison
+// T3.3: loop-fixpoint budget bookkeeping — package-level (src/ is one
+// package). `exhausted` counts bodies that hit the iteration cap (env may
+// be incomplete; disclosed in the analysis-scope line). `last_iters` is
+// the iteration count of the most recent loop solve (test observation).
 
 ///|
-fn env_fingerprint(ctx : FlowCtx) -> String {
-  let keys : Array[String] = []
-  ctx.env.each(fn(k, _) { keys.push(k) })
-  keys.sort()
-  let sb = StringBuilder()
-  for k in keys {
-    sb.write_string(k)
-    sb.write_char(':')
-    match ctx.env.get(k) {
-      Some(Clean) => sb.write_char('C')
-      Some(Tainted) => sb.write_char('T')
-      Some(TaintedParam(p)) => {
-        sb.write_char('P')
-        sb.write_string(p)
-      }
-      Some(TaintedFieldRef(p, f)) => {
-        sb.write_char('F')
-        sb.write_string(p)
-        sb.write_char('.')
-        sb.write_string(f)
-      }
-      None => sb.write_char('_')
-    }
-    sb.write_char(';')
-  }
-  sb.to_string()
+priv struct LoopBudget {
+  mut exhausted : Int
+  mut last_iters : Int
 }
 
-// iterate a loop body to a taint fixpoint (cap 3 passes)
+///|
+let loop_budget : LoopBudget = { exhausted: 0, last_iters: 0, }
+
+// test/observation hook: iteration count of the most recent loop solve
 
 ///|
-fn flow_to_fixpoint(e : @syntax.Expr, ctx : FlowCtx) -> Unit {
-  let mut prev = env_fingerprint(ctx)
-  let mut i = 0
-  while i < 3 {
+pub fn loop_fixpoint_last_iterations() -> Int {
+  loop_budget.last_iters
+}
+
+// test/observation hook: total budget-exhausted loops this project
+
+///|
+pub fn loop_fixpoint_exhausted_count() -> Int {
+  loop_budget.exhausted
+}
+
+// test hook: reset the per-project budget bookkeeping
+
+///|
+pub fn loop_budget_reset() -> Unit {
+  loop_budget.exhausted = 0
+  loop_budget.last_iters = 0
+}
+
+// statement-ish node count of a loop body: the budget unit (cap uses
+// min(count + 2, LOOP_CAP_MAX)); counts Let/assign/call/control-flow nodes,
+// not every sub-expression
+
+///|
+fn loop_budget_units(e : @syntax.Expr) -> Int {
+  match e {
+    Sequence(exprs~, last_expr~, ..) => {
+      let mut n = 1
+      for x in exprs {
+        n += loop_budget_units(x)
+      }
+      n += loop_budget_units(last_expr)
+      n
+    }
+    Let(..)
+    | LetMut(..)
+    | LetAnd(..)
+    | LetFn(..)
+    | Assign(..)
+    | Mutate(..)
+    | ArraySet(..)
+    | ArrayAugmentedSet(..)
+    | Apply(..)
+    | DotApply(..)
+    | While(..)
+    | For(..)
+    | ForEach(..)
+    | If(..)
+    | Match(..)
+    | Try(..)
+    | Return(..)
+    | Raise(..)
+    | Break(..)
+    | Continue(..) => 1
+    LabelledBlock(body~, ..) => loop_budget_units(body)
+    Group(expr~, ..) => loop_budget_units(expr)
+    _ => 0
+  }
+}
+
+// T3.3 monotone loop fixpoint (replaces the 3-pass magic number):
+//   - stability is judged on SecurityFact JOIN results (env + carried
+//     loop exits), not on string fingerprints
+//   - one pass runs, then facts are compared; unstable => rerun
+//   - budget = min(body_units + 2, 8); exhaustion marks the env
+//     incomplete via loop_budget.exhausted (scope disclosure)
+
+///|
+fn loop_fixpoint_snapshot(
+  ctx : FlowCtx,
+  base_exits : Int,
+) -> Array[(String, SecurityFact)] {
+  // SEMANTIC state view: LIVE scope slots resolved through name_map to
+  // their latest declaration. Raw env keys cannot be compared across
+  // passes: R3 declaration ids are per-execution (each re-run of a body
+  // allocates fresh d-keys), so key sets only grow. The resolved view of
+  // live slots is the actual analysis state and IS monotone.
+  let live : Map[Int, Bool] = Map([])
+  for id in ctx.scope_stack {
+    live[id] = true
+  }
+  let slots : Array[String] = []
+  ctx.name_map.each(fn(slot, _) { slots.push(slot) })
+  slots.sort()
+  let snap : Array[(String, SecurityFact)] = []
+  for slot in slots {
+    // slot = "s<scope-id>:<name>"
+    let colon = find_last(slot, ":")
+    if colon < 0 {
+      continue
+    }
+    let sid_txt = Show::to_string(slot[1:colon])
+    let sid = parse_int_or_neg(sid_txt)
+    if sid < 0 || !live.contains(sid) {
+      continue // stale slot of a popped inner scope
+    }
+    match ctx.name_map.get(slot) {
+      Some(dkey) =>
+        snap.push((slot, taint_to_fact(or_clean_taint(ctx.env.get(dkey)))))
+      None => ()
+    }
+  }
+  // exits slice is folded into ONE join fact: appending the same value
+  // again (re-executed break across passes) does not change the join —
+  // stability stays monotone under duplicate exits
+  let mut exits_fact = SecurityFact::bottom()
+  let mut i = base_exits
+  while i < ctx.loop_exits.length() {
+    exits_fact = exits_fact.join(taint_to_fact(ctx.loop_exits[i]))
+    i += 1
+  }
+  snap.push(("#exits", exits_fact))
+  // heap facts (site -> field -> taint): keys are syntactic alloc sites
+  // (file:line) so they are stable across passes; a still-growing heap
+  // must keep the solve running (stopping early would under-approximate
+  // field-propagated taint)
+  let heap_keys : Array[String] = []
+  ctx.heap.each(fn(site, _) { heap_keys.push(site) })
+  heap_keys.sort()
+  for site in heap_keys {
+    match ctx.heap.get(site) {
+      Some(fields) => {
+        let fnames : Array[String] = []
+        fields.each(fn(f, _) { fnames.push(f) })
+        fnames.sort()
+        for f in fnames {
+          match fields.get(f) {
+            Some(v) => snap.push(("h:" + site + ":" + f, taint_to_fact(v)))
+            None => ()
+          }
+        }
+      }
+      None => ()
+    }
+  }
+  snap
+}
+
+///|
+fn facts_stable(
+  before : Array[(String, SecurityFact)],
+  after : Array[(String, SecurityFact)],
+) -> Bool {
+  // join-stability: equal cardinality + leq in BOTH directions per key
+  // (leq both ways == equality on this lattice; keys are canonical)
+  if before.length() != after.length() {
+    return false
+  }
+  for pair in before {
+    let (k, f) = pair
+    let after_fact : SecurityFact? = None
+    let mut found : SecurityFact? = after_fact
+    for pair2 in after {
+      let (k2, f2) = pair2
+      if k2 == k {
+        found = Some(f2)
+        break
+      }
+    }
+    match found {
+      Some(g) => if !(f.leq(g) && g.leq(f)) { return false }
+      None => return false
+    }
+  }
+  true
+}
+
+///|
+let loop_cap_max : Int = 8
+
+// small non-raising int parse for scope-slot ids ("s12:x" -> 12)
+
+///|
+fn parse_int_or_neg(s : String) -> Int {
+  if s.length() == 0 {
+    return -1
+  }
+  let mut v = 0
+  for ch in s {
+    let d = ch.to_int() - 48
+    if d < 0 || d > 9 {
+      return -1
+    }
+    v = v * 10 + d
+  }
+  v
+}
+
+///|
+fn flow_to_fixpoint(e : @syntax.Expr, ctx : FlowCtx, base_exits : Int) -> Unit {
+  let cap = {
+    let units = loop_budget_units(e)
+    if units + 2 < loop_cap_max {
+      units + 2
+    } else {
+      loop_cap_max
+    }
+  }
+  let findings_start = ctx.findings.length()
+  let mut iterations = 0
+  while iterations < cap {
+    let before = loop_fixpoint_snapshot(ctx, base_exits)
     let _ = flow(e, ctx)
-    let cur = env_fingerprint(ctx)
-    if cur == prev {
+    iterations += 1
+    if facts_stable(before, loop_fixpoint_snapshot(ctx, base_exits)) {
       break
     }
-    prev = cur
-    i += 1
+  }
+  if iterations == cap {
+    loop_budget.exhausted += 1 // env may be incomplete: disclosed upstream
+  }
+  loop_budget.last_iters = iterations
+  // re-executed passes re-report the same sink sites: keep the FIRST
+  // finding per line (same rule + line = same site; matches the outer
+  // scan dedup granularity). Later passes only ADD new lines.
+  let dedup : Map[Int, Bool] = Map([])
+  let out : Array[Finding] = []
+  let mut idx = findings_start
+  while idx < ctx.findings.length() {
+    let f = ctx.findings[idx]
+    if !dedup.contains(f.line) {
+      dedup[f.line] = true
+      out.push(f)
+    }
+    idx += 1
+  }
+  while ctx.findings.length() > findings_start {
+    let _ = ctx.findings.pop()
+  }
+  for f in out {
+    ctx.findings.push(f)
+  }
+}
+
+///|
+fn or_clean_taint(t : Taint?) -> Taint {
+  match t {
+    Some(v) => v
+    None => Clean
   }
 }
 
@@ -874,7 +1085,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       // sink executed in iteration N+1 (review counterexample b)
       scope_push(ctx)
       let base = ctx.loop_exits.length()
-      flow_to_fixpoint(loop_body, ctx)
+      flow_to_fixpoint(loop_body, ctx, base)
       let join = join_loop_exits(ctx, base)
       scope_pop(ctx)
       join
@@ -1291,7 +1502,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
         let _ = flow(pair.1, ctx)
       }
       let base = ctx.loop_exits.length()
-      flow_to_fixpoint(body, ctx)
+      flow_to_fixpoint(body, ctx, base)
       join_loop_exits(ctx, base)
     }
     ForEach(binders~, expr~, init~, continue_block~, body~, ..) => {
@@ -1310,7 +1521,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
         let _ = flow(pair.1, ctx)
       }
       let base = ctx.loop_exits.length()
-      flow_to_fixpoint(body, ctx)
+      flow_to_fixpoint(body, ctx, base)
       join_loop_exits(ctx, base)
     }
     Try(body~, catch_~, try_else~, ..) => {
@@ -2147,14 +2358,6 @@ fn apply_field_taint_side_effect(
       None => ()
     }
   })
-}
-
-///|
-fn or_clean_taint(t : Taint?) -> Taint {
-  match t {
-    Some(v) => v
-    None => Clean
-  }
 }
 
 ///|

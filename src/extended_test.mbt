@@ -859,3 +859,35 @@ test "t2b_break_evaluates_its_value_expression" {
   run_cwe113(impls, "test.mbt", source, findings, Error)
   inspect(findings.length(), content="1")
 }
+
+///|
+test "t3b_loop_convergence_under_budget" {
+  // 5-layer CROSS-iteration propagation: each pass shifts taint one var
+  // forward; convergence needs ~6 passes — must stay under the budget
+  let source = "pub fn f(r : Response, q : String) -> Unit { let mut e = \"s\"; let mut d = \"s\"; let mut c = \"s\"; let mut b = \"s\"; let mut a = \"s\"; let i = 0; while i < 3 { e = d; d = c; c = b; b = a; a = q; r.set_header(\"X\", e) } }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  loop_budget_reset()
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  inspect(findings.length(), content="1")
+  // converged WITHOUT hitting the cap (body budget = 6 units + 2 = 8)
+  inspect(loop_fixpoint_last_iterations() < 8, content="true")
+  inspect(loop_fixpoint_exhausted_count(), content="0")
+  loop_budget_reset()
+}
+
+///|
+test "t3b_budget_exhaustion_disclosed" {
+  // 10-layer chain needs 11 passes but cap = min(11+2, 8) = 8: the env is
+  // marked incomplete (exhausted counter) instead of silently wrong
+  let source = "pub fn f(r : Response, q : String) -> Unit { let mut v9 = \"s\"; let mut v8 = \"s\"; let mut v7 = \"s\"; let mut v6 = \"s\"; let mut v5 = \"s\"; let mut v4 = \"s\"; let mut v3 = \"s\"; let mut v2 = \"s\"; let mut v1 = \"s\"; let i = 0; while i < 3 { v9 = v8; v8 = v7; v7 = v6; v6 = v5; v5 = v4; v4 = v3; v3 = v2; v2 = v1; v1 = q; r.set_header(\"X\", v9) } }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  loop_budget_reset()
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  inspect(loop_fixpoint_exhausted_count(), content="1")
+  // documented incompleteness: v9 never reaches taint within budget — the
+  // counter, not a wrong "clean" claim, carries the truth
+  inspect(findings.length(), content="0")
+  loop_budget_reset()
+}

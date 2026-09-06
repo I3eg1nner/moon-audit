@@ -1,5 +1,9 @@
 ///|
 pub fn scan_project(root : String, config : Config) -> ScanResult {
+  // T3.3: loop-fixpoint budget is per-project (scope disclosure)
+  loop_budget.exhausted = 0
+  loop_budget.last_iters = 0
+
   let findings : Array[Finding] = []
   let errors : Array[String] = []
   let mut files_scanned = 0
@@ -130,7 +134,9 @@ fn build_analysis_scope(
   config.exclude.join(", ") +
   "]; parse-failures=" +
   parse_failures.to_string() +
-  "; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); incremental=" +
+  "; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=" +
+  loop_budget.exhausted.to_string() +
+  "(measured, env possibly incomplete beyond cap); incremental=" +
   (if incremental { "true" } else { "false" }) +
   "; " +
   entries +
