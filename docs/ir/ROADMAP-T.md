@@ -17,7 +17,7 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 
 | # | 缺口 | 现状证据（file:line，2026-09-05 @ 946a1ad） | 后果 |
 |---|---|---|---|
-| G1 | 抽象域合并不满足结合律 | `taint_or`（src/taint_flow.mbt:21）：`(Param(p), FieldRef)` 分支顺序决定结果——同参异构合并先到者胜 | 合并顺序影响溯源；不能作为可靠不动点求解基础 |
+| G1 | 抽象域合并不满足结合律（T3.1 已根除：SecurityFact join by construction 幂等/交换/结合） | `taint_or`（src/taint_flow.mbt:21）：`(Param(p), FieldRef)` 分支顺序决定结果——同参异构合并先到者胜 | 合并顺序影响溯源；不能作为可靠不动点求解基础 |
 | G2 | 求值与变量绑定混在一起 | ✅ 已修复（第五轮 R3-R5）：声明级 ID + 先求值后绑定 + 分支/块作用域 + 值身份统一；c9/c10/c11/c12 全 PASS（tests/cases 逐例隔离门禁 + r3r4_*/r4_*/r5_* 单测）；同片段去重行号化修复 | 见上 |
 | G3 | 错误载荷没有直接传递 | ⚠️ 部分（第五轮 R6 后）：直接载荷样例（C3）与嵌套 try 外层错误存活（c13）均已修；错误出口隔离按词法嵌套归属（不可反驳 catch 消费自己的 raise，构造器-only catch 保守传播）；**完整错误传播语义（类型精确匹配/堆副作用分出口）见 T2/T3 验收** | c13 PASS + r6_nested_try_error_exit_isolation / r6_inner_constr_only_catch_propagates_unmatched |
 | G4 | 分支堆状态不隔离 | `FlowCtx::copy`（src/taint_flow.mbt:125）env/sites 拷贝但 heap **共享**；`heap_write`（:281）直接覆盖字段 | 一个分支的 heap_write 可抹掉另一分支已记录污点 |

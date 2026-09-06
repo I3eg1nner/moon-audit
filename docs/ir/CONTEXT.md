@@ -686,3 +686,21 @@ CWE-113 候选待分诊。
 - 测试：7 个 t2b_* 新增（LIFO=1 / 块尾时序=0 / 反序对=0 / 常量跳过×2=0 /
   join 保守=1 / break 求值=1）；226/226；run.sh GATE-OK（c5 保持 XFAIL）；
   FP 三目标 0；crescent 5 TP 稳定
+
+## 2026-09-06 · T2/T3 开启（薄切四段 + gate11 PASS）
+- T2a（T2.1 薄切）：HIR 语句层 src/hir.mbt（Stmt/RhsKind/ValuePos）——Apply/DotApply/Let 降级为显式
+  语句、实参恰一次 LetEvalTemp、位置寻址 struct_comps(decl, idx)/(decl, ctor, idx) 替代字符串键；
+  差分锁定行为零变化
+- T2b（T2.2 部分）：defer 三出口（块尾 LIFO/Return 直排/函数尾兜底）、短路常量侧跳过
+  （双侧求值误报根除）、break/continue 携带值汇合（parser 0.3.18 无 loop{break v} 形态，
+  以单测锁值求值）；7 个 t2b_* 单测
+- T3a（T3.1 薄切）：SecurityFact{reach, src, unknown} 格域（src/abstract_domain.mbt）——join 集合并
+  by construction 幂等/交换/结合（t3a_* 属性测试，实测 36 对差分矩阵全过）；G1（合并非结合）根除；
+  taint_or 变为格 join+视图投影
+- T3b（T3.3 薄切）：单调循环不动点（join 稳定性判据替换指纹比较，heap 事实入快照），
+  预算 min(体语句数+2, 8)，超限披露 loop-fixpoint-exhausted（实测 mocket 4/petgraph 30/自举 0）；
+  三遍魔数删除
+- gate11：VERDICT PASS（静态零反例 + supervisor 代跑 234/234 × native、双二进制 4/4 SAME、
+  run.sh 双门禁、FP 0/0/0、远端 CI c80da71 三平台绿）
+- P2 转后续：to_taint_view/taint_view_of 双转写统一（T3b 后续触碰时）、嵌套块 defer 排空序
+  （T2.2 未竟域登记）、ROADMAP G1 行 T3.1 根除标注（本次已补）
