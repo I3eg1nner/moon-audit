@@ -64,6 +64,8 @@ pub fn confidence_from_str(String) -> Confidence
 
 pub fn confidence_str(Confidence) -> String
 
+pub fn constraints_from_trace(Array[Stmt], Array[PTConstraint]) -> Unit
+
 pub fn cwe022_info() -> RuleInfo
 
 pub fn cwe079_cmark_info() -> RuleInfo
@@ -228,6 +230,8 @@ pub fn poc_type_str(PoCType) -> String
 
 pub fn project_trait_params(FnSig) -> Array[IRType?]
 
+pub fn pt_node_show(String) -> String
+
 pub fn risk_level(Double) -> String
 
 pub fn risk_score(ScanSummary) -> Double
@@ -289,6 +293,8 @@ pub fn severity_str(Severity) -> String
 pub fn sig_arrow_args(PkgSymbols, String) -> Array[Array[IRType?]]?
 
 pub fn sig_trait_params(PkgSymbols, String) -> Array[IRType?]?
+
+pub fn solve_pt_constraints(Array[PTConstraint], budget? : Int) -> PTSolution
 
 pub fn store_fn_sig(PkgSymbols, String, FnSig) -> Unit
 
@@ -512,6 +518,23 @@ pub(all) struct OwaspStat {
   count : Int
   cwe_ids : Array[Int]
 }
+
+pub(all) enum PTConstraint {
+  PTAlloc(String, String)
+  PTCopy(String, String)
+  PTStore(String, String, String)
+  PTLoad(String, String, String)
+} derive(@debug.Debug)
+
+pub(all) struct PTSolution {
+  pts : Map[String, Map[String, Bool]]
+  fstore : Map[String, Map[String, Bool]]
+  iterations : Int
+  converged : Bool
+}
+pub fn PTSolution::contains(Self, String, String) -> Bool
+pub fn PTSolution::fstore_of(Self, String, String) -> Array[String]
+pub fn PTSolution::pts_of(Self, String) -> Array[String]
 
 pub(all) struct PkgFiles {
   dir : String

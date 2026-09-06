@@ -206,7 +206,14 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       未竟：错误载荷摘要通道、ret_from 依赖顺序（单向收集，SCC 迭代在 T4.2），
       短名摘要键跨类型碰撞待 T1.4 限定身份
 - [x] T4.2 递归求解（薄切 2026-09-06）：**摘要收集消费被调摘要**（ret_from 精化 + param_sinks 传递投影，仅收集期、扫描期不变）；Tarjan SCC 调用图（fn 短名邻接，外部边丢弃、Type::method 回退短键）自底向上发射；环 SCC 按 |SCC|+2 预算迭代至并格不动点，超限计数 `not_converged` 进 analysis-scope 披露（`summary-scc-not-converged=N(measured)`）；scanner 固定两遍（P3 预收集+扫描内重收集）废除为全局单次 SCC 求解——**修复实况**：初版 Tarjan 树边回写覆盖而非取 min，DAG 调用方 SCC 静默丢失（探针定位）；直接/相互递归的既有通过实为 args-union 兜底而非消费路径（测试仍有效，但区分已由 DAG/传递用例锁定）；验收 t42_*×5：直接递归/相互递归/DAG 顺序无关+幂等/传递 sink 收敛/外部边丢弃（251/251；三目标 FP 0；crescent 5 稳定；ir-stats/call-graph 双二进制 4/4 SAME——摘要变化不影响静态解析）
-- [ ] T4.3 基础指针约束：分配/赋值/字段读写/容器元素/参数/返回值/闭包环境；
+- [~] T4.3 基础指针约束（薄切 1/2, 2026-09-06）：src/points_to.mbt 数据层——
+      PTAlloc/PTCopy(Subset,含 ParamToParam 的 fn@f.paramN 编码)/PTStore/PTLoad
+      四约束 + **真 worklist Andersen 求解器**（dirty-node 传播、evals 计数、预算
+      耗尽 converged=false 强制披露）+ 基线 Stmt 纯生成器（CallStmt→参数传递/
+      BindVar·Assign→别名/位置键投影；暂未接线，零行为变化，pt_*×5 单测：
+      字面量分配/别名链收敛/参数形态/字段读写往返/预算耗尽）
+      ——剩余（薄切 2/2）：从 taint walk 生成站点约束（含分配点节点身份）、
+      容器元素/闭包环境约束、指向集驱动 dispatch（T4.4）
       分配点用节点身份而非文件行号
 - [ ] T4.4 动态发现目标：接收者与闭包指向集产生调用边，新边产生新约束；
       trait/泛型实例/用户回调参与联动
