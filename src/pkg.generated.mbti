@@ -22,6 +22,8 @@ pub fn analyze_imports(String) -> ImportContext
 
 pub fn analyze_mod_imports(String) -> ImportContext
 
+pub fn append_ruleset(TaintRuleset, TaintRuleset, String, Array[String]) -> Unit
+
 pub fn build_summary(ScanResult, Array[RuleInfo]) -> ScanSummary
 
 pub fn builtin_model_names() -> Array[String]
@@ -208,7 +210,7 @@ pub fn load_llm_config(String) -> LLMConfig
 
 pub fn load_program_world(String, Config, with_symbols? : Bool, conservative_alias? : Bool) -> ProgramWorld
 
-pub fn load_taint_rules(String) -> (TaintRuleset, String)
+pub fn load_taint_rules(String) -> (TaintRuleset, String, Array[String])
 
 pub fn loop_budget_reset() -> Unit
 
@@ -224,6 +226,8 @@ pub fn parse_llm_response(Finding, String) -> LLMAnalysisResult?
 
 pub fn parse_report_findings(String) -> Array[PrevFinding]
 
+pub fn parse_ruleset_json(Json, String, Array[String]) -> TaintRuleset
+
 pub fn parse_type_expr(String) -> IRType
 
 pub fn poc_type_str(PoCType) -> String
@@ -231,6 +235,8 @@ pub fn poc_type_str(PoCType) -> String
 pub fn project_trait_params(FnSig) -> Array[IRType?]
 
 pub fn pt_node_show(String) -> String
+
+pub fn resolve_extends(TaintRuleset, String, Array[String], Array[String]) -> Unit
 
 pub fn risk_level(Double) -> String
 
@@ -725,7 +731,7 @@ pub(all) struct TaintMethodRule {
   method_name : String
   kind : String
   value_slot : Int
-} derive(@debug.Debug)
+} derive(Eq, @debug.Debug)
 
 pub(all) struct TaintRuleset {
   sources : Array[TaintMethodRule]

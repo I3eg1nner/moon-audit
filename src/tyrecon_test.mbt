@@ -778,7 +778,7 @@ test "taint_dsl_load_from_file" {
   ) catch {
     _ => ()
   }
-  let (rs, source) = load_taint_rules(dir)
+  let (rs, source, _) = load_taint_rules(dir)
   inspect(source, content=f)
   inspect(rs.sources.length(), content="1")
   inspect(rs.sinks.length(), content="1")
@@ -791,7 +791,7 @@ test "taint_dsl_load_from_file" {
 
 ///|
 test "taint_dsl_no_file_is_builtin" {
-  let (rs, source) = load_taint_rules(test_tmp("definitely_missing_dir_xyz"))
+  let (rs, source, _) = load_taint_rules(test_tmp("definitely_missing_dir_xyz"))
   inspect(source, content="built-in defaults")
   inspect(rs.size(), content="0")
 }
@@ -998,7 +998,7 @@ test "gate4_extends_combined_path_applies_model" {
   @fs.write_string_to_file(f, "{\"taint\": {\"extends\": [\"mongoose\"]}}") catch {
     _ => ()
   }
-  let (rs, source) = load_taint_rules(dir)
+  let (rs, source, _) = load_taint_rules(dir)
   inspect(source, content=f + " [taint section]")
   // mongoose model entries are live via the combined path
   inspect(rs.source_hit("body"), content="true")
@@ -1011,7 +1011,7 @@ test "gate4_extends_combined_path_alert_e2e" {
   let src = "pub fn handle(req : Req, id : Bytes) -> Unit { ws_send_native(id, req.body()) }"
   let (impls, _) = @parser.parse_string(src, name="t.mbt")
   let dir = test_tmpc("gate4_combined_test")
-  let (rules, _) = load_taint_rules(dir)
+  let (rules, _, _) = load_taint_rules(dir)
   let findings : Array[Finding] = []
   run_cwe113(
     impls,
@@ -1030,7 +1030,7 @@ test "gate4_extends_with_extern_decl_e2e" {
   let src = "extern \"c\" fn ws_send_native(a : Bytes, b : Bytes) -> Unit = \"ws_send_native\" pub fn handle(req : Req, id : Bytes) -> Unit { ws_send_native(id, req.body()) }"
   let (impls, _) = @parser.parse_string(src, name="t.mbt")
   let dir = test_tmpc("gate4_combined_test")
-  let (rules, _) = load_taint_rules(dir)
+  let (rules, _, _) = load_taint_rules(dir)
   let findings : Array[Finding] = []
   run_cwe113(
     impls,
@@ -1092,7 +1092,7 @@ test "libmodel_v2_callback_timing_and_trait_edges_parse" {
   ) catch {
     _ => ()
   }
-  let (rs, source) = load_taint_rules(dir)
+  let (rs, source, _) = load_taint_rules(dir)
   inspect(source, content=f)
   // v1 array form stays v1-compatible: callback registered, timing defaults Immediate
   inspect(rs.callbacks.length(), content="2")

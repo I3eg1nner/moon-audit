@@ -361,7 +361,7 @@ fn cmd_list_rules() -> Unit {
   println("Rules marked (off) require project-level context and have higher")
   println("false-positive risk. Enable them in .moon-audit.json when needed.")
   // Taint rule DSL: show the effective taint vocabulary source
-  let (rs, source) = @audit.load_taint_rules(".")
+  let (rs, source, _) = @audit.load_taint_rules(".")
   println("")
   println("Taint rule vocabulary:")
   println("  source:      " + source)

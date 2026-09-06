@@ -79,7 +79,7 @@ pub fn load_program_world(
     }
     collect_dep_symbols(root, symbols)
     collect_mbti_dir(root, symbols)
-    let (lib_rs, _) = load_taint_rules(root)
+    let (lib_rs, _, _) = load_taint_rules(root)
     lib_rs.apply_to_symbols(symbols)
     symbols.alias_mode = conservative_alias
   }

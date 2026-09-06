@@ -10,7 +10,7 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
   let mod_imports = analyze_mod_imports(root)
   // Taint rule DSL: project-root taint-rules.json (or .moon-audit.json
   // "taint" section) ADDs sources/sinks/sanitizers to the built-in tables
-  let (taint_rules, _taint_source) = load_taint_rules(root)
+  let (taint_rules, _taint_source, model_warnings) = load_taint_rules(root)
   let interproc_ctx = InterProceduralContext::new()
   let mut has_web = false
   let incremental = config.changed_files.length() > 0
@@ -117,6 +117,7 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
       incremental,
       entry_stats_line(world),
       interproc_ctx.not_converged,
+      model_warnings.length(),
     ),
   }
 }
@@ -128,6 +129,7 @@ fn build_analysis_scope(
   incremental : Bool,
   entries : String, // T1.5 entry stats line (pkg-level; fn-level if symbols)
   summary_not_converged : Int, // T4.2: cyclic SCCs that exhausted the budget
+  model_warnings : Int, // T5.1: parse/merge warnings from the rule pipeline
 ) -> String {
   // T0.4: scan-scope disclosure. Minimal fields implemented: analyzer/
   // frontend version, excludes, parse-failure count. Reserved fields
@@ -151,7 +153,9 @@ fn build_analysis_scope(
   loop_budget.exhausted.to_string() +
   "(measured, env possibly incomplete beyond cap); summary-scc-not-converged=" +
   summary_not_converged.to_string() +
-  "(measured); incremental=" +
+  "(measured); model-warnings=" +
+  model_warnings.to_string() +
+  "(measured, T5.1 pipeline); incremental=" +
   (if incremental { "true" } else { "false" }) +
   "; " +
   entries +

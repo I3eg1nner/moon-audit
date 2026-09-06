@@ -56,7 +56,25 @@ CRLF 剥离链判定（`replace_all` old/new 槽位语义）**暂不开放配置
 
 | 键 | 说明 |
 |---|---|
-| `extends` | 内置模型名（现内置 `mongoose`，见 docs/ir/libmodels/mongoose.json）；用户模型放 `<项目根>/libmodels/<name>.json`，优先于内置。未知名静默忽略 |
+| `extends` | 内置模型名（现内置 `mongoose`，见 docs/ir/libmodels/mongoose.json）；用户模型放 `<项目根>/libmodels/<name>.json`，优先于内置。未知名产生 model-warning（不再静默） |
+
+## T5.1 统一解析与合并语义（三入口单管线）
+
+三个入口走**同一条** `parse_ruleset_json` + `append_ruleset` 管线：
+`taint-rules.json` 专用文件 / `.moon-audit.json` 的 `taint` 节 / `extends` 模型（用户 `libmodels/*.json` 优先，内置次之）。
+
+**冲突与合并规则（per-field）**：
+
+| 字段 | 语义 |
+|---|---|
+| `sources`/`sinks`/`sanitizers` | ADD-only；跨入口完全重复的规则去重为一条 |
+| `types` | 同名键不同值 → **后合并者胜**并产生 `conflict: types['k'] ... (last wins)` 警告；同值静默保留一条 |
+| `callbacks` | 数组形与 v2 对象形（`{"slots":[...],"timing":"deferred"}`）在**所有入口**等价解析；同槽位完全重复去重 |
+| `cb_timing` | 同名不同 timing → 后者胜 + 警告 |
+| `trait_edges` | `(method, trait_method)` 对去重；v2 字段在 extends 路径同样存活（T5.1 修复的漂移点） |
+| `extends` | 递归解析（模型可 extends 模型，搜索目录=其 libmodels 的父目录）；**环检测**（`extends cycle detected` 警告并跳过）；嵌套模型先解析完自身 extends 再整体合并一次 |
+
+**未知字段**：任何层级的未知字段（顶层/规则对象/v2 回调/trait_edge 条目）产生 `unknown field '<k>'` 警告——**不静默丢弃**；scan 输出的 `analysis-scope` 披露 `model-warnings=N(measured, T5.1 pipeline)`。
 | `types` | 函数 → 返回类型表达式（`Server`、`Map[Int, String]`、`@pkg.Name`）——注册进符号表供 ir-stats/call-graph 解析 FFI 链 |
 | `callbacks` | 高阶方法回调形参占位符：`K`/`V`/`E` 从接收者泛型实参解析，其余按类型表达式解析 |
 | sink `kind: "Output"` | 输出通道 sink → **CWE-116/tainted-output**（新规则，默认开启；仅由模型/DSL 触发，无配置项目不受影响；`value_slot` 指定污点实参位） |

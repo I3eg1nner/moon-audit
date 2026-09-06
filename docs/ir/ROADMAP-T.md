@@ -233,7 +233,10 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 
 ## T5 可执行的官方库模型与安全规则（贯穿 T1~T4）
 
-- [ ] T5.1 统一模型解析：内联/独立配置/extends 共用同一解析与校验（修 G7）；
+- [x] T5.1 统一模型解析（2026-09-06）：三入口单一 parse_ruleset_json + append_ruleset 管线；
+      修 G7（extends 路径 v2 回调/trait_edges/嵌套 extends 此前被 divergent 副本丢弃——判别性测试锁定）；
+      冲突语义文档化（RULES-DSL.md per-field 表）；未知字段→model-warnings 披露（analysis-scope 计数）；
+      extends 环检测；嵌套模型搜索目录修复（libmodels 父目录）。5 单测 t51_*；
       T 占位符修复；未知字段与未支持语义不静默丢弃
 - [ ] T5.2 优先覆盖 core：Array/Map/Ref、Option/Result、字符串与字节转换，
       再迭代器；描述真实读写/返回/捕获/trait 再入

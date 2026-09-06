@@ -56,63 +56,20 @@ pub fn builtin_model_names() -> Array[String] {
 
 ///|
 pub fn extend_ruleset_with_model(rs : TaintRuleset, name : String) -> Bool {
+  // T5.1: built-in models go through the SAME parse/merge pipeline as
+  // user models and the inline/dedicated entries (single code path).
   let json_text = match builtin_model_json(name) {
     Some(t) => t
-    None =>
-      // user model: <cwd or target>/libmodels/<name>.json — resolved by
-      // the caller (load_taint_rules) which knows the project root
-      return false
+    None => return false
   }
+  let warnings : Array[String] = []
   let j = @json.parse(json_text) catch { _ => return false }
-  merge_model_json(rs, j)
-}
-
-///|
-fn merge_model_json(rs : TaintRuleset, j : Json) -> Bool {
-  match j {
-    Object(obj) => {
-      for r in parse_rule_array(obj.get("sources")) {
-        rs.sources.push(r)
-      }
-      for r in parse_rule_array(obj.get("sinks")) {
-        rs.sinks.push(r)
-      }
-      for r in parse_rule_array(obj.get("sanitizers")) {
-        rs.sanitizers.push(r)
-      }
-      match obj.get("types") {
-        Some(Object(types)) =>
-          types.each(fn(k, v) {
-            match v {
-              String(s) => rs.fn_types.push((k, s))
-              _ => ()
-            }
-          })
-        _ => ()
-      }
-      match obj.get("callbacks") {
-        Some(Object(cbs)) =>
-          cbs.each(fn(k, v) {
-            match v {
-              Array(arr) => {
-                let placeholders : Array[String] = []
-                for item in arr {
-                  match item {
-                    String(s) => placeholders.push(s)
-                    _ => ()
-                  }
-                }
-                rs.callbacks.push((k, placeholders))
-              }
-              _ => ()
-            }
-          })
-        _ => ()
-      }
-      true
-    }
-    _ => false
+  let ext = parse_ruleset_json(j, "builtin:" + name, warnings)
+  if ext.size() == 0 {
+    return false
   }
+  append_ruleset(rs, ext, "builtin:" + name, warnings)
+  true
 }
 
 // ── type expression parser: "Map[Int, String]" -> IRConcrete ─────────────
