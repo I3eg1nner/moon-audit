@@ -265,8 +265,15 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 
 ## T6 分析框架化（从扫描器到平台）
 
-- [ ] T6.1 分析注册与依赖管理：分析 ID/配置/依赖/运行范围声明，自动调度
-- [ ] T6.2 统一结果访问：程序级/函数级结果稳定接口；CLI 不各自维护事实来源
+- [x] T6.1 分析注册与依赖管理：分析 ID/配置/依赖/运行范围声明，自动调度
+      （薄切：AnalysisId{TaintFlow,CallGraph,PointsTo,LiveVars} + AnalysisSpec{deps,run}
+      + AnalysisRegistry.run_all —— 依赖闭包/拓扑排序/memoize；三测试锁定
+      t6_registry_dependency_order / _result_sharing_runs_once / _unknown_id_errors）
+- [~] T6.2 统一结果访问：程序级/函数级结果稳定接口；CLI 不各自维护事实来源
+      （薄切：scan 与 call-graph CLI 已改经 registry 请求（行为零变化，双二进制
+      mocket/petgraph scan+cg+ir-stats 6/6 SAME）；薄切边界——适配层复用整项目
+      入口点，各适配器可能重复走 load_program_world（单事实源不变），
+      ir-stats/live-vars 仍直连，深化=直接传 world 进各引擎）
 - [ ] T6.3 插件扩展点：库模型/回调/错误/污点插件响应新调用边/新对象/新指向事实
       （对齐 Tai-e 指针分析插件机制）
 - [ ] T6.4 调试能力：导出 HIR/CFG/调用图/指向集/摘要/分析计划；

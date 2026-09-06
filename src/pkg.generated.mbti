@@ -98,6 +98,8 @@ pub fn cwe770_info() -> RuleInfo
 
 pub fn cwe942_info() -> RuleInfo
 
+pub fn default_registry(conservative_alias? : Bool) -> AnalysisRegistry
+
 pub fn dep_canonical_pkg(String) -> String
 
 pub fn derive_identities(PkgSymbols) -> WorldIdentities
@@ -317,6 +319,34 @@ pub fn world_pkg_imports(ProgramWorld, String) -> Array[String]
 // Errors
 
 // Types and methods
+pub(all) enum AnalysisId {
+  TaintFlow
+  CallGraph
+  PointsTo
+  LiveVars
+} derive(Eq, Hash, @debug.Debug)
+pub fn AnalysisId::display(Self) -> String
+
+pub(all) struct AnalysisRegistry {
+  specs : Map[AnalysisId, AnalysisSpec]
+}
+pub fn AnalysisRegistry::new() -> Self
+pub fn AnalysisRegistry::register(Self, AnalysisSpec) -> Unit
+pub fn AnalysisRegistry::run_all(Self, Array[AnalysisId], ProgramWorld) -> Result[Map[AnalysisId, AnalysisResult], String]
+
+pub(all) enum AnalysisResult {
+  TaintFlowR(ScanResult)
+  CallGraphR(CallGraph)
+  PointsToR(PTWorldSummary)
+  LiveVarsR(LiveWorldSummary)
+}
+
+pub(all) struct AnalysisSpec {
+  id : AnalysisId
+  deps : Array[AnalysisId]
+  run : (ProgramWorld) -> AnalysisResult
+}
+
 pub(all) struct BaselineDiff {
   new_findings : Array[Finding]
   resolved : Array[PrevFinding]
@@ -517,6 +547,12 @@ pub(all) struct LiveVarsSummary {
 }
 pub fn LiveVarsSummary::dead_ratio(Self) -> Int
 
+pub(all) struct LiveWorldSummary {
+  fn_count : Int
+  total_decls : Int
+  dead : Int
+}
+
 pub(all) struct Location {
   file : String
   line : Int
@@ -545,6 +581,12 @@ pub(all) struct PTSolution {
 pub fn PTSolution::contains(Self, String, String) -> Bool
 pub fn PTSolution::fstore_of(Self, String, String) -> Array[String]
 pub fn PTSolution::pts_of(Self, String) -> Array[String]
+
+pub(all) struct PTWorldSummary {
+  fn_count : Int
+  constraint_count : Int
+  nodes_with_pts : Int
+}
 
 pub(all) struct PkgFiles {
   dir : String

@@ -477,7 +477,17 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     }
     println("")
   }
-  let result = @audit.scan_project(path, config)
+  // T6.2: request via the analysis registry (behavior-identical adapter)
+  let taint_world = @audit.load_program_world(path, config)
+  let taint_registry = @audit.default_registry()
+  let result = match taint_registry.run_all([@audit.TaintFlow], taint_world) {
+    Ok(results) =>
+      match results.get(@audit.TaintFlow) {
+        Some(@audit.TaintFlowR(r)) => r
+        _ => @audit.scan_project(path, config)
+      }
+    Err(_) => @audit.scan_project(path, config)
+  }
   let baseline_path = get_opt(matches, "baseline")
   let baseline = match baseline_path {
     Some(bp) => @audit.load_baseline(bp)
@@ -1294,7 +1304,19 @@ fn cmd_call_graph(matches : @argparse.Matches) -> Unit {
     Some(v) => v
     None => false
   }
-  let cg = @audit.run_call_graph(path, config, conservative_alias=conservative)
+  // T6.2: request via the analysis registry (behavior-identical adapter)
+  let cg_world = @audit.load_program_world(path, config)
+  let cg_registry = @audit.default_registry(conservative_alias=conservative)
+  let cg = match cg_registry.run_all([@audit.CallGraph], cg_world) {
+    Ok(results) =>
+      match results.get(@audit.CallGraph) {
+        Some(@audit.CallGraphR(c)) => c
+        _ =>
+          @audit.run_call_graph(path, config, conservative_alias=conservative)
+      }
+    Err(_) =>
+      @audit.run_call_graph(path, config, conservative_alias=conservative)
+  }
   println(
     "alias mode: " +
     (if conservative {
