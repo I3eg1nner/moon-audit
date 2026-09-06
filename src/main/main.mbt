@@ -1112,6 +1112,8 @@ fn cmd_ir_stats(matches : @argparse.Matches) -> Unit {
     pct(stats.receiver_resolved, stats.receiver_calls) +
     ")  dispatch " +
     stats.receiver_dispatch.to_string() +
+    "  pt-resolved " +
+    stats.pt_resolved_dispatch().to_string() +
     "  unknown " +
     stats.receiver_unknown.to_string(),
   )
@@ -1308,6 +1310,13 @@ fn cmd_call_graph(matches : @argparse.Matches) -> Unit {
     "  (devirtualized via impl enumeration)",
   )
   println("unresolved edges:  " + cg.unresolved.length().to_string())
+  // T4c-2: dispatch sites whose candidate set was REFINED by the
+  // receiver's points-to types (intersection with impl enumeration)
+  println(
+    "pt-resolved dispatch: " +
+    cg.pt_resolved_sites.to_string() +
+    "  (receiver points-to types narrowed the target set)",
+  )
   // T0.2: candidate-edge sets are reported separately from bound edges;
   // the legacy single 'edge coverage' percentage mixed candidate edges
   // into the numerator and is removed (review counterexample: 1 of 2

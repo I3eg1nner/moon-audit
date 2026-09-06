@@ -94,6 +94,8 @@ pub(all) struct CallSiteStat {
   caller : String
   file : String
   line : Int
+  recv_var : String // T4c-2: receiver variable name at dispatch sites
+  recv_pt : Array[String] // T4c-2: receiver points-to TYPES (per-fn solve)
   kind : String // "static" | "receiver" | "higher"
   resolved : Bool
   target : String // best-known callee identity
@@ -367,6 +369,7 @@ priv struct ScanCtx {
   mut last_key : String // receiver key recorded by infer_dot_apply
   mut last_recv_ty : IRType // receiver parametric type (builtin callback hints)
   mut cur_fn : String // enclosing function name (call graph caller)
+  pt_constraints : Array[PTConstraint] // T4c-2: per-fn slice solved at exit
   // M4-lite: var-name -> closure allocation site (params/body reference)
   closure_sites : Map[String, ClosureSite]
   mut pending_closure : String? // set by infer_apply, consumed by Apply arm
@@ -410,6 +413,7 @@ pub fn scan_package_calls(
     last_key: "?",
     last_recv_ty: IRUnresolved,
     cur_fn: "<top>",
+    pt_constraints: [],
     closure_sites: Map([]),
     pending_closure: None,
     pkg_alias: match pkg_alias {
@@ -516,6 +520,9 @@ fn scan_params_body(
   ctx : ScanCtx,
   hints? : Array[IRType?],
 ) -> Unit {
+  // T4c-2: remember slice boundaries before the walk
+  let pt_constraints_start = ctx.pt_constraints.length()
+  let sites_start = ctx.stats.sites.length()
   let saved : Array[(String, IRType)] = []
   let hint_arr : Array[IRType?] = match hints {
     Some(h) => h
@@ -541,6 +548,8 @@ fn scan_params_body(
     i += 1
   }
   let _ = infer_expr(body, ctx)
+  // T4c-2: solve this function's constraint slice, fill dispatch recv_pt
+  pt_solve_fill(ctx, pt_constraints_start, sites_start)
   restore_env(saved, ctx)
 }
 
@@ -1138,6 +1147,7 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
       if !closure_case {
         let t = infer_expr(expr, ctx)
         bind_pattern(pattern, t, ctx)
+        pt_emit_binding(pattern, expr, t, ctx)
       }
       infer_expr(body, ctx)
     }
@@ -1147,6 +1157,12 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
         Some(t2) => ctx.env[binder.name] = type_to_ir(t2, ctx.symbols)
         None => ctx.env[binder.name] = t
       }
+      pt_emit_binding(
+        Var(binder),
+        expr,
+        ctx.env.get(binder.name) |> or_unresolved,
+        ctx,
+      )
       infer_expr(body, ctx)
     }
     Sequence(exprs~, last_expr~, ..) => {
@@ -1768,13 +1784,21 @@ fn infer_dot_apply(
         false,
         "dyn " + t + "::" + mname,
         "trait:" + t,
+        recv_var=recv_var_of(recv),
       )
       ctx.stats.receiver_dispatch += 1
       IRUnresolved
     }
     IRTypeParam(p) => {
       ctx.last_recv_ty = IRUnresolved
-      record_site_recv(ctx, recv, false, "T:" + p + "::" + mname, "T:" + p)
+      record_site_recv(
+        ctx,
+        recv,
+        false,
+        "T:" + p + "::" + mname,
+        "T:" + p,
+        recv_var=recv_var_of(recv),
+      )
       ctx.stats.receiver_dispatch += 1
       IRUnresolved
     }
@@ -1804,6 +1828,8 @@ fn record_site(
     resolved,
     target,
     recv_ty: "",
+    recv_var: "",
+    recv_pt: [],
   })
 }
 
@@ -1814,6 +1840,7 @@ fn record_site_recv(
   resolved : Bool,
   target : String,
   recv_ty : String,
+  recv_var? : String = "",
 ) -> Unit {
   ctx.stats.sites.push({
     caller: ctx.cur_fn,
@@ -1823,7 +1850,106 @@ fn record_site_recv(
     resolved,
     target,
     recv_ty,
+    recv_var,
+    recv_pt: [],
   })
+}
+
+// T4c-2: solve this function's constraint slice and fill recv_pt on the
+// dispatch sites it produced (non-empty TYPE set => refinement input)
+
+///|
+fn pt_solve_fill(ctx : ScanCtx, c_start : Int, s_start : Int) -> Unit {
+  if ctx.pt_constraints.length() == c_start {
+    return // nothing observable this function
+  }
+  let slice : Array[PTConstraint] = []
+  for i in c_start..<ctx.pt_constraints.length() {
+    slice.push(ctx.pt_constraints[i])
+  }
+  // reset the accumulator: constraints are per-function (no cross-fn flow
+  // in the thin slice; interprocedural propagation is T4.4)
+  ctx.pt_constraints.clear()
+  let sol = solve_pt_constraints(slice)
+  let mut i = s_start
+  while i < ctx.stats.sites.length() {
+    let site = ctx.stats.sites[i]
+    if site.kind == "receiver" && site.recv_var != "" {
+      let sites_set = sol.pts_of(site.recv_var)
+      let tys : Array[String] = []
+      for s in sites_set {
+        // site names are "Type@s<var>" — keep the type segment
+        let at = find_last(s, "@s")
+        if at > 0 {
+          let tyname = Show::to_string(s[:at])
+          if !tys.contains(tyname) {
+            tys.push(tyname)
+          }
+        }
+      }
+      ctx.stats.sites[i] = { ..site, recv_pt: tys, }
+    }
+    i += 1
+  }
+}
+
+// T4c-2: emit per-function points-to constraints for simple var bindings
+//   x = <concrete-typed RHS>  ->  PTAlloc(x, "Type@s<N>")
+//   x = y                     ->  PTCopy(x, y)   (flow-insensitive, per-fn)
+
+///|
+fn pt_emit_binding(
+  pattern : @syntax.Pattern,
+  rhs : @syntax.Expr,
+  t : IRType,
+  ctx : ScanCtx,
+) -> Unit {
+  match pattern {
+    Var(binder) => {
+      let v = binder.name
+      match t {
+        IRConcrete(name, _) =>
+          ctx.pt_constraints.push(PTAlloc(v, name + "@s" + v))
+        _ =>
+          // var-to-var alias: copy whatever y may point to
+          match rhs {
+            Ident(id~, ..) =>
+              match id.name {
+                Ident(name~) => ctx.pt_constraints.push(PTCopy(v, name))
+                Dot(..) => ()
+              }
+            Constraint(expr~, ..) =>
+              match expr {
+                Ident(id~, ..) =>
+                  match id.name {
+                    Ident(name~) => ctx.pt_constraints.push(PTCopy(v, name))
+                    Dot(..) => ()
+                  }
+                _ => ()
+              }
+            _ => ()
+          }
+      }
+    }
+    _ => ()
+  }
+}
+
+// T4c-2: the source-level variable behind a receiver expression
+// (Constraint/Group wrappers peeled; only plain Idents qualify)
+
+///|
+fn recv_var_of(expr : @syntax.Expr) -> String {
+  match expr {
+    Ident(id~, ..) =>
+      match id.name {
+        Ident(name~) => name
+        Dot(..) => ""
+      }
+    Constraint(expr~, ..) => recv_var_of(expr)
+    Group(expr~, ..) => recv_var_of(expr)
+    _ => ""
+  }
 }
 
 ///|
@@ -2470,6 +2596,7 @@ pub(all) struct CallGraph {
   bound_sites : Int // T0.2: sites with a unique known target
   candidate_sites : Int // sites expanded into candidate sets (dispatch)
   unresolved_sites : Int // sites with no target at all
+  pt_resolved_sites : Int // T4c-2: dispatch sites REFINED by receiver pts
 }
 
 ///|
@@ -2552,7 +2679,13 @@ pub fn run_call_graph(
   // R7: returns true iff a NON-EMPTY target set was produced — callers
   // classify by the RESULT, never before resolving (an empty candidate set
   // is unknown/no-impls, not covered).
-  let resolve_dispatch = fn(dyn_target : String, caller : String) -> Bool {
+  // T4c-2: receiver pts TYPES refine the candidate set — when non-empty,
+  // the target set is the intersection with the receiver's points-to types
+  let resolve_dispatch = fn(
+    dyn_target : String,
+    caller : String,
+    recv_pt : Array[String],
+  ) -> Bool {
     // dyn_target = "Alpha::act" or "pkg::Alpha::act" (dyn prefix removed)
     let mname = last_segment(dyn_target)
     let midx = find_last(dyn_target, "::")
@@ -2575,8 +2708,23 @@ pub fn run_call_graph(
     }
     match targets {
       Some(self_tys) => {
+        let refined = if recv_pt.length() > 0 {
+          let keep : Array[String] = []
+          for st in self_tys {
+            if recv_pt.contains(st) {
+              keep.push(st)
+            }
+          }
+          if keep.length() > 0 {
+            keep
+          } else {
+            self_tys
+          } // no empty by pt
+        } else {
+          self_tys
+        }
         let mut n = 0
-        for st in self_tys {
+        for st in refined {
           dispatch_edges.push(caller + " -> " + st + "::" + mname)
           n += 1
         }
@@ -2591,6 +2739,7 @@ pub fn run_call_graph(
   let mut bound_sites = 0
   let mut candidate_sites = 0
   let mut unresolved_sites = 0
+  let mut pt_resolved_sites = 0
   for site in stats.sites {
     let clean_target = site.target
       .replace(old=" (unconfirmed)", new="")
@@ -2600,8 +2749,15 @@ pub fn run_call_graph(
         // R7: classify by the RESOLVED non-empty target set — resolve
         // first, count second; empty set → unknown(no-impls), never
         // candidate, and a site is never both candidate and unresolved
-        if resolve_dispatch(Show::to_string(clean_target[4:]), site.caller) {
+        if resolve_dispatch(
+            Show::to_string(clean_target[4:]),
+            site.caller,
+            site.recv_pt,
+          ) {
           candidate_sites += 1
+          if site.recv_pt.length() > 0 {
+            pt_resolved_sites += 1
+          }
         } else {
           unresolved_sites += 1
         }
@@ -2610,15 +2766,25 @@ pub fn run_call_graph(
         edges.push(site.caller + " -> " + clean_target)
       }
     } else if site.target.has_prefix("dyn ") {
-      if resolve_dispatch(Show::to_string(site.target[4:]), site.caller) {
+      if resolve_dispatch(
+          Show::to_string(site.target[4:]),
+          site.caller,
+          site.recv_pt,
+        ) {
         candidate_sites += 1
+        if site.recv_pt.length() > 0 {
+          pt_resolved_sites += 1
+        }
       } else {
         unresolved_sites += 1
       }
     } else if site.kind == "receiver" && site.recv_ty.has_prefix("trait:") {
       // receiver typed as a trait object: use its trait identity
-      if resolve_dispatch(clean_target, site.caller) {
+      if resolve_dispatch(clean_target, site.caller, site.recv_pt) {
         candidate_sites += 1
+        if site.recv_pt.length() > 0 {
+          pt_resolved_sites += 1
+        }
       } else {
         unresolved_sites += 1
       }
@@ -2634,6 +2800,7 @@ pub fn run_call_graph(
     bound_sites,
     candidate_sites,
     unresolved_sites,
+    pt_resolved_sites,
   }
 }
 
@@ -2935,4 +3102,17 @@ fn lib_callback_params(
   }
   // slot 0 = receiver (convention shared with builtin_callback_params)
   Some([[None], hints])
+}
+
+// T4c-2: sites whose receiver points-to TYPE set is known (ir-stats line)
+
+///|
+pub fn IRStatsResult::pt_resolved_dispatch(self : IRStatsResult) -> Int {
+  let mut n = 0
+  for site in self.sites {
+    if site.kind == "receiver" && site.recv_pt.length() > 0 {
+      n += 1
+    }
+  }
+  n
 }

@@ -1139,6 +1139,7 @@ test "t0_site_coverage_per_site_denominator" {
     bound_sites: 2,
     candidate_sites: 1,
     unresolved_sites: 1,
+    pt_resolved_sites: 0,
   }
   inspect(cg.site_total(), content="4")
   inspect(cg.site_coverage(), content="75") // (2+1)/4 — NOT 3/7 by edges
@@ -1171,4 +1172,44 @@ test "r7_empty_candidate_set_counts_unknown" {
   inspect(cg.dispatch_edges.length(), content="0")
   inspect(cg.candidate_sites, content="0")
   inspect(cg.unresolved_sites, content="1")
+}
+
+///|
+test "t4c2_dispatch_refined_by_receiver_pts" {
+  // non-empty receiver pts narrows the candidate set to B::act only
+  // (both B and C implement Alpha; the receiver var holds a B allocation)
+  let src = "pub trait Alpha { fn act(Self) -> Unit } pub struct B { v : Int } pub struct C { v : Int } pub impl Alpha for B with fn act(self) -> Unit { } pub impl Alpha for C with fn act(self) -> Unit { } pub fn B::make(v : Int) -> B { B::{ v } } pub fn go() -> Unit { let a = B::make(1); ignore((a : &Alpha).act()) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  let stats = IRStatsResult::new()
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  // the dispatch site (a : &Alpha).act() must carry the receiver var + pts
+  let found = stats.sites.any(fn(s) {
+    s.kind == "receiver" &&
+    s.target.has_prefix("dyn Alpha::act") &&
+    s.recv_var == "a" &&
+    s.recv_pt.length() == 1 &&
+    s.recv_pt[0] == "B"
+  })
+  inspect(found, content="true")
+  inspect(stats.pt_resolved_dispatch(), content="1")
+}
+
+///|
+test "t4c2_dispatch_empty_pts_falls_back" {
+  // param typed &Alpha: no allocation in this function -> empty pts ->
+  // enumeration fallback (B and C BOTH remain candidates)
+  let src = "pub trait Alpha { fn act(Self) -> Unit } pub struct B { v : Int } pub struct C { v : Int } pub impl Alpha for B with fn act(self) -> Unit { } pub impl Alpha for C with fn act(self) -> Unit { } pub fn g(a : &Alpha) -> Unit { ignore(a.act()) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  let stats = IRStatsResult::new()
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  let found = stats.sites.any(fn(s) {
+    s.kind == "receiver" &&
+    s.target.has_prefix("dyn Alpha::act") &&
+    s.recv_var == "a" &&
+    s.recv_pt.length() == 0
+  })
+  inspect(found, content="true")
+  inspect(stats.pt_resolved_dispatch(), content="0")
 }
