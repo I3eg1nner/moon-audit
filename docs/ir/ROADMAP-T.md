@@ -276,8 +276,12 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       ir-stats/live-vars 仍直连，深化=直接传 world 进各引擎）
 - [ ] T6.3 插件扩展点：库模型/回调/错误/污点插件响应新调用边/新对象/新指向事实
       （对齐 Tai-e 指针分析插件机制）
-- [ ] T6.4 调试能力：导出 HIR/CFG/调用图/指向集/摘要/分析计划；
+- [~] T6.4 调试能力：导出 HIR/CFG/调用图/指向集/摘要/分析计划；
       诊断能解释"为什么这条边或污点存在"
+      薄切（T6b）：`dump-analyses` 子命令导出六文件集（analysis-plan 依赖拓扑序 /
+      hir-traces / taint-findings / call-graph / points-to / live-vars），每节携带
+      provenance（fn @ file / file:line+rule+fingerprint / iterations+converged）；
+      T4.5 evidence 薄切落地。边界：Stmt 无源码 span，语句级 provenance 留全量
 - 验收：新增分析或库模型不改核心 AST 遍历器；≥2 个分析真正共享基础设施
 
 ## T7 上下文、增量与规模优化

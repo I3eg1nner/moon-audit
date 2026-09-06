@@ -78,11 +78,10 @@ pub fn AnalysisRegistry::register(
 }
 
 ///|
-pub fn AnalysisRegistry::run_all(
+pub fn AnalysisRegistry::plan(
   self : AnalysisRegistry,
   requested : Array[AnalysisId],
-  world : ProgramWorld,
-) -> Result[Map[AnalysisId, AnalysisResult], String] {
+) -> Result[Array[AnalysisId], String] {
   // 1. dependency closure (worklist) — unknown ids raise immediately
   let closure : Array[AnalysisId] = []
   fn push_unique(arr : Array[AnalysisId], id : AnalysisId) -> Unit {
@@ -135,7 +134,20 @@ pub fn AnalysisRegistry::run_all(
     }
     remaining = next
   }
-  // 3. run each exactly once (memoized by construction) in dependency order
+  Ok(order)
+}
+
+///|
+pub fn AnalysisRegistry::run_all(
+  self : AnalysisRegistry,
+  requested : Array[AnalysisId],
+  world : ProgramWorld,
+) -> Result[Map[AnalysisId, AnalysisResult], String] {
+  let order = match self.plan(requested) {
+    Ok(o) => o
+    Err(e) => return Err(e)
+  }
+  // run each exactly once (memoized by construction) in dependency order
   let results : Map[AnalysisId, AnalysisResult] = Map([])
   for id in order {
     let spec = match self.specs.get(id) {

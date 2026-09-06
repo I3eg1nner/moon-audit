@@ -106,6 +106,8 @@ pub fn derive_identities(PkgSymbols) -> WorldIdentities
 
 pub fn diff_findings(Array[Finding], Array[PrevFinding]) -> BaselineDiff
 
+pub fn dump_analyses(String, String, Config, conservative_alias? : Bool) -> Unit
+
 pub fn entry_stats_line(ProgramWorld) -> String
 
 pub fn extend_ruleset_with_model(TaintRuleset, String) -> Bool
@@ -331,6 +333,7 @@ pub(all) struct AnalysisRegistry {
   specs : Map[AnalysisId, AnalysisSpec]
 }
 pub fn AnalysisRegistry::new() -> Self
+pub fn AnalysisRegistry::plan(Self, Array[AnalysisId]) -> Result[Array[AnalysisId], String]
 pub fn AnalysisRegistry::register(Self, AnalysisSpec) -> Unit
 pub fn AnalysisRegistry::run_all(Self, Array[AnalysisId], ProgramWorld) -> Result[Map[AnalysisId, AnalysisResult], String]
 

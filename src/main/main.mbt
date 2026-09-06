@@ -221,6 +221,31 @@ fn main {
         ],
       ),
       @argparse.Command(
+        "dump-analyses",
+        about="T6.4: export analysis results (HIR/call-graph/points-to/live-vars/plan) with provenance",
+        flags=[
+          @argparse.FlagArg(
+            "conservative-alias",
+            long="conservative-alias",
+            about="Enable legacy short-key alias binding (default: strict)",
+          ),
+        ],
+        options=[
+          @argparse.OptionArg(
+            "output",
+            short='o',
+            long="output",
+            about="Output directory for the dump files",
+            default_values=["moon-audit-dump"],
+          ),
+        ],
+        positionals=[
+          @argparse.PositionArg("path", about="Project path to analyze", default_values=[
+            ".",
+          ]),
+        ],
+      ),
+      @argparse.Command(
         "call-graph",
         about="M4 slice: closed-world call graph (CHA + devirtualization)",
         flags=[
@@ -339,6 +364,7 @@ fn main {
     Some(("generate-baseline", sub)) => cmd_generate_baseline(sub)
     Some(("ir-stats", sub)) => cmd_ir_stats(sub)
     Some(("call-graph", sub)) => cmd_call_graph(sub)
+    Some(("dump-analyses", sub)) => cmd_dump_analyses(sub)
     Some(("deep-audit", sub)) => cmd_deep_audit(sub)
     _ => cmd_scan(matches)
   }
@@ -1387,4 +1413,34 @@ fn avg_set_size(cg : @audit.CallGraph) -> String {
     return "0"
   }
   (cg.dispatch_edges.length() / sites).to_string()
+}
+
+///|
+fn cmd_dump_analyses(matches : @argparse.Matches) -> Unit {
+  let path = get_val(matches, "path", ".")
+  let dir = get_val(matches, "output", "moon-audit-dump")
+  let conservative = match matches.flags.get("conservative-alias") {
+    Some(v) => v
+    None => false
+  }
+  println("moon-audit dump-analyses (T6.4 + T4.5 evidence)")
+  println("target: " + path)
+  println("output: " + dir + "/")
+  println("")
+  let config = @audit.Config::default()
+  @audit.dump_analyses(dir, path, config, conservative_alias=conservative)
+  let files = [
+    "analysis-plan.txt", "hir-traces.txt", "taint-findings.txt", "call-graph.txt",
+    "points-to.txt", "live-vars.txt",
+  ]
+  for name in files {
+    let p = @path.Path(dir).join(@path.Path(name)).0
+    let content = @fs.read_file_to_string(p) catch { _ => "" }
+    let lines = content.split("\n").count()
+    println("  " + name + ": " + lines.to_string() + " lines")
+  }
+  println("")
+  println(
+    "done — each section carries provenance (fn @ file / file:line / iterations)",
+  )
 }
