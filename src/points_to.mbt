@@ -8,6 +8,12 @@
 // facts. Site naming follows the G4 heap model convention
 // ("file:line" allocation sites; "fn@f.paramN" / "tN" / decl-key nodes).
 //
+// KNOWN GAP (gate14 P1, ROADMAP T4.3 remaining): the solver does not
+// re-trigger PTLoad when fstore grows (and PTStore is not registered as
+// a reader of its base var) — one-directional propagation. No current
+// producer emits Store/Load constraints, so this is unreachable today;
+// fixing it is a T4.4 prerequisite alongside interprocedural propagation.
+//
 // Constraint semantics (subset-based, field-sensitive):
 //   PTAlloc(v, s)      pts(v) ⊇ {s}
 //   PTCopy(to, from)   pts(to) ⊇ pts(from)        (Subset; also encodes

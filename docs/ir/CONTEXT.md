@@ -754,3 +754,28 @@ LetMut 绑定闭包仍创建期执行 body——均在 ROADMAP T2.5 剩余项。
   ir-stats 不受影响（tyrecon 零改动）
 - 已知边界（登记 ROADMAP T4.1 未竟）：错误载荷通道、SCC 迭代（T4.2）、
   短名摘要键碰撞（T1.4）
+
+## 2026-09-06 · T4 批次收官（integrate13）
+
+**T4.1 ret_from 调用点消费**（`f7f9cf1`）：摘要命中才精化返回值（未解析保持
+args-union 兜底——诚实精化而非全局替换）；判别性测试证明精化真实生效；
+发现 `Type::method` 形态此前从未消费任何摘要通道。**T4.2 SCC 迭代摘要**
+（`d4be787`）：Tarjan SCC + 逆拓扑、环 SCC 按 |SCC|+2 预算迭代至 SecurityFact
+格不动点；初版树边回写覆盖 bug（探针定位）；scanner 固定两遍废除为全局单次
+求解；not_converged 进 scope 披露。**T4.3/T4.4 薄切**（`670aaa5`+`db54c77`+`c664231`）：
+points_to 数据层（四约束+Andersen worklist+预算，零接线）→ 最小接线（分派
+精化：pts 类型集∩impl 枚举，空回退，永不产生空集）；三目标 pt-resolved=0
+（机制正确、语料无触发位，T4.4 过程间传播后预期非零）。
+
+**t4c 超时-拆分-恢复记录**：T4c 单任务 30 分钟超时（7 文件半成品）→ 恢复协议
+（wip/t4c-partial 参考分支 + 回滚 d4be787 基线 251/251）→ 拆两薄段
+（T4c-1 纯数据层零接线 / T4c-2 最小接线）各 25 分钟内交付成功；半成品
+244+/213- 显著重写非照搬（gate14 [5] 验证）。
+
+**gate14 结论**：VERDICT PASS（258/258 × native、12/12 GATE-OK XFAIL=0、
+FP 三目标 0/0/0、pt-resolved 双命令均 0、wip 非整块照搬）；P1（PTStore/PTLoad
+再触发缺口）与 P2（pt-resolved 双口径）已登记 ROADMAP T4.3 剩余项 +
+points_to.mbt 头注释标注。
+
+**T4 批次后格局**：Tai-e 式"指针/调用图/摘要协同"最小骨架已立（T4.1/T4.2/
+T4.3 薄切完成）；T4.4/T4.5（过程间传播、证据来源）为下一批。251→258 测试。

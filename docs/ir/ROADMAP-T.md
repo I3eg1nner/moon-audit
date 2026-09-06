@@ -217,7 +217,14 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       converged=false 强制披露）+ Stmt 纯生成器；pt_*×5 单测（字面量分配/
       别名链收敛/参数形态/字段读写往返/预算耗尽）。
       ——剩余（T4.4）：过程间传播、容器元素/闭包环境约束、站点节点身份
-      分配点用节点身份而非文件行号
+      分配点用节点身份而非文件行号；**PTStore/PTLoad 再触发缺口**（gate14 P1：
+      store 未登记为 value-var 的 reader、fstore 增长不唤醒 load——单向传播；
+      当前无生产者发射 Store/Load 故不触达，已在 points_to.mbt 头注释标注，
+      T4.4 过程间传播的前置修复项）
+      ——pt-resolved 双口径（gate14 P2）：ir-stats 的 pt_resolved_dispatch 统计
+      **所有带 pts 的 receiver 位点**（含具体类型如 `Map([])` 后直接 `.set` 的
+      场景）；call-graph 的 pt_resolved_sites 仅统计 **dyn 分派位点**。三目标
+      实测两者均 0，无解读分歧，但跨命令对比时须按此口径分别解读
 - [ ] T4.4 动态发现目标：接收者与闭包指向集产生调用边，新边产生新约束；
       trait/泛型实例/用户回调参与联动
 - [ ] T4.5 证据来源：数据流事实记录产生位置/调用关系/模型依据，支持跨函数诊断路径
