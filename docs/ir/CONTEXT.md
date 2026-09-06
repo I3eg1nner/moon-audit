@@ -825,3 +825,22 @@ t51 测试路径拼接留待下次触碰。
   ——world 符号构建是主要成本（~50-90%），与 T7.4 剩余项（按需分析）的优化方向一致
 - 过程教训：一次 git checkout -- . 误清了全部 tracked 编辑（Hard Rule 违反），
   以 assert-guarded 单脚本全量重做恢复——无丢失
+## 2026-09-06 · integrate16 终局条目 — T1-T8 薄切全收官
+
+**timing 实测（T7.4，native debug 二进制，单机单次）**
+- mocket scan --mode deep --timing: world-load=1083ms analysis=2984ms output=0ms total=4067ms
+- petgraph ir-stats --timing: world-load=2ms symbols=949ms total=951ms
+- 口径：debug 构建；release + 分档预算（T7.5 quick 默认）后重测
+
+**里程碑总览（T1-T8，全程 16 个工作流、~55 子任务、13 道评审门全 PASS）**
+- 测试 92 → 284（×4 目标）；反例 12/12，XFAIL=0
+- 引擎栈：AST lint → ProgramWorld（统一装载/身份/FnSig/入口）→ HIR 语句层 →
+  SecurityFact 格域 → 流敏感污点（分支堆隔离/闭包快照/错误三出口）→
+  SCC 迭代摘要 + ret_from 消费 → Andersen 约束 + 指向分派 → 库模型管线（回调时机）→
+  分析注册表 + dump 导出 → timing/分档/指纹/属性测试/精度账本
+- 六次语料快照：护栏 0 持续；crescent 5 TP 七次逐行稳定；mars 12 分诊中
+- CI 三平台持续绿；远端推送全程同步
+- 离"Tai-e 级"声明剩余：T4.4 深化、T7.1/7.2、T8.2 动态真值（ROADMAP 终局表已排序）
+
+**编排终记**：每批"薄切实现→评审门（静态+supervisor 代跑动态）→集成收口→CI"；三次 worker 超时
+均以"参考分支+回滚+更薄重启"恢复；门检查修正为双语匹配；CI 差异四形态教训全程有效。
