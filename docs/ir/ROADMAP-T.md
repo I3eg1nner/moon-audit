@@ -82,7 +82,13 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       教训：薄切数据层先行，T1a-2/3 接线）；修正 wip 依赖错误（moon_config 是独立
       模块）；4 个自包含 fixture 单测。CI 教训：world 键已规范化为正斜杠
       （Windows walk_packages 产出反斜杠路径导致查询失配）。覆盖 T1.1 装载 + T1.4 统一入口的数据层部分。
-- [ ] T1a-2 CLI 接线（行为等价验收）/ T1a-3 入口策略分类，随后进入 T1.2 身份。
+- [x] T1a-2（2026-09-05）ir-stats 接线 ProgramWorld：run_ir_stats 改为消费
+      world.packages/symbols/aliases（不再自行重走/重收集，装载管线
+      1→5 由 load_program_world 唯一承载）。等价验收：mocket/petgraph ±0；
+      自举在冻结 dfbbadb 源码上新旧二进制数字完全一致（3966/4445 等），
+      工作树自扫描的 -8 位点差 = 被扫源码自身缩短（run_ir_stats 体变小），
+      非行为变化。禁止项遵守：未动 call-graph/scan。
+- [ ] T1a-3 接线 call-graph+scan（可分段交付），随后进入 T1.2 身份。
 - [ ] T1.1 剩余：目标后端条件进入模型。
 - [ ] T1.1 项目装载：官方 moon_config 处理模块/包/工作区/导入；目标后端、
       测试代码与生产代码范围显式化

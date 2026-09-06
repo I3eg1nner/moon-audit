@@ -1969,41 +1969,30 @@ fn is_builtin_fn(name : String) -> Bool {
 ///|
 pub fn run_ir_stats(root : String, config : Config) -> IRStatsResult {
   let stats = IRStatsResult::new()
-  // Phase 1: module-wide symbol collection (all packages share one table)
-  let symbols = PkgSymbols::new()
-  walk_packages(root, config, fn(_pkg_dir, mbt_files) {
-    for file in mbt_files {
-      let source = @fs.read_file_to_string(file) catch { _ => return }
-      let (impls, _) = @parser.parse_string(source, name=file)
-      collect_symbols(impls.to_array(), symbols)
+  // T1a-2: consume the unified ProgramWorld. Its loading pipeline
+  // (module walk -> symbols -> deps -> .mbti -> lib models) reproduces
+  // the previous phases 1-1.7 exactly; Phase 2 now reads the SAME world
+  // facts (packages / symbols / aliases) instead of re-walking.
+  let world = load_program_world(root, config)
+  for pkgf in world.packages {
+    let key = canonical_dir(pkgf.dir)
+    let aliases = match world.aliases.get(key) {
+      Some(m) => m
+      None => pkg_alias_map(pkgf.dir) // fallback; unreachable in practice
     }
-  })
-  // Phase 1.5: ingest dependency sources (.mooncakes) into the same table
-  collect_dep_symbols(root, symbols)
-  // Phase 1.6: ingest official interface files (.mbti) when present
-  collect_mbti_dir(root, symbols)
-  // Phase 1.7: library-model types/callbacks from taint-rules.json
-  // (extends/models register return types + callback placeholders)
-  let (lib_rs, _) = load_taint_rules(root)
-  lib_rs.apply_to_symbols(symbols)
-  // Phase 2: per-function inference with the merged table
-  // (per-package moon.pkg aliases are passed so `@alias.fn` call sites can
-  // expand to the real package-qualified keys)
-  walk_packages(root, config, fn(pkg_dir, mbt_files) {
-    let aliases = pkg_alias_map(pkg_dir)
-    for file in mbt_files {
+    for file in pkgf.files {
       stats.files_scanned += 1
-      let source = @fs.read_file_to_string(file) catch { _ => return }
+      let source = @fs.read_file_to_string(file) catch { _ => continue }
       let (impls, _) = @parser.parse_string(source, name=file)
       scan_package_calls(
         impls.to_array(),
         file,
-        symbols,
+        world.symbols,
         stats,
         pkg_alias=aliases,
       )
     }
-  })
+  }
   stats
 }
 
