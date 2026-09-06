@@ -44,10 +44,9 @@ fn case13_nested_try_error_clear() -> Unit {
 // Expected (findings): 0 — no sink involved; kept as the corpus case for
 //   the site-coverage classification fix: a dispatch with an EMPTY
 //   candidate set must count as unknown/unresolved, NOT as covered.
-// Current (round-5 P1): `call-graph` shows site coverage 1/1 = 100% for
-//   this single call site. Classification fix lands with ROADMAP-T R7;
-//   this run.sh gate asserts findings only until then.
-// Status: PASS(0 findings) + TODO(R7 coverage assertion).
+// Current (post-R7): empty candidate set classifies as unknown(no-impls);
+//   run.sh asserts site coverage 0/1 for this project.
+// Status: PASS(0 findings) + R7 coverage assertion active in run.sh.
 trait NoImplAction {
   act(Self) -> Unit
 }

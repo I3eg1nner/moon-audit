@@ -627,3 +627,11 @@ CWE-113 候选待分诊。
 
 **验证**：200/200 × 4 targets、deny-warn/fmt/info 门绿、run.sh GATE-OK（唯一 XFAIL=G4 分支堆，T3 领域已登记）。
 **教训**：完成标记必须以"原始反例逐字恢复+自动断言"为准，替代性写法的测试不能宣称原始反例已修。
+
+## 2026-09-05 · 第五轮 R6-R8 收口补记（gate7 P2）
+- R6 错误出口隔离（Try 快照/恢复 + try_fully_catches 传播规则）：c13 嵌套 try XFAIL→PASS
+- R7 先解析后分类：空候选集 → unknown(no-impls)，site coverage 0/1（评审样例原 1/1=100%）
+- R8 ROADMAP-T G3/G8 状态收紧；**gate7 P0 修复**：run.sh 逐例断言循环原在管道子 shell 中
+  丢失 rc（失败静默 exit 0）——改 here-string；反证锁定：篡改期望计数 → rc=1 + FAIL 行
+- mars 9→12 源码核实为 R4 语义修复浮出的同款 TP 模式（redirect.mbt ctx.path()→Location），
+  分诊 8 TP 候选/4 FP 嫌疑，非回归

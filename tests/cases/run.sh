@@ -73,7 +73,9 @@ c13_c14_error_and_dispatch.mbt|PASS|1|1|-
 rc=0
 echo
 echo "== per-case assertions =="
-echo "$TABLE" | while IFS='|' read -r file status cur want gap; do
+# here-string (NOT a pipeline): the loop must run in THIS shell so that
+# rc=1 from any mismatch survives to the exit gate below (gate7 P0)
+while IFS='|' read -r file status cur want gap; do
   [ -n "$file" ] || continue
   actual=$(count "$file")
   if [ "$status" = "PASS" ]; then
@@ -92,7 +94,7 @@ echo "$TABLE" | while IFS='|' read -r file status cur want gap; do
       rc=1
     fi
   fi
-done
+done <<< "$TABLE"
 [ "$rc" -eq 0 ] || fail 1 "expectation mismatch (see above)"
 
 # ── C8: default-param call sites must be in the call graph (T0.2(a)) ─────
