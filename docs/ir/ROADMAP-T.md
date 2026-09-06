@@ -76,6 +76,9 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 
 ## T1 统一 ProgramWorld（后续分析的共同输入）
 
+> **T1 整体状态：完成（T1.4 .mbti 限定身份除外——明确未完成；T1.1 目标后端条件遗留）。**
+> 早期 commit 信息中 "completes T1 milestone" 的整体完成表述撤回：以本节逐项勾选为准。
+
 - [x] T1a-1（2026-09-05, b629433）ProgramWorld 数据层：单一装载入口
       load_program_world（模块包 walk → 源码符号 → .mooncakes → .mbti → 库模型 →
       moon.pkg 别名 → moon_config 官方 import/moon.work）。纯增量零接线（上轮超时
@@ -121,7 +124,11 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       unknown(alias)——petgraph 泛型重度受影响最大（-67），这正是
       T1.2 要消除的不确定绑定；T1.4（统一 .mbti 限定身份）将把其中
       大部分转为确定绑定。
-- [x] **T1c（已完成 @8020b44）= T1.3 完整签名 + T1.5 入口策略**
+- [x] **T1c（已完成 @8020b44；gate10 P1-2 修复后唯一事实源已达成 @本 commit）= T1.3 完整签名 + T1.5 入口策略**
+      —— T1.3 补记：fn_param_arrows/trait_params 的生产写入已收敛到 FnSig 派生的
+      唯一写入点（store_fn_sig / materialize_trait_from_sig；.mbti Func、.mbti
+      Trait、源码 TopTrait、Show 种子四路统一），不再存在并行直写；锚点
+      p1fix_mbti_func_sig_via_fnsig_sole_source / p1fix_mbti_trait_params_via_fnsig_derivation
 - [x] T1.3 完整签名：FnSig/FnP 模型（src/fn_sig.mbt）——参数位置/标签/可选
       （默认表达式 has_default）/泛型约束（"T : Trait" 字符串化）/返回类型/
       错误效应（none|default|typed|noraise|maybe）/异步；IRFn(String) 携带

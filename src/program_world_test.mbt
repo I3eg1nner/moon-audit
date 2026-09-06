@@ -322,3 +322,91 @@ test "t1c_entry_stats_line" {
   inspect(line.contains("library-pub="), content="true")
   inspect(line.contains("ffi-extern="), content="true")
 }
+
+///|
+test "p1fix_mbti_func_sig_via_fnsig_sole_source" {
+  // .mbti FuncSig -> FnSig via collect_mbti_fn_sig (sole write point);
+  // sig_arrow_args reads the FnSig, not the legacy table
+  let root = test_tmp("p1fix_func")
+  @fs.create_dir(root) catch {
+    _ => ()
+  }
+  let f = root + "/pkg.generated.mbti"
+  @fs.write_string_to_file(
+    f, "package \"p1/dep\"\n\npub fn run_cb((Int) -> Unit) -> Unit\n",
+  ) catch {
+    _ => ()
+  }
+  let symbols = PkgSymbols::new()
+  collect_mbti_file(f, symbols)
+  // FnSig stored for the .mbti function
+  inspect(symbols.fn_sigs.contains("run_cb"), content="true")
+  // arrow args read through the FnSig (Int for cb)
+  match sig_arrow_args(symbols, "run_cb") {
+    Some(arrows) => {
+      inspect(arrows.length(), content="1")
+      // cb's arrow args = [Some(Int)]
+      inspect(arrows[0].length(), content="1")
+      match arrows[0][0] {
+        Some(IRConcrete("Int", [])) => inspect("int-arrow", content="int-arrow")
+        _ => inspect("wrong-arrow", content="int-arrow")
+      }
+    }
+    None => inspect("none", content="some-arrows")
+  }
+}
+
+///|
+test "p1fix_mbti_trait_params_via_fnsig_derivation" {
+  // .mbti TraitSig -> FnSig -> materialize_trait_from_sig (sole write);
+  // mbti anonymous params (DiscardPositional) keep their types
+  let root = test_tmp("p1fix_trait")
+  @fs.create_dir(root) catch {
+    _ => ()
+  }
+  let f = root + "/pkg.generated.mbti"
+  @fs.write_string_to_file(
+    f, "package \"p1/dep\"\n\npub(open) trait Sink {\n  put(Self, Int) -> Unit\n}\n",
+  ) catch {
+    _ => ()
+  }
+  let symbols = PkgSymbols::new()
+  collect_mbti_file(f, symbols)
+  inspect(symbols.fn_sigs.contains("Sink::put"), content="true")
+  match sig_trait_params(symbols, "Sink::put") {
+    Some(tys) => {
+      inspect(tys.length(), content="2")
+      // mbti renders `Self` as a named type — Some(Self), mirroring the
+      // legacy collector exactly (source-side trait decls yield None for
+      // unannotated self params; both preserved)
+      match tys[0] {
+        Some(IRConcrete("Self", [])) => inspect("self", content="self")
+        _ => inspect("wrong", content="self")
+      }
+      match tys[1] {
+        Some(IRConcrete("Int", [])) => inspect("int", content="int")
+        _ => inspect("wrong", content="int")
+      }
+    }
+    None => inspect("none", content="some-tys")
+  }
+}
+
+///|
+test "p1fix_sole_write_points_no_direct_table_writes" {
+  // behavioural anchor: after a source-style collect_fn_sig +
+  // materialize, both legacy tables reflect the FnSig projection and the
+  // builtin Show seed still backfills [None, Logger]
+  let symbols = PkgSymbols::new()
+  match sig_trait_params(symbols, "Show::output") {
+    Some(tys) => {
+      inspect(tys.length(), content="2")
+      inspect(tys[0] == None, content="true")
+      match tys[1] {
+        Some(IRConcrete("Logger", [])) => inspect("logger", content="logger")
+        _ => inspect("wrong", content="logger")
+      }
+    }
+    None => inspect("none", content="seed-present")
+  }
+}

@@ -108,14 +108,94 @@ pub fn collect_fn_sig(
     is_async,
     entry,
   }
+  store_fn_sig(symbols, key, sig)
+}
+
+// ── sole write points for the legacy tables (T1.4 removes them) ──────────
+// fn_param_arrows is written ONLY here (derived from FnSig);
+// trait_params is written ONLY in materialize_trait_from_sig below.
+
+///|
+pub fn store_fn_sig(symbols : PkgSymbols, key : String, sig : FnSig) -> Unit {
   symbols.fn_sigs[key] = sig
-  // legacy materialization (derived artifact; production reads are unified
-  // via sig_arrow_args/sig_trait_params — removal lands with T1.4)
   let arrows : Array[Array[IRType?]] = []
-  for p in fps {
+  for p in sig.params {
     arrows.push(p.arrow_args)
   }
   symbols.fn_param_arrows[key] = arrows
+}
+
+///|
+pub fn materialize_trait_from_sig(symbols : PkgSymbols, key : String) -> Unit {
+  // trait_params derived from the stored FnSig (single trait write point;
+  // used by the source TopTrait path, the .mbti TraitSig path and the
+  // builtin Show::output seed — never written directly anymore)
+  match symbols.fn_sigs.get(key) {
+    Some(sig) => symbols.trait_params[key] = project_trait_params(sig)
+    None => ()
+  }
+}
+
+///|
+pub fn project_trait_params(sig : FnSig) -> Array[IRType?] {
+  let tys : Array[IRType?] = []
+  for p in sig.params {
+    if p.ty == IRUnresolved && p.arrow_args.length() == 0 {
+      tys.push(None)
+    } else {
+      tys.push(Some(p.ty))
+    }
+  }
+  tys
+}
+
+// T1.3/P1-2a: .mbti FuncSig -> FnSig through the same sole write point
+// (params arrive as @syntax.Parameter; constraints as mbti
+// TypeParamWithConstraints; every .mbti decl is public)
+
+///|
+pub fn collect_mbti_fn_sig(
+  func_sig : @mbti_ast.FuncSig,
+  key : String,
+  symbols : PkgSymbols,
+) -> Unit {
+  let fps : Array[FnP] = []
+  for param in func_sig.params {
+    match param {
+      Positional(binder~, ty~) =>
+        fps.push(fn_p(binder.name, "positional", false, ty, symbols))
+      Labelled(binder~, ty~) =>
+        fps.push(fn_p(binder.name, "labelled", false, ty, symbols))
+      Optional(binder~, ..) =>
+        fps.push(fn_p(binder.name, "optional", true, None, symbols))
+      QuestionOptional(binder~, ty~) =>
+        fps.push(fn_p(binder.name, "optional-q", false, ty, symbols))
+      DiscardPositional(ty~, ..) =>
+        fps.push(fn_p("_", "discard", false, ty, symbols))
+    }
+  }
+  let gc : Array[String] = []
+  for tp in func_sig.type_params {
+    for c in tp.constraints {
+      gc.push(tp.name.name + " : " + longident_str(c.name))
+    }
+  }
+  let (ret_ty, err) = func_sig.return_
+  let error_effect = match err {
+    NoErrorType => "none"
+    DefaultErrorType(..) => "default"
+    ErrorType(..) => "typed"
+    Noraise(..) => "noraise"
+    MaybeError(..) => "maybe"
+  }
+  store_fn_sig(symbols, key, {
+    params: fps,
+    generic_constraints: gc,
+    return_ty: type_to_ir(ret_ty, symbols),
+    error_effect,
+    is_async: func_sig.is_async != None,
+    entry: "library-pub",
+  })
 }
 
 ///|
@@ -202,17 +282,55 @@ pub fn sig_arrow_args(
 ///|
 pub fn sig_trait_params(symbols : PkgSymbols, key : String) -> Array[IRType?]? {
   match symbols.fn_sigs.get(key) {
-    Some(sig) => {
-      let tys : Array[IRType?] = []
-      for p in sig.params {
-        if p.ty == IRUnresolved && p.arrow_args.length() == 0 {
-          tys.push(None)
-        } else {
-          tys.push(Some(p.ty))
-        }
-      }
-      Some(tys)
-    }
+    Some(sig) => Some(project_trait_params(sig))
     None => symbols.trait_params.get(key) // legacy fallback (T1.4 removes)
   }
+}
+
+// P1-2b: .mbti TraitMethodSig -> FnSig (same sole write points);
+// mirrors collect_mbti_fn_sig for the trait-method shape
+
+///|
+pub fn collect_mbti_trait_method(
+  m : @mbti_ast.TraitMethodSig,
+  key : String,
+  symbols : PkgSymbols,
+) -> Unit {
+  let fps : Array[FnP] = []
+  for param in m.params {
+    match param {
+      Positional(binder~, ty~) =>
+        fps.push(fn_p(binder.name, "positional", false, ty, symbols))
+      Labelled(binder~, ty~) =>
+        fps.push(fn_p(binder.name, "labelled", false, ty, symbols))
+      Optional(binder~, ..) =>
+        fps.push(fn_p(binder.name, "optional", true, None, symbols))
+      QuestionOptional(binder~, ty~) =>
+        fps.push(fn_p(binder.name, "optional-q", false, ty, symbols))
+      DiscardPositional(ty~, ..) =>
+        fps.push(fn_p("_", "discard", false, ty, symbols))
+    }
+  }
+  let gc : Array[String] = []
+  for tp in m.type_params {
+    for c in tp.constraints {
+      gc.push(tp.name.name + " : " + longident_str(c.name))
+    }
+  }
+  let (ret_ty, err) = m.return_
+  let error_effect = match err {
+    NoErrorType => "none"
+    DefaultErrorType(..) => "default"
+    ErrorType(..) => "typed"
+    Noraise(..) => "noraise"
+    MaybeError(..) => "maybe"
+  }
+  store_fn_sig(symbols, key, {
+    params: fps,
+    generic_constraints: gc,
+    return_ty: type_to_ir(ret_ty, symbols),
+    error_effect,
+    is_async: m.is_async != None,
+    entry: "internal", // trait method declaration (no body)
+  })
 }

@@ -59,9 +59,33 @@ pub fn PkgSymbols::new() -> PkgSymbols {
     trait_names: Map([]),
     type_params: Map([]),
   }
-  // core trait method signatures (Show etc.) for impl param backfill
-  let show_params : Array[IRType?] = [None, Some(IRConcrete("Logger", []))]
-  symbols.trait_params["Show::output"] = show_params
+  // core trait method signatures (Show etc.) for impl param backfill —
+  // seeded through the FnSig sole write points (never a direct table write)
+  let show_sig : FnSig = {
+    params: [
+      {
+        binder: "self",
+        kind: "positional",
+        has_default: false,
+        ty: IRUnresolved,
+        arrow_args: [],
+      },
+      {
+        binder: "logger",
+        kind: "positional",
+        has_default: false,
+        ty: IRConcrete("Logger", []),
+        arrow_args: [],
+      },
+    ],
+    generic_constraints: [],
+    return_ty: IRUnit,
+    error_effect: "none",
+    is_async: false,
+    entry: "internal",
+  }
+  store_fn_sig(symbols, "Show::output", show_sig)
+  materialize_trait_from_sig(symbols, "Show::output")
   symbols
 }
 
@@ -227,22 +251,9 @@ pub fn collect_symbols(
             m.quantifiers,
             "internal", // trait method declaration (no body)
           )
-          let tys : Array[IRType?] = []
-          for param in m.params {
-            match param {
-              Positional(binder~, ty~) | Labelled(binder~, ty~) => {
-                ignore(binder)
-                tys.push(
-                  match ty {
-                    Some(t) => Some(type_to_ir(t, symbols))
-                    None => None
-                  },
-                )
-              }
-              _ => tys.push(None)
-            }
-          }
-          symbols.trait_params[key] = tys
+          // P1-2c: trait_params derived from the stored FnSig (sole write
+          // point) — replaces the former parallel per-param recomputation
+          materialize_trait_from_sig(symbols, key)
           match m.return_type {
             Some(t) => symbols.fn_ret[key] = type_to_ir(t, symbols)
             None => ()
@@ -294,39 +305,6 @@ fn collect_constrs(
       None => ()
     }
   }
-}
-
-///|
-fn collect_fn_param_arrows(
-  params : @list.List[@syntax.Parameter],
-  key : String,
-  symbols : PkgSymbols,
-) -> Unit {
-  let per_param : Array[Array[IRType?]] = []
-  for param in params {
-    match param {
-      // DiscardPositional: mbti params arrive anonymous but still typed
-      Positional(ty~, ..) | Labelled(ty~, ..) | DiscardPositional(ty~, ..) =>
-        match ty {
-          Some(Arrow(args~, ..)) => {
-            let arrow_tys : Array[IRType?] = []
-            for aty in args {
-              arrow_tys.push(Some(type_to_ir(aty, symbols)))
-            }
-            per_param.push(arrow_tys)
-          }
-          Some(Name(constr_id~, ..)) =>
-            // type alias that points to an arrow type (e.g. `Middleware`)
-            match symbols.alias_arrows.get(longident_str(constr_id.id)) {
-              Some(tys) => per_param.push(tys)
-              None => per_param.push([])
-            }
-          _ => per_param.push([])
-        }
-      _ => per_param.push([])
-    }
-  }
-  symbols.fn_param_arrows[key] = per_param
 }
 
 ///|
@@ -2656,7 +2634,8 @@ pub fn collect_mbti_file(path : String, symbols : PkgSymbols) -> Unit {
         if !symbols.fn_exists.contains(key) {
           symbols.fn_exists[key] = true
           symbols.fn_ret[key] = type_to_ir(ret_ty, symbols)
-          collect_fn_param_arrows(func_sig.params, key, symbols)
+          // P1-2a: .mbti signatures go through the FnSig sole write point
+          collect_mbti_fn_sig(func_sig, key, symbols)
         }
         if qkey != key && !symbols.fn_exists.contains(qkey) {
           symbols.fn_exists[qkey] = true
@@ -2759,26 +2738,12 @@ fn collect_mbti_trait(sig : @mbti_ast.TraitSig, symbols : PkgSymbols) -> Unit {
   symbols.trait_names[tname] = true
   for m in sig.methods {
     let key = tname + "::" + m.name.name
-    if !symbols.trait_params.contains(key) {
-      let tys : Array[IRType?] = []
-      for param in m.params {
-        match param {
-          // mbti renders params as TYPES ONLY: they arrive as
-          // DiscardPositional(ty=Some(..)) — the type still flows to this
-          // position for impl-param backfill
-          Positional(ty~, ..)
-          | Labelled(ty~, ..)
-          | DiscardPositional(ty~, ..) =>
-            tys.push(
-              match ty {
-                Some(t) => Some(type_to_ir(t, symbols))
-                None => None
-              },
-            )
-          _ => tys.push(None)
-        }
-      }
-      symbols.trait_params[key] = tys
+    // P1-2b: build the FnSig first, derive trait_params from it (sole
+    // write point). Guard on fn_sigs: source traits already stored their
+    // sigs during the module walk (source wins, first-write preserved).
+    if !symbols.fn_sigs.contains(key) {
+      collect_mbti_trait_method(m, key, symbols)
+      materialize_trait_from_sig(symbols, key)
       let (ret_ty, _) = m.return_
       if !symbols.fn_ret.contains(key) {
         symbols.fn_ret[key] = type_to_ir(ret_ty, symbols)
