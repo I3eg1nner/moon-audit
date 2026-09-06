@@ -88,7 +88,15 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       自举在冻结 dfbbadb 源码上新旧二进制数字完全一致（3966/4445 等），
       工作树自扫描的 -8 位点差 = 被扫源码自身缩短（run_ir_stats 体变小），
       非行为变化。禁止项遵守：未动 call-graph/scan。
-- [ ] T1a-3 接线 call-graph+scan（可分段交付），随后进入 T1.2 身份。
+- [x] T1a-3（2026-09-05）call-graph+scan 接线 ProgramWorld：三 CLI 共享
+      load_program_world（call-graph 获得与 ir-stats 相同的符号/别名事实；
+      scan 消费同一文件事实，with_symbols=false——规则摘要为流引擎驱动）。
+      等价验收：mocket call-graph 1502/39/393/79% ±0、petgraph ±0；自举
+      -6 位点 = 自引用目标源码缩短（本提交删了 call-graph 旧闭包装载代码）；
+      ir-stats mocket/petgraph ±0。附带修复 parity 缺口：call-graph 此前未
+      应用库模型（lib_fn_ret/lib_callbacks），现与 ir-stats 一致。
+      门禁：run.sh GATE-OK rc=0、ANALYZER=/bin/false rc=2、三目标 FP=0、
+      204/204 native。下一步：T1.2 完整身份。
 - [ ] T1.1 剩余：目标后端条件进入模型。
 - [ ] T1.1 项目装载：官方 moon_config 处理模块/包/工作区/导入；目标后端、
       测试代码与生产代码范围显式化

@@ -2342,18 +2342,12 @@ pub fn CallGraph::site_coverage(self : CallGraph) -> Int {
 
 ///|
 pub fn run_call_graph(root : String, config : Config) -> CallGraph {
-  // symbols: module + deps (closed world over available sources)
-  let symbols = PkgSymbols::new()
-  walk_packages(root, config, fn(_pkg_dir, mbt_files) {
-    for file in mbt_files {
-      let source = @fs.read_file_to_string(file) catch { _ => return }
-      let (impls, _) = @parser.parse_string(source, name=file)
-      collect_symbols(impls.to_array(), symbols)
-    }
-  })
-  collect_dep_symbols(root, symbols)
-  // gate3 P2-4: parity with run_ir_stats — module-level .mbti ingestion
-  collect_mbti_dir(root, symbols)
+  // T1a-3: consume the SAME ProgramWorld as run_ir_stats / scan_project.
+  // This also fixes a parity gap: the private pipeline below did not apply
+  // lib models (mongoose fn_types/callbacks), so lib-model return types now
+  // feed call-graph resolution identically to ir-stats.
+  let world = load_program_world(root, config)
+  let symbols = world.symbols
   // devirtualization index keyed by TRAIT IDENTITY ("Trait::method" ->
   // self types); impl_methods values carry the trait path. A method-name-only
   // index remains as fallback for sites whose trait identity is unknown.
@@ -2376,14 +2370,17 @@ pub fn run_call_graph(root : String, config : Config) -> CallGraph {
       push(method_index, mname)
     }
   })
-  // call sites -> edges
-  // gate3 P2-4: parity with run_ir_stats — per-package alias expansion
+  // call sites -> edges — SAME world facts as run_ir_stats (single source)
   let stats = IRStatsResult::new()
-  walk_packages(root, config, fn(pkg_dir, mbt_files) {
-    let aliases = pkg_alias_map(pkg_dir)
-    for file in mbt_files {
+  for pkgf in world.packages {
+    let key = canonical_dir(pkgf.dir)
+    let aliases = match world.aliases.get(key) {
+      Some(m) => m
+      None => pkg_alias_map(pkgf.dir) // fallback; unreachable in practice
+    }
+    for file in pkgf.files {
       stats.files_scanned += 1
-      let source = @fs.read_file_to_string(file) catch { _ => return }
+      let source = @fs.read_file_to_string(file) catch { _ => continue }
       let (impls, _) = @parser.parse_string(source, name=file)
       scan_package_calls(
         impls.to_array(),
@@ -2393,7 +2390,7 @@ pub fn run_call_graph(root : String, config : Config) -> CallGraph {
         pkg_alias=aliases,
       )
     }
-  })
+  }
   let edges : Array[String] = []
   let dispatch_edges : Array[String] = []
   let unresolved : Array[String] = []

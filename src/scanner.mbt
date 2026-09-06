@@ -16,6 +16,10 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
       changed_set[f] = true
     }
   }
+  // T1a-3: scan shares the unified ProgramWorld builder with ir-stats and
+  // call-graph — file facts come from the SAME single walk (symbols skipped:
+  // rule summaries are flow-engine based and do not consume PkgSymbols).
+  let world = load_program_world(root, config, with_symbols=false)
   // P3 pre-pass (two-pass fixpoint substitute, documented in CONTEXT.md):
   // collect ALL module summaries BEFORE scanning so call sites in any file
   // can consume field-write/return summaries of functions defined elsewhere.
@@ -27,22 +31,23 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
     mod_imports.has_crescent ||
     mod_imports.has_rabbita
   if mod_is_web {
-    walk_packages(root, config, fn(_pkg_dir, mbt_files) {
-      for file in mbt_files {
-        let source = @fs.read_file_to_string(file) catch { _ => return }
+    for pkgf in world.packages {
+      for file in pkgf.files {
+        let source = @fs.read_file_to_string(file) catch { _ => continue }
         let (impls, _) = @parser.parse_string(source, name=file)
         collect_func_summaries_flow(impls, file, interproc_ctx)
       }
-    })
+    }
   }
   // Phase 1: Regular rules + collect function summaries
-  walk_packages(root, config, fn(pkg_dir, mbt_files) {
+  for pkgf in world.packages {
+    let pkg_dir = pkgf.dir
     let pkg_imports = analyze_imports(pkg_dir)
     let imports = merge_imports(mod_imports, pkg_imports)
     if imports.has_mocket || imports.has_crescent || imports.has_rabbita {
       has_web = true
     }
-    for file in mbt_files {
+    for file in pkgf.files {
       let source = @fs.read_file_to_string(file) catch {
         _ => {
           errors.push("Failed to read " + file)
@@ -66,14 +71,15 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
         )
       }
     }
-  })
+  }
   // Phase 2: Cross-function taint analysis (only for web projects)
   if has_web && interproc_ctx.summaries.length() > 0 {
-    walk_packages(root, config, fn(pkg_dir, mbt_files) {
+    for pkgf in world.packages {
+      let pkg_dir = pkgf.dir
       let pkg_imports = analyze_imports(pkg_dir)
       let imports = merge_imports(mod_imports, pkg_imports)
       if imports.has_mocket || imports.has_crescent || imports.has_rabbita {
-        for file in mbt_files {
+        for file in pkgf.files {
           if incremental && !is_changed_file(file, changed_set) {
             continue
           }
@@ -84,7 +90,7 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
           )
         }
       }
-    })
+    }
   }
   {
     findings: dedup_findings(findings),
