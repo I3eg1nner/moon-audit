@@ -1126,3 +1126,32 @@ test "t0_site_coverage_per_site_denominator" {
   inspect(cg.site_total(), content="4")
   inspect(cg.site_coverage(), content="75") // (2+1)/4 — NOT 3/7 by edges
 }
+
+///|
+test "r7_empty_candidate_set_counts_unknown" {
+  // round-5 P1: a dispatch with zero enumerable impls must be
+  // unknown(no-impls) — 0/1 coverage, never counted as covered
+  let dir = test_tmp("r7_noimpl")
+  @fs.create_dir(dir) catch {
+    _ => ()
+  }
+  @fs.write_string_to_file(
+    dir + "/moon.mod",
+    "name = \"r7noimpl\"\nversion = \"0.1.0\"\n",
+  ) catch {
+    _ => ()
+  }
+  @fs.write_string_to_file(dir + "/moon.pkg", "") catch {
+    _ => ()
+  }
+  @fs.write_string_to_file(
+    dir + "/lib.mbt",
+    "trait NoAction { act(Self) -> Unit }\nfn dispatch2(a : &NoAction) -> Unit { a.act() }\n",
+  ) catch {
+    _ => ()
+  }
+  let cg = run_call_graph(dir, Config::default())
+  inspect(cg.dispatch_edges.length(), content="0")
+  inspect(cg.candidate_sites, content="0")
+  inspect(cg.unresolved_sites, content="1")
+}

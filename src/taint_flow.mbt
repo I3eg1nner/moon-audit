@@ -1048,16 +1048,40 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       // state (approximated by the post-body env); the error payload may
       // carry body-derived data (conservative: body result ∪ any body taint).
       let body_ctx = ctx.copy()
-      ctx.raise_buffer.clear() // scope this Try to raises inside its body
+      // R6 error-exit isolation: this Try gets a FRESH raise scope for its
+      // own body; raises already recorded by the ENCLOSING try (earlier
+      // statements/branches of its body) are snapshotted and restored — a
+      // nested try can never wipe facts that belong to its parent.
+      let outer_raises : Array[Taint] = []
+      for pt in ctx.raise_buffer {
+        outer_raises.push(pt)
+      }
+      ctx.raise_buffer.clear()
       scope_push(body_ctx)
       let body_t = flow(body, body_ctx)
       scope_pop(body_ctx)
       // direct raise payloads (primary) ∪ body value ∪ env taint (conservative)
-      let mut err_t = taint_or(body_t, env_any_taint(body_ctx))
+      let own_raises : Array[Taint] = []
       for pt in ctx.raise_buffer {
+        own_raises.push(pt)
+      }
+      let mut err_t = taint_or(body_t, env_any_taint(body_ctx))
+      for pt in own_raises {
         err_t = taint_or(err_t, pt)
       }
       ctx.raise_buffer.clear()
+      // restore the enclosing facts, then propagate our own raises ONLY if
+      // this Try does not fully catch everything (an irrefutable catch
+      // pattern consumes all raise types; constructor-only catches leave
+      // unmatched types free to escape — keeping the taint is sound)
+      for pt in outer_raises {
+        ctx.raise_buffer.push(pt)
+      }
+      if !try_fully_catches(catch_) {
+        for pt in own_raises {
+          ctx.raise_buffer.push(pt)
+        }
+      }
       let branch_envs : Array[FlowCtx] = [body_ctx]
       let mut result = body_t
       for case in catch_ {
@@ -1132,6 +1156,25 @@ fn fold_taint(exprs : @list.List[@syntax.Expr], ctx : FlowCtx) -> Taint {
     t = taint_or(t, flow(e, ctx))
   }
   t
+}
+
+///|
+// R6: does this catch list consume ALL raise types? An irrefutable
+// pattern (binder/underscore/Any) catches everything; constructor-only
+// patterns (Constr/SpecialConstr) leave unmatched types free to escape.
+fn try_fully_catches(catches : @list.List[@syntax.Case]) -> Bool {
+  if catches.length() == 0 {
+    return false
+  }
+  let mut irrefutable = false
+  for case in catches {
+    match case.pattern {
+      Var(_) => irrefutable = true // binder/underscore: binds the whole error
+      Any(..) => irrefutable = true
+      _ => ()
+    }
+  }
+  irrefutable
 }
 
 ///|

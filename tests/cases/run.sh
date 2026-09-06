@@ -67,7 +67,7 @@ c7_defer_order.mbt|PASS|0|0|-
 c8_default_param_call.mbt|PASS|0|0|-
 c9_orig_same_name_destructure.mbt|PASS|2|2|-
 c10_c12_scope_cases.mbt|PASS|3|3|-
-c13_c14_error_and_dispatch.mbt|XFAIL|0|1|G3
+c13_c14_error_and_dispatch.mbt|PASS|1|1|-
 "
 
 rc=0
@@ -104,6 +104,26 @@ BOUND=$(echo "$IR" | grep -oE "bound sites: +[0-9]+/[0-9]+" | grep -oE "[0-9]+" 
 [ -n "$SITES" ] && [ "$SITES" -gt 0 ] || fail 1 "ir-stats: no call sites counted"
 [ -n "$BOUND" ] && [ "$BOUND" -ge 1 ] || fail 1 "ir-stats: default-param call site not bound (C8 regression)"
 echo "  ok    call sites=$SITES bound=$BOUND"
+
+# ── C14: empty candidate set ⇒ unknown, not covered (R7) ──────────────
+echo
+echo "== C14 empty-candidate dispatch classification (R7) =="
+C14T="$(mktemp -d)"
+printf 'name = "c14iso"\nversion = "0.1.0"\n' > "$C14T/moon.mod"
+: > "$C14T/moon.pkg"
+cat > "$C14T/lib.mbt" <<'MBOF'
+trait NoImplAction {
+  act(Self) -> Unit
+}
+fn case14(a : &NoImplAction) -> Unit {
+  a.act()
+}
+MBOF
+CG="$(timeout 300 "$ANALYZER" call-graph "$C14T" 2>/dev/null)" || fail 2 "call-graph failed"
+rm -rf "$C14T"
+echo "$CG" | grep -q "site coverage:      0/1 = 0%" \
+  || fail 1 "C14: empty candidate set no longer classified unknown (R7 regression)"
+echo "  ok    empty candidate set → 0/1 coverage (unknown, no-impls)"
 
 # ── scope disclosure must not fake measurements ───────────────────────────
 echo "$OUT" | grep -q "unsupported-semantics=unknown(not-measured)" \

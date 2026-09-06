@@ -2409,8 +2409,11 @@ pub fn run_call_graph(root : String, config : Config) -> CallGraph {
   let dispatch_edges : Array[String] = []
   let unresolved : Array[String] = []
   // resolve a dispatch site by TRAIT IDENTITY first ("Trait::method"),
-  // then fall back to the method-name-only index
-  let resolve_dispatch = fn(dyn_target : String, caller : String) -> Unit {
+  // then fall back to the method-name-only index.
+  // R7: returns true iff a NON-EMPTY target set was produced — callers
+  // classify by the RESULT, never before resolving (an empty candidate set
+  // is unknown/no-impls, not covered).
+  let resolve_dispatch = fn(dyn_target : String, caller : String) -> Bool {
     // dyn_target = "Alpha::act" or "pkg::Alpha::act" (dyn prefix removed)
     let mname = last_segment(dyn_target)
     let midx = find_last(dyn_target, "::")
@@ -2427,19 +2430,23 @@ pub fn run_call_graph(root : String, config : Config) -> CallGraph {
     } else {
       None
     }
-    match identity_hit {
-      Some(self_tys) =>
+    let targets = match identity_hit {
+      Some(self_tys) => Some(self_tys)
+      None => method_index.get(mname)
+    }
+    match targets {
+      Some(self_tys) => {
+        let mut n = 0
         for st in self_tys {
           dispatch_edges.push(caller + " -> " + st + "::" + mname)
+          n += 1
         }
-      None =>
-        match method_index.get(mname) {
-          Some(self_tys) =>
-            for st in self_tys {
-              dispatch_edges.push(caller + " -> " + st + "::" + mname)
-            }
-          None => unresolved.push(caller + " -> ?" + mname)
-        }
+        n > 0
+      }
+      None => {
+        unresolved.push(caller + " -> ?" + mname + " (no-impls)")
+        false
+      }
     }
   }
   let mut bound_sites = 0
@@ -2451,20 +2458,31 @@ pub fn run_call_graph(root : String, config : Config) -> CallGraph {
       .replace(old="?", new="")
     if site.resolved {
       if site.kind == "receiver" && site.target.has_prefix("dyn ") {
-        // trait-object dispatch: enumerate impls of (trait, method)
-        candidate_sites += 1
-        resolve_dispatch(Show::to_string(clean_target[4:]), site.caller)
+        // R7: classify by the RESOLVED non-empty target set — resolve
+        // first, count second; empty set → unknown(no-impls), never
+        // candidate, and a site is never both candidate and unresolved
+        if resolve_dispatch(Show::to_string(clean_target[4:]), site.caller) {
+          candidate_sites += 1
+        } else {
+          unresolved_sites += 1
+        }
       } else {
         bound_sites += 1
         edges.push(site.caller + " -> " + clean_target)
       }
     } else if site.target.has_prefix("dyn ") {
-      candidate_sites += 1
-      resolve_dispatch(Show::to_string(site.target[4:]), site.caller)
+      if resolve_dispatch(Show::to_string(site.target[4:]), site.caller) {
+        candidate_sites += 1
+      } else {
+        unresolved_sites += 1
+      }
     } else if site.kind == "receiver" && site.recv_ty.has_prefix("trait:") {
       // receiver typed as a trait object: use its trait identity
-      candidate_sites += 1
-      resolve_dispatch(clean_target, site.caller)
+      if resolve_dispatch(clean_target, site.caller) {
+        candidate_sites += 1
+      } else {
+        unresolved_sites += 1
+      }
     } else {
       unresolved_sites += 1
       unresolved.push(site.caller + " -> ?")

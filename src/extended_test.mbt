@@ -758,3 +758,26 @@ test "r3_same_scope_scalar_rebind_chains" {
   run_cwe113(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() == 1)
 }
+
+///|
+test "r6_nested_try_error_exit_isolation" {
+  // round-5 P0: an inner (fully-handled) try must not wipe the outer
+  // raise facts — Bad carries input()'s taint to the OUTER catch binding
+  let src = "fn go() -> Unit { let resp = Response::{}; try { if flip() { raise Bad(query()) }; try { raise Fine } catch { _ => () } } catch { Bad(value) => resp.set_header(\"X-Nested\", value) } }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "t.mbt", src, findings, Error)
+  inspect(findings.length(), content="1")
+}
+
+///|
+test "r6_inner_constr_only_catch_propagates_unmatched" {
+  // constructor-only catch leaves unmatched raise types free to escape:
+  // the tainted Bad raised inside the inner try is NOT consumed by the
+  // Fine-only handler and reaches the outer generic catch (sound direction)
+  let src = "fn go() -> Unit { let resp = Response::{}; try { try { raise Bad(query()) } catch { Fine => () } } catch { e => resp.set_header(\"X-Escape\", Show::to_string(e)) } }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "t.mbt", src, findings, Error)
+  inspect(findings.length() > 0, content="true")
+}

@@ -19,12 +19,12 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 |---|---|---|---|
 | G1 | 抽象域合并不满足结合律 | `taint_or`（src/taint_flow.mbt:21）：`(Param(p), FieldRef)` 分支顺序决定结果——同参异构合并先到者胜 | 合并顺序影响溯源；不能作为可靠不动点求解基础 |
 | G2 | 求值与变量绑定混在一起 | ✅ 已修复（第五轮 R3-R5）：声明级 ID + 先求值后绑定 + 分支/块作用域 + 值身份统一；c9/c10/c11/c12 全 PASS（tests/cases 逐例隔离门禁 + r3r4_*/r4_*/r5_* 单测）；同片段去重行号化修复 | 见上 |
-| G3 | 错误载荷没有直接传递 | ⚠️ 部分修复：直接载荷样例已修（C3，`raise Bad(query())`）；**第五轮重开**：嵌套 try 进入时 `raise_taints.clear()` 清掉外层已抛错误，内层处理吞掉外层污点错误 → 漏报；共享可清空缓冲非隔离错误出口 | c13（评审原始无参形态，EXPECT-FAIL，归因 R6） |
+| G3 | 错误载荷没有直接传递 | ⚠️ 部分（第五轮 R6 后）：直接载荷样例（C3）与嵌套 try 外层错误存活（c13）均已修；错误出口隔离按词法嵌套归属（不可反驳 catch 消费自己的 raise，构造器-only catch 保守传播）；**完整错误传播语义（类型精确匹配/堆副作用分出口）见 T2/T3 验收** | c13 PASS + r6_nested_try_error_exit_isolation / r6_inner_constr_only_catch_propagates_unmatched |
 | G4 | 分支堆状态不隔离 | `FlowCtx::copy`（src/taint_flow.mbt:125）env/sites 拷贝但 heap **共享**；`heap_write`（:281）直接覆盖字段 | 一个分支的 heap_write 可抹掉另一分支已记录污点 |
 | G5 | 循环不是完整不动点 | `flow_to_fixpoint`（src/taint_flow.mbt:83）最多 3 遍，只比较变量环境 fingerprint（env_fingerprint 不含 heap/sites） | 较长传播链、零次循环体、堆变化不可靠 |
 | G6 | 摘要不可组合 | 收集时 `ictx: None`（src/taint_flow.mbt:214）——收集期读不到其他摘要；`ret_from`（:1718-1778）生成但调用点无消费路径 | 两遍收集≠递归求解；返回值告警可能只是实参整体传播的兜底 |
 | G7 | 库模型加载路径分叉 | v2 字段（cb_timing/trait_edges）仅解析；`resolve_extends`（src/taint_rules.mbt:124）合并子模型时仅 v1 形式 | 同一模型放内联/独立/extends 位置可能产生不同结果 |
-| G8 | 指标与增量语义不成立 | `combined_resolution`（src/tyrecon.mbt:104）混合分母（绑定调用点+候选边）；call-graph `edge coverage`（src/main/main.mbt:1116）把候选边当已解析；增量只扫变更文件（src/scanner.mbt:57） | 覆盖率虚高（默认参数调用缺失仍显示 100%）；漏掉受影响调用者 |
+| G8 | 指标与增量语义不成立 | 部分（第五轮 R7）：空候选集不再计入覆盖（unknown/no-impls）；剩余：候选边≠已绑定语义仍在口径说明中、增量只扫变更文件（src/scanner.mbt:57，caller-invalidation=not-implemented） | 覆盖率虚高已收敛至“非空候选=已分析位点”的明示口径；漏掉受影响调用者待 T7 增量 |
 
 评审复现的两个指标反例（已确认）：
 1. 默认参数中的调用缺失（`Optional(default~)` 分支不求值默认表达式）但显示 100% coverage；
@@ -49,9 +49,9 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 - [x] R3 按声明建立变量 ID：name_map("s<scope>:<name>")→"d<decl-id>"（共享计数器，跨分支唯一、永不重置）；env/sites/tuple_comps 全部挂声明 id；赋值改槽位不换 id。锚点：r3_same_scope_scalar_rebind_chains
 - [x] R4 绑定顺序：先收集全部 RHS 分量再绑模式（c9 原始反例修复）；Match/catch/noraise 分支作用域先于模式绑定（c10）；裸块 `{let x=..; x}` 实证为 Let 节点（无 Sequence 包裹），由 Let/LetMut/LetAnd/LetFn/Sequence 各自块作用域修复（c11）。锚点：r3r4_orig_same_name_destructure_reports / r4_match_pattern_shadow_scoped / r4_block_let_does_not_leak；tests/cases c9 2/2、c10_c12 3/3
 - [x] R5 值与附加信息统一身份：重绑定=新声明 id，旧分量/位点键不可达即失效（c12）。附带产品缺陷修复：dedup_findings 键加入行号（同片段不同行=不同漏洞须分别报告；fingerprint 本体保持无行号，SARIF/baseline 身份稳定）。锚点：r5_tuple_rebind_invalidates_stale_components + r5_tuple_literal_components_still_project（负对照）
-- [ ] R6 错误出口隔离（无共享可清空缓冲；嵌套 handler 只消费自己的错误）
-- [ ] R7 调用点分类（非空目标集才算 candidate；不能同时 candidate+unresolved；c14 断言待接）
-- [ ] R8 状态收紧（本节即执行：T0 降部分、G2/G3 重开、未测量输出 unknown）
+- [x] R6 错误出口隔离：Try 进入时快照外层 raise 事实、body 用独立 raise 作用域、退出时恢复外层并按 catch 可反驳性决定是否传播自己的 raise（不可反驳 binder/Any catch = 全捕获；构造器-only = 保守传播）；嵌套 try 不再清除外层事实。锚点：c13 PASS(1)（评审原始无参形态，source 修正 input()）+ r6_* 两单测；c13 案例文件原用 dirty_query()（非任何 source 规则命中）——案例本身构造缺陷已一并修正
+- [x] R7 调用点分类：resolve_dispatch 先解析再分类（返回非空目标集布尔）；空集 → unknown(no-impls)，不计 candidate 不入覆盖分母；同一位点不再同时 candidate+unresolved。锚点：r7_empty_candidate_set_counts_unknown（0 边/0 candidate/1 unknown）+ run.sh C14 断言（0/1 覆盖）
+- [x] R8 状态收紧（本节执行：T0 维持部分完成口径、G3 更新如上、未测量输出 unknown(not-measured) 已由 R2 落地；完成项均附正例锚点）
 
 - [x] T0.1 反例固化（第五轮升级：R1 原始形态补充 + R2 真断言门禁）→ tests/cases/（c1..c14
       一条命令重现：

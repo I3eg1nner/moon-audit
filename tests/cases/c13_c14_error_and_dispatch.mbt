@@ -1,21 +1,15 @@
 // ── C13 (G3) nested try clears outer error facts (round-5 P0) ────────────
-// try { if p { raise Bad(dirty_query()) }; try { raise Fine } catch { _ => () } }
+// try { if p { raise Bad(input()) }; try { raise FineNotOk } catch { _ => () } }
 // catch { Bad(value) => sink(value) }
-// Expected: ALERT — on the error path, Bad carries query()'s taint; the
-//   inner (successfully handled) Fine try must not erase that fact.
-// Current: the error payload buffer is shared and cleared on entering each
-//   try, so the inner handler wipes the outer Bad payload. MISS.
-// Status: EXPECT-FAIL (G3 error-exit isolation, ROADMAP-T R6).
+// Expected: ALERT — on the error path, Bad carries input()'s taint; the
+//   inner (successfully handled) FineNotOk try must not erase that fact.
+// Status: FIXED by R6 error-exit isolation (raise scopes snapshotted per
+//   Try; irrefutable catches consume own raises only; outer facts restored).
 suberror FineNotOk
 
 ///|
 fn flip_coin() -> Bool {
   true
-}
-
-///|
-fn dirty_query() -> String {
-  "dirty"
 }
 
 ///|
@@ -37,7 +31,7 @@ fn case13_nested_try_error_clear() -> Unit {
   let resp = NestedResp::{}
   try {
     if flip_coin() {
-      raise Bad(dirty_query())
+      raise Bad(input())
     }
     try { raise FineNotOk } catch { _ => () }
   } catch {
