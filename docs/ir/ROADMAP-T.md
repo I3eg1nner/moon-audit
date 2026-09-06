@@ -251,8 +251,12 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       事实但不执行——方向为漏报）；参数/返回值/错误效应经回调的传播；接收者类型精确匹配
 - [ ] T5.4 扩展系统与框架模型：语料实际使用的文件/网络/异步/取消/FFI；
       外部对象与回调边界明确
-- [ ] T5.5 规则绑定完整符号与安全上下文：移除 sanitize/escape/encode 子串自动清污；
-      HTML/URL/header/路径安全性质分别表达
+- [x] T5.5 规则绑定完整符号与安全上下文（部分：子串清除已完成）：sanitize/escape/encode
+      子串自动清污已移除——完整符号白名单（html_escape/escape_html/url_encode/encode_uri/
+      crlf_strip/sanitize_header_value，语料实证）+ DSL 精确条目（sanitizer_hit）；测试 ×3
+      （t5c_substring_no_longer_matches / t5c_full_symbol_whitelist_matches /
+      t5c_dsl_sanitizer_entry_matches）；三目标 FP 0/0/0 + crescent 5 逐条稳定（规则分布不变）；
+      未竟：HTML/URL/header/路径安全性质分别表达（挂 T5.5 后半，待 DSL kind 语义扩展）
 - [ ] T5.6 统一数据流规则入口：CWE-113/路径穿越/XSS 消费共享结果；
       通用过程间分析不依赖 Web 框架标记；配置型规则留在 AST 层
 - 验收：每个库模型有"类型绑定/效应传播/调用边/正负例"四类测试；

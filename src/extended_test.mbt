@@ -1024,3 +1024,49 @@ test "t41_method_form_type_method_consumes_summary" {
   run_cwe113(impls, "test.mbt", source, findings, Error, ictx~)
   assert_true(findings.length() > 0)
 }
+
+// ---------------------------------------------------------------------------
+// T5.5: sanitizers by full symbol (substring auto-clean removed)
+// ---------------------------------------------------------------------------
+
+///|
+test "t5c_substring_no_longer_matches" {
+  // a function whose NAME merely contains 'escape' must NOT clean taint
+  let source = "fn foo(resp : Response, val : String) -> Unit { resp.set_header(\"X-Custom\", escape_at_will(val)) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "t5c_full_symbol_whitelist_matches" {
+  // exact built-in symbols (html_escape) still clean
+  let source = "fn foo(resp : Response, val : String) -> Unit { resp.set_header(\"X-Custom\", html_escape(val)) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "t5c_dsl_sanitizer_entry_matches" {
+  // project-DSL declared sanitizer (exact symbol) cleans
+  let source = "fn foo(resp : Response, val : String) -> Unit { resp.set_header(\"X-Custom\", my_project_clean(val)) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  let rules : TaintRuleset = {
+    sources: [],
+    sinks: [],
+    sanitizers: [
+      { method_name: "my_project_clean", kind: "Sanitizer", value_slot: 1, },
+    ],
+    fn_types: [],
+    callbacks: [],
+    extends: [],
+    cb_timing: [],
+    trait_edges: [],
+  }
+  run_cwe113(impls, "test.mbt", source, findings, Error, rules~)
+  assert_true(findings.length() == 0)
+}

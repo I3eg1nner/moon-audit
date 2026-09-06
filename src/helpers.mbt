@@ -104,9 +104,20 @@ pub fn is_constant_ident(name : @syntax.LongIdent) -> Bool {
 
 ///|
 fn is_sanitize_call_name(name : String) -> Bool {
-  name.contains("sanitize") ||
-  name.contains("escape") ||
-  name.contains("encode")
+  // T5.5: FULL-SYMBOL whitelist — substring auto-clean removed (review
+  // T5.5: "sanitize/escape/encode substring must not clear taint").
+  // A name merely CONTAINING one of these words is no longer a sanitizer;
+  // only these exact symbols (grounded in corpus + official naming), plus
+  // DSL/model-declared entries (exact form) via sanitizer_hit, clean.
+  match name {
+    "html_escape"
+    | "escape_html"
+    | "url_encode"
+    | "encode_uri"
+    | "crlf_strip"
+    | "sanitize_header_value" => true
+    _ => false
+  }
 }
 
 ///|
