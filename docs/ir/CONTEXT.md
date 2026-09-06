@@ -673,3 +673,16 @@ CWE-113 候选待分诊。
   （喂 loader 字符串逻辑的 fixture）；g4_scanproj 等 walker+loader 混合场景用 canonical 基座
   （Windows 上 fopen 接受正斜杠，唯 read_dir/FindFirstFileW 混合分隔符敏感——但 g4 类
   测试在正斜杠下历来绿，t1a1 的深层嵌套 fixture 需要 OS 原生，实证分流）
+
+## 2026-09-06 · T2b（T2.2 薄切）：defer 退出路径 + 短路 + break/continue 携带值
+- defer：Defer 臂注册进 ctx.defers，块尾 run_defers LIFO（内层先执行）；
+  Return 臂直排（return 值先于 defers 求值）；函数尾兜底未捕获 raise 路径；
+  被捕获 raise 不排空（catch 后继续执行时 defers 属于块语义）
+- 短路：常量 lhs（false&&/true||）完全跳过 rhs——rhs 内 sink 不再误报
+  （此前无条件双侧求值）；一般 lhs 分支副本求值 rhs 后 merge_env，值 join 保守
+- break/continue：携带值入 ctx.loop_exits，While/For/ForEach 汇合点 join+截断；
+  parser 0.3.18 无 loop{break v} 形态（探针证实），端到端观察受限，break 值
+  表达式求值以单测锁定
+- 测试：7 个 t2b_* 新增（LIFO=1 / 块尾时序=0 / 反序对=0 / 常量跳过×2=0 /
+  join 保守=1 / break 求值=1）；226/226；run.sh GATE-OK（c5 保持 XFAIL）；
+  FP 三目标 0；crescent 5 TP 稳定

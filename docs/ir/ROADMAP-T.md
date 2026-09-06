@@ -156,6 +156,12 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       模式右值先求完再绑定
 - [ ] T2.2 完整控制流：短路/分支/模式 guard/循环/break/continue/return/
       raise/catch/noraise/各退出路径上的 defer
+  - [x] T2.2（薄切）defer 退出序列（块尾 LIFO/Return 直排/函数尾兜底未捕获
+        raise——被捕获 raise 保持 defers 不排空；短路 &&/||：常量 lhs 跳过 rhs
+        （其 sink 不再误报）、一般 lhs 分支副本 merge、结果 join 保守；break/
+        continue 携带值入 loop_exits 汇合（parser 0.3.18 无 valued-loop 形态可
+        端到端观察，实现为结构能力+break 值表达式求值单测锁定）；c5(G4 分支堆)
+        保持 XFAIL 如实
 - [ ] T2.3 结构化值：tuple/enum/Option/Result/struct 的构造与投影经赋值、别名、
       返回仍保留分量关系（修 Match scrutinee 整体绑定缺口）
 - [ ] T2.4 隐式行为：默认参数/运算符与索引相关调用/插值/派生方法/迭代协议入 HIR；

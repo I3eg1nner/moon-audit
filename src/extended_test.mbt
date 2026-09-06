@@ -781,3 +781,81 @@ test "r6_inner_constr_only_catch_propagates_unmatched" {
   run_cwe113(impls, "t.mbt", src, findings, Error)
   inspect(findings.length() > 0, content="true")
 }
+
+// ---------------------------------------------------------------------------
+// T2.2 thin: defer exit paths + short-circuit + valued break/continue
+// ---------------------------------------------------------------------------
+
+///|
+test "t2b_defer_lifo_order" {
+  // LIFO: the LAST-registered defer (x = v) runs FIRST, so the sink in the
+  // first defer sees the taint -> 1 finding. FIFO order would report 0.
+  let source = "fn f(r : Response, v : String) -> Unit { let mut x = \"safe\"; defer { r.set_header(\"X\", x) }; defer { x = v }; () }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  inspect(findings.length(), content="1")
+}
+
+///|
+test "t2b_defer_runs_at_block_exit_not_inline" {
+  // the sink BEFORE the block tail sees pre-defer state: defer { x = v }
+  // has not executed at the sink point -> 0 findings
+  let source = "fn f(r : Response, v : String) -> Unit { let mut x = \"safe\"; defer { x = v }; r.set_header(\"X\", x) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  inspect(findings.length(), content="0")
+}
+
+///|
+test "t2b_defer_executes_and_can_reach_sink_after_state" {
+  // two defers, sink in the LAST registered one runs FIRST (clean), then
+  // the earlier-registered taint write runs; nothing observes it -> 0.
+  // (paired with lifo test above which observes the opposite order)
+  let source = "fn f(r : Response, v : String) -> Unit { let mut x = \"safe\"; defer { x = v }; defer { r.set_header(\"X\", x) }; () }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  inspect(findings.length(), content="0")
+}
+
+///|
+test "t2b_short_circuit_const_false_skips_rhs_sink" {
+  // `false && sink(...)`: rhs never executes -> no finding
+  let source = "fn f(r : Response, v : String) -> Unit { ignore(false && r.set_header(\"X\", v)) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  inspect(findings.length(), content="0")
+}
+
+///|
+test "t2b_short_circuit_const_true_skips_rhs_sink" {
+  // `true || sink(...)`: rhs never executes -> no finding
+  let source = "fn f(r : Response, v : String) -> Unit { ignore(true || r.set_header(\"X\", v)) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  inspect(findings.length(), content="0")
+}
+
+///|
+test "t2b_short_circuit_join_is_sound" {
+  // `c && v`: result may carry rhs taint on the deciding path -> report
+  let source = "fn f(r : Response, c : Bool, v : String) -> Unit { let t = c && v; r.set_header(\"X\", t) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  inspect(findings.length(), content="1")
+}
+
+///|
+test "t2b_break_evaluates_its_value_expression" {
+  // break(expr): the value expression's effects happen before the exit
+  let source = "fn f(r : Response, v : String) -> Unit { while true { break r.set_header(\"X\", v) } }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  inspect(findings.length(), content="1")
+}

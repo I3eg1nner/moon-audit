@@ -139,11 +139,39 @@ priv struct FlowCtx {
   hir_temp_ctr : Array[Int]
   // param-field sink recording channel ("param|field") for summaries
   mut record_field_sinks : Array[String]?
+  // T2.2 defer exit sequence: registered by the Defer arm, executed LIFO
+  // at the enclosing block exit (Defer arm tail), at Return, and at the
+  // function tail for uncaught raises — shared by branch copies on purpose
+  defers : Array[@syntax.Expr]
+  // T2.2 loop exit accumulator: break(value)/continue(args) taints join at
+  // the enclosing loop's merge point (shared ref across branch copies)
+  loop_exits : Array[Taint]
   taint_rules : TaintRuleset // project DSL entries (ADD to built-ins)
   // CWE-116/tainted-output gate: fires only from DSL/lib-model Output sinks;
   // default enabled (no builtin sink carries kind Output, so projects
   // without a model/config are unaffected)
   output_sinks_enabled : Bool
+}
+
+///|
+// T2.2: execute pending deferred expressions LIFO at a block/function exit
+
+///|
+fn run_defers(ctx : FlowCtx) -> Unit {
+  while ctx.defers.length() > 0 {
+    let e = ctx.defers.pop() |> or_unit
+    let _ = flow(e, ctx)
+  }
+}
+
+///|
+fn or_unit(v : @syntax.Expr?) -> @syntax.Expr {
+  match v {
+    Some(e) => e
+    None =>
+      // unreachable: pop on non-empty array
+      Unit(loc=dummy_flow_loc(), faked=true)
+  }
 }
 
 ///|
@@ -415,6 +443,8 @@ pub fn run_flow_taint_func(
     hir_trace: [],
     hir_temp_ctr: [0],
     record_field_sinks: None,
+    defers: [],
+    loop_exits: [],
     ictx,
     taint_rules: match rules {
       Some(r) => r
@@ -426,6 +456,8 @@ pub fn run_flow_taint_func(
     },
   }
   scope_push(ctx) // function scope
+  // T2.2 safety net: pending defers (e.g. from an uncaught raise path)
+  // execute at function exit
   // fn parameters carry param provenance: direct param flow reaches
   // sinks (report), but field access on a param is a config-like read
   // (Clean) — provenance-aware field propagation (review counterexample)
@@ -444,6 +476,9 @@ pub fn run_flow_taint_func(
     None => ()
   }
   let _ = flow(body, ctx)
+  // T2.2: function exit — execute still-pending defers (uncaught-raise
+  // path); defers from completed blocks already ran at their block tail
+  run_defers(ctx)
   ctx.raise_buffer.clear() // raises escaping this function: error exit (P3)
   scope_pop(ctx)
 }
@@ -479,6 +514,8 @@ pub fn run_flow_taint_func_top(
     hir_trace: [],
     hir_temp_ctr: [0],
     record_field_sinks: None,
+    defers: [],
+    loop_exits: [],
     ictx: None,
     taint_rules: match rules {
       Some(r) => r
@@ -491,6 +528,9 @@ pub fn run_flow_taint_func_top(
   }
   scope_push(ctx) // function scope
   let _ = flow(body, ctx)
+  // T2.2: function exit — execute still-pending defers (uncaught-raise
+  // path); defers from completed blocks already ran at their block tail
+  run_defers(ctx)
   ctx.raise_buffer.clear()
   scope_pop(ctx)
 }
@@ -725,7 +765,38 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       }
       ret
     }
-    Infix(lhs~, rhs~, ..) => taint_or(flow(lhs, ctx), flow(rhs, ctx))
+    Infix(op~, lhs~, rhs~, ..) => {
+      // T2.2 short-circuit: && / || evaluate rhs ONLY on the deciding path.
+      // Statically-decided lhs skips rhs entirely (its sinks never run);
+      // otherwise rhs runs on a branch copy and states merge.
+      let lt = flow(lhs, ctx)
+      let opname = infix_op_name(op)
+      if opname == "&&" || opname == "and" {
+        if is_false_const(lhs) {
+          Clean // rhs never executes
+        } else if is_true_const(lhs) {
+          flow(rhs, ctx)
+        } else {
+          let branch = ctx.copy()
+          let rt = flow(rhs, branch)
+          merge_env(ctx, branch, ctx)
+          taint_or(lt, rt)
+        }
+      } else if opname == "||" || opname == "or" {
+        if is_true_const(lhs) {
+          Clean // rhs never executes
+        } else if is_false_const(lhs) {
+          flow(rhs, ctx)
+        } else {
+          let branch = ctx.copy()
+          let rt = flow(rhs, branch)
+          merge_env(ctx, branch, ctx)
+          taint_or(lt, rt)
+        }
+      } else {
+        taint_or(lt, flow(rhs, ctx))
+      }
+    }
     Unary(expr~, ..) => flow(expr, ctx)
     Array(exprs~, ..) => fold_taint(exprs, ctx)
     ArraySpread(elems~, ..) => {
@@ -779,9 +850,11 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       // fixpoint: taint written in iteration N must be visible to the
       // sink executed in iteration N+1 (review counterexample b)
       scope_push(ctx)
+      let base = ctx.loop_exits.length()
       flow_to_fixpoint(loop_body, ctx)
+      let join = join_loop_exits(ctx, base)
       scope_pop(ctx)
-      Clean
+      join
     }
     Function(func~, ..) => {
       // closure params: conservatively tainted (framework-supplied input);
@@ -858,10 +931,13 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       }
     }
     Defer(expr~, body~, ..) => {
-      // defer semantics: BODY runs first; the deferred expression runs on
-      // the exit path (review counterexample — order was previously reversed)
+      // T2.2 exit-path semantics: register into the scope exit sequence;
+      // the enclosing block's tail executes them LIFO (inner defers first).
+      // Return drains for the direct-exit path; uncaught raises drain at
+      // the function tail; caught raises continue with defers intact.
+      ctx.defers.push(expr)
       let t = flow(body, ctx)
-      let _ = flow(expr, ctx)
+      run_defers(ctx)
       t
     }
     LetFn(func~, body~, ..) => {
@@ -1130,9 +1206,12 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       Clean
     }
     Return(return_value~, ..) => {
+      // T2.2: a return exits every enclosing block — drain pending defers
+      // after the return value is evaluated (value sees pre-defer state)
       match return_value {
         Some(e) => {
           let t = flow(e, ctx)
+          run_defers(ctx)
           // P3: record param provenance flowing into the return value
           match t {
             TaintedParam(p) =>
@@ -1164,10 +1243,23 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
     ProofAssert(..) => Clean
     ProofLet(expr~, ..) => flow(expr, ctx)
     Break(arg~, ..) => {
-      let _ = arg.map(fn(e) { flow(e, ctx) })
+      // T2.2: break(value) carries its taint to the loop merge point
+      let t = match arg {
+        Some(e) => flow(e, ctx)
+        None => Clean
+      }
+      ctx.loop_exits.push(t)
       Clean
     }
-    Continue(..) => Clean
+    Continue(args~, ..) => {
+      // T2.2: continue(args) carries joined arg taint to the next iteration
+      let mut t = Clean
+      for a in args {
+        t = taint_or(t, flow(a, ctx))
+      }
+      ctx.loop_exits.push(t)
+      Clean
+    }
     For(binders~, continue_block~, body~, ..) => {
       for pair in binders {
         let _ = flow(pair.1, ctx)
@@ -1175,10 +1267,12 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       for pair in continue_block {
         let _ = flow(pair.1, ctx)
       }
+      let base = ctx.loop_exits.length()
       flow_to_fixpoint(body, ctx)
-      Clean
+      join_loop_exits(ctx, base)
     }
     ForEach(binders~, expr~, init~, continue_block~, body~, ..) => {
+      // T2.2: break/continue carried taints join at the loop merge point
       let t = flow(expr, ctx)
       for b in binders {
         match b {
@@ -1192,8 +1286,9 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       for pair in continue_block {
         let _ = flow(pair.1, ctx)
       }
+      let base = ctx.loop_exits.length()
       flow_to_fixpoint(body, ctx)
-      Clean
+      join_loop_exits(ctx, base)
     }
     Try(body~, catch_~, try_else~, ..) => {
       // Error-flow contract: body, catches, and the noraise arm are separate
@@ -1657,6 +1752,42 @@ fn crlf_strip_coverage(
 }
 
 // ── guard/validation refinement ───────────────────────────────────────────
+
+///|
+fn infix_op_name(v : @syntax.Var) -> String {
+  match v.name {
+    Ident(name~) => name
+    Dot(..) => ""
+  }
+}
+
+///|
+fn is_true_const(e : @syntax.Expr) -> Bool {
+  match e {
+    Constant(c=Bool(true), ..) => true
+    _ => false
+  }
+}
+
+///|
+// T2.2: join break/continue carried taints pushed after `base`, truncate
+
+///|
+fn join_loop_exits(ctx : FlowCtx, base : Int) -> Taint {
+  let mut t = Clean
+  while ctx.loop_exits.length() > base {
+    t = taint_or(t, ctx.loop_exits.pop() |> or_clean2)
+  }
+  t
+}
+
+///|
+fn or_clean2(v : Taint?) -> Taint {
+  match v {
+    Some(x) => x
+    None => Clean
+  }
+}
 
 ///|
 fn is_false_const(e : @syntax.Expr) -> Bool {
@@ -2198,6 +2329,8 @@ fn collect_summary_func(
     hir_trace: [],
     hir_temp_ctr: [0],
     record_field_sinks: None,
+    defers: [],
+    loop_exits: [],
     ictx: None,
     taint_rules: TaintRuleset::empty(),
     output_sinks_enabled: true,
@@ -2376,6 +2509,8 @@ pub fn run_flow_taint_trace(
     hir_trace: [],
     hir_temp_ctr: [0],
     record_field_sinks: None,
+    defers: [],
+    loop_exits: [],
     ictx: None,
     taint_rules: TaintRuleset::empty(),
     output_sinks_enabled: true,
@@ -2396,6 +2531,9 @@ pub fn run_flow_taint_trace(
     None => ()
   }
   let _ = flow(body, ctx)
+  // T2.2: function exit — execute still-pending defers (uncaught-raise
+  // path); defers from completed blocks already ran at their block tail
+  run_defers(ctx)
   ctx.raise_buffer.clear()
   scope_pop(ctx)
   ctx.hir_trace
