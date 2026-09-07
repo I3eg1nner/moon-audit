@@ -38,7 +38,7 @@ test "d1a_straight_line_single_block" {
     }
   }
   inspect(call_count, content="1")
-  inspect(eval_count, content="2") // two args ("X", v), receiver opaque
+  inspect(eval_count, content="3") // E1a unified layout: [recv, "X", v] — receiver-first, matching the walk side
   // exits empty, validate clean
   inspect(validate_cfg(ir).length(), content="0")
 }

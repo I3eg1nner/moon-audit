@@ -24,7 +24,7 @@ pub fn analyze_mod_imports(String) -> ImportContext
 
 pub fn append_ruleset(TaintRuleset, TaintRuleset, String, Array[String]) -> Unit
 
-pub fn build_block_ir(String, @syntax.Expr) -> BlockIr
+pub fn build_block_ir(String, @syntax.Expr, rules? : TaintRuleset) -> BlockIr
 
 pub fn build_ledger(BaselineDiff, Map[String, String]) -> Array[RuleLedger]
 
@@ -327,6 +327,10 @@ pub fn severity_str(Severity) -> String
 pub fn sig_arrow_args(PkgSymbols, String) -> Array[Array[IRType?]]?
 
 pub fn sig_trait_params(PkgSymbols, String) -> Array[IRType?]?
+
+pub fn sink_target_hit(String, TaintRuleset) -> Bool
+
+pub fn sink_value_slot_of(String, TaintRuleset) -> Int
 
 pub fn solve_pt_constraints(Array[PTConstraint], budget? : Int) -> PTSolution
 
@@ -841,7 +845,7 @@ pub(all) enum Stmt {
   SinkStmt(String, Array[Int])
   AssignStmt(String, Int)
   RetStmt(Int?)
-  RaiseStmt(Int)
+  RaiseStmt(Int?)
   BreakStmt(Int?)
   ContinueStmt
   DeferReg(String)

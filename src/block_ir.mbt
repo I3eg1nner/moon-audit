@@ -50,6 +50,7 @@ priv struct CfgCtx {
   mut next_temp : Int
   loop_headers : Array[Int] // innermost last (break/continue targets)
   mut defer_count : Int
+  rules : TaintRuleset // E1a: sink firing needs the SAME ruleset as walk
 }
 
 ///|
@@ -77,7 +78,11 @@ fn CfgCtx::seal(self : CfgCtx) -> Unit {
 // ── entry point ───────────────────────────────────────────────────────────
 
 ///|
-pub fn build_block_ir(fn_name : String, body : @syntax.Expr) -> BlockIr {
+pub fn build_block_ir(
+  fn_name : String,
+  body : @syntax.Expr,
+  rules? : TaintRuleset,
+) -> BlockIr {
   // fixed layout: 0 = entry, 1 = normal_exit, 2 = error_exit
   let ctx : CfgCtx = {
     blocks: [new_block(0), new_block(1), new_block(2)],
@@ -86,6 +91,10 @@ pub fn build_block_ir(fn_name : String, body : @syntax.Expr) -> BlockIr {
     next_temp: 0,
     loop_headers: [],
     defer_count: 0,
+    rules: match rules {
+      Some(r) => r
+      None => TaintRuleset::empty()
+    },
   }
   lower(body, ctx)
   // implicit fallthrough of the last block → normal exit (unless sealed)
@@ -116,35 +125,31 @@ fn lower_one(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
     Apply(..) => emit_call(expr, ctx)
     DotApply(self~, ..) => {
       // receiver first, then arguments (T2.1 order)
-      lower_effects(self)
+      lower_effects(self, ctx)
       emit_call(expr, ctx)
     }
-    Let(pattern~, expr~, ..) => {
+    Let(pattern~, expr~, body~, ..) => {
+      // E1a: the Let BODY is the continuation — dropping it truncated
+      // every let-chained function after its first binding
       let decl = pattern_decl_key(pattern)
-      let t_opt = eval_value_expr(expr, ctx)
-      match t_opt {
-        Some(t) => ctx.blocks[ctx.cur].stmts.push(BindVar(decl, RTemp(t)))
-        None => ctx.blocks[ctx.cur].stmts.push(BindVar(decl, RWhole))
-      }
+      ignore(eval_value_expr(expr, ctx, decl~))
+      ctx.blocks[ctx.cur].stmts.push(BindVar(decl, RWhole))
+      lower(body, ctx)
     }
-    LetMut(binder~, expr~, ..) => {
+    LetMut(binder~, expr~, body~, ..) => {
       let decl = binder.name
-      let t_opt = eval_value_expr(expr, ctx)
-      match t_opt {
-        Some(t) => ctx.blocks[ctx.cur].stmts.push(BindVar(decl, RTemp(t)))
-        None => ctx.blocks[ctx.cur].stmts.push(BindVar(decl, RWhole))
-      }
+      ignore(eval_value_expr(expr, ctx, decl~))
+      ctx.blocks[ctx.cur].stmts.push(BindVar(decl, RWhole))
+      lower(body, ctx)
     }
     Assign(var_~, expr~, ..) => {
-      let t_opt = eval_value_expr(expr, ctx)
+      // E1a: walk assigns allocate NO temp (env update only)
       let name = longident_of(var_.name)
-      match t_opt {
-        Some(t) => ctx.blocks[ctx.cur].stmts.push(AssignStmt(name, t))
-        None => ctx.blocks[ctx.cur].stmts.push(BindVar(name, RWhole))
-      }
+      ignore(eval_value_expr(expr, ctx, decl=name))
+      ctx.blocks[ctx.cur].stmts.push(BindVar(name, RWhole))
     }
     If(cond~, ifso~, ifnot~, ..) => {
-      lower_effects(cond)
+      lower_effects(cond, ctx)
       let cond_id = ctx.cur
       let then_id = ctx.fresh_block()
       let else_id = ctx.fresh_block()
@@ -165,7 +170,7 @@ fn lower_one(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
       ctx.cur = join_id
     }
     Match(expr~, cases~, ..) => {
-      lower_effects(expr)
+      lower_effects(expr, ctx)
       let scrut_id = ctx.cur
       let join_id = ctx.fresh_block()
       for case in cases {
@@ -203,7 +208,7 @@ fn lower_one(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
       let header = ctx.fresh_block()
       ir_link(ctx.cur, header, ctx.blocks)
       ctx.cur = header
-      lower_effects(loop_cond)
+      lower_effects(loop_cond, ctx)
       let body_id = ctx.fresh_block()
       let after = ctx.fresh_block()
       ir_link(header, body_id, ctx.blocks)
@@ -218,10 +223,10 @@ fn lower_one(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
     }
     For(binders~, continue_block~, body~, ..) => {
       for pair in binders {
-        lower_effects(pair.1)
+        lower_effects(pair.1, ctx)
       }
       for pair in continue_block {
-        lower_effects(pair.1)
+        lower_effects(pair.1, ctx)
       }
       let header = ctx.fresh_block()
       ir_link(ctx.cur, header, ctx.blocks)
@@ -239,12 +244,12 @@ fn lower_one(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
       ctx.cur = after
     }
     ForEach(expr~, init~, continue_block~, body~, ..) => {
-      lower_effects(expr)
+      lower_effects(expr, ctx)
       for pair in init {
-        lower_effects(pair.1)
+        lower_effects(pair.1, ctx)
       }
       for pair in continue_block {
-        lower_effects(pair.1)
+        lower_effects(pair.1, ctx)
       }
       let header = ctx.fresh_block()
       ir_link(ctx.cur, header, ctx.blocks)
@@ -262,35 +267,31 @@ fn lower_one(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
       ctx.cur = after
     }
     Return(return_value~, ..) => {
-      let t_opt = match return_value {
-        Some(e) => eval_value_expr(e, ctx)
-        None => None
+      // E1a: walk flows the value without allocating an outer temp
+      match return_value {
+        Some(e) => lower_effects(e, ctx)
+        None => ()
       }
-      match t_opt {
-        Some(t) => ctx.blocks[ctx.cur].stmts.push(RetStmt(Some(t)))
-        None => ctx.blocks[ctx.cur].stmts.push(RetStmt(None))
-      }
+      ctx.blocks[ctx.cur].stmts.push(RetStmt(None))
       ir_link(ctx.cur, 1, ctx.blocks)
       ctx.terminated = true
       ctx.seal()
     }
     Raise(err_value~, ..) => {
-      let t = ctx.fresh_temp()
-      lower_effects(err_value)
-      ctx.blocks[ctx.cur].stmts.push(RaiseStmt(t))
+      // E1a: walk raises carry NO temp (payload taint flows through the
+      // walk's raise_buffer; exec consumes SinkStmt temps only)
+      lower_effects(err_value, ctx)
+      ctx.blocks[ctx.cur].stmts.push(RaiseStmt(None))
       ir_link(ctx.cur, 2, ctx.blocks)
       ctx.terminated = true
       ctx.seal()
     }
     Break(arg~, ..) => {
-      let t_opt = match arg {
-        Some(e) => eval_value_expr(e, ctx)
-        None => None
+      match arg {
+        Some(e) => lower_effects(e, ctx)
+        None => ()
       }
-      match t_opt {
-        Some(t) => ctx.blocks[ctx.cur].stmts.push(BreakStmt(Some(t)))
-        None => ctx.blocks[ctx.cur].stmts.push(BreakStmt(None))
-      }
+      ctx.blocks[ctx.cur].stmts.push(BreakStmt(None))
       // break → innermost loop's after-block is unknown here; D1a links
       // to the loop header's second successor via loop-header bookkeeping
       match loop_top(ctx.loop_headers) {
@@ -317,7 +318,7 @@ fn lower_one(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
       // defer registered at this point; executes at exit paths (D1b)
       ctx.defer_count += 1
       ctx.blocks[ctx.cur].stmts.push(DeferReg(ctx.defer_count.to_string()))
-      lower_effects(expr)
+      lower_effects(expr, ctx)
       lower(body, ctx)
     }
     LetAnd(bindings~, body~, ..) => {
@@ -336,7 +337,7 @@ fn lower_one(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
     }
     Guard(cond~, body~, ..) => {
       // guard: cond fails → otherwise path (treated as branch to join)
-      lower_effects(cond)
+      lower_effects(cond, ctx)
       let header = ctx.cur
       let ok_id = ctx.fresh_block()
       let join_id = ctx.fresh_block()
@@ -349,7 +350,7 @@ fn lower_one(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
       ctx.cur = join_id
     }
     TryOperator(body~, ..) => lower(body, ctx)
-    _ => lower_effects(expr)
+    _ => lower_effects(expr, ctx)
   }
 }
 
@@ -362,28 +363,63 @@ fn cur_exit(ctx : CfgCtx) -> Int {
 
 // emit argument temporaries + CallStmt for an Apply/DotApply site
 
+// emit argument temporaries + CallStmt (+ SinkStmt for sink targets)
+// for an Apply/DotApply site. E1a unified temp layout:
+//   allocation order = walk order — inner-call effects first, then the
+//   contiguous outer temp block [recv?, args...]; sink firing is emitted
+//   HERE (SinkStmt carrying the VALUE-slot temps, mirroring walk's
+//   value_taint_at selection) so block exec has ONE firing semantics.
+
 ///|
 fn emit_call(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
   let temps : Array[Int] = []
+  let value_temps : Array[Int] = []
   let target = match expr {
     Apply(func~, args~, ..) => {
+      let tgt = callee_target(func)
+      let slot = sink_value_slot_of(tgt, ctx.rules)
+      // pass 1: inner effects (they allocate their own temps first —
+      // the walk side flows args BEFORE allocating outer temps)
+      for arg in args {
+        lower_effects(arg.value, ctx)
+      }
+      // pass 2: contiguous outer temps
+      let mut pos_idx = 0
       for arg in args {
         let t = ctx.fresh_temp()
-        lower_effects(arg.value)
         temps.push(t)
+        if arg_kind_is_value_slot(arg.kind, pos_idx, slot) {
+          value_temps.push(t)
+        }
+        if arg_kind_is_positional(arg.kind) {
+          pos_idx += 1
+        }
       }
-      callee_target(func)
+      tgt
     }
     DotApply(self~, method_name~, args~, ..) => {
-      // receiver evaluated first (whole-value approximation at D1a; no
-      // receiver temp until D1b models receiver results)
-      lower_effects(self)
+      let tgt = method_name.name
+      let slot = sink_value_slot_of(tgt, ctx.rules)
+      // pass 1: receiver then inner arg effects (walk order)
+      lower_effects(self, ctx)
+      for arg in args {
+        lower_effects(arg.value, ctx)
+      }
+      // pass 2: contiguous outer temps [recv, args...]
+      let recv_t = ctx.fresh_temp()
+      temps.push(recv_t)
+      let mut pos_idx = 0
       for arg in args {
         let t = ctx.fresh_temp()
-        lower_effects(arg.value)
         temps.push(t)
+        if arg_kind_is_value_slot(arg.kind, pos_idx, slot) {
+          value_temps.push(t)
+        }
+        if arg_kind_is_positional(arg.kind) {
+          pos_idx += 1
+        }
       }
-      method_name.name
+      tgt
     }
     _ => "?"
   }
@@ -394,6 +430,38 @@ fn emit_call(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
     i += 1
   }
   ctx.blocks[ctx.cur].stmts.push(CallStmt(target, temps))
+  // E1a: single firing semantics — SinkStmt carries the value-slot temps
+  // iff the target is a sink (builtin header setter OR DSL rule)
+  if sink_target_hit(target, ctx.rules) && value_temps.length() > 0 {
+    ctx.blocks[ctx.cur].stmts.push(SinkStmt("header:" + target, value_temps))
+  }
+}
+
+// value-slot mirror of walk's value_taint_at: labelled "value" args, or
+// the positional arg at the configured slot index
+
+///|
+fn arg_kind_is_value_slot(
+  kind : @syntax.ArgumentKind,
+  pos_idx : Int,
+  slot : Int,
+) -> Bool {
+  match kind {
+    Labelled(label)
+    | LabelledPun(label)
+    | LabelledOption(label~, ..)
+    | LabelledOptionPun(label~, ..) => label.name == "value"
+    _ => pos_idx == slot
+  }
+}
+
+///|
+fn arg_kind_is_positional(kind : @syntax.ArgumentKind) -> Bool {
+  match kind {
+    Labelled(_) | LabelledPun(_) | LabelledOption(_) | LabelledOptionPun(_) =>
+      false
+    _ => true
+  }
 }
 
 ///|
@@ -423,23 +491,30 @@ fn type_name_str_of(tn : @syntax.TypeName) -> String {
 // positions materialize temps in this slice.
 
 ///|
-fn eval_value_expr(expr : @syntax.Expr, ctx : CfgCtx) -> Int? {
+fn eval_value_expr(expr : @syntax.Expr, ctx : CfgCtx, decl~ : String) -> Int? {
   match expr {
     Apply(..) | DotApply(..) => {
-      lower_effects(expr)
+      lower_effects(expr, ctx)
       None // call result: whole-value binding at this slice
     }
     Tuple(exprs~, ..) => {
+      // E1a walk mirror: per element [fresh temp, LetEvalTemp(t, i),
+      // lower element effects] then BindTuplePositions — same order the
+      // walk uses, so later calls keep aligned numbering
       let temps : Array[Int] = []
+      let mut i = 0
       for e in exprs {
         let t = ctx.fresh_temp()
-        lower_effects(e)
+        ctx.blocks[ctx.cur].stmts.push(LetEvalTemp(t, i))
+        lower_effects(e, ctx)
         temps.push(t)
+        i += 1
       }
-      Some(-1) // marker: tuple positions handled by caller via BindTuple
+      ctx.blocks[ctx.cur].stmts.push(BindTuplePositions(decl, temps))
+      None
     }
     _ => {
-      lower_effects(expr)
+      lower_effects(expr, ctx)
       None
     }
   }
@@ -448,11 +523,71 @@ fn eval_value_expr(expr : @syntax.Expr, ctx : CfgCtx) -> Int? {
 // recurse over effectful sub-expressions (calls, assigns, control)
 
 ///|
-fn lower_effects(expr : @syntax.Expr) -> Unit {
-  ignore(expr)
-  // D1a: sub-expression effects of non-statement positions (e.g. the
-  // receiver chain) are approximated — the full recursion lands with
-  // D1b when this layer becomes the execution kernel.
+fn lower_effects(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
+  match expr {
+    Apply(..) | DotApply(..) => emit_call(expr, ctx)
+    Let(..)
+    | LetMut(..)
+    | If(..)
+    | Match(..)
+    | Try(..)
+    | While(..)
+    | For(..)
+    | ForEach(..)
+    | Return(..)
+    | Raise(..)
+    | Break(..)
+    | Continue(..)
+    | Defer(..)
+    | LetAnd(..)
+    | LetFn(..)
+    | Guard(..)
+    | TryOperator(..)
+    | Sequence(..) => lower(expr, ctx)
+    Infix(lhs~, rhs~, ..) => {
+      lower_effects(lhs, ctx)
+      lower_effects(rhs, ctx)
+    }
+    Unary(expr~, ..) => lower_effects(expr, ctx)
+    Interp(elems~, ..) =>
+      for elem in elems {
+        match elem {
+          Expr(expr~, ..) => lower_effects(expr, ctx)
+          _ => ()
+        }
+      }
+    MultilineString(elems~, ..) =>
+      for elem in elems {
+        match elem {
+          Interp(list) =>
+            for ie in list {
+              match ie {
+                Expr(expr~, ..) => lower_effects(expr, ctx)
+                _ => ()
+              }
+            }
+          _ => ()
+        }
+      }
+    Array(exprs~, ..) =>
+      for e in exprs {
+        lower_effects(e, ctx)
+      }
+    ArraySpread(elems~, ..) =>
+      for elem in elems {
+        match elem {
+          Regular(e) => lower_effects(e, ctx)
+          Spread(expr~, ..) => lower_effects(expr, ctx)
+        }
+      }
+    ArrayGet(array~, ..) => lower_effects(array, ctx)
+    Field(record~, ..) => lower_effects(record, ctx)
+    Pipe(lhs~, ..) | RevPipe(lhs~, ..) => lower_effects(lhs, ctx)
+    Constraint(expr~, ..) => lower_effects(expr, ctx)
+    LabelledBlock(body~, ..) => lower_effects(body, ctx)
+    Group(expr~, ..) => lower_effects(expr, ctx)
+    _ => () // leaves: Ident/Constant/Method/Unit/Hole/... (no temps)
+  }
 }
 
 ///|

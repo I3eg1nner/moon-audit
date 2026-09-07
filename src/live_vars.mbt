@@ -44,9 +44,13 @@ fn stmt_uses(stmt : Stmt) -> Array[String] {
     SinkStmt(_, temps) => temp_keys(temps)
     AssignStmt(_, t) => ["t" + t.to_string()]
     // D1a control statements: only value-carrying ones use temps
-    RetStmt(Some(t)) | BreakStmt(Some(t)) | RaiseStmt(t) =>
+    RetStmt(Some(t)) | BreakStmt(Some(t)) | RaiseStmt(Some(t)) =>
       ["t" + t.to_string()]
-    RetStmt(None) | BreakStmt(None) | ContinueStmt | DeferReg(_) => []
+    RetStmt(None)
+    | BreakStmt(None)
+    | RaiseStmt(None)
+    | ContinueStmt
+    | DeferReg(_) => []
   }
 }
 

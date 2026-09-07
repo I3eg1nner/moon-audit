@@ -119,29 +119,9 @@ fn exec_stmt(
         i += 1
       }
     }
-    CallStmt(target, temps) =>
-      // sink classification reuses the same name predicate + positional
-      // value-slot rule as the walk (receiver-first temps for methods:
-      // temps[0]=recv, temps[1]=name arg, temps[2]=value; plain fn:
-      // temps[0]=name, temps[1]=value)
-      if is_header_setter(target) {
-        let value_taint = if temps.length() > 2 {
-          match temp_facts.get(temps[2]) {
-            Some(v) => v
-            None => Clean
-          }
-        } else if temps.length() > 1 {
-          match temp_facts.get(temps[1]) {
-            Some(v) => v
-            None => Clean
-          }
-        } else {
-          Clean
-        }
-        if is_tainted(value_taint) {
-          fired.push("header:" + target)
-        }
-      }
+    CallStmt(_, _) => ()
+    // E1a: sink firing lives ONLY in SinkStmt (emitted by the builder with
+    // the value-slot temps; CallStmt is a pure call — one firing semantics)
     SinkStmt(kind, temps) => {
       // equivalence contract: this statement exists iff the walk fired;
       // re-check taint of at least one carried temp for independence
@@ -219,9 +199,10 @@ fn cfg_hybrid_classify(
   body : @syntax.Expr,
   temp_facts : Map[Int, Taint],
   ast_kinds : Array[String],
+  rules : TaintRuleset,
 ) -> String {
   // returns "cfg" | "fallback" | "divergent" and bumps counters
-  let ir = build_block_ir(fn_name, body)
+  let ir = build_block_ir(fn_name, body, rules~)
   let problems = validate_cfg(ir)
   if problems.length() > 0 {
     cfg_exec.ast_fallback += 1

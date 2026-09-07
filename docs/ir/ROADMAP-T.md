@@ -371,6 +371,7 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 
 
 ### D1b 污点执行迁移 CFG（混合部署，2026-09-06，d7124e4 同变更补记）
+- [x] **E1a divergent 归零（2026-09-07, 第七轮评审优先级 1 前半）**: 根因三处——①计数基错位（walk 1-基 vs builder 0-基，hir_fresh_temp 改先返后增）②方法调用布局不对称（builder emit_call 补 receiver temp + 两遍式分配序=walk 序：内层效果先行、外层 temps 连续块尾）③**builder 结构性截断**（Let/LetMut 丢弃 body / lower_effects 空桩 / Return/Break/Raise 多余 payload temp）+ sink 触发单一语义化（builder 发射 SinkStmt 携带值槽 temps=镜像 value_taint_at；exec 的 CallStmt 内置判定删除）。**实测（本轮 commit 落档）: 反例语料 12 文件 cfg-divergent 全部 11→0；三目标 divergent=0、FP=0；crescent 5 逐行稳定；301/301；双二进制 findings 逐条一致（AST 权威不变，E1b 权威切换待后续）**; 附带发现: D1b 时代 mocket 94% executed 实为空-空平凡匹配（Let 链截断后 sink 不在 IR 中）
 - [x] block_exec.mbt: 块级工作队列（entry 快照 + 后继 join=共享 taint_or 格运算 + 收敛判定 + 访问上限 16/块，耗尽按 divergent 披露）；exec_stmt 为两驱动共用的纯语句级语义
 - [x] 混合执行: CFG 可构建→块执行并与 AST 结果逐函数比对（一致=cfg_executed / 不一致=cfg_divergent / 构建校验失败=ast_fallback）；AST findings 本里程碑保持权威；三计数+访问上限进 analysis-scope
 - [x] 实测占比: mocket 364/386=94.3% / petgraph 238/246=96.7% / 自举 615/658=93.5%（均超 ≥80% 目标）；**真实语料 cfg-divergent=0、visits-capped=0**

@@ -27,7 +27,7 @@ pub(all) enum Stmt {
   // hybrid flow walk never produces them). Consumers treat them as
   // terminal/marker statements — see live_vars / points_to updates.
   RetStmt(Int?) // optional return-value temp
-  RaiseStmt(Int) // error payload temp
+  RaiseStmt(Int?) // error payload temp (E1a: walk allocates none)
   BreakStmt(Int?) // optional loop-value temp
   ContinueStmt
   DeferReg(String) // defer registered at this point (LIFO at exit)
@@ -105,7 +105,11 @@ pub fn Stmt::show(self : Stmt) -> String {
     AssignStmt(decl, temp_id) => decl + " <- t" + temp_id.to_string()
     RetStmt(Some(t)) => "ret t" + t.to_string()
     RetStmt(None) => "ret"
-    RaiseStmt(t) => "raise t" + t.to_string()
+    RaiseStmt(t) =>
+      match t {
+        Some(id) => "raise t" + id.to_string()
+        None => "raise"
+      }
     BreakStmt(Some(t)) => "break t" + t.to_string()
     BreakStmt(None) => "break"
     ContinueStmt => "continue"
@@ -165,6 +169,10 @@ fn comps_get(ctx : FlowCtx, decl : String, ctor : String, idx : Int) -> Taint? {
 
 ///|
 fn hir_fresh_temp(ctx : FlowCtx) -> Int {
+  // 0-based to match CfgCtx.fresh_temp (E1a: unified temp layout — the
+  // walk side and the builder side must number the SAME call's temporaries
+  // identically, or temp_facts lookups in block exec read the wrong slots)
+  let t = ctx.hir_temp_ctr[0]
   ctx.hir_temp_ctr[0] += 1
-  ctx.hir_temp_ctr[0]
+  t
 }

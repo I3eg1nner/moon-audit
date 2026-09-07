@@ -831,7 +831,15 @@ pub fn run_flow_taint_func(
       _ => ()
     }
   }
-  ignore(cfg_hybrid_classify(d1_name, body, ctx.temp_facts, ast_kinds))
+  ignore(
+    cfg_hybrid_classify(
+      d1_name,
+      body,
+      ctx.temp_facts,
+      ast_kinds,
+      ctx.taint_rules,
+    ),
+  )
 }
 
 ///|
@@ -1279,10 +1287,9 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
           apply_param_field_sinks(func, args, ctx, expr)
           let ret = match apply_func_name(func) {
             Some(name) => {
-              let is_sink = is_header_setter(name) ||
-                ctx.taint_rules.header_sink_hit(name)
+              let is_sink = sink_target_hit(name, ctx.taint_rules)
               if is_sink {
-                let slot = or_slot(ctx.taint_rules.sink_value_slot(name))
+                let slot = sink_value_slot_of(name, ctx.taint_rules)
                 let value_taint = value_taint_at(arg_pairs, slot)
                 if is_tainted(value_taint) {
                   hir_emit_sink(ctx, "header:" + name, hir_temps)
@@ -1360,13 +1367,12 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
         mname, self, args, ctx, arg_pairs, recv_taint,
       )
       apply_param_field_sinks_dot(mname, self, args, ctx, expr)
-      let is_sink = is_header_setter(mname) ||
-        ctx.taint_rules.header_sink_hit(mname)
+      let is_sink = sink_target_hit(mname, ctx.taint_rules)
       let ret = if is_sink {
         // only the header VALUE (positional 1 / labelled `value`, or the
         // DSL value_slot) matters; the header NAME slot and the response
         // receiver are expected to carry request-derived state
-        let slot = or_slot(ctx.taint_rules.sink_value_slot(mname))
+        let slot = sink_value_slot_of(mname, ctx.taint_rules)
         let value_taint = value_taint_at(arg_pairs, slot)
         if is_tainted(value_taint) {
           hir_emit_sink(ctx, "header:" + mname, hir_temps)
@@ -2329,6 +2335,19 @@ fn flow_args_pairs(
 }
 
 // pure selection: labelled `value` slot, else positional value_slot index
+
+// shared sink predicates (E1a single semantics: walk firing AND builder
+// SinkStmt emission both go through these)
+
+///|
+pub fn sink_target_hit(m : String, rules : TaintRuleset) -> Bool {
+  is_header_setter(m) || rules.header_sink_hit(m)
+}
+
+///|
+pub fn sink_value_slot_of(m : String, rules : TaintRuleset) -> Int {
+  or_slot(rules.sink_value_slot(m))
+}
 
 ///|
 fn value_taint_at(pairs : Array[ArgTaint], value_slot : Int) -> Taint {
