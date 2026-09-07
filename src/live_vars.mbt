@@ -41,7 +41,7 @@ fn stmt_uses(stmt : Stmt) -> Array[String] {
     BindTuplePositions(_, temps) => temp_keys(temps)
     BindCtorPositions(_, _, temps) => temp_keys(temps)
     CallStmt(_, temps) => temp_keys(temps)
-    SinkStmt(_, temps) => temp_keys(temps)
+    SinkStmt(_, temps, _) => temp_keys(temps)
     AssignStmt(_, t) => ["t" + t.to_string()]
     // D1a control statements: only value-carrying ones use temps
     RetStmt(Some(t)) | BreakStmt(Some(t)) | RaiseStmt(Some(t)) =>
@@ -64,7 +64,7 @@ fn stmt_kills(stmt : Stmt) -> Array[String] {
     BindTuplePositions(decl, _) => [decl]
     BindCtorPositions(decl, _, _) => [decl]
     CallStmt(_, _) => []
-    SinkStmt(_, _) => []
+    SinkStmt(_, _, _) => []
     AssignStmt(decl, _) => [decl]
     // D1a control statements define no value keys
     RetStmt(_) | BreakStmt(_) | ContinueStmt | RaiseStmt(_) | DeferReg(_) => []

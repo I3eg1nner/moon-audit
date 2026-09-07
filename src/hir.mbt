@@ -21,7 +21,7 @@ pub(all) enum Stmt {
   BindTuplePositions(String, Array[Int]) // decl key, temp ids
   BindCtorPositions(String, String, Array[Int]) // decl, ctor, temp ids
   CallStmt(String, Array[Int]) // target, arg temps (receiver first)
-  SinkStmt(String, Array[Int]) // kind, temps
+  SinkStmt(String, Array[Int], Int) // kind, temps, line (E1b line-addressed pairing)
   AssignStmt(String, Int) // decl key, temp
   // D1a control-flow variants (emitted ONLY by the block_ir builder; the
   // hybrid flow walk never produces them). Consumers treat them as
@@ -95,8 +95,8 @@ pub fn Stmt::show(self : Stmt) -> String {
       }
       target + "(" + parts.join(", ") + ")"
     }
-    SinkStmt(kind, temps) => {
-      let parts : Array[String] = []
+    SinkStmt(kind, temps, line) => {
+      let parts : Array[String] = ["L" + line.to_string()]
       for t in temps {
         parts.push("t" + t.to_string())
       }

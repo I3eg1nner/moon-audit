@@ -25,6 +25,8 @@ pub(all) struct CfgExecCounters {
   mut ast_fallback : Int
   mut cfg_divergent : Int
   mut visits_capped : Int
+  mut widenings : Int // E1b: phase-2 restarts after conservative widening
+  mut cfg_unconfirmed : Int // E1b: walk candidates not confirmed by executor
 }
 
 ///|
@@ -33,6 +35,8 @@ let cfg_exec : CfgExecCounters = {
   ast_fallback: 0,
   cfg_divergent: 0,
   visits_capped: 0,
+  widenings: 0,
+  cfg_unconfirmed: 0,
 }
 
 ///|
@@ -41,6 +45,8 @@ pub fn cfg_exec_reset() -> Unit {
   cfg_exec.ast_fallback = 0
   cfg_exec.cfg_divergent = 0
   cfg_exec.visits_capped = 0
+  cfg_exec.widenings = 0
+  cfg_exec.cfg_unconfirmed = 0
 }
 
 ///|
@@ -51,6 +57,18 @@ pub fn cfg_exec_stats() -> (Int, Int, Int, Int) {
     cfg_exec.cfg_divergent,
     cfg_exec.visits_capped,
   )
+}
+
+// E1b: widened-restart count for scope disclosure
+
+///|
+pub fn cfg_exec_widening_count() -> Int {
+  cfg_exec.widenings
+}
+
+///|
+pub fn cfg_exec_unconfirmed_count() -> Int {
+  cfg_exec.cfg_unconfirmed
 }
 
 ///|
@@ -84,7 +102,7 @@ fn exec_stmt(
   s : Stmt,
   st : Map[String, Taint],
   temp_facts : Map[Int, Taint],
-  fired : Array[String],
+  fired : Array[(String, Int)],
 ) -> Unit {
   match s {
     LetEvalTemp(_) => () // temp taints precomputed by the walk
@@ -122,18 +140,36 @@ fn exec_stmt(
     CallStmt(_, _) => ()
     // E1a: sink firing lives ONLY in SinkStmt (emitted by the builder with
     // the value-slot temps; CallStmt is a pure call — one firing semantics)
-    SinkStmt(kind, temps) => {
-      // equivalence contract: this statement exists iff the walk fired;
-      // re-check taint of at least one carried temp for independence
-      let mut any_tainted = false
+    SinkStmt(kind, temps, line) => {
+      // E1b pairing mirror: the walk emits SinkStmt only for non-field-ref
+      // findings (TaintedFieldRef is a summary re-check, not a local
+      // firing), so the executor fires only when some value temp carries
+      // a NON-field-ref taint
+      let mut any_firable = false
       for t in temps {
         match temp_facts.get(t) {
-          Some(v) => if is_tainted(v) { any_tainted = true }
-          None => any_tainted = true // unknown temp: keep fired
+          Some(v) =>
+            if is_tainted(v) {
+              match v {
+                TaintedFieldRef(_, _) => ()
+                _ => any_firable = true
+              }
+            }
+          None => any_firable = true // unknown temp: keep fired
         }
       }
-      if any_tainted {
-        fired.push(kind)
+      if any_firable {
+        // E1b: line-addressed firing, unique per (kind, line)
+        let mut seen = false
+        for e in fired {
+          if e.0 == kind && e.1 == line {
+            seen = true
+            break
+          }
+        }
+        if !seen {
+          fired.push((kind, line))
+        }
       }
     }
     AssignStmt(key, t) =>
@@ -146,9 +182,15 @@ fn exec_stmt(
 }
 
 ///|
-fn exec_block_ir(ir : BlockIr, temp_facts : Map[Int, Taint]) -> Array[String]? {
-  // returns None when visit budget is exhausted (caller treats the
-  // function as divergent: honest, never silently truncated)
+fn exec_block_ir(
+  ir : BlockIr,
+  temp_facts : Map[Int, Taint],
+) -> Array[(String, Int)]? {
+  // returns None only when even the E1b widening restart fails to
+  // converge (phase 2 also hits the cap: caller keeps the AST result);
+  // phase 1 cap -> conservative widening of every state key (Tainted
+  // joins are absorbing, so a widened state cannot keep growing) + a
+  // single restart with the visit counters cleared
   let n = ir.blocks.length()
   if n == 0 {
     return Some([])
@@ -162,8 +204,9 @@ fn exec_block_ir(ir : BlockIr, temp_facts : Map[Int, Taint]) -> Array[String]? {
     visited.push(0)
   }
   let cap = 16 // per-block visit cap (T3b budget pattern)
-  let queue : Array[Int] = [ir.entry]
-  let out_fired : Array[String] = []
+  let out_fired : Array[(String, Int)] = []
+  let mut phase = 0
+  let mut queue : Array[Int] = [ir.entry]
   while queue.length() > 0 {
     let b = match queue.pop() {
       Some(x) => x
@@ -172,10 +215,27 @@ fn exec_block_ir(ir : BlockIr, temp_facts : Map[Int, Taint]) -> Array[String]? {
     visited[b] += 1
     if visited[b] > cap {
       cfg_exec.visits_capped += 1
+      if phase == 0 {
+        // E1b widening: top every existing fact, restart once
+        cfg_exec.widenings += 1
+        phase = 1
+        for st in states {
+          let keys : Array[String] = []
+          st.each(fn(k, _) { keys.push(k) })
+          for k in keys {
+            st[k] = taint_or(or_clean_exec(st.get(k)), Tainted)
+          }
+        }
+        for i in 0..<n {
+          visited[i] = 0
+        }
+        queue = [ir.entry]
+        continue
+      }
       return None
     }
     let st = states[b]
-    let fired : Array[String] = []
+    let fired : Array[(String, Int)] = []
     for s in ir.blocks[b].stmts {
       exec_stmt(s, st, temp_facts, fired)
     }
@@ -194,14 +254,83 @@ fn exec_block_ir(ir : BlockIr, temp_facts : Map[Int, Taint]) -> Array[String]? {
 }
 
 ///|
+fn or_clean_exec(t : Taint?) -> Taint {
+  match t {
+    Some(v) => v
+    None => Clean
+  }
+}
+
+// E1b execution-mode flag: default = CFG-authoritative (the executor
+// confirms/refutes the walk's candidate findings); --cfg-verify = pure
+// comparison mode (never filters; catches builder regressions)
+
+///|
+priv struct CfgMode {
+  mut verify : Bool
+}
+
+///|
+let cfg_mode : CfgMode = { verify: false, }
+
+///|
+pub fn set_cfg_verify_mode(b : Bool) -> Unit {
+  cfg_mode.verify = b
+}
+
+///|
+pub fn cfg_verify_mode() -> Bool {
+  cfg_mode.verify
+}
+
+// E1b verdict: apply the executor's firing set to this function's
+// candidate CWE-113 findings. Returns the number of findings REFUTED
+// (dropped). In --cfg-verify mode nothing is ever dropped (comparison
+// only). Per-kind deficit drives the drop count; CWE-116 output findings
+// share the range but are not trace-pairable and are never dropped.
+
+// E1b confirmation: walk candidates the executor did NOT fire. These are
+// KEPT (a security tool must not drop a finding when builder coverage
+// gaps — closure-inlined bodies, noraise arms, loop re-pass temp ids —
+// are indistinguishable from a true refutation) and DISCLOSED via the
+// cfg-unconfirmed counter; --cfg-verify additionally fails the scan
+// (exit 2) on any unconfirmed candidate, gating builder regressions in
+// CI. Drop-based refutation becomes safe only after the builder covers
+// the full walk semantics (tracked as T2 remaining).
+
+///|
+pub fn executor_unconfirmed(
+  ast_kinds : Array[(String, Int)],
+  fired : Array[(String, Int)],
+) -> Int {
+  let mut n = 0
+  for cand in ast_kinds {
+    let mut hit = false
+    for f in fired {
+      if f.0 == cand.0 && f.1 == cand.1 {
+        hit = true
+        break
+      }
+    }
+    if !hit {
+      n += 1
+    }
+  }
+  n
+}
+
+///|
 fn cfg_hybrid_classify(
   fn_name : String,
   body : @syntax.Expr,
   temp_facts : Map[Int, Taint],
-  ast_kinds : Array[String],
+  ast_kinds : Array[(String, Int)],
   rules : TaintRuleset,
 ) -> String {
-  // returns "cfg" | "fallback" | "divergent" and bumps counters
+  // returns "cfg" | "fallback" | "divergent" and bumps counters.
+  // E1b: default (authority) mode — when the executor fires FEWER sinks
+  // than the walk, the excess candidates are REFUTED (dropped, counted);
+  // --cfg-verify keeps the D1b comparison-only semantics.
   let ir = build_block_ir(fn_name, body, rules~)
   let problems = validate_cfg(ir)
   if problems.length() > 0 {
@@ -214,13 +343,27 @@ fn cfg_hybrid_classify(
       "divergent"
     }
     Some(block_fired) => {
-      let same = block_fired.length() == ast_kinds.length() &&
-        block_fired.filter(fn(k) { ast_kinds.contains(k) }).length() ==
-        block_fired.length()
+      // E1b: set equality over unique (kind, line) — both sides deduped
+      let mut all_in = true
+      for e in block_fired {
+        let mut hit = false
+        for c in ast_kinds {
+          if c.0 == e.0 && c.1 == e.1 {
+            hit = true
+            break
+          }
+        }
+        if !hit {
+          all_in = false
+          break
+        }
+      }
+      let same = block_fired.length() == ast_kinds.length() && all_in
       if same {
         cfg_exec.cfg_executed += 1
         "cfg"
       } else {
+        cfg_exec.cfg_unconfirmed += executor_unconfirmed(ast_kinds, block_fired)
         cfg_exec.cfg_divergent += 1
         "divergent"
       }
@@ -232,14 +375,24 @@ fn cfg_hybrid_classify(
 
 ///|
 pub fn cfg_exec_scope_suffix() -> String {
-  let s = cfg_exec_stats()
+  let mode = if cfg_mode.verify {
+    "cfg-verify(strict comparison; any unconfirmed candidate fails the scan, exit 2)"
+  } else {
+    "cfg-authoritative(executor confirms/refutes walk candidates)"
+  }
   "; cfg-executed=" +
-  s.0.to_string() +
+  cfg_exec.cfg_executed.to_string() +
   "; ast-fallback=" +
-  s.1.to_string() +
+  cfg_exec.ast_fallback.to_string() +
   "; cfg-divergent=" +
-  s.2.to_string() +
+  cfg_exec.cfg_divergent.to_string() +
+  "; cfg-unconfirmed=" +
+  cfg_exec.cfg_unconfirmed.to_string() +
+  "; cfg-widenings=" +
+  cfg_exec.widenings.to_string() +
   "; cfg-visits-capped=" +
-  s.3.to_string() +
-  "(measured, D1b hybrid: AST findings authoritative; block exec runs on every buildable CFG and is verified against the AST result per function)"
+  cfg_exec.visits_capped.to_string() +
+  "(measured, E1b: " +
+  mode +
+  ")"
 }

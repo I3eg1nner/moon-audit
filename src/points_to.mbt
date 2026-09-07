@@ -321,7 +321,7 @@ fn constraints_from_stmt(stmt : Stmt, out : Array[PTConstraint]) -> Unit {
     // D1a control statements: no constraints at this slice (value
     // temps flow through existing PTCopy on their binding sites)
     RetStmt(_) | BreakStmt(_) | ContinueStmt | RaiseStmt(_) | DeferReg(_) => ()
-    SinkStmt(_, _) => () // sinks carry no points-to facts
+    SinkStmt(_, _, _) => () // sinks carry no points-to facts
   }
 }
 

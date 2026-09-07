@@ -78,10 +78,11 @@ fn is_tainted(t : Taint) -> Bool {
 priv struct LoopBudget {
   mut exhausted : Int
   mut last_iters : Int
+  mut widened : Int // E1b: exhausted loops that received widening
 }
 
 ///|
-let loop_budget : LoopBudget = { exhausted: 0, last_iters: 0, }
+let loop_budget : LoopBudget = { exhausted: 0, last_iters: 0, widened: 0, }
 
 // test/observation hook: iteration count of the most recent loop solve
 
@@ -103,6 +104,14 @@ pub fn loop_fixpoint_exhausted_count() -> Int {
 pub fn loop_budget_reset() -> Unit {
   loop_budget.exhausted = 0
   loop_budget.last_iters = 0
+  loop_budget.widened = 0
+}
+
+// E1b: widened-loop count for scope disclosure ("widening-applied=N")
+
+///|
+pub fn loop_fixpoint_widening_count() -> Int {
+  loop_budget.widened
 }
 
 // statement-ish node count of a loop body: the budget unit (cap uses
@@ -286,16 +295,26 @@ fn flow_to_fixpoint(e : @syntax.Expr, ctx : FlowCtx, base_exits : Int) -> Unit {
   }
   let findings_start = ctx.findings.length()
   let mut iterations = 0
+  let mut last_before = loop_fixpoint_snapshot(ctx, base_exits)
   while iterations < cap {
     let before = loop_fixpoint_snapshot(ctx, base_exits)
     let _ = flow(e, ctx)
     iterations += 1
+    last_before = before
     if facts_stable(before, loop_fixpoint_snapshot(ctx, base_exits)) {
       break
     }
   }
   if iterations == cap {
-    loop_budget.exhausted += 1 // env may be incomplete: disclosed upstream
+    loop_budget.exhausted += 1 // disclosed upstream
+    // E1b widening: the facts that were STILL GROWING at cap get the
+    // conservative top instead of an incomplete (under-approximated)
+    // environment; one final pass then propagates the tops so sinks in
+    // the loop body and in the continuation see the widened state
+    // (soundness over completeness — the review's hard requirement)
+    widen_unstable_facts(ctx, last_before, base_exits)
+    loop_budget.widened += 1
+    let _ = flow(e, ctx) // widening pass
   }
   loop_budget.last_iters = iterations
   // re-executed passes re-report the same sink sites: keep the FIRST
@@ -317,6 +336,71 @@ fn flow_to_fixpoint(e : @syntax.Expr, ctx : FlowCtx, base_exits : Int) -> Unit {
   }
   for f in out {
     ctx.findings.push(f)
+  }
+}
+
+// E1b: conservative widening at loop-budget exhaustion. Keys whose
+// SecurityFact was still growing between the last two passes (or newly
+// appeared) are set to the lattice's tainted top: env slots resolve back
+// to their declaration keys via name_map, loop exits join Tainted, heap
+// fields join Tainted. Soundness > completeness.
+
+///|
+fn widen_unstable_facts(
+  ctx : FlowCtx,
+  before : Array[(String, SecurityFact)],
+  base_exits : Int,
+) -> Unit {
+  let after = loop_fixpoint_snapshot(ctx, base_exits)
+  // before-index for membership tests (small arrays; linear scan fine)
+  let before_fact = fn(k : String) -> SecurityFact? {
+    let mut found : SecurityFact? = None
+    for pair in before {
+      if pair.0 == k {
+        found = Some(pair.1)
+        break
+      }
+    }
+    found
+  }
+  for pair in after {
+    let (k, cur_fact) = pair
+    let unstable = match before_fact(k) {
+      Some(prev) => !(prev.leq(cur_fact) && cur_fact.leq(prev)) // grew
+      None => true // new key this pass
+    }
+    if !unstable {
+      continue
+    }
+    if k == "#exits" {
+      let mut i = base_exits
+      while i < ctx.loop_exits.length() {
+        ctx.loop_exits[i] = taint_or(ctx.loop_exits[i], Tainted)
+        i += 1
+      }
+    } else if k.has_prefix("h:") {
+      // "h:<site>:<field>" — split off exactly the last ':' segment
+      let last = find_last(k, ":")
+      if last > 2 {
+        let site = Show::to_string(k[2:last])
+        let field = Show::to_string(k[last + 1:])
+        match ctx.heap.get(site) {
+          Some(fields) =>
+            match fields.get(field) {
+              Some(v) => fields[field] = taint_or(v, Tainted)
+              None => ()
+            }
+          None => ()
+        }
+      }
+    } else if k.has_prefix("s") && find_last(k, ":") > 1 {
+      // scope slot -> its current declaration key
+      match ctx.name_map.get(k) {
+        Some(dkey) =>
+          ctx.env[dkey] = taint_or(or_clean_taint(ctx.env.get(dkey)), Tainted)
+        None => ()
+      }
+    }
   }
 }
 
@@ -717,8 +801,13 @@ fn hir_temps_from_pairs(ctx : FlowCtx, n : Int) -> Array[Int] {
 }
 
 ///|
-fn hir_emit_sink(ctx : FlowCtx, kind : String, temps : Array[Int]) -> Unit {
-  ctx.hir_trace.push(SinkStmt(kind, temps.copy()))
+fn hir_emit_sink(
+  ctx : FlowCtx,
+  kind : String,
+  temps : Array[Int],
+  line : Int,
+) -> Unit {
+  ctx.hir_trace.push(SinkStmt(kind, temps.copy(), line))
 }
 
 // ── entry: analyze one top-level function ─────────────────────────────────
@@ -824,10 +913,24 @@ pub fn run_flow_taint_func(
     Some(n) => n
     None => "<anon>"
   }
-  let ast_kinds : Array[String] = []
+  // E1b: line-addressed candidate set (unique (kind, line) — loop
+  // re-passes re-emit the same site; findings are line-deduped too)
+  let ast_kinds : Array[(String, Int)] = []
   for s in ctx.hir_trace {
     match s {
-      SinkStmt(kind, _) => ast_kinds.push(kind)
+      SinkStmt(kind, _, line) => {
+        let entry = (kind, line)
+        let mut seen = false
+        for e in ast_kinds {
+          if e.0 == entry.0 && e.1 == entry.1 {
+            seen = true
+            break
+          }
+        }
+        if !seen {
+          ast_kinds.push(entry)
+        }
+      }
       _ => ()
     }
   }
@@ -1292,8 +1395,21 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
                 let slot = sink_value_slot_of(name, ctx.taint_rules)
                 let value_taint = value_taint_at(arg_pairs, slot)
                 if is_tainted(value_taint) {
-                  hir_emit_sink(ctx, "header:" + name, hir_temps)
                   report_cwe113(ctx, expr, value_taint)
+                  // E1b pairing: trace SinkStmts must be 1:1 with local
+                  // CWE-113 findings — TaintedFieldRef early-returns above
+                  // without a finding (summary re-check only), so it must
+                  // not enter the trace either
+                  match value_taint {
+                    TaintedFieldRef(_, _) => ()
+                    _ =>
+                      hir_emit_sink(
+                        ctx,
+                        "header:" + name,
+                        hir_temps,
+                        expr.loc().start.lnum,
+                      )
+                  }
                 }
               }
               if ctx.output_sinks_enabled &&
@@ -1375,8 +1491,18 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
         let slot = sink_value_slot_of(mname, ctx.taint_rules)
         let value_taint = value_taint_at(arg_pairs, slot)
         if is_tainted(value_taint) {
-          hir_emit_sink(ctx, "header:" + mname, hir_temps)
           report_cwe113(ctx, expr, value_taint)
+          // E1b pairing (see Apply arm)
+          match value_taint {
+            TaintedFieldRef(_, _) => ()
+            _ =>
+              hir_emit_sink(
+                ctx,
+                "header:" + mname,
+                hir_temps,
+                expr.loc().start.lnum,
+              )
+          }
         }
         Clean
       } else if ctx.output_sinks_enabled &&

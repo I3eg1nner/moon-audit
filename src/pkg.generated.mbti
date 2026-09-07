@@ -40,7 +40,13 @@ pub fn cfg_exec_scope_suffix() -> String
 
 pub fn cfg_exec_stats() -> (Int, Int, Int, Int)
 
+pub fn cfg_exec_unconfirmed_count() -> Int
+
+pub fn cfg_exec_widening_count() -> Int
+
 pub fn cfg_kill_keys(BlockIr) -> Array[String]
+
+pub fn cfg_verify_mode() -> Bool
 
 pub fn classify_pkg(String) -> String
 
@@ -125,6 +131,8 @@ pub fn diff_findings(Array[Finding], Array[PrevFinding]) -> BaselineDiff
 pub fn dump_analyses(String, String, Config, conservative_alias? : Bool) -> Unit
 
 pub fn entry_stats_line(ProgramWorld) -> String
+
+pub fn executor_unconfirmed(Array[(String, Int)], Array[(String, Int)]) -> Int
 
 pub fn extend_ruleset_with_model(TaintRuleset, String) -> Bool
 
@@ -246,6 +254,8 @@ pub fn loop_fixpoint_exhausted_count() -> Int
 
 pub fn loop_fixpoint_last_iterations() -> Int
 
+pub fn loop_fixpoint_widening_count() -> Int
+
 pub fn materialize_trait_from_sig(PkgSymbols, String) -> Unit
 
 pub fn merge_imports(ImportContext, ImportContext) -> ImportContext
@@ -317,6 +327,8 @@ pub fn run_taint_analysis(@list.List[@syntax.Impl], String, String, ImportContex
 pub fn scan_package_calls(Array[@syntax.Impl], String, PkgSymbols, IRStatsResult, pkg_alias? : Map[String, String]) -> Unit
 
 pub fn scan_project(String, Config) -> ScanResult
+
+pub fn set_cfg_verify_mode(Bool) -> Unit
 
 pub fn severity_from_str(String) -> Severity
 
@@ -446,6 +458,8 @@ pub(all) struct CfgExecCounters {
   mut ast_fallback : Int
   mut cfg_divergent : Int
   mut visits_capped : Int
+  mut widenings : Int
+  mut cfg_unconfirmed : Int
 }
 
 pub(all) enum Confidence {
@@ -842,7 +856,7 @@ pub(all) enum Stmt {
   BindTuplePositions(String, Array[Int])
   BindCtorPositions(String, String, Array[Int])
   CallStmt(String, Array[Int])
-  SinkStmt(String, Array[Int])
+  SinkStmt(String, Array[Int], Int)
   AssignStmt(String, Int)
   RetStmt(Int?)
   RaiseStmt(Int?)

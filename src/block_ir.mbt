@@ -433,7 +433,13 @@ fn emit_call(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
   // E1a: single firing semantics — SinkStmt carries the value-slot temps
   // iff the target is a sink (builtin header setter OR DSL rule)
   if sink_target_hit(target, ctx.rules) && value_temps.length() > 0 {
-    ctx.blocks[ctx.cur].stmts.push(SinkStmt("header:" + target, value_temps))
+    ctx.blocks[ctx.cur].stmts.push(
+      SinkStmt(
+        "header:" + target,
+        value_temps,
+        expr.loc().start.lnum, // E1b: line-addressed pairing key
+      ),
+    )
   }
 }
 

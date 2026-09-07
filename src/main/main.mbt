@@ -32,6 +32,11 @@ fn main {
         long="fail-on-error",
         about="Exit with code 1 when error-level findings exist (for CI gating)",
       ),
+      @argparse.FlagArg(
+        "cfg-verify",
+        long="cfg-verify",
+        about="E1b strict mode: fail the scan (exit 2) when any walk finding is NOT confirmed by the CFG executor (gates builder regressions)",
+      ),
     ],
     options=[
       @argparse.OptionArg(
@@ -463,6 +468,11 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     Some(v) => v
     None => false
   }
+  let cfg_verify = match matches.flags.get("cfg-verify") {
+    Some(v) => v
+    None => false
+  }
+  @audit.set_cfg_verify_mode(cfg_verify)
   let severity_filter = match matches.values.get("severity") {
     Some(arr) =>
       if arr.length() > 0 {
@@ -675,6 +685,23 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
       .any(fn(f) { f.severity == @audit.Error })
     if has_errors {
       @sys.exit(1)
+    }
+  }
+  // E1b strict gate: --cfg-verify fails on ANY unconfirmed candidate
+  // (walk finding the CFG executor did not fire — builder regression
+  // signal), regardless of finding severity
+  if cfg_verify {
+    let (_exec, _fallback, divergent, _capped) = @audit.cfg_exec_stats()
+    let unconfirmed = @audit.cfg_exec_unconfirmed_count()
+    if unconfirmed > 0 || divergent > 0 {
+      println(
+        "cfg-verify: FAILED — " +
+        unconfirmed.to_string() +
+        " unconfirmed candidate(s), " +
+        divergent.to_string() +
+        " divergent function(s)",
+      )
+      @sys.exit(2)
     }
   }
 }

@@ -161,7 +161,9 @@ fn build_analysis_scope(
   parse_failures.to_string() +
   "; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=" +
   loop_budget.exhausted.to_string() +
-  "(measured, env possibly incomplete beyond cap); summary-scc-not-converged=" +
+  "(measured); widening-applied=" +
+  loop_budget.widened.to_string() +
+  "(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=" +
   summary_not_converged.to_string() +
   "(measured); model-warnings=" +
   model_warnings.to_string() +
