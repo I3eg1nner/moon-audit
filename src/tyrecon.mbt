@@ -115,6 +115,7 @@ pub(all) struct IRStatsResult {
   mut receiver_unknown : Int
   mut higher_calls : Int
   mut alias_unresolved : Int // T1.2: strict-mode short-key fallback misses
+  mut pt_iterations : Int // D2b: interprocedural feedback rounds executed
   sites : Array[CallSiteStat]
 }
 
@@ -132,6 +133,7 @@ pub fn IRStatsResult::new() -> IRStatsResult {
     receiver_unknown: 0,
     higher_calls: 0,
     alias_unresolved: 0,
+    pt_iterations: 0,
     sites: [],
   }
 }
@@ -369,12 +371,38 @@ priv struct ScanCtx {
   mut last_key : String // receiver key recorded by infer_dot_apply
   mut last_recv_ty : IRType // receiver parametric type (builtin callback hints)
   mut cur_fn : String // enclosing function name (call graph caller)
-  pt_constraints : Array[PTConstraint] // T4c-2: per-fn slice solved at exit
+  pt_constraints : Array[PTConstraint] // per-fn accumulator (sliced at exit)
+  pt_pending : Array[PTPending] // D2b: call-site ret/arg bindings consumed at file end
+  pt_fn_slices : Array[PTFnSlice] // D2b: stored slices for the feedback fixpoint
   // M4-lite: var-name -> closure allocation site (params/body reference)
   closure_sites : Map[String, ClosureSite]
   mut pending_closure : String? // set by infer_apply, consumed by Apply arm
   // E2: moon.pkg import aliases (alias -> qualified package path)
   pkg_alias : Map[String, String]
+}
+
+// D2b: a call-site binding awaiting interprocedural consumption.
+// "ret": callee summary ret-sites flow into caller var `var` (inject into
+//        owner_fn's slice as PTAlloc). "arg": caller var `var`'s sites flow
+//        into the callee's param node `param_node` (inject into callee's
+//        slice) — the fn-sig-aligned actual-to-formal edge.
+
+///|
+priv struct PTPending {
+  kind : String // "ret" | "arg" | "argret"
+  pvar : String
+  callee : String
+  param_node : String
+  owner_fn : String
+  site : String // "argret": the concrete arg site to inject
+}
+
+///|
+priv struct PTFnSlice {
+  fn_name : String
+  constraints : Array[PTConstraint]
+  site_start : Int
+  site_end : Int
 }
 
 ///|
@@ -414,6 +442,8 @@ pub fn scan_package_calls(
     last_recv_ty: IRUnresolved,
     cur_fn: "<top>",
     pt_constraints: [],
+    pt_pending: [],
+    pt_fn_slices: [],
     closure_sites: Map([]),
     pending_closure: None,
     pkg_alias: match pkg_alias {
@@ -427,7 +457,13 @@ pub fn scan_package_calls(
   for item in impls {
     match item {
       TopFuncDef(fun_decl~, decl_body~, ..) => {
-        ctx.cur_fn = fun_decl.name.name
+        // D2b: qualified caller identity — method-form decls ("fn
+        // SelfTy::name") must match the call-site callee key so pt slices
+        // and summaries line up ("HttpResponse::body", same as TopImpl)
+        ctx.cur_fn = match fun_decl.type_name {
+          Some(tn) => type_name_str(tn) + "::" + fun_decl.name.name
+          None => fun_decl.name.name
+        }
         match decl_body {
           DeclBody(expr=Function(func~, ..)) => {
             stats.funcs_scanned += 1
@@ -506,6 +542,11 @@ pub fn scan_package_calls(
       _ => ()
     }
   }
+  // D2b: interprocedural fixpoint — solve slices, build ret summaries,
+  // consume call-site pendings over <=2 feedback rounds, fill recv_pt
+  pt_solve_all(ctx)
+  ctx.pt_fn_slices.clear()
+  ctx.pt_pending.clear()
 }
 
 ///|
@@ -531,15 +572,21 @@ fn scan_params_body(
   let mut i = 0
   for param in params {
     match param {
-      Positional(binder~, ty~) =>
+      Positional(binder~, ty~) => {
         bind_param_hinted(binder.name, ty, i, hint_arr, ctx, saved)
-      Labelled(binder~, ty~) =>
+        // D2b: formal-param node — call sites alloc into it (fn-sig aligned)
+        pt_copy_param(binder.name, ctx)
+      }
+      Labelled(binder~, ty~) => {
         bind_param_hinted(binder.name, ty, i, hint_arr, ctx, saved)
+        pt_copy_param(binder.name, ctx)
+      }
       Optional(binder~, default~, ty~) => {
         // T0.2(a): default-argument expressions are executable code —
         // their call sites must enter the analysis graph
         let _ = infer_expr(default, ctx)
         bind_param_hinted(binder.name, ty, i, hint_arr, ctx, saved)
+        pt_copy_param(binder.name, ctx)
       }
       QuestionOptional(binder~, ty~) =>
         bind_param_hinted(binder.name, ty, i, hint_arr, ctx, saved)
@@ -547,9 +594,12 @@ fn scan_params_body(
     }
     i += 1
   }
-  let _ = infer_expr(body, ctx)
-  // T4c-2: solve this function's constraint slice, fill dispatch recv_pt
-  pt_solve_fill(ctx, pt_constraints_start, sites_start)
+  let ret_t = infer_expr(body, ctx)
+  // D2b: ret-node constraint (summary seed) + slice storage; the file-end
+  // fixpoint (pt_solve_all) solves slices, builds summaries, consumes the
+  // call-site pendings over feedback rounds, and fills dispatch recv_pt
+  pt_emit_ret(body, ret_t, ctx)
+  pt_store_slice(ctx, pt_constraints_start, sites_start)
   restore_env(saved, ctx)
 }
 
@@ -1505,8 +1555,55 @@ fn visit_args(
   let builtin_cb = builtin_callback_params(ctx.last_recv_ty, callee)
   // library-model callbacks (A2): placeholders resolved from receiver args
   let lib_cb = lib_callback_params(ctx, callee)
+  // D2b: argret pendings — a positional arg that IS a concrete value
+  // (string/int constant) or a direct call with a concrete declared ret
+  // seeds the callee's formal param node (the real-corpus shape is
+  // `res.body("Not Found")` where body : &Responder and String impls it)
+  let argret_sig : Array[FnP] = match ctx.symbols.fn_sigs.get(callee) {
+    Some(sig) => sig.params
+    None => []
+  }
   let mut i = start_index
   for arg in args {
+    let positional = match arg.kind {
+      Positional => true
+      _ => false
+    }
+    if positional && argret_sig.length() > 0 {
+      let pidx = if i < argret_sig.length() { i } else { -1 }
+      if pidx >= 0 {
+        let pname = argret_sig[pidx].binder
+        if pname != "" && pname != "_" {
+          let site : String = match arg.value {
+            Constant(c~, ..) =>
+              match const_type(c) {
+                IRConcrete(n, _) => n
+                _ => ""
+              }
+            Apply(func~, ..) =>
+              match apply_func_name(func) {
+                Some(cn) =>
+                  match get_fn_ret(ctx.symbols, cn) {
+                    Some(IRConcrete(n, _)) => n
+                    _ => ""
+                  }
+                None => ""
+              }
+            _ => ""
+          }
+          if site != "" {
+            ctx.pt_pending.push({
+              kind: "argret",
+              pvar: "",
+              callee,
+              param_node: "fn@" + callee + ".param:" + pname,
+              owner_fn: callee,
+              site,
+            })
+          }
+        }
+      }
+    }
     match arg.value {
       Function(..) => {
         // set closure hints from the callee's declared arrow type,
@@ -1858,39 +1955,334 @@ fn record_site_recv(
 // T4c-2: solve this function's constraint slice and fill recv_pt on the
 // dispatch sites it produced (non-empty TYPE set => refinement input)
 
+// D2b: formal-param node — locals copy from the summary-level node so
+// call-site arg allocs (into "fn@f.param:<name>") reach local uses
+
 ///|
-fn pt_solve_fill(ctx : ScanCtx, c_start : Int, s_start : Int) -> Unit {
-  if ctx.pt_constraints.length() == c_start {
-    return // nothing observable this function
+fn pt_copy_param(param_name : String, ctx : ScanCtx) -> Unit {
+  if ctx.cur_fn != "<top>" {
+    ctx.pt_constraints.push(
+      PTCopy(param_name, "fn@" + ctx.cur_fn + ".param:" + param_name),
+    )
   }
-  let slice : Array[PTConstraint] = []
-  for i in c_start..<ctx.pt_constraints.length() {
-    slice.push(ctx.pt_constraints[i])
+}
+
+// D2b: peel wrapper expressions down to the value expression
+
+///|
+fn pt_value_expr(e : @syntax.Expr) -> @syntax.Expr {
+  match e {
+    Sequence(last_expr~, ..) => pt_value_expr(last_expr)
+    If(ifso~, ifnot~, ..) => {
+      let a = pt_value_expr(ifso)
+      match ifnot {
+        Some(x) => {
+          ignore(pt_value_expr(x))
+          a
+        }
+        None => a
+      }
+    }
+    Match(cases~, ..) => {
+      let mut first : @syntax.Expr = e
+      let mut seen = false
+      for c in cases {
+        if !seen {
+          first = pt_value_expr(c.body)
+          seen = true
+        } else {
+          ignore(pt_value_expr(c.body))
+        }
+      }
+      first
+    }
+    Try(body~, ..) => pt_value_expr(body)
+    Constraint(expr~, ..) => pt_value_expr(expr)
+    Group(expr~, ..) => pt_value_expr(expr)
+    _ => e
   }
-  // reset the accumulator: constraints are per-function (no cross-fn flow
-  // in the thin slice; interprocedural propagation is T4.4)
-  ctx.pt_constraints.clear()
-  let sol = solve_pt_constraints(slice)
-  let mut i = s_start
-  while i < ctx.stats.sites.length() {
-    let site = ctx.stats.sites[i]
-    if site.kind == "receiver" && site.recv_var != "" {
-      let sites_set = sol.pts_of(site.recv_var)
-      let tys : Array[String] = []
-      for s in sites_set {
-        // site names are "Type@s<var>" — keep the type segment
-        let at = find_last(s, "@s")
-        if at > 0 {
-          let tyname = Show::to_string(s[:at])
-          if !tys.contains(tyname) {
+}
+
+// D2b: seed the ret-node constraint from the value expression: a callee
+// call seeds the CALLEE's declared concrete ret type; a plain var copies
+// its (as-yet unknown, fixpoint-filled) pts; constructors alloc directly
+
+///|
+fn pt_emit_ret(body : @syntax.Expr, ret_t : IRType, ctx : ScanCtx) -> Unit {
+  if ctx.cur_fn == "<top>" {
+    return
+  }
+  let node = "fn@" + ctx.cur_fn + ".ret"
+  let v = pt_value_expr(body)
+  match v {
+    Apply(func~, ..) =>
+      match apply_func_name(func) {
+        Some(callee) => {
+          let t2 = or_unresolved(get_fn_ret(ctx.symbols, callee))
+          pt_alloc_ret(node, t2, ctx)
+        }
+        None => pt_alloc_ret(node, ret_t, ctx)
+      }
+    Constr(constr~, ..) =>
+      match ctx.symbols.constructors.get(constr.name.name) {
+        Some(tyname) =>
+          ctx.pt_constraints.push(PTAlloc(node, tyname + "@ret:" + ctx.cur_fn))
+        None => pt_alloc_ret(node, ret_t, ctx)
+      }
+    Ident(id~, ..) =>
+      match id.name {
+        Ident(name~) => ctx.pt_constraints.push(PTCopy(node, name))
+        Dot(..) => pt_alloc_ret(node, ret_t, ctx)
+      }
+    _ => pt_alloc_ret(node, ret_t, ctx)
+  }
+}
+
+///|
+fn pt_alloc_ret(node : String, t : IRType, ctx : ScanCtx) -> Unit {
+  match t {
+    IRConcrete(name, _) =>
+      ctx.pt_constraints.push(PTAlloc(node, name + "@ret:" + ctx.cur_fn))
+    _ => ()
+  }
+}
+
+// D2b: store this function's constraint slice + site range; the global
+// accumulator is rewound so subsequent functions start clean
+
+///|
+fn pt_store_slice(ctx : ScanCtx, c_start : Int, s_start : Int) -> Unit {
+  let n = ctx.pt_constraints.length()
+  if n > c_start || ctx.stats.sites.length() > s_start {
+    let slice : Array[PTConstraint] = []
+    let mut i = c_start
+    while i < n {
+      slice.push(ctx.pt_constraints[i])
+      i += 1
+    }
+    ctx.pt_fn_slices.push({
+      fn_name: ctx.cur_fn,
+      constraints: slice,
+      site_start: s_start,
+      site_end: ctx.stats.sites.length(),
+    })
+  }
+  // rewind the shared accumulator (slice now owns its constraints)
+  while ctx.pt_constraints.length() > c_start {
+    let _ = ctx.pt_constraints.pop()
+  }
+}
+
+// D2b: strip a pt site name to its TYPE segment ("B@s x" / "B@ret:f" /
+// "B@ipc" -> "B")
+
+///|
+fn pt_site_type(s : String) -> String {
+  let idx = find_last(s, "@")
+  if idx > 0 {
+    Show::to_string(s[:idx])
+  } else {
+    s
+  }
+}
+
+// D2b: does the slice already carry this injected alloc? (idempotence)
+
+///|
+fn pt_slice_has_alloc(slice : PTFnSlice, vname : String, site : String) -> Bool {
+  for c in slice.constraints {
+    match c {
+      PTAlloc(v, s) => if v == vname && s == site { return true }
+      _ => ()
+    }
+  }
+  false
+}
+
+// D2b: the file-end interprocedural fixpoint (budget 2 rounds):
+//   solve slices -> ret summaries -> consume pendings (ret into caller
+//   vars, args into callee param nodes) -> repeat while anything changed;
+//   then fill dispatch recv_pt from the final solutions
+
+///|
+fn pt_solve_all(ctx : ScanCtx) -> Unit {
+  if ctx.pt_fn_slices.length() == 0 {
+    return
+  }
+  let mut iterations = 0
+  let mut changed = true
+  let mut sols : Array[PTSolution] = []
+  while changed && iterations < 2 {
+    sols = pt_solve_slices(ctx)
+    let summaries = pt_build_summaries(ctx, sols)
+    changed = pt_consume_pendings(ctx, sols, summaries)
+    if changed {
+      iterations += 1
+    }
+  }
+  // settle pass: consume pendings once more against the freshest
+  // summaries (a round-2 arg injection may complete a callee summary
+  // that a ret pending was waiting on), then propagate if it fired
+  if iterations > 0 {
+    sols = pt_solve_slices(ctx)
+    let summaries = pt_build_summaries(ctx, sols)
+    if pt_consume_pendings(ctx, sols, summaries) {
+      sols = pt_solve_slices(ctx)
+    }
+  }
+  if sols.length() == 0 {
+    sols = pt_solve_slices(ctx)
+  }
+  // fill dispatch recv_pt from the final solutions
+  for i3 in 0..<ctx.pt_fn_slices.length() {
+    let s = ctx.pt_fn_slices[i3]
+    let mut si = s.site_start
+    while si < s.site_end && si < ctx.stats.sites.length() {
+      let site = ctx.stats.sites[si]
+      if site.kind == "receiver" && site.recv_var != "" {
+        let sites_set = sols[i3].pts_of(site.recv_var)
+        let tys : Array[String] = []
+        for st in sites_set {
+          let tyname = pt_site_type(st)
+          if tyname != "" && !tys.contains(tyname) {
             tys.push(tyname)
           }
         }
+        ctx.stats.sites[si] = { ..site, recv_pt: tys, }
       }
-      ctx.stats.sites[i] = { ..site, recv_pt: tys, }
+      si += 1
     }
-    i += 1
   }
+  ctx.stats.pt_iterations = iterations
+}
+
+///|
+fn pt_solve_slices(ctx : ScanCtx) -> Array[PTSolution] {
+  let sols : Array[PTSolution] = []
+  for i3 in 0..<ctx.pt_fn_slices.length() {
+    sols.push(solve_pt_constraints(ctx.pt_fn_slices[i3].constraints))
+  }
+  sols
+}
+
+///|
+fn pt_build_summaries(
+  ctx : ScanCtx,
+  sols : Array[PTSolution],
+) -> Map[String, Array[String]] {
+  let summaries : Map[String, Array[String]] = Map([])
+  for i3 in 0..<ctx.pt_fn_slices.length() {
+    let s = ctx.pt_fn_slices[i3]
+    let ret_sites = sols[i3].pts_of("fn@" + s.fn_name + ".ret")
+    if ret_sites.length() > 0 {
+      let tys : Array[String] = []
+      for r in ret_sites {
+        let ty = pt_site_type(r)
+        if ty != "" && !tys.contains(ty) {
+          tys.push(ty)
+        }
+      }
+      summaries[s.fn_name] = tys
+    }
+  }
+  summaries
+}
+
+// one pending-consumption pass; returns true if any constraint was
+// injected (caller decides whether to iterate)
+
+///|
+fn pt_consume_pendings(
+  ctx : ScanCtx,
+  sols : Array[PTSolution],
+  summaries : Map[String, Array[String]],
+) -> Bool {
+  let mut changed = false
+  // slice lookup helpers shared by both kinds
+  let by_name : Map[String, Int] = Map([])
+  for i2 in 0..<ctx.pt_fn_slices.length() {
+    by_name[ctx.pt_fn_slices[i2].fn_name] = i2
+  }
+  let slice_of = fn(key : String) -> Int? {
+    match by_name.get(key) {
+      Some(i3) => Some(i3)
+      None => by_name.get(short_key(key))
+    }
+  }
+  for p in ctx.pt_pending {
+    if p.kind == "ret" {
+      let sites = match summaries.get(p.callee) {
+        Some(arr) => arr
+        None =>
+          match summaries.get(short_key(p.callee)) {
+            Some(arr) => arr
+            None => []
+          }
+      }
+      if sites.length() > 0 {
+        match slice_of(p.owner_fn) {
+          Some(si) => {
+            let slice = ctx.pt_fn_slices[si]
+            let mut injected = false
+            for site in sites {
+              let full = site + "@ipc"
+              if !pt_slice_has_alloc(slice, p.pvar, full) {
+                slice.constraints.push(PTAlloc(p.pvar, full))
+                injected = true
+              }
+            }
+            if injected {
+              changed = true
+            }
+          }
+          None => ()
+        }
+      }
+    } else if p.kind == "argret" {
+      // concrete arg value -> callee formal param node (direct seed)
+      if p.site != "" {
+        match slice_of(p.callee) {
+          Some(si) => {
+            let slice = ctx.pt_fn_slices[si]
+            let full = p.site + "@ipc"
+            if !pt_slice_has_alloc(slice, p.param_node, full) {
+              slice.constraints.push(PTAlloc(p.param_node, full))
+              changed = true
+            }
+          }
+          None => ()
+        }
+      }
+    } else if p.kind == "arg" {
+      // caller var's sites -> callee param node
+      match slice_of(p.owner_fn) {
+        Some(ci) => {
+          let caller_sites = sols[ci].pts_of(p.pvar)
+          if caller_sites.length() > 0 {
+            match slice_of(p.callee) {
+              Some(si) => {
+                let slice = ctx.pt_fn_slices[si]
+                let mut injected = false
+                for site in caller_sites {
+                  let full = pt_site_type(site) + "@ipc"
+                  if !pt_slice_has_alloc(slice, p.param_node, full) {
+                    slice.constraints.push(PTAlloc(p.param_node, full))
+                    injected = true
+                  }
+                }
+                if injected {
+                  changed = true
+                }
+              }
+              None => ()
+            }
+          }
+        }
+        None => ()
+      }
+    }
+  }
+  changed
 }
 
 // T4c-2: emit per-function points-to constraints for simple var bindings
@@ -1904,6 +2296,10 @@ fn pt_emit_binding(
   t : IRType,
   ctx : ScanCtx,
 ) -> Unit {
+  // D2b: record call-site bindings for the file-end fixpoint — the ret
+  // pending consumes the callee's ret summary; arg pendings carry caller
+  // var sites into the callee's fn-sig-aligned param nodes
+  pt_record_call_pendings(pattern, rhs, ctx)
   match pattern {
     Var(binder) => {
       let v = binder.name
@@ -1929,6 +2325,87 @@ fn pt_emit_binding(
               }
             _ => ()
           }
+      }
+    }
+    _ => ()
+  }
+}
+
+// D2b: peel to a call and record ret/arg pendings. Only plain `Var`
+// patterns bind the ret result; arg flow is recorded for every positional
+// Ident argument whose formal name is known via FnSig.
+
+///|
+fn pt_record_call_pendings(
+  pattern : @syntax.Pattern,
+  rhs : @syntax.Expr,
+  ctx : ScanCtx,
+) -> Unit {
+  let callee = match pt_value_expr(rhs) {
+    Apply(func~, ..) =>
+      match apply_func_name(func) {
+        Some(n) => n
+        None => return
+      }
+    _ => return
+  }
+  let binds_ret = match pattern {
+    Var(binder) => binder.name
+    _ => ""
+  }
+  if binds_ret != "" {
+    ctx.pt_pending.push({
+      kind: "ret",
+      pvar: binds_ret,
+      callee,
+      param_node: "",
+      owner_fn: ctx.cur_fn,
+      site: "",
+    })
+  }
+  // arg pendings: positional Ident args -> formal param nodes (FnSig)
+  match pt_value_expr(rhs) {
+    Apply(args~, ..) => {
+      let sig = ctx.symbols.fn_sigs.get(callee)
+      let params : Array[FnP] = match sig {
+        Some(s) => s.params
+        None =>
+          match ctx.symbols.fn_sigs.get(short_key(callee)) {
+            Some(s) => s.params
+            None => []
+          }
+      }
+      let mut idx = 0
+      for arg in args {
+        match arg.kind {
+          Positional => {
+            let pname = if idx < params.length() {
+              params[idx].binder
+            } else {
+              ""
+            }
+            if pname != "" && pname != "_" {
+              match arg.value {
+                Ident(id~, ..) =>
+                  match id.name {
+                    Ident(name~) =>
+                      ctx.pt_pending.push({
+                        kind: "arg",
+                        pvar: name,
+                        callee,
+                        param_node: "fn@" + callee + ".param:" + pname,
+                        owner_fn: ctx.cur_fn,
+                        site: "",
+                      })
+                    Dot(..) => ()
+                  }
+                _ => ()
+              }
+            }
+            idx += 1
+          }
+          _ => () // labelled/optional args: skip in the thin slice
+        }
       }
     }
     _ => ()

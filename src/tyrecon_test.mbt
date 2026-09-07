@@ -1213,3 +1213,71 @@ test "t4c2_dispatch_empty_pts_falls_back" {
   inspect(found, content="true")
   inspect(stats.pt_resolved_dispatch(), content="0")
 }
+
+// ---------------------------------------------------------------------------
+// D2b: interprocedural points-to + feedback-driven dispatch
+// ---------------------------------------------------------------------------
+
+///|
+test "t4d2_factory_summary_refines_dispatch" {
+  // round-1 shape: factory returns &Trait constructed from a concrete
+  // impl; the caller's receiver pts narrows the dispatch target set
+  let src = "trait Alpha { fn act(Self) -> Unit } struct B { v : Int } fn B::new() -> B { B::{ v : 1 } } pub fn make() -> &Alpha { B::new() } pub fn go() -> Unit { let r = make(); r.act() }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  let stats = IRStatsResult::new()
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  let found = stats.sites.any(fn(s) {
+    s.kind == "receiver" &&
+    s.target.has_prefix("dyn Alpha::act") &&
+    s.recv_pt.contains("B")
+  })
+  inspect(found, content="true")
+  inspect(stats.pt_iterations >= 1, content="true")
+}
+
+///|
+test "t4d2_arg_param_ret_chain_round2" {
+  // round-2 shape: arg var -> callee param node -> ret node -> caller r2;
+  // the whole chain needs two feedback rounds to close
+  let src = "trait Alpha { fn act(Self) -> Unit } struct B { v : Int } fn B::new() -> B { B::{ v : 1 } } pub fn make() -> &Alpha { B::new() } pub fn id(r : &Alpha) -> &Alpha { r } pub fn go() -> Unit { let r = make(); let r2 = id(r); r2.act() }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  let stats = IRStatsResult::new()
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  let found = stats.sites.any(fn(s) {
+    s.kind == "receiver" &&
+    s.target.has_prefix("dyn Alpha::act") &&
+    s.recv_var == "r2" &&
+    s.recv_pt.contains("B")
+  })
+  inspect(found, content="true")
+}
+
+///|
+test "t4d2_call_graph_counts_pt_resolved" {
+  // project-level: a two-impl trait where the factory pins the receiver
+  // to B — the dispatch site must count as pt-resolved
+  let root = test_tmp("t4d2_cg")
+  let dir = root + "/src"
+  @fs.create_dir(root) catch {
+    _ => ()
+  }
+  @fs.create_dir(dir) catch {
+    _ => ()
+  }
+  @fs.write_string_to_file(root + "/moon.mod", "name = \"t4d2/cg\"\n") catch {
+    _ => ()
+  }
+  @fs.write_string_to_file(dir + "/moon.pkg", "") catch {
+    _ => ()
+  }
+  @fs.write_string_to_file(
+    dir + "/lib.mbt",
+    "trait Alpha { fn act(Self) -> Unit } struct B { v : Int } struct C { v : Int } pub impl Alpha for B with fn act(self) -> Unit { } pub impl Alpha for C with fn act(self) -> Unit { } fn B::new() -> B { B::{ v : 1 } } pub fn make() -> &Alpha { B::new() } pub fn go() -> Unit { let r = make(); r.act() }",
+  ) catch {
+    _ => ()
+  }
+  let cg = run_call_graph(root, Config::default())
+  inspect(cg.pt_resolved_sites >= 1, content="true")
+}

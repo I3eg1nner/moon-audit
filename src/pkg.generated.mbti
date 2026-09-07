@@ -522,6 +522,7 @@ pub(all) struct IRStatsResult {
   mut receiver_unknown : Int
   mut higher_calls : Int
   mut alias_unresolved : Int
+  mut pt_iterations : Int
   sites : Array[CallSiteStat]
 }
 pub fn IRStatsResult::combined_resolution(Self) -> Int
