@@ -183,8 +183,14 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 - [x] validate_cfg: 悬空后继/不可达块（exits 豁免——error_exit 在无 raise 函数中
       合法不可达）/出口无语句无后继 三类结构校验
 - [x] 验收: 4 单测（直线单块/If 分叉汇合/While 回边检测/Try 三出口双边）+ 284 存量零回归 = 288/288
-- [ ] D1b: CFG 成为执行内核（污点/live-vars/points_to 直接消费 BlockIr，停止重走 AST）
-- [ ] D1c: dump/registry 消费同一 BlockIr（不再各自重收集）
+- [x] D1b: CFG 成为执行内核——污点块级工作队列执行（混合模式：不可建块形态回退 AST
+      并逐函数计量）；AST 权威 + 块执行对照验证（cfg-divergent 计量）。三目标实测：
+      mocket 364/386=94% / petgraph 238/246=96% / 自举 622/665=93%，**divergent=0 全部**
+      （两路径结果零分歧=行为等价最强证据）；294/294（+10 单测）
+- [x] D1c: dump/registry 消费同一 BlockIr——live-vars/points_to/call-graph 三段 dump
+      与 fcdba94 双二进制 byte-parity；registry run_all(world) 单一 world，dump 仅
+      load 一次（TaintFlow/CallGraph 适配器内部再 load 登记为 T6.2 剩余——性能边界
+      非正确性，gate18 裁定"登记边界接受"）
 
 ## T2 真正的 HIR/CFG（当前最重要主线）
 
@@ -388,7 +394,7 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 |---|---|---|---|
 | R1-R8（五轮评审反例） | ✅ 全闭环 | 12/12 反例 PASS，XFAIL=0；run.sh 真门禁（rc 0/1/2 语义） | — |
 | T1 程序世界 | ✅（T1.4 除外） | ProgramWorld 单一装载；身份层+别名降级（strict 默认）；FnSig 完整签名；入口策略披露 | T1.4 .mbti 限定身份（灭 petgraph alias=227 池的钥匙） |
-| T2 HIR/CFG | ✅ 薄切 | 语句层（求值恰一次+位置寻址）；defer LIFO/短路/携带值；G4 分支堆隔离 | 闭包转换完整化（LetMut 创建期执行/trace 双 CallStmt）；完整 CFG 边集 |
+| T2 HIR/CFG | ✅ 执行内核（D1 纵深，评审 45%→~65%） | 语句层+BlockIr 执行内核（混合 93-96% CFG 执行、divergent=0）；defer LIFO/短路/携带值；G4 分支堆隔离；三分析消费同一 IR | 闭包转换完整化（LetMut 创建期执行/trace 双 CallStmt）；ast-fallback 3-7% 形态；完整 CFG 边集 |
 | T3 求解器 | ✅ 薄切 | SecurityFact 格域（join by construction，G1 根除）；单调循环不动点+预算；活跃变量（框架复用首证） | 常量传播/死代码组合；强/弱更新条件形式化 |
 | T4 过程间 | ✅ 薄切 | ret_from 调用点消费；Tarjan SCC 迭代摘要；Andersen 约束层+指向驱动分派接线 | 摘要跨层消费的指针传播（T4.4 深化）；Store/Load 再触发 |
 | T5 库模型 | ✅（1/3/5） | 三入口单管线（extends 分叉修复）；回调时机 immediate/deferred；子串清污删除 | core 全覆盖（T5.2）；异步/FFI 边界模型（T5.4）；内置模型后缀遮蔽 |

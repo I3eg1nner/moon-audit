@@ -844,3 +844,14 @@ t51 测试路径拼接留待下次触碰。
 
 **编排终记**：每批"薄切实现→评审门（静态+supervisor 代跑动态）→集成收口→CI"；三次 worker 超时
 均以"参考分支+回滚+更薄重启"恢复；门检查修正为双语匹配；CI 差异四形态教训全程有效。
+
+## 2026-09-06 · D1 纵深闭环收官（T2 执行内核，gate18 PASS）
+- D1a BlockIr CFG 构建器（AST→基本块，三类结构校验，4 单测）→ D1b 污点块级执行
+  （混合模式：AST 权威 + 块执行对照；cfg-divergent 逐函数计量）→ D1c dump/registry
+  消费同一 BlockIr（world 单次构建达核心目标）
+- 行为等价证据：mocket/crescent findings 逐条一致 + dump 三段 byte-parity +
+  live-vars 数字一致（fcdba94 双二进制）；cfg 执行率 mocket 94% / petgraph 96% /
+  自举 93%，**divergent=0 三目标全部**——评审"HIR 是事件层非执行内核"缺陷消除
+- gate18 PASS（runtime legs by supervisor；registry world 复用裁定为登记边界）
+- 第六轮评审结构性问题状态：#1 消除（执行内核）；#3 部分消除（结果共享达成，
+  world 复用留 T6.2 性能边界）；#2/#4/#5 未动（T4.4 闭环/旧引擎退役/验收口径——D2/D3 排程）
