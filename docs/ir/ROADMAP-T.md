@@ -149,6 +149,25 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 - 验收：跨包同名/局部遮蔽/导入别名/声明顺序不改变绑定结果；scan/ir-stats/call-graph
   使用同一程序世界
 
+## 第六轮评审后：纵深闭环阶段（D 系列，2026-09-06 起）
+
+> 第六轮评审裁定：广度已够，深度是瓶颈——HIR 是事件层而非执行内核。
+> D 系列停止横向薄切，转入纵深闭环（T2 执行内核闭环 → T4.4 指针闭环 → 收尾清理）。
+
+### D1a BlockIr CFG 构建器（2026-09-06 完成，纯数据层零接线）
+- [x] src/block_ir.mbt: AST→基本块图直接降级（不经 trace）——Block{id,stmts,succs}
+      复用共享 hir.mbt Stmt；出口固定布局 entry=0/normal=1/error=2
+- [x] Stmt 扩展控制变体（RetStmt/RaiseStmt/BreakStmt/ContinueStmt/DeferReg）；
+      live_vars/points_to 消费端保守处理（零约束/零 kill）
+- [x] 降级覆盖: Let/LetMut/LetAnd/Assign 实参临时化（T2.1 恰一次规则）/
+      If/Match 分叉汇合/Try 双边近似（body-end 同时挂错误边+正常边，D1b 精确化）/
+      While/For/ForEach 回边/Return→normal/Raise→error/Break/Continue→循环头/Defer 注册
+- [x] validate_cfg: 悬空后继/不可达块（exits 豁免——error_exit 在无 raise 函数中
+      合法不可达）/出口无语句无后继 三类结构校验
+- [x] 验收: 4 单测（直线单块/If 分叉汇合/While 回边检测/Try 三出口双边）+ 284 存量零回归 = 288/288
+- [ ] D1b: CFG 成为执行内核（污点/live-vars/points_to 直接消费 BlockIr，停止重走 AST）
+- [ ] D1c: dump/registry 消费同一 BlockIr（不再各自重收集）
+
 ## T2 真正的 HIR/CFG（当前最重要主线）
 
 - [x] T2.1（薄切）求值顺序：Apply/DotApply/Let 路径降级为显式语句层（src/hir.mbt Stmt/RhsKind/ValuePos）——每实参恰一次的 LetEvalTemp 结构性保证 + CallStmt/SinkStmt 追踪（hir_trace，分支副本共享）；完整等价改写鲁棒性待 T2.2 CFG 直接执行该 IR（部分实现）；
