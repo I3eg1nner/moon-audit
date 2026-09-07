@@ -24,6 +24,8 @@ pub fn analyze_mod_imports(String) -> ImportContext
 
 pub fn append_ruleset(TaintRuleset, TaintRuleset, String, Array[String]) -> Unit
 
+pub fn build_block_ir(String, @syntax.Expr) -> BlockIr
+
 pub fn build_ledger(BaselineDiff, Map[String, String]) -> Array[RuleLedger]
 
 pub fn build_summary(ScanResult, Array[RuleInfo]) -> ScanSummary
@@ -320,6 +322,8 @@ pub fn taint_flows_to_findings(Array[TaintFlow], Severity) -> Array[Finding]
 
 pub fn type_to_ir(@syntax.Type, PkgSymbols) -> IRType
 
+pub fn validate_cfg(BlockIr) -> Array[String]
+
 pub fn world_identity_of(ProgramWorld, String, String) -> String?
 
 pub fn world_pkg_imports(ProgramWorld, String) -> Array[String]
@@ -362,6 +366,20 @@ pub(all) struct BaselineDiff {
   unchanged : Array[Finding]
   prev_total : Int
   current_total : Int
+}
+
+pub(all) struct Block {
+  id : Int
+  stmts : Array[Stmt]
+  succs : Array[Int]
+}
+
+pub(all) struct BlockIr {
+  fn_name : String
+  blocks : Array[Block]
+  entry : Int
+  normal_exit : Int
+  error_exit : Int
 }
 
 pub(all) struct CWEStat {
@@ -777,6 +795,11 @@ pub(all) enum Stmt {
   CallStmt(String, Array[Int])
   SinkStmt(String, Array[Int])
   AssignStmt(String, Int)
+  RetStmt(Int?)
+  RaiseStmt(Int)
+  BreakStmt(Int?)
+  ContinueStmt
+  DeferReg(String)
 }
 pub fn Stmt::show(Self) -> String
 

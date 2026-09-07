@@ -290,6 +290,10 @@ pub fn constraints_from_trace(
         }
       }
       AssignStmt(decl, t) => out.push(PTCopy(decl, "t" + t.to_string()))
+      // D1a control statements: no constraints at this slice (value
+      // temps flow through existing PTCopy on their binding sites)
+      RetStmt(_) | BreakStmt(_) | ContinueStmt | RaiseStmt(_) | DeferReg(_) =>
+        ()
       SinkStmt(_, _) => () // sinks carry no points-to facts
     }
   }

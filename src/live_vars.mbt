@@ -43,6 +43,10 @@ fn stmt_uses(stmt : Stmt) -> Array[String] {
     CallStmt(_, temps) => temp_keys(temps)
     SinkStmt(_, temps) => temp_keys(temps)
     AssignStmt(_, t) => ["t" + t.to_string()]
+    // D1a control statements: only value-carrying ones use temps
+    RetStmt(Some(t)) | BreakStmt(Some(t)) | RaiseStmt(t) =>
+      ["t" + t.to_string()]
+    RetStmt(None) | BreakStmt(None) | ContinueStmt | DeferReg(_) => []
   }
 }
 
@@ -58,6 +62,8 @@ fn stmt_kills(stmt : Stmt) -> Array[String] {
     CallStmt(_, _) => []
     SinkStmt(_, _) => []
     AssignStmt(decl, _) => [decl]
+    // D1a control statements define no value keys
+    RetStmt(_) | BreakStmt(_) | ContinueStmt | RaiseStmt(_) | DeferReg(_) => []
   }
 }
 

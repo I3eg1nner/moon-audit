@@ -23,6 +23,14 @@ pub(all) enum Stmt {
   CallStmt(String, Array[Int]) // target, arg temps (receiver first)
   SinkStmt(String, Array[Int]) // kind, temps
   AssignStmt(String, Int) // decl key, temp
+  // D1a control-flow variants (emitted ONLY by the block_ir builder; the
+  // hybrid flow walk never produces them). Consumers treat them as
+  // terminal/marker statements — see live_vars / points_to updates.
+  RetStmt(Int?) // optional return-value temp
+  RaiseStmt(Int) // error payload temp
+  BreakStmt(Int?) // optional loop-value temp
+  ContinueStmt
+  DeferReg(String) // defer registered at this point (LIFO at exit)
 }
 
 ///|
@@ -95,6 +103,13 @@ pub fn Stmt::show(self : Stmt) -> String {
       "SINK " + kind + "(" + parts.join(", ") + ")"
     }
     AssignStmt(decl, temp_id) => decl + " <- t" + temp_id.to_string()
+    RetStmt(Some(t)) => "ret t" + t.to_string()
+    RetStmt(None) => "ret"
+    RaiseStmt(t) => "raise t" + t.to_string()
+    BreakStmt(Some(t)) => "break t" + t.to_string()
+    BreakStmt(None) => "break"
+    ContinueStmt => "continue"
+    DeferReg(key) => "defer#" + key
   }
 }
 
