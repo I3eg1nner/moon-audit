@@ -34,6 +34,12 @@ pub fn builtin_model_names() -> Array[String]
 
 pub fn canonical_dir(String) -> String
 
+pub fn cfg_exec_reset() -> Unit
+
+pub fn cfg_exec_scope_suffix() -> String
+
+pub fn cfg_exec_stats() -> (Int, Int, Int, Int)
+
 pub fn classify_pkg(String) -> String
 
 pub fn collect_audit_files(String, Config) -> Array[(String, String)]
@@ -416,6 +422,13 @@ pub(all) enum CallbackTiming {
   Immediate
   Deferred
 } derive(Eq, @debug.Debug)
+
+pub(all) struct CfgExecCounters {
+  mut cfg_executed : Int
+  mut ast_fallback : Int
+  mut cfg_divergent : Int
+  mut visits_capped : Int
+}
 
 pub(all) enum Confidence {
   High
@@ -810,6 +823,8 @@ pub(all) struct SummaryUnit {
   file : String
   line : Int
 }
+
+type Taint derive(Eq)
 
 pub(all) struct TaintFlow {
   source : TaintSource

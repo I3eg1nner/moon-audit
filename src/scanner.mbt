@@ -1,5 +1,7 @@
 ///|
 pub fn scan_project(root : String, config : Config) -> ScanResult {
+  cfg_exec_reset() // D1b hybrid counters: per-scan
+
   // T3.3: loop-fixpoint budget is per-project (scope disclosure)
   loop_budget.exhausted = 0
   loop_budget.last_iters = 0
@@ -125,7 +127,8 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
       entry_stats_line(world),
       interproc_ctx.not_converged,
       model_warnings.length(),
-    ),
+    ) +
+    cfg_exec_scope_suffix(),
   }
 }
 

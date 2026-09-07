@@ -7,7 +7,7 @@
 //     taken branch (the key precision upgrade over the old rule)
 
 ///|
-priv enum Taint {
+enum Taint {
   Clean
   Tainted // tainted, origin unknown (env/param/callback)
   TaintedParam(String) // tainted, originated from this fn parameter
@@ -374,6 +374,7 @@ priv struct FlowCtx {
   // the same sequence) + temp id counter (shared for uniqueness)
   hir_trace : Array[Stmt]
   hir_temp_ctr : Array[Int]
+  temp_facts : Map[Int, Taint] // D1b: temp id -> arg taint (walk-recorded)
   // T2.5 closure bindings: let-bound closures are REGISTERED at creation
   // (captures frozen: value taints copied, struct sites shared via the
   // name-keyed site map) and their body flows ONLY at a call site
@@ -678,6 +679,33 @@ fn hir_emit_call(ctx : FlowCtx, target : String, temps : Array[Int]) -> Unit {
 }
 
 ///|
+fn record_temp_taints(
+  ctx : FlowCtx,
+  temps : Array[Int],
+  arg_pairs : Array[ArgTaint],
+) -> Unit {
+  let mut i = 0
+  while i < temps.length() && i < arg_pairs.length() {
+    ctx.temp_facts[temps[i]] = arg_pairs[i].taint
+    i += 1
+  }
+}
+
+///|
+fn record_temp_taints_from(
+  ctx : FlowCtx,
+  temps : Array[Int],
+  start : Int,
+  arg_pairs : Array[ArgTaint],
+) -> Unit {
+  let mut i = 0
+  while i < arg_pairs.length() && start + i < temps.length() {
+    ctx.temp_facts[temps[start + i]] = arg_pairs[i].taint
+    i += 1
+  }
+}
+
+///|
 fn hir_temps_from_pairs(ctx : FlowCtx, n : Int) -> Array[Int] {
   let temps : Array[Int] = []
   for i in 0..<n {
@@ -731,6 +759,7 @@ pub fn run_flow_taint_func(
     struct_comps: Map([]),
     hir_trace: [],
     hir_temp_ctr: [0],
+    temp_facts: Map([]),
     closures: Map([]),
     record_field_sinks: None,
     defers: [],
@@ -787,6 +816,22 @@ pub fn run_flow_taint_func(
     }
     None => ()
   }
+  // D1b hybrid: classify this function's execution mode (cfg / fallback /
+  // divergent). AST findings are authoritative this milestone; counters
+  // are disclosed in analysis-scope. D1c flips the producer once the
+  // corpora show zero divergence.
+  let d1_name = match fn_name {
+    Some(n) => n
+    None => "<anon>"
+  }
+  let ast_kinds : Array[String] = []
+  for s in ctx.hir_trace {
+    match s {
+      SinkStmt(kind, _) => ast_kinds.push(kind)
+      _ => ()
+    }
+  }
+  ignore(cfg_hybrid_classify(d1_name, body, ctx.temp_facts, ast_kinds))
 }
 
 ///|
@@ -819,6 +864,7 @@ pub fn run_flow_taint_func_top(
     struct_comps: Map([]),
     hir_trace: [],
     hir_temp_ctr: [0],
+    temp_facts: Map([]),
     closures: Map([]),
     record_field_sinks: None,
     defers: [],
@@ -1199,6 +1245,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
         None => "<computed>"
       }
       let hir_temps = hir_temps_from_pairs(ctx, arg_pairs.length())
+      record_temp_taints(ctx, hir_temps, arg_pairs)
       hir_emit_call(ctx, hir_target, hir_temps)
       let arg_taint_arr : Array[Taint] = []
       for p in arg_pairs {
@@ -1302,6 +1349,8 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       ctx.cb_suppress_target = saved_tgt
       // statement layer: receiver temp first, then args (method-call form)
       let hir_temps = hir_temps_from_pairs(ctx, arg_pairs.length() + 1)
+      ctx.temp_facts[hir_temps[0]] = recv_taint // receiver-first temp
+      record_temp_taints_from(ctx, hir_temps, 1, arg_pairs)
       hir_emit_call(ctx, method_name.name, hir_temps)
       let arg_taint = pairs_aggregate(arg_pairs)
       let combined = taint_or(recv_taint, arg_taint)
@@ -3369,6 +3418,7 @@ fn collect_summary_func(
     struct_comps: Map([]),
     hir_trace: [],
     hir_temp_ctr: [0],
+    temp_facts: Map([]),
     closures: Map([]),
     record_field_sinks: None,
     defers: [],
@@ -3555,6 +3605,7 @@ pub fn run_flow_taint_trace(
     struct_comps: Map([]),
     hir_trace: [],
     hir_temp_ctr: [0],
+    temp_facts: Map([]),
     closures: Map([]),
     record_field_sinks: None,
     defers: [],
