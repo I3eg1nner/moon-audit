@@ -855,3 +855,10 @@ t51 测试路径拼接留待下次触碰。
 - gate18 PASS（runtime legs by supervisor；registry world 复用裁定为登记边界）
 - 第六轮评审结构性问题状态：#1 消除（执行内核）；#3 部分消除（结果共享达成，
   world 复用留 T6.2 性能边界）；#2/#4/#5 未动（T4.4 闭环/旧引擎退役/验收口径——D2/D3 排程）
+
+## 2026-09-07 · D2 纵深闭环（gate19 阻塞→supervisor 补档后放行）
+- D2a: Store/Load 双 reader + field_loads 唤醒索引——第六轮评审点名反例 [Alloc(o,O),Store(o,f,w),Alloc(u,U),Copy(w,u)] 转绿（296/296）
+- D2b: 过程间 pt（实参经 FnSig 形参名对齐注入 + ret 摘要回填 + ≤2 轮反馈）——**mocket 口径A pt-resolved=1（0→1）**; 口径B=0 与 petgraph/自举 0 的形态分析: 语料 dyn 接收者多为参数绑定, 过程间链需 callee 分配逃逸经 ret 返回——真实覆盖待深化
+- D2c: 旧 TaintVisitor 退役——pipeline 报告改 findings 纯函数派生（同源）, 生产 run_taint_analysis 调用清零
+- gate19 P1（D2b 零留档）由本条目+ROADMAP 数字落档修复; 动态腿 supervisor 代跑: 301/301, FP 0/0/0, crescent 5, CI aa2e2de 三平台绿
+- 教训: 自称"measured"的交付必须同 commit 落档数字——gate 因此阻塞一次
