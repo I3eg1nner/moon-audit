@@ -532,3 +532,45 @@ pub fn validate_cfg(ir : BlockIr) -> Array[String] {
   }
   errs
 }
+
+// D1c: per-fn CFGs parallel to collect_fn_traces order (same item
+// iteration shape); None = build+validate failed (callers fall back to
+// the trace path and count the fallback)
+
+///|
+pub fn collect_fn_cfgs(impls : @list.List[@syntax.Impl]) -> Array[BlockIr?] {
+  let out : Array[BlockIr?] = []
+  for item in impls {
+    match item {
+      TopFuncDef(fun_decl~, decl_body~, ..) =>
+        match decl_body {
+          DeclBody(expr=Function(func~, ..)) =>
+            out.push(build_and_validate(func.body, fun_decl.name.name))
+          DeclBody(expr=body) =>
+            out.push(build_and_validate(body, fun_decl.name.name))
+          _ => ()
+        }
+      TopImpl(method_name~, body~, ..) =>
+        match body {
+          DeclBody(expr=Function(func~, ..)) =>
+            out.push(build_and_validate(func.body, method_name.name))
+          DeclBody(expr=body) =>
+            out.push(build_and_validate(body, method_name.name))
+          _ => ()
+        }
+      TopExpr(expr~, ..) => out.push(build_and_validate(expr, "<top>"))
+      _ => ()
+    }
+  }
+  out
+}
+
+///|
+fn build_and_validate(body : @syntax.Expr, name : String) -> BlockIr? {
+  let ir = build_block_ir(name, body)
+  if validate_cfg(ir).length() > 0 {
+    None
+  } else {
+    Some(ir)
+  }
+}

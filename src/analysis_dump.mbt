@@ -38,7 +38,13 @@ pub fn dump_analyses(
   }
   let world = load_program_world(root, config, conservative_alias~)
   let reg = default_registry(conservative_alias~)
-  let requested : Array[AnalysisId] = [TaintFlow, CallGraph, PointsTo, LiveVars]
+  let requested : Array[AnalysisId] = [
+    TaintFlow,
+    CallGraph,
+    HIRTrace,
+    PointsTo,
+    LiveVars,
+  ]
   // ── analysis-plan.txt: dependency topological order (T6.4) ──────────────
   let plan = match reg.plan(requested) {
     Ok(o) => o
@@ -83,20 +89,19 @@ pub fn dump_analyses(
       return
     }
   }
-  // ── hir-traces.txt: per-fn HIR statements (provenance: fn @ file) ──────
+  // ── hir-traces.txt: from the registry HIRTrace result (D1c: dump no
+  // longer re-collects; provenance preserved: fn @ file) ──────────────
   let hir = StringBuilder()
   hir.write_string("# HIR traces (shared statement layer, hir.mbt)\n")
-  for pkgf in world.packages {
-    for file in pkgf.files {
-      let source = @fs.read_file_to_string(file) catch { _ => continue }
-      let (impls, _) = @parser.parse_string(source, name=file)
-      for pair in collect_fn_traces(impls, file, source) {
-        hir.write_string("fn " + pair.0 + " @ " + file + "\n")
-        for stmt in pair.1 {
+  match results.get(HIRTrace) {
+    Some(HIRTraceR(fns)) =>
+      for triple in fns {
+        hir.write_string("fn " + triple.0 + " @ " + triple.1 + "\n")
+        for stmt in triple.2 {
           hir.write_string("  " + stmt.show() + "\n")
         }
       }
-    }
+    _ => hir.write_string("(no hir-trace result)\n")
   }
   write_dump(dir, "hir-traces.txt", hir.to_string())
   // ── taint-findings.txt: exact file:line provenance (T4.5 evidence) ─────
@@ -152,24 +157,21 @@ pub fn dump_analyses(
     _ => cg.write_string("(no call-graph result)\n")
   }
   write_dump(dir, "call-graph.txt", cg.to_string())
-  // ── points-to.txt: per-fn constraints + solutions ──────────────────────
+  // ── points-to.txt: from the registry PointsTo result (D1c: dump no
+  // longer re-collects or re-solves) ─────────────────────────────────
   let pt = StringBuilder()
   pt.write_string("# points-to (per fn; provenance: fn @ file, sites)\n")
-  for pkgf in world.packages {
-    for file in pkgf.files {
-      let source = @fs.read_file_to_string(file) catch { _ => continue }
-      let (impls, _) = @parser.parse_string(source, name=file)
-      for pair in collect_fn_traces(impls, file, source) {
-        let constraints : Array[PTConstraint] = []
-        constraints_from_trace(pair.1, constraints)
-        if constraints.length() == 0 {
+  match results.get(PointsTo) {
+    Some(PointsToR(summary)) =>
+      for report in summary.per_fn {
+        let sol = report.sol
+        if report.constraints.length() == 0 {
           continue
         }
-        let sol = solve_pt_constraints(constraints)
-        pt.write_string("fn " + pair.0 + " @ " + file + "\n")
+        pt.write_string("fn " + report.fn_name + " @ " + report.file + "\n")
         pt.write_string(
           "  constraints: " +
-          constraints.length().to_string() +
+          report.constraints.length().to_string() +
           "  iterations: " +
           sol.iterations.to_string() +
           "  converged: " +
@@ -192,36 +194,34 @@ pub fn dump_analyses(
           }
         })
       }
-    }
+    _ => pt.write_string("(no points-to result)\n")
   }
   write_dump(dir, "points-to.txt", pt.to_string())
-  // ── live-vars.txt: per-fn summaries ────────────────────────────────────
+  // ── live-vars.txt: from the registry LiveVars result (D1c) ────────────
   let lv = StringBuilder()
   lv.write_string("# live variables (per fn; provenance: fn @ file)\n")
-  for pkgf in world.packages {
-    for file in pkgf.files {
-      let source = @fs.read_file_to_string(file) catch { _ => continue }
-      let (impls, _) = @parser.parse_string(source, name=file)
-      for pair in collect_fn_traces(impls, file, source) {
-        let summary = live_vars_of_trace(pair.1)
-        if summary.total == 0 {
+  match results.get(LiveVars) {
+    Some(LiveVarsR(summary)) =>
+      for report in summary.per_fn {
+        let s = report.summary
+        if s.total == 0 {
           continue
         }
         lv.write_string(
           "fn " +
-          pair.0 +
+          report.fn_name +
           " @ " +
-          file +
+          report.file +
           "  total=" +
-          summary.total.to_string() +
+          s.total.to_string() +
           " live=" +
-          summary.live.to_string() +
+          s.live.to_string() +
           " dead=" +
-          summary.dead.to_string() +
+          s.dead.to_string() +
           "\n",
         )
       }
-    }
+    _ => lv.write_string("(no live-vars result)\n")
   }
   write_dump(dir, "live-vars.txt", lv.to_string())
 }

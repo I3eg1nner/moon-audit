@@ -254,47 +254,59 @@ pub fn constraints_from_trace(
   out : Array[PTConstraint],
 ) -> Unit {
   for stmt in trace {
-    match stmt {
-      LetEvalTemp(_, _) => () // temp node exists implicitly
-      BindVar(decl, RTemp(t)) => out.push(PTCopy(decl, "t" + t.to_string()))
-      BindVar(_, RWhole) => ()
-      BindTuplePositions(decl, temps) => {
-        let mut i = 0
-        for t in temps {
-          out.push(
-            PTCopy(decl + "|#tuple|" + i.to_string(), "t" + t.to_string()),
-          )
-          i += 1
-        }
+    constraints_from_stmt(stmt, out)
+  }
+}
+
+///|
+fn constraints_from_stmt(stmt : Stmt, out : Array[PTConstraint]) -> Unit {
+  match stmt {
+    LetEvalTemp(_, _) => () // temp node exists implicitly
+    BindVar(decl, RTemp(t)) => out.push(PTCopy(decl, "t" + t.to_string()))
+    BindVar(_, RWhole) => ()
+    BindTuplePositions(decl, temps) => {
+      let mut i = 0
+      for t in temps {
+        out.push(PTCopy(decl + "|#tuple|" + i.to_string(), "t" + t.to_string()))
+        i += 1
       }
-      BindCtorPositions(decl, ctor, temps) => {
-        let mut i = 0
-        for t in temps {
-          out.push(
-            PTCopy(decl + "|" + ctor + "|" + i.to_string(), "t" + t.to_string()),
-          )
-          i += 1
-        }
+    }
+    BindCtorPositions(decl, ctor, temps) => {
+      let mut i = 0
+      for t in temps {
+        out.push(
+          PTCopy(decl + "|" + ctor + "|" + i.to_string(), "t" + t.to_string()),
+        )
+        i += 1
       }
-      CallStmt(target, temps) => {
-        // ParamToParam (Subset variant): fn@target.param<i> ⊇ t<temps[i]>
-        let mut i = 0
-        for t in temps {
-          out.push(
-            PTCopy(
-              "fn@" + target + ".param" + i.to_string(),
-              "t" + t.to_string(),
-            ),
-          )
-          i += 1
-        }
+    }
+    CallStmt(target, temps) => {
+      // ParamToParam (Subset variant): fn@target.param<i> ⊇ t<temps[i]>
+      let mut i = 0
+      for t in temps {
+        out.push(
+          PTCopy("fn@" + target + ".param" + i.to_string(), "t" + t.to_string()),
+        )
+        i += 1
       }
-      AssignStmt(decl, t) => out.push(PTCopy(decl, "t" + t.to_string()))
-      // D1a control statements: no constraints at this slice (value
-      // temps flow through existing PTCopy on their binding sites)
-      RetStmt(_) | BreakStmt(_) | ContinueStmt | RaiseStmt(_) | DeferReg(_) =>
-        ()
-      SinkStmt(_, _) => () // sinks carry no points-to facts
+    }
+    AssignStmt(decl, t) => out.push(PTCopy(decl, "t" + t.to_string()))
+    // D1a control statements: no constraints at this slice (value
+    // temps flow through existing PTCopy on their binding sites)
+    RetStmt(_) | BreakStmt(_) | ContinueStmt | RaiseStmt(_) | DeferReg(_) => ()
+    SinkStmt(_, _) => () // sinks carry no points-to facts
+  }
+}
+
+// D1c: CFG consumption — same per-stmt emission over BlockIr blocks.
+// Constraint sets are order-insensitive, so trace and cfg paths must
+// produce IDENTICAL constraint sets for the same function (unit-locked).
+
+///|
+pub fn constraints_from_cfg(ir : BlockIr, out : Array[PTConstraint]) -> Unit {
+  for block in ir.blocks {
+    for stmt in block.stmts {
+      constraints_from_stmt(stmt, out)
     }
   }
 }

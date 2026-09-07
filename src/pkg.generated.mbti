@@ -40,9 +40,13 @@ pub fn cfg_exec_scope_suffix() -> String
 
 pub fn cfg_exec_stats() -> (Int, Int, Int, Int)
 
+pub fn cfg_kill_keys(BlockIr) -> Array[String]
+
 pub fn classify_pkg(String) -> String
 
 pub fn collect_audit_files(String, Config) -> Array[(String, String)]
+
+pub fn collect_fn_cfgs(@list.List[@syntax.Impl]) -> Array[BlockIr?]
 
 pub fn collect_fn_sig(@list.List[@syntax.Parameter], String, PkgSymbols, @syntax.Type?, @syntax.ErrorType, Bool, @list.List[@syntax.TypeVarBinder], String) -> Unit
 
@@ -75,6 +79,8 @@ pub fn compute_fingerprint(RuleId, String) -> String
 pub fn confidence_from_str(String) -> Confidence
 
 pub fn confidence_str(Confidence) -> String
+
+pub fn constraints_from_cfg(BlockIr, Array[PTConstraint]) -> Unit
 
 pub fn constraints_from_trace(Array[Stmt], Array[PTConstraint]) -> Unit
 
@@ -212,6 +218,8 @@ pub fn live_vars_examples(LiveVarsSummary, Int) -> String
 
 pub fn live_vars_line(LiveVarsSummary) -> String
 
+pub fn live_vars_of_cfg(BlockIr) -> LiveVarsSummary
+
 pub fn live_vars_of_trace(Array[Stmt]) -> LiveVarsSummary
 
 pub fn load_baseline(String) -> Map[String, Bool]
@@ -326,6 +334,8 @@ pub fn symbols_fingerprint(PkgSymbols) -> String
 
 pub fn taint_flows_to_findings(Array[TaintFlow], Severity) -> Array[Finding]
 
+pub fn trace_kill_keys(Array[Stmt]) -> Array[String]
+
 pub fn type_to_ir(@syntax.Type, PkgSymbols) -> IRType
 
 pub fn validate_cfg(BlockIr) -> Array[String]
@@ -340,6 +350,7 @@ pub fn world_pkg_imports(ProgramWorld, String) -> Array[String]
 pub(all) enum AnalysisId {
   TaintFlow
   CallGraph
+  HIRTrace
   PointsTo
   LiveVars
 } derive(Eq, Hash, @debug.Debug)
@@ -356,6 +367,7 @@ pub fn AnalysisRegistry::run_all(Self, Array[AnalysisId], ProgramWorld) -> Resul
 pub(all) enum AnalysisResult {
   TaintFlowR(ScanResult)
   CallGraphR(CallGraph)
+  HIRTraceR(Array[(String, String, Array[Stmt])])
   PointsToR(PTWorldSummary)
   LiveVarsR(LiveWorldSummary)
 }
@@ -574,6 +586,12 @@ pub(all) struct LibModelCallback {
   timing : CallbackTiming
 } derive(@debug.Debug)
 
+pub(all) struct LiveFnReport {
+  fn_name : String
+  file : String
+  summary : LiveVarsSummary
+}
+
 pub(all) struct LiveVarInfo {
   decl : String
   def_site : Int
@@ -592,6 +610,8 @@ pub(all) struct LiveWorldSummary {
   fn_count : Int
   total_decls : Int
   dead : Int
+  cfg_fallback : Int
+  per_fn : Array[LiveFnReport]
 }
 
 pub(all) struct Location {
@@ -613,6 +633,13 @@ pub(all) enum PTConstraint {
   PTLoad(String, String, String)
 } derive(@debug.Debug)
 
+pub(all) struct PTFnReport {
+  fn_name : String
+  file : String
+  constraints : Array[PTConstraint]
+  sol : PTSolution
+}
+
 pub(all) struct PTSolution {
   pts : Map[String, Map[String, Bool]]
   fstore : Map[String, Map[String, Bool]]
@@ -627,6 +654,8 @@ pub(all) struct PTWorldSummary {
   fn_count : Int
   constraint_count : Int
   nodes_with_pts : Int
+  cfg_fallback : Int
+  per_fn : Array[PTFnReport]
 }
 
 pub(all) struct PkgFiles {

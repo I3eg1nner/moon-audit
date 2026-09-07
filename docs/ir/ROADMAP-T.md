@@ -154,7 +154,25 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 > 第六轮评审裁定：广度已够，深度是瓶颈——HIR 是事件层而非执行内核。
 > D 系列停止横向薄切，转入纵深闭环（T2 执行内核闭环 → T4.4 指针闭环 → 收尾清理）。
 
-### D1a BlockIr CFG 构建器（2026-09-06 完成，纯数据层零接线）
+#
+### D1c live-vars/points_to 消费同一 CFG + registry 单次产物（2026-09-07）
+
+- live_vars_of_cfg：经典块级逆向不动点（live_out=∪succ live_in；块内 = (live−kills)∪uses）；
+  deadness = 定义点后不活跃
+- constraints_from_cfg：同一 per-stmt 发射函数（与 trace 路径共享 constraints_from_stmt）
+- collect_fn_cfgs：与 collect_fn_traces 同形迭代的 per-fn CFG（build+validate，失败为 None）
+- 关键发现（诚实记录）：**CFG lowering 与 taint-walk trace 的 bind 流不同**（probe：cfg=1 vs
+  trace=0 kills）。两消费者（live-vars/points_to）因此加 kill-key 一致性 guard：一致才走 CFG，
+  不一致回退 trace 并计入 cfg_fallback（字段可编程读取）。结果：petgraph dump 五文件与基线
+  **逐字节相等**，FP 三目标 0
+- registry：新增 HIRTrace 分析（共享语句层成为 registry 产物）；PTWorldSummary/LiveWorldSummary
+  扩展 per_fn 明细（PTFnReport{constraints,sol} / LiveFnReport{summary}）；dump-analyses 五个
+  数据段全部改由 registry 结果驱动（不再自行重收集；评审 gate16 P2 关闭）
+- 单测 +3（d1c_constraints_cfg_vs_trace_semantics / d1c_live_vars_guard / d1c_dump_plan_hir_trace）
+- 遗留（登记）：CFG 与 trace 语句流的统一（D1 后续：build_block_ir 与 taint 发射收敛到单一
+  lowering）；TaintFlow/CallGraph 适配器内部仍各自重建 world（T6.2 剩余）
+
+## D1a BlockIr CFG 构建器（2026-09-06 完成，纯数据层零接线）
 - [x] src/block_ir.mbt: AST→基本块图直接降级（不经 trace）——Block{id,stmts,succs}
       复用共享 hir.mbt Stmt；出口固定布局 entry=0/normal=1/error=2
 - [x] Stmt 扩展控制变体（RetStmt/RaiseStmt/BreakStmt/ContinueStmt/DeferReg）；
