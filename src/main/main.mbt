@@ -984,28 +984,18 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
     println("Pipeline complete (phases 2-3 skipped: no findings to analyze).")
     return
   }
-  // Phase 2: Taint analysis
+  // Phase 2: Taint analysis (D2c: unified on the flow engine — the report
+  // is derived from the SAME findings the scan produced, so the pipeline
+  // taint report and scan results can never diverge semantically)
   println("[2/3] Taint analysis...")
-  let sources : Map[String, String] = Map([])
-  for f in result.findings {
-    if !sources.contains(f.file) {
-      let content = @fs.read_file_to_string(f.file) catch { _ => "" }
-      sources[f.file] = content
-    }
-  }
-  let mod_imports = @audit.analyze_mod_imports(path)
-  let all_flows : Array[@audit.TaintFlow] = []
-  for file, source in sources {
-    let (impls, _) = @parser.parse_string(source, name=file)
-    let state = @audit.run_taint_analysis(impls, file, source, mod_imports)
-    for flow in state.flows {
-      all_flows.push(flow)
-    }
-  }
-  let taint_report = @audit.format_taint_report(all_flows)
+  let taint_report = @audit.flow_engine_taint_report(result.findings)
   let taint_path = @path.Path(out_dir).join(@path.Path("taint-analysis.txt")).0
   write_pipeline_file(taint_path, taint_report)
-  println("      " + all_flows.length().to_string() + " taint flow(s) traced")
+  println(
+    "      " +
+    result.findings.length().to_string() +
+    " taint flow(s) traced (flow-engine findings)",
+  )
   // Phase 3: Summary
   println("[3/3] Summary report...")
   let rules = @audit.list_all_rules()

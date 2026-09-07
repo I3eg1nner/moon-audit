@@ -407,3 +407,14 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 
 **判定基础已备**（评审四条）：支持范围明确（analysis-scope 披露）/ 反例闭环（12/12）/ 多分析共享基础设施（HIR+格域+registry 三层）/ 指针-调用图-摘要-库模型协同薄切 / 精度与性能可复现（ledger+timing+284 测试+CI 三平台）。
 **离"Tai-e 级"声明的剩余主要工作**：T4.4 深化（真实指针传播进摘要）+ T7.1/T7.2（上下文比较与增量）+ T8.2（动态真值实验）。
+
+### D2c 旧污点引擎退役（2026-09-07 完成）
+- [x] pipeline 第二阶段统一流引擎：`flow_engine_taint_report(findings)` 从 scan findings
+      派生 taint 报告（Rule/Sink/Path/Detail 每节携带 file:line）——pipeline 与 scan
+      从此**同源**，旧路径的第二引擎语义分叉被结构性消除（评审问题 #4 关闭）
+- [x] `run_taint_analysis` 标记 DEPRECATED（仅保留库兼容，生产调用点清零：
+      grep src 无调用；`format_taint_report` 保留给 TaintFlow 结构消费者）
+- [x] 一致性单测：报告节数 == findings 数、逐条含 file:line 与 CWE/sink 标签；
+      crescent 实测 pipeline 5 flow(s) == scan 5 findings（此前旧引擎计数独立）
+- 留余：TaintVisitor 结构与 format_taint_report 未物理删除（库 API 兼容窗口，
+  下个 minor 版本移除）

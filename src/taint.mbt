@@ -421,6 +421,9 @@ pub fn run_taint_analysis(
   _source : String,
   _imports : ImportContext,
 ) -> TaintState {
+  // DEPRECATED (D2c): legacy TaintVisitor walk. Production callers were
+  // removed when the pipeline was unified on the flow engine
+  // (flow_engine_taint_report). Retained only for library back-compat.
   let state = TaintState::new(file)
   let visitor : TaintVisitor = { state, }
   impls.each(fn(impl_) { @syntax.IterVisitor::visit_Impl(visitor, impl_) })
@@ -466,6 +469,67 @@ pub fn taint_flows_to_findings(
     })
   }
   findings
+}
+
+///|
+
+///|
+/// D2c: pipeline taint report derived from flow-engine scan findings —
+/// guarantees scan findings and pipeline taint report share one source
+/// of truth (the old path re-walked the AST with a second engine).
+pub fn flow_engine_taint_report(findings : Array[Finding]) -> String {
+  let buf = StringBuilder()
+  buf.write_string("# Taint Analysis Report\n\n")
+  buf.write_string("(generated from flow-engine scan findings)\n\n")
+  if findings.length() == 0 {
+    buf.write_string("No taint flows detected.\n")
+    return buf.to_string()
+  }
+  buf.write_string("Found ")
+  buf.write_string(findings.length().to_string())
+  buf.write_string(" taint flow(s):\n\n")
+  for i, f in findings {
+    buf.write_string("## Flow ")
+    buf.write_string((i + 1).to_string())
+    buf.write_string("\n\n")
+    buf.write_string("- **Rule**: CWE-")
+    buf.write_string(f.rule_id.cwe.to_string())
+    buf.write_char('/')
+    buf.write_string(f.rule_id.variant)
+    buf.write_char('\n')
+    buf.write_string("- **Sink**: ")
+    buf.write_string(cwe_sink_label(f.rule_id.cwe))
+    buf.write_string(" at ")
+    buf.write_string(f.file)
+    buf.write_char(':')
+    buf.write_string(f.line.to_string())
+    buf.write_char('\n')
+    if f.snippet.length() > 0 {
+      buf.write_string("- **Path**: ")
+      buf.write_string(f.snippet.trim().to_owned())
+      buf.write_char('\n')
+    }
+    buf.write_string("- **Detail**: ")
+    buf.write_string(f.message)
+    buf.write_char('\n')
+    buf.write_char('\n')
+  }
+  buf.to_string()
+}
+
+///|
+fn cwe_sink_label(cwe : Int) -> String {
+  match cwe {
+    79 => "HtmlOutput"
+    89 => "SqlQuery"
+    22 => "FilePathConcat"
+    113 => "HeaderValue"
+    614 => "CookieValue"
+    78 => "ShellCommand"
+    94 => "ExternJsEval"
+    601 => "RedirectUrl"
+    _ => "Output"
+  }
 }
 
 ///|

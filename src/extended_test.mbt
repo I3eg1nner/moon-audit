@@ -1070,3 +1070,39 @@ test "t5c_dsl_sanitizer_entry_matches" {
   run_cwe113(impls, "test.mbt", source, findings, Error, rules~)
   assert_true(findings.length() == 0)
 }
+
+// ---------------------------------------------------------------------------
+// D2c: pipeline taint report unified on the flow engine
+// ---------------------------------------------------------------------------
+
+///|
+test "d2c_pipeline_report_consistency_with_scan" {
+  // crescent-style snippet: a header sink finding from the flow engine
+  let source = "fn handler(req : Request, res : Response) -> Unit { res.set_header(\"X-Custom\", req.query(\"q\")) }"
+  let (impls, _) = @parser.parse_string(source, name="case.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "case.mbt", source, findings, Error)
+  inspect(findings.length() > 0, content="true")
+  // the pipeline report is a pure function of the scan findings: one
+  // section per finding, each carrying the finding's file:line
+  let report = flow_engine_taint_report(findings)
+  let mut sections = 0
+  for line in report.split("\n") {
+    if line.has_prefix("## Flow") {
+      sections += 1
+    }
+  }
+  inspect(sections, content=findings.length().to_string())
+  for f in findings {
+    let loc = f.file + ":" + f.line.to_string()
+    inspect(report.contains(loc), content="true")
+  }
+  inspect(report.contains("CWE-113"), content="true")
+  inspect(report.contains("HeaderValue"), content="true")
+}
+
+///|
+test "d2c_pipeline_report_empty_findings" {
+  let report = flow_engine_taint_report([])
+  inspect(report.contains("No taint flows detected."), content="true")
+}
