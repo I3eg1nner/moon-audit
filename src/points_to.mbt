@@ -8,11 +8,11 @@
 // facts. Site naming follows the G4 heap model convention
 // ("file:line" allocation sites; "fn@f.paramN" / "tN" / decl-key nodes).
 //
-// KNOWN GAP (gate14 P1, ROADMAP T4.3 remaining): the solver does not
-// re-trigger PTLoad when fstore grows (and PTStore is not registered as
-// a reader of its base var) — one-directional propagation. No current
-// producer emits Store/Load constraints, so this is unreachable today;
-// fixing it is a T4.4 prerequisite alongside interprocedural propagation.
+// D2a: the Store/Load retrigger gap (gate14 P1) is CLOSED — PTStore is
+// registered as a reader of BOTH its base var and its value var, and
+// fstore growth wakes every PTLoad on that field (field-keyed index).
+// Propagation is now demand-driven to a genuine fixpoint; budget
+// exhaustion is disclosed via converged=false (same as T3b).
 //
 // Constraint semantics (subset-based, field-sensitive):
 //   PTAlloc(v, s)      pts(v) ⊇ {s}
@@ -129,6 +129,9 @@ pub fn solve_pt_constraints(
   }
   // constraint index: node -> constraints that READ its points-to set
   let readers : Map[String, Array[Int]] = Map([])
+  // D2a: field -> PTLoad constraint indices — fstore growth on a field
+  // must re-run the loads of that field (gate14 P1 fix)
+  let field_loads : Map[String, Array[Int]] = Map([])
   let allocs : Array[Int] = []
   for i, c in constraints {
     match c {
@@ -138,13 +141,19 @@ pub fn solve_pt_constraints(
         let arr = ensure_arr(readers, from)
         arr.push(i)
       }
-      PTStore(sv, _, _) => {
+      PTStore(sv, _, vv) => {
+        // D2a: the store reads BOTH its base var (which sites) and its
+        // value var (what to write) — register under both
         let arr = ensure_arr(readers, sv)
         arr.push(i)
+        let varr = ensure_arr(readers, vv)
+        varr.push(i)
       }
-      PTLoad(_, sv, _) => {
+      PTLoad(_, sv, field) => {
         let arr = ensure_arr(readers, sv)
         arr.push(i)
+        let larr = ensure_arr(field_loads, field)
+        larr.push(i)
       }
     }
   }
@@ -200,8 +209,26 @@ pub fn solve_pt_constraints(
               grew = true
             }
           })
-          if grew && !dirty.contains(vv) {
-            dirty.push(vv) // vv's set may still grow later → re-run stores
+          if grew {
+            // D2a: fstore growth must wake every PTLoad on this field —
+            // re-run them by marking their base vars dirty
+            match field_loads.get(field) {
+              Some(load_idxs) =>
+                for li in load_idxs {
+                  match constraints[li] {
+                    PTLoad(_, lsv, _) =>
+                      if !dirty.contains(lsv) {
+                        dirty.push(lsv)
+                      }
+                    _ => ()
+                  }
+                }
+              None => ()
+            }
+            // the store itself re-runs if vv's set grows further
+            if !dirty.contains(vv) {
+              dirty.push(vv)
+            }
           }
         }
         PTLoad(dv, sv, field) => {

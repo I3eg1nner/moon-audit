@@ -78,3 +78,57 @@ test "pt_budget_exhaustion_disclosed" {
   let sol = solve_pt_constraints(cs, budget=0)
   inspect(sol.converged, content="false") // budget exhausted must surface
 }
+
+// ── D2a: Store/Load retrigger closure (gate14 P1, review round-6 #2) ─────
+
+///|
+test "pt_d2a_value_growth_retriggers_store" {
+  // EXACT review counterexample: the value var's set grows via Copy
+  // AFTER the store already ran once — pre-D2a the fstore stayed empty
+  let cs : Array[PTConstraint] = [
+    PTAlloc("o", "O"),
+    PTStore("o", "f", "w"),
+    PTAlloc("u", "U"),
+    PTCopy("w", "u"),
+  ]
+  let sol = solve_pt_constraints(cs)
+  let fs = sol.fstore_of("O", "f")
+  inspect(fs.length(), content="1") // fstore NON-empty (was the bug)
+  inspect(fs[0], content="U")
+  inspect(sol.converged, content="true")
+  // and a load chained after the copy sees the late value
+  let cs2 : Array[PTConstraint] = [
+    PTAlloc("o", "O"),
+    PTStore("o", "f", "w"),
+    PTAlloc("u", "U"),
+    PTCopy("w", "u"),
+    PTLoad("x", "o", "f"),
+  ]
+  let sol2 = solve_pt_constraints(cs2)
+  assert_true(sol2.contains("x", "U"))
+}
+
+///|
+test "pt_d2a_fstore_growth_wakes_load" {
+  // the load evaluates BEFORE the store populates the field bucket —
+  // fstore growth on that field must re-run it
+  let cs : Array[PTConstraint] = [
+    PTAlloc("o", "O"),
+    PTAlloc("w", "W"),
+    PTLoad("x", "o", "f"),
+    PTStore("o", "f", "w"),
+  ]
+  let sol = solve_pt_constraints(cs)
+  assert_true(sol.contains("x", "W")) // woken by the field-load index
+  inspect(sol.converged, content="true")
+  // multi-site: a second object of the same shape keeps loads accurate
+  let cs2 : Array[PTConstraint] = [
+    PTAlloc("o1", "S1"),
+    PTAlloc("o2", "S2"),
+    PTAlloc("v2", "V2"),
+    PTLoad("y", "o2", "f"),
+    PTStore("o1", "f", "v2"),
+  ]
+  let sol2 = solve_pt_constraints(cs2)
+  inspect(sol2.pts_of("y").length(), content="0") // S1's store ≠ S2's load
+}

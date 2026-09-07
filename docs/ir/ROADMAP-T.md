@@ -259,11 +259,14 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       T4c-1 细节：四约束 + worklist 求解器（dirty-node 传播、预算耗尽
       converged=false 强制披露）+ Stmt 纯生成器；pt_*×5 单测（字面量分配/
       别名链收敛/参数形态/字段读写往返/预算耗尽）。
-      ——剩余（T4.4）：过程间传播、容器元素/闭包环境约束、站点节点身份
-      分配点用节点身份而非文件行号；**PTStore/PTLoad 再触发缺口**（gate14 P1：
-      store 未登记为 value-var 的 reader、fstore 增长不唤醒 load——单向传播；
-      当前无生产者发射 Store/Load 故不触达，已在 points_to.mbt 头注释标注，
-      T4.4 过程间传播的前置修复项）
+      ——D2a（已修复，gate14 P1 闭）：PTStore 登记为 base-var 与
+      value-var 双 reader；fstore 字段桶增长经 field_loads 索引唤醒
+      同字段的全部 PTLoad；求解为真不动点（预算耗尽仍披露）。评审
+      反例 [Alloc(o,O), Store(o,f,w), Alloc(u,U), Copy(w,u)] 终态
+      fstore(O,f)={U} 单测锁定；多站点字段敏感负对照锁定；
+      pt_d2a_*×2 新测 + pt_*×5 零回归（296/296）
+      ——剩余（T4.4 后续）：过程间传播、容器元素/闭包环境约束、
+      站点节点身份分配点用节点身份而非文件行号
       ——pt-resolved 双口径（gate14 P2）：ir-stats 的 pt_resolved_dispatch 统计
       **所有带 pts 的 receiver 位点**（含具体类型如 `Map([])` 后直接 `.set` 的
       场景）；call-graph 的 pt_resolved_sites 仅统计 **dyn 分派位点**。三目标
