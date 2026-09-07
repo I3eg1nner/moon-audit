@@ -342,6 +342,14 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 - 最终门槛：完成 T0~T3 = 可信过程内内核；T4~T6 = Tai-e 式框架主要结构；
   经 T7~T8 验证后方可声称"在声明的 MoonBit 范围内达到 Tai-e 级能力"
 
+
+### D1b 污点执行迁移 CFG（混合部署，2026-09-06，d7124e4 同变更补记）
+- [x] block_exec.mbt: 块级工作队列（entry 快照 + 后继 join=共享 taint_or 格运算 + 收敛判定 + 访问上限 16/块，耗尽按 divergent 披露）；exec_stmt 为两驱动共用的纯语句级语义
+- [x] 混合执行: CFG 可构建→块执行并与 AST 结果逐函数比对（一致=cfg_executed / 不一致=cfg_divergent / 构建校验失败=ast_fallback）；AST findings 本里程碑保持权威；三计数+访问上限进 analysis-scope
+- [x] 实测占比: mocket 364/386=94.3% / petgraph 238/246=96.7% / 自举 615/658=93.5%（均超 ≥80% 目标）；**真实语料 cfg-divergent=0、visits-capped=0**
+- [x] 已知边界（D1c 消除）: walk 与 D1a builder 的 temp 编号相互独立，控制流重排求值顺序可使比对分歧（合成用例可复现；真实语料 0）；RWhole/未知 temp 保守 Tainted
+- [x] 验收: 291/291×4 + tests/cases 12/12 + 三目标 FP 0 + crescent 5 逐行；新单测×3
+
 ## 降级记录（T0.3，2026-09-05）
 
 以下能力从"完成/已实现"降级为**部分实现**（四级状态词汇）：
