@@ -437,3 +437,10 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 | petgraph | **100**（前 0） | 0 | 944/1449 持平 |
 | 自举 | **966**（前 0） | 0 | 5432/6161（分母自增长） |
 硬门槛达成: mocket ptB 0→3 ≥1; 三缺口根因（DotApply recv_var / Array elem store / 闭包绑定 pt_emit_binding）+ 单调收敛是增益来源; findings 等价（bound 持平）。
+
+## F 批完成（2026-09-08, 4563516）
+F1: T7.1 上下文策略骨架（Insensitive 基线 + not-implemented 显式警告）— 086df55
+F2: T7.2 进程内函数级增量（缓存 key=qual-name+fingerprint; SCC 失效传播; 加速比见 CONTEXT）— a679968
+F3: T8.2 --instrument-calls 动态真值 JSON + 设计注记（unobserved != FP）— 4563516
+F4: 语料 commit pin 模式 + COMPATIBILITY.md（分析器×目标×OS 矩阵）— 4563516
+全部: 323/323, CI 三平台绿, findings 等价, FP 0/0/0, crescent 5 稳定

@@ -868,3 +868,9 @@ t51 测试路径拼接留待下次触碰。
 - 实测（supervisor 代测）: mocket ptA 1→137 / ptB 0→3（硬门槛≥1 达成）; petgraph 0→100; 自举 0→966; bound 持平=零行为漂移
 - 过程: e2a 第三次超时循环后中断——竞态发现 worker 实已完成推送; E2b 测量由 supervisor 直接执行（避免第四次超时）
 - 教训: 挂起≠未完成——中断前先查 git log; 纯测量任务 supervisor 直做比派 worker 更稳
+
+## 2026-09-08 · F 批收官（T7/T8 剩余薄切全部落地）
+- F1 上下文策略骨架 / F2 函数级增量 / F3 动态真值插桩 / F4 语料 pin + 兼容矩阵
+- 323/323 × 4 targets; E 批成果保持（divergent=0, widening, pt 137/3/100/966）
+- 自主迭代战役至此: 22+ 工作流, 90+ 子任务, 18+ 评审门全 PASS, ~110 commit, 测试 92→323
+- 剩余深化项全部在 ROADMAP-T 留余清单（CallSite/ObjectSensitive 上下文、跨进程增量、动态真值实测、T5.2/T5.4 库模型深化）
