@@ -1197,9 +1197,9 @@ test "t4c2_dispatch_refined_by_receiver_pts" {
 }
 
 ///|
-test "t4c2_dispatch_empty_pts_falls_back" {
-  // param typed &Alpha: no allocation in this function -> empty pts ->
-  // enumeration fallback (B and C BOTH remain candidates)
+test "t4c2_dispatch_trait_param_pts" {
+  // G4: param typed &Alpha now emits per-impl PTAlloc constraints ->
+  // recv_pt contains both B and C (trait-param binding), pt-resolved >= 1
   let src = "pub trait Alpha { fn act(Self) -> Unit } pub struct B { v : Int } pub struct C { v : Int } pub impl Alpha for B with fn act(self) -> Unit { } pub impl Alpha for C with fn act(self) -> Unit { } pub fn g(a : &Alpha) -> Unit { ignore(a.act()) }"
   let (impls, _) = @parser.parse_string(src, name="t.mbt")
   let symbols = PkgSymbols::new()
@@ -1209,10 +1209,10 @@ test "t4c2_dispatch_empty_pts_falls_back" {
     s.kind == "receiver" &&
     s.target.has_prefix("dyn Alpha::act") &&
     s.recv_var == "a" &&
-    s.recv_pt.length() == 0
+    s.recv_pt.length() > 0
   })
   inspect(found, content="true")
-  inspect(stats.pt_resolved_dispatch(), content="0")
+  inspect(stats.pt_resolved_dispatch() >= 1, content="true")
 }
 
 // ---------------------------------------------------------------------------

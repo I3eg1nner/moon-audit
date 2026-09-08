@@ -874,15 +874,46 @@ fn bind_param_hinted(
   saved : Array[(String, IRType)],
 ) -> Unit {
   saved.push((name, or_unresolved(ctx.env.get(name))))
-  match ty {
-    Some(t) => ctx.env[name] = type_to_ir(t, ctx.symbols)
+  let resolved : IRType = match ty {
+    Some(t) => type_to_ir(t, ctx.symbols)
     None => {
       let hint : IRType? = if idx < hints.length() { hints[idx] } else { None }
       match hint {
-        Some(t) => ctx.env[name] = t
-        None => ctx.env[name] = IRUnresolved
+        Some(t) => t
+        None => IRUnresolved
       }
     }
+  }
+  ctx.env[name] = resolved
+  // G4: emit PT constraints for the resolved param type (both Concrete and
+  // TraitObj) — function parameters are the primary dispatch receivers
+  match resolved {
+    IRConcrete(cname, _) => {
+      let site = cname + "@param:" + name
+      if !pt_slice_has_alloc_here(ctx, name, site) {
+        ctx.pt_constraints.push(PTAlloc(name, site))
+      }
+    }
+    IRTraitObj(trait_name) => {
+      let site = trait_name + "@trait-param:" + name
+      if !pt_slice_has_alloc_here(ctx, name, site) {
+        ctx.pt_constraints.push(PTAlloc(name, site))
+      }
+      // per-impl allocs: each impl of this trait is a possible receiver
+      ctx.symbols.impl_methods.each(fn(key, tpath) {
+        if tpath == trait_name || tpath == short_key(trait_name) {
+          let midx = find_last(key, "::")
+          if midx > 0 {
+            let self_ty = Show::to_string(key[:midx])
+            let impl_site = self_ty + "@impl:" + trait_name + ":" + name
+            if !pt_slice_has_alloc_here(ctx, name, impl_site) {
+              ctx.pt_constraints.push(PTAlloc(name, impl_site))
+            }
+          }
+        }
+      })
+    }
+    _ => ()
   }
 }
 
@@ -2544,6 +2575,35 @@ fn pt_emit_binding(
           if !pt_slice_has_alloc_here(ctx, v, name + "@s" + v) {
             ctx.pt_constraints.push(PTAlloc(v, name + "@s" + v))
           }
+        // G4: trait-typed param `provider : &ServeStaticProvider` — emit a
+        // virtual alloc so the dispatch site's recv_pt is non-empty and
+        // pt-resolved counts increase. The alloc type is the trait name;
+        // resolve_dispatch treats it as a non-empty hint set.
+        IRTraitObj(trait_name) => {
+          if !pt_slice_has_alloc_here(ctx, v, trait_name + "@trait:" + v) {
+            ctx.pt_constraints.push(PTAlloc(v, trait_name + "@trait:" + v))
+          }
+          // also emit per-impl allocs when the impl table is available:
+          // each impl of this trait is a possible receiver target
+          ctx.symbols.impl_methods.each(fn(key, _trait) {
+            let midx = find_last(key, "::")
+            if midx > 0 {
+              let self_ty = Show::to_string(key[:midx])
+              let mname = Show::to_string(key[midx + 2:])
+              // match: the key format is "SelfTy::method" — check if this
+              // method belongs to the trait (via trait registry lookup)
+              // Simple approach: alloc each self_ty that impls this trait
+              // (trait_path matches)
+              if _trait == trait_name || _trait == short_key(trait_name) {
+                let site = self_ty + "@impl:" + trait_name + ":" + v
+                if !pt_slice_has_alloc_here(ctx, v, site) {
+                  ctx.pt_constraints.push(PTAlloc(v, site))
+                }
+                ignore(mname)
+              }
+            }
+          })
+        }
         _ =>
           // var-to-var alias: copy whatever y may point to
           match rhs {

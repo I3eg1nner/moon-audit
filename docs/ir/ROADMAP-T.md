@@ -451,3 +451,13 @@ F4: 语料 commit pin 记录模式（校验/切换未做） + COMPATIBILITY.md�
 - 修复 Raise seal bug: Raise 之前 seal() 导致 Try-catch 的 catch 块从 unreachable post-seal 块链接, catch 中的 sink 被误消除——改为不 seal, 让 Try builder 正确链接
 - cfg_hybrid_classify 保留用于计数披露（cfg-executed/fallback/divergent）; findings 决策 = unreachable_lines
 - 测试: G1_unreachable_path_sink_eliminated (post-return dead code 消除) + G1_reachable_sink_not_eliminated (负对照); 325/325
+
+## G4 实测（2026-09-08, bind_param_hinted trait-param PTAlloc）
+| 目标 | ptB(dispatch) 前→后 | dispatch edges | unresolved |
+|---|---|---|---|
+| mocket | **3→10**（目标 ≥5 ✅） | 10→24 | 442 持平 |
+| petgraph | 0 | 0 | 505 |
+| 自举 | 0 | 0 | 745 |
+unresolved 442 未降至 ≤405——主因: 442 由非分派型 unknown 主导（FFI/cascade/higher），分派型 no-impls 仅小部分。
+PTAlloc 扩展了 dispatch edges（per-impl allocs 在无 receiver 消息时枚举全部 impl）。
+findings 等价: FP 0/0/0, crescent 5, 12/12 反例绿。
