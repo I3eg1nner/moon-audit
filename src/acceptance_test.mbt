@@ -157,8 +157,8 @@ test "t8_4_ledger_aggregation_correct" {
   inspect(ledger[0].confirmed, content="1") // E
   inspect(ledger[0].untriaged, content="1") // C
   inspect(ledger[1].rule_id, content="CWE-942/cors-credentials")
-  inspect(ledger[1].fp_suspects, content="1") // D(fp) only — R(resolved-TP) now fixed_suspects
-  inspect(ledger[1].fixed_suspects, content="1") // R(resolved TP candidate, not FP)
+  inspect(ledger[1].fp_suspects, content="1") // D(unchanged, triaged fp)
+  inspect(ledger[1].fixed_suspects, content="1") // R(resolved) only
   inspect(ledger[1].untriaged, content="0")
   // format includes the corpus summary line
   let text = format_ledger(ledger)

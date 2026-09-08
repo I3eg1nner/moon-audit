@@ -390,7 +390,7 @@ pub fn build_ledger(
     let e = entry(rule_id_str(f.rule_id))
     match triage.get(f.fingerprint) {
       Some("confirmed") => e.confirmed += 1
-      Some("fp") => e.fixed_suspects += 1
+      Some("fp") => e.fp_suspects += 1
       _ => e.untriaged += 1
     }
   }
