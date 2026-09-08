@@ -880,3 +880,13 @@ t51 测试路径拼接留待下次触碰。
 - G2 (8e271c7): --diagnose-fallback 每函数诊断
 - G3 (this): 文档准确性——F 批薄切限定, 数字刷新 (325 tests, fallback 85.4%), README/ACCEPTANCE 对齐
 - G4: pt 口径 B 深化（dispatch receiver propagation）——工作流执行中
+
+## 2026-09-08 · G 批终验（gate22 equivalent — supervisor 代跑全矩阵）
+- G1 (d1fcfc8): 真 CFG 权威——独立求解器产 findings, AST temp_facts 移除, 不可达消除
+- G2 (8e271c7): --diagnose-fallback 每函数诊断
+- G3 (2b69a81): 文档准确性——F 批薄切限定, 数字刷新
+- G4 (79ece10): trait-param PTAlloc → mocket ptB 3→10（≥5 达成; dispatch edges 10→24）
+- 终验: 325/325 × native deny-warn; run.sh 12/12 + /bin/false rc=2; FP 0/0/0; crescent 5;
+  divergent=0; ptB=10; 全部 fmt/check/info 门清; HEAD=origin/main=79ece10
+- unresolved 442 保持——诚实归因: FFI(~41%)/cascade/higher-order 主导, 非 dispatch 缺口
+- 第八轮评审五项建议全部闭环: 真权威✅ fallback 诊断✅ pt 口径B✅ 文档漂移✅ F批降级✅
