@@ -340,7 +340,8 @@ pub fn symbols_fingerprint(symbols : PkgSymbols) -> String {
 // State semantics (aligned with docs/ir/ACCEPTANCE.md ledger section):
 //   tp_candidates : NEW findings not yet triaged (default state for new)
 //   confirmed     : findings (new or unchanged) marked "confirmed" in triage
-//   fp_suspects   : findings marked "fp" in triage, plus RESOLVED findings
+//   fp_suspects   : findings marked "fp" in triage only
+//   fixed_suspects : RESOLVED findings that were TP candidates (fixed, not FP)
 //                   (disappeared vs previous: either fixed upstream or was FP)
 //   untriaged     : UNCHANGED findings not in triage (existing inventory)
 
@@ -349,6 +350,7 @@ pub(all) struct RuleLedger {
   rule_id : String
   mut tp_candidates : Int
   mut fp_suspects : Int
+  mut fixed_suspects : Int
   mut confirmed : Int
   mut untriaged : Int
 } derive(Debug)
@@ -367,6 +369,7 @@ pub fn build_ledger(
           rule_id: rule,
           tp_candidates: 0,
           fp_suspects: 0,
+          fixed_suspects: 0,
           confirmed: 0,
           untriaged: 0,
         }
@@ -387,7 +390,7 @@ pub fn build_ledger(
     let e = entry(rule_id_str(f.rule_id))
     match triage.get(f.fingerprint) {
       Some("confirmed") => e.confirmed += 1
-      Some("fp") => e.fp_suspects += 1
+      Some("fp") => e.fixed_suspects += 1
       _ => e.untriaged += 1
     }
   }
@@ -395,7 +398,7 @@ pub fn build_ledger(
     // disappeared: fixed upstream or was an FP — both count as FP-suspect
     // until an external fix record says otherwise (thin-slice boundary)
     let e = entry(p.rule_id)
-    e.fp_suspects += 1
+    e.fixed_suspects += 1
   }
   let out : Array[RuleLedger] = []
   per_rule.each(fn(_k, v) { out.push(v) })

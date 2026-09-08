@@ -81,8 +81,8 @@ try:
 except Exception:
     print(-1)
 ")
-  resolv=$(grep -oE 'combined resolution: [0-9]+%' "$out/irstats.txt" | grep -oE '[0-9]+%' | head -1)
-  edges=$(grep -oE 'edge coverage:     [0-9]+%' "$out/callgraph.txt" | grep -oE '[0-9]+%' | head -1)
+  resolv=$(grep -oE 'bound sites: +[0-9]+/[0-9]+' "$out/irstats.txt" | head -1 | tr -s ' ')
+  edges=$(grep -oE 'site coverage: +[0-9]+/[0-9]+ = [0-9]+%' "$out/callgraph.txt" | head -1 | tr -s ' ')
   [ -z "$resolv" ] && resolv="-"
   [ -z "$edges" ] && edges="-"
   if [ "$findings" = "-1" ]; then status="ERR"; else

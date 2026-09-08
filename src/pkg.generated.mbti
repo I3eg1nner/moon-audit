@@ -823,6 +823,7 @@ pub(all) struct RuleLedger {
   rule_id : String
   mut tp_candidates : Int
   mut fp_suspects : Int
+  mut fixed_suspects : Int
   mut confirmed : Int
   mut untriaged : Int
 } derive(@debug.Debug)
