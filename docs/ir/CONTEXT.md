@@ -862,3 +862,9 @@ t51 测试路径拼接留待下次触碰。
 - D2c: 旧 TaintVisitor 退役——pipeline 报告改 findings 纯函数派生（同源）, 生产 run_taint_analysis 调用清零
 - gate19 P1（D2b 零留档）由本条目+ROADMAP 数字落档修复; 动态腿 supervisor 代跑: 301/301, FP 0/0/0, crescent 5, CI aa2e2de 三平台绿
 - 教训: 自称"measured"的交付必须同 commit 落档数字——gate 因此阻塞一次
+
+## 2026-09-08 · E2 纵深（三缺口+单调收敛→语料真实收益）
+- E2a（b4c9fc4, 310/310）: 三缺口修复（前轮超时 worker 根因留档直接复用）+ pt_solve_all 单调 worklist
+- 实测（supervisor 代测）: mocket ptA 1→137 / ptB 0→3（硬门槛≥1 达成）; petgraph 0→100; 自举 0→966; bound 持平=零行为漂移
+- 过程: e2a 第三次超时循环后中断——竞态发现 worker 实已完成推送; E2b 测量由 supervisor 直接执行（避免第四次超时）
+- 教训: 挂起≠未完成——中断前先查 git log; 纯测量任务 supervisor 直做比派 worker 更稳

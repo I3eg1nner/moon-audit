@@ -271,7 +271,7 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       **所有带 pts 的 receiver 位点**（含具体类型如 `Map([])` 后直接 `.set` 的
       场景）；call-graph 的 pt_resolved_sites 仅统计 **dyn 分派位点**。三目标
       实测两者均 0，无解读分歧，但跨命令对比时须按此口径分别解读
-- [~] T4.4 动态发现目标（**E2a 2026-09-08: 三缺口修复 + 单调 worklist + 跨文件 carrier 后真实语料实测**: mocket **口径A=137 口径B=3**（基线 1/0）, petgraph **100/0**（0/0）, 自举 **966/0**（0/0）——批模式 carrier 合并跨文件 slices/pendings（此前 per-file clear 丢弃跨文件反馈）+ 三缺口（DotApply 具体主分支 recv_var、Array 字面量 elem store 含构造器元素 `C::new()`、闭包 let 绑定 cap 槽位）+ 单调 worklist（预算=约束数×2, 超限披露 pt-not-converged, 实测三目标均收敛）; **口径B 3 位点=分派集合被接收者指向集实际收窄**; D2b 时代数字（mocket 1/0）已被本行取代; 测试 e2_*×7 + 既有 304 零回归, FP 0/0/0, crescent 5 逐行稳定）
+- [x] T4.4 动态发现目标（**E2a 2026-09-08: 三缺口修复 + 单调 worklist + 跨文件 carrier 后真实语料实测**: mocket **口径A=137 口径B=3**（基线 1/0）, petgraph **100/0**（0/0）, 自举 **966/0**（0/0）——批模式 carrier 合并跨文件 slices/pendings（此前 per-file clear 丢弃跨文件反馈）+ 三缺口（DotApply 具体主分支 recv_var、Array 字面量 elem store 含构造器元素 `C::new()`、闭包 let 绑定 cap 槽位）+ 单调 worklist（预算=约束数×2, 超限披露 pt-not-converged, 实测三目标均收敛）; **口径B 3 位点=分派集合被接收者指向集实际收窄**; D2b 时代数字（mocket 1/0）已被本行取代; 测试 e2_*×7 + 既有 304 零回归, FP 0/0/0, crescent 5 逐行稳定）
       trait/泛型实例/用户回调参与联动
 - [~] T4.5 证据来源：数据流事实记录产生位置/调用关系/模型依据，支持跨函数诊断路径
       （薄切：dump-analyses 每节 provenance——fn @ file / file:line+rule+fingerprint /
@@ -419,3 +419,12 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       crescent 实测 pipeline 5 flow(s) == scan 5 findings（此前旧引擎计数独立）
 - 留余：TaintVisitor 结构与 format_taint_report 未物理删除（库 API 兼容窗口，
   下个 minor 版本移除）
+
+
+## E2 实测数字（2026-09-08, E2a 三缺口修复 + 单调 worklist 后; 口径A=ir-stats 全 receiver / 口径B=call-graph dyn 分派）
+| 目标 | ptA | ptB(dispatch) | bound sites |
+|---|---|---|---|
+| mocket | **137**（前 1） | **3**（前 0） | 1489/1941 持平 |
+| petgraph | **100**（前 0） | 0 | 944/1449 持平 |
+| 自举 | **966**（前 0） | 0 | 5432/6161（分母自增长） |
+硬门槛达成: mocket ptB 0→3 ≥1; 三缺口根因（DotApply recv_var / Array elem store / 闭包绑定 pt_emit_binding）+ 单调收敛是增益来源; findings 等价（bound 持平）。
