@@ -274,6 +274,8 @@ pub fn project_trait_params(FnSig) -> Array[IRType?]
 
 pub fn pt_node_show(String) -> String
 
+pub fn pt_solve_batched(IRStatsResult) -> Unit
+
 pub fn resolve_extends(TaintRuleset, String, Array[String], Array[String]) -> Unit
 
 pub fn risk_level(Double) -> String
@@ -324,7 +326,7 @@ pub fn run_ir_stats(String, Config, conservative_alias? : Bool) -> IRStatsResult
 
 pub fn run_taint_analysis(@list.List[@syntax.Impl], String, String, ImportContext) -> TaintState
 
-pub fn scan_package_calls(Array[@syntax.Impl], String, PkgSymbols, IRStatsResult, pkg_alias? : Map[String, String]) -> Unit
+pub fn scan_package_calls(Array[@syntax.Impl], String, PkgSymbols, IRStatsResult, pkg_alias? : Map[String, String], pt_deferred? : Bool) -> Unit
 
 pub fn scan_project(String, Config) -> ScanResult
 
@@ -432,6 +434,7 @@ pub(all) struct CallGraph {
   candidate_sites : Int
   unresolved_sites : Int
   pt_resolved_sites : Int
+  pt_not_converged : Bool
 }
 pub fn CallGraph::site_coverage(Self) -> Int
 pub fn CallGraph::site_total(Self) -> Int
@@ -543,6 +546,8 @@ pub(all) struct IRStatsResult {
   mut higher_calls : Int
   mut alias_unresolved : Int
   mut pt_iterations : Int
+  mut pt_not_converged : Bool
+  mut pt_carrier : PtCarrier?
   sites : Array[CallSiteStat]
 }
 pub fn IRStatsResult::combined_resolution(Self) -> Int
@@ -661,6 +666,22 @@ pub(all) struct PTFnReport {
   sol : PTSolution
 }
 
+pub(all) struct PTFnSlice {
+  fn_name : String
+  constraints : Array[PTConstraint]
+  site_start : Int
+  site_end : Int
+}
+
+pub(all) struct PTPending {
+  kind : String
+  pvar : String
+  callee : String
+  param_node : String
+  owner_fn : String
+  site : String
+}
+
 pub(all) struct PTSolution {
   pts : Map[String, Map[String, Bool]]
   fstore : Map[String, Map[String, Bool]]
@@ -744,6 +765,11 @@ pub(all) struct ProgramWorld {
   config : Config
   identities : WorldIdentities
   entry_kinds : Map[String, String]
+}
+
+pub(all) struct PtCarrier {
+  slices : Array[PTFnSlice]
+  pendings : Array[PTPending]
 }
 
 pub(all) enum Reach {

@@ -116,6 +116,8 @@ pub(all) struct IRStatsResult {
   mut higher_calls : Int
   mut alias_unresolved : Int // T1.2: strict-mode short-key fallback misses
   mut pt_iterations : Int // D2b: interprocedural feedback rounds executed
+  mut pt_not_converged : Bool // E2: worklist budget exhausted (disclosed)
+  mut pt_carrier : PtCarrier? // E2: batch-mode cross-file slice/pending merge
   sites : Array[CallSiteStat]
 }
 
@@ -134,6 +136,8 @@ pub fn IRStatsResult::new() -> IRStatsResult {
     higher_calls: 0,
     alias_unresolved: 0,
     pt_iterations: 0,
+    pt_not_converged: false,
+    pt_carrier: None,
     sites: [],
   }
 }
@@ -388,7 +392,7 @@ priv struct ScanCtx {
 //        slice) — the fn-sig-aligned actual-to-formal edge.
 
 ///|
-priv struct PTPending {
+pub(all) struct PTPending {
   kind : String // "ret" | "arg" | "argret"
   pvar : String
   callee : String
@@ -398,7 +402,15 @@ priv struct PTPending {
 }
 
 ///|
-priv struct PTFnSlice {
+
+///|
+pub(all) struct PtCarrier {
+  slices : Array[PTFnSlice]
+  pendings : Array[PTPending]
+}
+
+///|
+pub(all) struct PTFnSlice {
   fn_name : String
   constraints : Array[PTConstraint]
   site_start : Int
@@ -430,6 +442,7 @@ pub fn scan_package_calls(
   symbols : PkgSymbols,
   stats : IRStatsResult,
   pkg_alias? : Map[String, String],
+  pt_deferred? : Bool = false,
 ) -> Unit {
   collect_symbols(impls, symbols)
   let ctx : ScanCtx = {
@@ -542,11 +555,66 @@ pub fn scan_package_calls(
       _ => ()
     }
   }
-  // D2b: interprocedural fixpoint — solve slices, build ret summaries,
-  // consume call-site pendings over <=2 feedback rounds, fill recv_pt
+  // E2: batch mode (run_ir_stats/run_call_graph) defers the pt fixpoint
+  // to the END of the whole scan — cross-FILE pendings (a caller in
+  // not_found.mbt seeding `HttpResponse::body`'s &Responder param, whose
+  // dispatch site lives in response.mbt) were previously dropped by the
+  // per-file clear. The carrier merges slices+pendings across files and
+  // pt_solve_batched runs the worklist once over all of them.
+  if pt_deferred {
+    pt_carrier_append(ctx, stats)
+    return
+  }
   pt_solve_all(ctx)
   ctx.pt_fn_slices.clear()
   ctx.pt_pending.clear()
+}
+
+///|
+fn pt_carrier_append(ctx : ScanCtx, stats : IRStatsResult) -> Unit {
+  match stats.pt_carrier {
+    Some(car) => {
+      for s in ctx.pt_fn_slices {
+        car.slices.push(s)
+      }
+      for p in ctx.pt_pending {
+        car.pendings.push(p)
+      }
+    }
+    None => ()
+  }
+}
+
+///|
+pub fn pt_solve_batched(stats : IRStatsResult) -> Unit {
+  match stats.pt_carrier {
+    Some(car) => {
+      if car.slices.length() == 0 && car.pendings.length() == 0 {
+        return
+      }
+      // merged solve context: slices/pendings from ALL files; symbols are
+      // only needed for env typing during the walk (already done) — the
+      // fixpoint itself only reads slices, pendings and stats.sites
+      let ctx : ScanCtx = {
+        symbols: PkgSymbols::new(),
+        env: Map([]),
+        file: "<batched>",
+        stats,
+        pending_closure_hints: [],
+        last_key: "?",
+        last_recv_ty: IRUnresolved,
+        cur_fn: "<top>",
+        pt_constraints: [],
+        pt_pending: car.pendings,
+        pt_fn_slices: car.slices,
+        closure_sites: Map([]),
+        pending_closure: None,
+        pkg_alias: Map([]),
+      }
+      pt_solve_all(ctx)
+    }
+    None => ()
+  }
 }
 
 ///|
@@ -1198,6 +1266,36 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
         let t = infer_expr(expr, ctx)
         bind_pattern(pattern, t, ctx)
         pt_emit_binding(pattern, expr, t, ctx)
+      } else {
+        // E2: closure-value bindings ALSO enter the pt graph — allocation
+        // site for the closure object + "cap:<name>" stores for captured
+        // outer idents (this branch bypasses pt_emit_binding above)
+        match (pattern, expr) {
+          (Var(binder), Function(func~, ..)) => {
+            let v = binder.name
+            let pname : Array[String] = []
+            for p in func.parameters {
+              match p {
+                Positional(binder~, ..) => pname.push(binder.name)
+                Labelled(binder~, ..) => pname.push(binder.name)
+                Optional(binder~, ..) => pname.push(binder.name)
+                QuestionOptional(binder~, ..) => pname.push(binder.name)
+                DiscardPositional(..) => ()
+              }
+            }
+            ctx.pt_constraints.push(PTAlloc(v, "$closure@" + v))
+            let caps : Array[String] = []
+            collect_idents(func.body, caps)
+            for n in caps {
+              if !pname.contains(n) &&
+                ctx.env.contains(n) &&
+                !pt_slice_has_store(ctx, v, "cap:" + n) {
+                ctx.pt_constraints.push(PTStore(v, "cap:" + n, n))
+              }
+            }
+          }
+          _ => ()
+        }
       }
       infer_expr(body, ctx)
     }
@@ -1354,6 +1452,28 @@ fn infer_expr(expr : @syntax.Expr, ctx : ScanCtx) -> IRType {
     ForEach(binders~, expr~, init~, continue_block~, body~, ..) => {
       let iter_ty = infer_expr(expr, ctx)
       let ety = elem_type(iter_ty)
+      // E2: minimal container model — iterating an Ident loads through the
+      // "elem" pseudo-field (Array literal bindings store into it), so the
+      // loop var inherits the elements' pointees
+      match expr {
+        Ident(id~, ..) =>
+          match id.name {
+            Ident(name~) => {
+              let iter_name = name
+              for b in binders {
+                match b {
+                  Some(binder) =>
+                    ctx.pt_constraints.push(
+                      PTLoad(binder.name, iter_name, "elem"),
+                    )
+                  None => ()
+                }
+              }
+            }
+            Dot(..) => ()
+          }
+        _ => ()
+      }
       for b in binders {
         match b {
           Some(binder) => ctx.env[binder.name] = ety
@@ -1836,7 +1956,7 @@ fn infer_dot_apply(
       let key = name + "::" + mname
       ctx.last_key = key
       ctx.last_recv_ty = recv_ty
-      record_site_recv(ctx, recv, true, key, name)
+      record_site_recv(ctx, recv, true, key, name, recv_var=recv_var_of(recv))
       ctx.stats.receiver_resolved += 1
       // symbols first (source + .mbti + dep tables, short_key fallback);
       // the builtin hardcoding table stays as last resort only
@@ -2018,8 +2138,16 @@ fn pt_emit_ret(body : @syntax.Expr, ret_t : IRType, ctx : ScanCtx) -> Unit {
     Apply(func~, ..) =>
       match apply_func_name(func) {
         Some(callee) => {
+          // callee's declared ret; fall back to THIS function's declared
+          // ret when the callee's is unknown (E2: factory shape
+          // `fn make() -> C { C::new() }` — C::new has no collected sig,
+          // but make's own declared return IS authoritative)
           let t2 = or_unresolved(get_fn_ret(ctx.symbols, callee))
-          pt_alloc_ret(node, t2, ctx)
+          if t2 == IRUnresolved {
+            pt_alloc_ret(node, ret_t, ctx)
+          } else {
+            pt_alloc_ret(node, t2, ctx)
+          }
         }
         None => pt_alloc_ret(node, ret_t, ctx)
       }
@@ -2086,6 +2214,32 @@ fn pt_site_type(s : String) -> String {
   }
 }
 
+// E2: live-constraint alloc dedup (pre-slice)
+
+///|
+fn pt_slice_has_alloc_here(ctx : ScanCtx, v : String, s : String) -> Bool {
+  for c in ctx.pt_constraints {
+    match c {
+      PTAlloc(vv, ss) => if vv == v && ss == s { return true }
+      _ => ()
+    }
+  }
+  false
+}
+
+// E2: idempotence guard for the closure capture store emission
+
+///|
+fn pt_slice_has_store(ctx : ScanCtx, sv : String, field : String) -> Bool {
+  for c in ctx.pt_constraints {
+    match c {
+      PTStore(s, f, _) => if s == sv && f == field { return true }
+      _ => ()
+    }
+  }
+  false
+}
+
 // D2b: does the slice already carry this injected alloc? (idempotence)
 
 ///|
@@ -2109,26 +2263,26 @@ fn pt_solve_all(ctx : ScanCtx) -> Unit {
   if ctx.pt_fn_slices.length() == 0 {
     return
   }
+  // E2: monotone worklist — sets only grow (PTAlloc/PTCopy/Store edges are
+  // additive), so iterating to a no-change round IS the fixpoint. Budget =
+  // 2x total constraints (>= 4 rounds); exhaustion is DISCLOSED via
+  // pt_not_converged instead of silently returning partial results.
+  let mut budget = 4
+  for s in ctx.pt_fn_slices {
+    budget += s.constraints.length() * 2
+  }
   let mut iterations = 0
   let mut changed = true
   let mut sols : Array[PTSolution] = []
-  while changed && iterations < 2 {
+  while changed {
+    if iterations >= budget {
+      ctx.stats.pt_not_converged = true
+      break
+    }
     sols = pt_solve_slices(ctx)
     let summaries = pt_build_summaries(ctx, sols)
     changed = pt_consume_pendings(ctx, sols, summaries)
-    if changed {
-      iterations += 1
-    }
-  }
-  // settle pass: consume pendings once more against the freshest
-  // summaries (a round-2 arg injection may complete a callee summary
-  // that a ret pending was waiting on), then propagate if it fired
-  if iterations > 0 {
-    sols = pt_solve_slices(ctx)
-    let summaries = pt_build_summaries(ctx, sols)
-    if pt_consume_pendings(ctx, sols, summaries) {
-      sols = pt_solve_slices(ctx)
-    }
+    iterations += 1
   }
   if sols.length() == 0 {
     sols = pt_solve_slices(ctx)
@@ -2289,6 +2443,63 @@ fn pt_consume_pendings(
 //   x = <concrete-typed RHS>  ->  PTAlloc(x, "Type@s<N>")
 //   x = y                     ->  PTCopy(x, y)   (flow-insensitive, per-fn)
 
+// E2: container literal element stores — Ident aliases flow through the
+// "elem" field; constructor-call elements alloc their own temp node first
+
+///|
+
+///|
+fn elem_callee_name(func : @syntax.Expr) -> String? {
+  // apply_func_name handles Ident only; constructor elements `C::new()`
+  // are Method nodes — extract "Type::method" for them
+  match func {
+    Method(type_name~, method_name~, ..) =>
+      Some(longident_str(type_name.name) + "::" + method_name.name)
+    _ => apply_func_name(func)
+  }
+}
+
+///|
+fn pt_emit_array_elems(
+  v : String,
+  exprs : @list.List[@syntax.Expr],
+  ctx : ScanCtx,
+) -> Unit {
+  let mut i = 0
+  for e in exprs {
+    match e {
+      Ident(id~, ..) =>
+        match id.name {
+          Ident(name~) => ctx.pt_constraints.push(PTStore(v, "elem", name))
+          Dot(..) => ()
+        }
+      // `C::new()` element: alloc a temp site carrying the callee's
+      // DECLARED concrete ret, then store the temp into elem (the wip gap:
+      // Ident-only stores made `[C::new()]` literals lose their pointees)
+      Apply(func~, ..) =>
+        match elem_callee_name(func) {
+          Some(callee) => {
+            // site label: declared concrete ret when known, else callee
+            // provenance (builtin ctors like C::new have no collected sig
+            // — the provenance label still makes the elem store fire)
+            let label = match or_unresolved(get_fn_ret(ctx.symbols, callee)) {
+              IRConcrete(n, _) => n + "@call:" + callee
+              _ => "call:" + callee
+            }
+            let tmp = "elem@" + v + ":" + i.to_string()
+            if !pt_slice_has_alloc_here(ctx, tmp, label) {
+              ctx.pt_constraints.push(PTAlloc(tmp, label))
+            }
+            ctx.pt_constraints.push(PTStore(v, "elem", tmp))
+          }
+          None => ()
+        }
+      _ => ()
+    }
+    i += 1
+  }
+}
+
 ///|
 fn pt_emit_binding(
   pattern : @syntax.Pattern,
@@ -2303,9 +2514,22 @@ fn pt_emit_binding(
   match pattern {
     Var(binder) => {
       let v = binder.name
+
+      // E2: container literal — alloc + elem stores fire on the FIRST
+      // match regardless of type resolution (an Array literal always
+      // infers IRConcrete, which used to bypass the elem model below)
+      match rhs {
+        Array(exprs~, ..) => {
+          ctx.pt_constraints.push(PTAlloc(v, "Array@lit:" + v))
+          pt_emit_array_elems(v, exprs, ctx)
+        }
+        _ => ()
+      }
       match t {
         IRConcrete(name, _) =>
-          ctx.pt_constraints.push(PTAlloc(v, name + "@s" + v))
+          if !pt_slice_has_alloc_here(ctx, v, name + "@s" + v) {
+            ctx.pt_constraints.push(PTAlloc(v, name + "@s" + v))
+          }
         _ =>
           // var-to-var alias: copy whatever y may point to
           match rhs {
@@ -2323,6 +2547,52 @@ fn pt_emit_binding(
                   }
                 _ => ()
               }
+            // E2: factory call `let r = make()` where make's declared ret
+            // is concrete but the local's inferred type got lost (cascades)
+            Apply(func~, ..) =>
+              match apply_func_name(func) {
+                Some(callee) => {
+                  let rt = or_unresolved(get_fn_ret(ctx.symbols, callee))
+                  match rt {
+                    IRConcrete(n, _) =>
+                      ctx.pt_constraints.push(PTAlloc(v, n + "@call:" + callee))
+                    _ => ()
+                  }
+                }
+                None => ()
+              }
+            // E2: container literal — alloc a list site; each Ident elem
+            // stores into the "elem" pseudo-field (minimal container model:
+            // ForEach iteration loads back through the same field)
+            Array(exprs~, ..) => {
+              ctx.pt_constraints.push(PTAlloc(v, "Array@lit:" + v))
+              pt_emit_array_elems(v, exprs, ctx)
+            }
+            // E2: closure value binding — allocation site for the closure
+            // object; captured outer Idents store into "cap:<name>" slots
+            // (aligned with the T2.5 closure_sites capture table)
+            Function(func~, ..) => {
+              let pname : Array[String] = []
+              for p in func.parameters {
+                match p {
+                  Positional(binder~, ..) => pname.push(binder.name)
+                  Labelled(binder~, ..) => pname.push(binder.name)
+                  Optional(binder~, ..) => pname.push(binder.name)
+                  QuestionOptional(binder~, ..) => pname.push(binder.name)
+                  DiscardPositional(..) => ()
+                }
+              }
+              ctx.pt_constraints.push(PTAlloc(v, "$closure@" + v))
+              let caps : Array[String] = []
+              collect_idents(func.body, caps)
+              for n in caps {
+                if !pname.contains(n) &&
+                  ctx.env.contains(n) &&
+                  !pt_slice_has_store(ctx, v, "cap:" + n) {
+                  ctx.pt_constraints.push(PTStore(v, "cap:" + n, n))
+                }
+              }
+            }
             _ => ()
           }
       }
@@ -2689,6 +2959,10 @@ pub fn run_ir_stats(
   conservative_alias? : Bool = false,
 ) -> IRStatsResult {
   let stats = IRStatsResult::new()
+  // E2: batch mode — cross-FILE pt pendings (caller in file A seeding a
+  // param of a fn defined in file B) merge into the carrier and the
+  // worklist fixpoint runs ONCE after the whole module scan
+  stats.pt_carrier = Some({ slices: [], pendings: [], })
   // T1a-2: consume the unified ProgramWorld. Its loading pipeline
   // (module walk -> symbols -> deps -> .mbti -> lib models) reproduces
   // the previous phases 1-1.7 exactly; Phase 2 now reads the SAME world
@@ -2710,9 +2984,11 @@ pub fn run_ir_stats(
         world.symbols,
         stats,
         pkg_alias=aliases,
+        pt_deferred=true,
       )
     }
   }
+  pt_solve_batched(stats)
   stats.alias_unresolved = world.symbols.alias_unresolved
   stats
 }
@@ -3074,6 +3350,7 @@ pub(all) struct CallGraph {
   candidate_sites : Int // sites expanded into candidate sets (dispatch)
   unresolved_sites : Int // sites with no target at all
   pt_resolved_sites : Int // T4c-2: dispatch sites REFINED by receiver pts
+  pt_not_converged : Bool // E2: worklist budget exhausted (disclosed)
 }
 
 ///|
@@ -3129,6 +3406,8 @@ pub fn run_call_graph(
   })
   // call sites -> edges — SAME world facts as run_ir_stats (single source)
   let stats = IRStatsResult::new()
+  // E2: batch mode — same cross-file carrier as run_ir_stats
+  stats.pt_carrier = Some({ slices: [], pendings: [], })
   for pkgf in world.packages {
     let key = canonical_dir(pkgf.dir)
     let aliases = match world.aliases.get(key) {
@@ -3145,9 +3424,11 @@ pub fn run_call_graph(
         symbols,
         stats,
         pkg_alias=aliases,
+        pt_deferred=true,
       )
     }
   }
+  pt_solve_batched(stats)
   let edges : Array[String] = []
   let dispatch_edges : Array[String] = []
   let unresolved : Array[String] = []
@@ -3265,6 +3546,18 @@ pub fn run_call_graph(
       } else {
         unresolved_sites += 1
       }
+    } else if site.kind == "receiver" && site.recv_pt.length() > 0 {
+      // E2: static type was lost (cascade) but the worklist recovered the
+      // receiver's pointee TYPES — classify by that non-empty target set
+      // (R7-consistent: resolved-set-first classification)
+      let mname = last_segment(clean_target)
+      if resolve_dispatch(mname, site.caller, site.recv_pt) {
+        candidate_sites += 1
+        pt_resolved_sites += 1
+      } else {
+        unresolved_sites += 1
+        unresolved.push(site.caller + " -> ?" + mname + " (no-impls)")
+      }
     } else {
       unresolved_sites += 1
       unresolved.push(site.caller + " -> ?")
@@ -3278,6 +3571,7 @@ pub fn run_call_graph(
     candidate_sites,
     unresolved_sites,
     pt_resolved_sites,
+    pt_not_converged: stats.pt_not_converged,
   }
 }
 

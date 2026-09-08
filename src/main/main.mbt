@@ -1256,6 +1256,7 @@ fn cmd_ir_stats(matches : @argparse.Matches) -> Unit {
     stats.receiver_dispatch.to_string() +
     "  pt-resolved " +
     stats.pt_resolved_dispatch().to_string() +
+    (if stats.pt_not_converged { "  [pt-not-converged]" } else { "" }) +
     "  unknown " +
     stats.receiver_unknown.to_string(),
   )
@@ -1483,6 +1484,7 @@ fn cmd_call_graph(matches : @argparse.Matches) -> Unit {
   println(
     "pt-resolved dispatch: " +
     cg.pt_resolved_sites.to_string() +
+    (if cg.pt_not_converged { "  [pt-not-converged]" } else { "" }) +
     "  (receiver points-to types narrowed the target set)",
   )
   // T0.2: candidate-edge sets are reported separately from bound edges;

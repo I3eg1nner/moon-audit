@@ -271,7 +271,7 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       **所有带 pts 的 receiver 位点**（含具体类型如 `Map([])` 后直接 `.set` 的
       场景）；call-graph 的 pt_resolved_sites 仅统计 **dyn 分派位点**。三目标
       实测两者均 0，无解读分歧，但跨命令对比时须按此口径分别解读
-- [~] T4.4 动态发现目标（D2b 2026-09-07: 过程间 pt 约束经 FnSig 参数对齐 + ret 摘要回填 + ≤2 轮反馈迭代; **真实语料实测（supervisor 代跑, 口径A=ir-stats 全 receiver 位点 / 口径B=call-graph dyn 分派位点）**: mocket **口径A=1 口径B=0**, petgraph 0/0, 自举 0/0——0→1 反证达成但覆盖极薄: 语料 dyn 接收者多为参数（无本函数分配）, 反馈链需 factory→ret→dispatch 形态, mocket 仅 1 处命中; **诚实结论: 闭环机制成立, 语料覆盖是下一步深化项而非骨架缺失**; 测试锚点 t4d2_*×3）
+- [~] T4.4 动态发现目标（**E2a 2026-09-08: 三缺口修复 + 单调 worklist + 跨文件 carrier 后真实语料实测**: mocket **口径A=137 口径B=3**（基线 1/0）, petgraph **100/0**（0/0）, 自举 **966/0**（0/0）——批模式 carrier 合并跨文件 slices/pendings（此前 per-file clear 丢弃跨文件反馈）+ 三缺口（DotApply 具体主分支 recv_var、Array 字面量 elem store 含构造器元素 `C::new()`、闭包 let 绑定 cap 槽位）+ 单调 worklist（预算=约束数×2, 超限披露 pt-not-converged, 实测三目标均收敛）; **口径B 3 位点=分派集合被接收者指向集实际收窄**; D2b 时代数字（mocket 1/0）已被本行取代; 测试 e2_*×7 + 既有 304 零回归, FP 0/0/0, crescent 5 逐行稳定）
       trait/泛型实例/用户回调参与联动
 - [~] T4.5 证据来源：数据流事实记录产生位置/调用关系/模型依据，支持跨函数诊断路径
       （薄切：dump-analyses 每节 provenance——fn @ file / file:line+rule+fingerprint /
