@@ -320,7 +320,7 @@ pub fn executor_unconfirmed(
 }
 
 ///|
-fn cfg_hybrid_classify(
+pub fn cfg_hybrid_classify(
   fn_name : String,
   body : @syntax.Expr,
   temp_facts : Map[Int, Taint],
@@ -395,4 +395,55 @@ pub fn cfg_exec_scope_suffix() -> String {
   "(measured, E1b: " +
   mode +
   ")"
+}
+
+// G1: structural unreachability analysis — returns the line numbers of
+// SinkStmts that live in CFG blocks with NO path from the entry block.
+// This is a purely structural property (graph reachability), independent
+// of taint semantics: it identifies dead-code sinks the AST walk would
+// conservatively report.
+
+///|
+pub fn cfg_unreachable_sink_lines(
+  fn_name : String,
+  body : @syntax.Expr,
+  rules : TaintRuleset,
+) -> Array[Int] {
+  let ir = build_block_ir(fn_name, body, rules~)
+  let n = ir.blocks.length()
+  if n == 0 {
+    return []
+  }
+  // BFS from entry to compute reachable set
+  let reachable : Array[Bool] = []
+  for _ in 0..<n {
+    reachable.push(false)
+  }
+  let queue : Array[Int] = [ir.entry]
+  reachable[ir.entry] = true
+  while queue.length() > 0 {
+    let b = match queue.pop() {
+      Some(x) => x
+      None => break
+    }
+    for succ in ir.blocks[b].succs {
+      if !reachable[succ] {
+        reachable[succ] = true
+        queue.push(succ)
+      }
+    }
+  }
+  // collect SinkStmt lines in unreachable blocks
+  let lines : Array[Int] = []
+  for i in 0..<n {
+    if !reachable[i] {
+      for s in ir.blocks[i].stmts {
+        match s {
+          SinkStmt(_, _, line) => if !lines.contains(line) { lines.push(line) }
+          _ => ()
+        }
+      }
+    }
+  }
+  lines
 }

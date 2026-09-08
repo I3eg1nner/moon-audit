@@ -934,6 +934,12 @@ pub fn run_flow_taint_func(
       _ => ()
     }
   }
+  // G1: true authority via two independent mechanisms:
+  // 1) Structural: findings from UNREACHABLE CFG blocks are eliminated
+  //    (dead-code sink refutation — purely graph reachability)
+  // 2) Comparison: cfg_hybrid_classify runs for counter disclosure
+  //    (cfg-executed/fallback/divergent feed analysis-scope);
+  //    --cfg-verify mode gates on unconfirmed candidates
   ignore(
     cfg_hybrid_classify(
       d1_name,
@@ -943,6 +949,23 @@ pub fn run_flow_taint_func(
       ctx.taint_rules,
     ),
   )
+  let unreachable_lines = cfg_unreachable_sink_lines(
+    d1_name,
+    body,
+    ctx.taint_rules,
+  )
+  if !cfg_verify_mode() && unreachable_lines.length() > 0 {
+    let kept : Array[Finding] = []
+    for f in ctx.findings {
+      if !unreachable_lines.contains(f.line) {
+        kept.push(f)
+      }
+    }
+    ctx.findings.clear()
+    for f in kept {
+      ctx.findings.push(f)
+    }
+  }
 }
 
 ///|

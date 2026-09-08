@@ -444,3 +444,10 @@ F2: T7.2 进程内函数级增量（缓存 key=qual-name+fingerprint; SCC 失效
 F3: T8.2 --instrument-calls 动态真值 JSON + 设计注记（unobserved != FP）— 4563516
 F4: 语料 commit pin 模式 + COMPATIBILITY.md（分析器×目标×OS 矩阵）— 4563516
 全部: 323/323, CI 三平台绿, findings 等价, FP 0/0/0, crescent 5 稳定
+
+## G1 True CFG Authority（2026-09-08）
+- 结构性不可达消除: cfg_unreachable_sink_lines 从 block-reachability(BFS from entry) 收集不可达块中的 SinkStmt 行号, 权威模式从 findings 中 DROP
+- 语义边界: 仅结构性不可达才消除（dead-code sink）——builder 覆盖缺口(可执行但未 fire)不消除（保守原则: 分析器不完整性不得删真实告警）
+- 修复 Raise seal bug: Raise 之前 seal() 导致 Try-catch 的 catch 块从 unreachable post-seal 块链接, catch 中的 sink 被误消除——改为不 seal, 让 Try builder 正确链接
+- cfg_hybrid_classify 保留用于计数披露（cfg-executed/fallback/divergent）; findings 决策 = unreachable_lines
+- 测试: G1_unreachable_path_sink_eliminated (post-return dead code 消除) + G1_reachable_sink_not_eliminated (负对照); 325/325

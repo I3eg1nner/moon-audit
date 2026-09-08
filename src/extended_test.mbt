@@ -1109,3 +1109,28 @@ test "d2c_pipeline_report_empty_findings" {
   let report = flow_engine_taint_report([])
   inspect(report.contains("No taint flows detected."), content="true")
 }
+
+///|
+test "G1_unreachable_path_sink_eliminated_by_cfg" {
+  // A sink in a block the CFG proves unreachable (after return) must
+  // NOT produce a finding in authority mode. The AST walk would
+  // conservatively report it (it doesn't model post-return dead code);
+  // the CFG's structural reachability eliminates it.
+  let source = "pub fn go(resp : Response, val : String) -> Unit { return; resp.set_header(\"X\", val) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  // The unreachable set_header is dead code — CFG authority eliminates it
+  inspect(findings.length(), content="0")
+}
+
+///|
+test "G1_reachable_sink_not_eliminated" {
+  // Negative control: a reachable sink must still fire (the elimination
+  // mechanism must not over-drop)
+  let source = "pub fn go(resp : Response, val : String) -> Unit { resp.set_header(\"X\", val) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", source, findings, Error)
+  inspect(findings.length(), content="1")
+}

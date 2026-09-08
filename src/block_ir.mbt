@@ -284,7 +284,9 @@ fn lower_one(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
       ctx.blocks[ctx.cur].stmts.push(RaiseStmt(None))
       ir_link(ctx.cur, 2, ctx.blocks)
       ctx.terminated = true
-      ctx.seal()
+      // G1: DO NOT seal — the Try builder needs to link this block to
+      // the catch handler; sealing makes the block unreachable and the
+      // catch-block sinks get incorrectly eliminated
     }
     Break(arg~, ..) => {
       match arg {
