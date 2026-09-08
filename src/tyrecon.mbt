@@ -2958,16 +2958,22 @@ pub fn run_ir_stats(
   config : Config,
   conservative_alias? : Bool = false,
 ) -> IRStatsResult {
+  // E3: thin compatibility shell (single world build here)
+  let world = load_program_world(root, config, conservative_alias~)
+  run_ir_stats_with_world(world)
+}
+
+///|
+/// E3: world-parameterized entry (ir-stats / --live-vars consume the SAME
+/// pre-built world; alias policy applied at load time; config was only
+/// consumed by the load, which now belongs to the caller).
+pub fn run_ir_stats_with_world(world : ProgramWorld) -> IRStatsResult {
   let stats = IRStatsResult::new()
   // E2: batch mode — cross-FILE pt pendings (caller in file A seeding a
   // param of a fn defined in file B) merge into the carrier and the
   // worklist fixpoint runs ONCE after the whole module scan
   stats.pt_carrier = Some({ slices: [], pendings: [], })
-  // T1a-2: consume the unified ProgramWorld. Its loading pipeline
-  // (module walk -> symbols -> deps -> .mbti -> lib models) reproduces
-  // the previous phases 1-1.7 exactly; Phase 2 now reads the SAME world
-  // facts (packages / symbols / aliases) instead of re-walking.
-  let world = load_program_world(root, config, conservative_alias~)
+  // E3: world arrives pre-built (alias policy already applied)
   for pkgf in world.packages {
     let key = canonical_dir(pkgf.dir)
     let aliases = match world.aliases.get(key) {
@@ -3376,11 +3382,15 @@ pub fn run_call_graph(
   config : Config,
   conservative_alias? : Bool = false,
 ) -> CallGraph {
-  // T1a-3: consume the SAME ProgramWorld as run_ir_stats / scan_project.
-  // This also fixes a parity gap: the private pipeline below did not apply
-  // lib models (mongoose fn_types/callbacks), so lib-model return types now
-  // feed call-graph resolution identically to ir-stats.
+  // E3: thin compatibility shell (single world build here)
   let world = load_program_world(root, config, conservative_alias~)
+  run_call_graph_with_world(world)
+}
+
+///|
+/// E3: world-parameterized entry. Alias policy is already applied to the
+/// world's symbols at load time; no internal reload.
+pub fn run_call_graph_with_world(world : ProgramWorld) -> CallGraph {
   let symbols = world.symbols
   // devirtualization index keyed by TRAIT IDENTITY ("Trait::method" ->
   // self types); impl_methods values carry the trait path. A method-name-only

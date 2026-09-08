@@ -4,11 +4,10 @@
 // schedules them in topological order, memoizes results, and exposes one
 // result map — CLIs request analyses instead of calling engines directly.
 //
-// Thin-slice boundary (documented, widened in T6.2 full scope): the
-// adapters reuse the existing whole-project entrypoints unchanged
-// (scan_project / run_call_graph / per-trace helpers), so each adapter may
-// re-walk the project through load_program_world — the single fact source
-// stays load_program_world; no engine internals are duplicated here.
+// E3 single-world: adapters consume the ONE ProgramWorld passed to
+// run_all via the world-parameterized entrypoints (scan_project_with_world
+// / run_call_graph_with_world); no adapter reloads. world_loads counter is
+// the audit hook (e3_* tests assert run_all holds it at one build).
 
 ///|
 pub(all) enum AnalysisId {
@@ -210,16 +209,20 @@ pub fn default_registry(conservative_alias? : Bool = false) -> AnalysisRegistry 
     id: TaintFlow,
     deps: [],
     run: fn(w) {
-      // adapter reuses the whole-project entrypoint unchanged (scan
-      // reloads its own ProgramWorld internally with with_symbols=false)
-      TaintFlowR(scan_project(w.root, w.config))
+      // E3 single-world: consume the caller's world; no internal reload
+      // (world_loads counter guards this — see e3_single_world tests)
+      TaintFlowR(scan_project_with_world(w, w.config))
     },
   })
   reg.register({
     id: CallGraph,
     deps: [],
     run: fn(w) {
-      CallGraphR(run_call_graph(w.root, w.config, conservative_alias~))
+      // E3 single-world: the world's symbols already carry the alias
+      // policy (callers build world and registry with the same flag);
+      // conservative_alias param retained for API compat only
+      ignore(conservative_alias)
+      CallGraphR(run_call_graph_with_world(w))
     },
   })
   reg.register({

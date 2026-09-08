@@ -48,6 +48,20 @@ pub(all) struct ProgramWorld {
 }
 
 ///|
+
+// E3 single-world plumbing: observable load counter. load_program_world
+// increments it; tests/audits assert how many times a pipeline actually
+// built a world (registry run_all must hold it at ONE per invocation).
+
+///|
+pub(all) struct WorldLoadCounter {
+  mut count : Int
+}
+
+///|
+pub let world_loads : WorldLoadCounter = { count: 0, }
+
+///|
 pub fn load_program_world(
   root : String,
   config : Config,
@@ -57,6 +71,8 @@ pub fn load_program_world(
   // T1.2 alias policy lands on the shared symbol table; PkgSymbols::new()
   // keeps conservative=true so direct unit-test constructors are unchanged
 
+  // E3: observable load count (see world_loads)
+  world_loads.count += 1
   // T7.4: stage stamps into the global record (instrumentation only)
   last_world_timings.reset()
   // 1. module package walk — the file-fact source for every CLI

@@ -108,3 +108,50 @@ test "t6_registry_unknown_id_errors" {
     Ok(_) => inspect("should have errored", content="errored")
   }
 }
+
+// ── E3 single-world plumbing ─────────────────────────────────────────────
+
+///|
+test "e3_run_all_builds_world_once" {
+  let root = make_t6_fixture()
+  world_loads.count = 0
+  let world = load_program_world(root, Config::default())
+  let reg = default_registry()
+  let requested : Array[AnalysisId] = [
+    TaintFlow,
+    CallGraph,
+    HIRTrace,
+    PointsTo,
+    LiveVars,
+  ]
+  // count==1 here: the ONE deliberate build; run_all must add ZERO more
+  let results = match reg.run_all(requested, world) {
+    Ok(r) => r
+    Err(e) => {
+      inspect(e, content="")
+      return
+    }
+  }
+  // all five analyses ran
+  inspect(results.contains(TaintFlow), content="true")
+  inspect(results.contains(CallGraph), content="true")
+  inspect(results.contains(HIRTrace), content="true")
+  inspect(results.contains(PointsTo), content="true")
+  inspect(results.contains(LiveVars), content="true")
+  // THE E3 invariant: exactly ONE world build served the whole pipeline
+  // (previously TaintFlow and CallGraph each reloaded internally: 3 total)
+  inspect(world_loads.count, content="1")
+}
+
+///|
+test "e3_shells_still_build_their_own_world" {
+  // compatibility shells keep their load (CLI callers rely on them)
+  let root = make_t6_fixture()
+  world_loads.count = 0
+  let _ = scan_project(root, Config::default())
+  inspect(world_loads.count, content="1")
+  let _ = run_call_graph(root, Config::default())
+  inspect(world_loads.count, content="2")
+  let _ = run_ir_stats(root, Config::default())
+  inspect(world_loads.count, content="3")
+}

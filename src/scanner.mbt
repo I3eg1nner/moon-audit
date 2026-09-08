@@ -1,10 +1,27 @@
 ///|
 pub fn scan_project(root : String, config : Config) -> ScanResult {
+  // E3: thin compatibility shell — the single world build happens here;
+  // registry callers pass an already-built world via scan_project_with_world
+  let world = load_program_world(root, config, with_symbols=false)
+  scan_project_with_world(world, config)
+}
+
+///|
+/// E3: world-parameterized scan entry. The registry adapter and any
+/// multi-analysis pipeline pass ONE ProgramWorld in; no internal reload.
+/// (The world may carry symbols — scan ignores them; behavior parity is
+/// guarded by the dual-binary acceptance.)
+pub fn scan_project_with_world(
+  world : ProgramWorld,
+  config : Config,
+) -> ScanResult {
   cfg_exec_reset() // D1b hybrid counters: per-scan
 
   // T3.3: loop-fixpoint budget is per-project (scope disclosure)
   loop_budget.exhausted = 0
   loop_budget.last_iters = 0
+
+  let root = world.root
 
   let findings : Array[Finding] = []
   let errors : Array[String] = []
@@ -22,10 +39,7 @@ pub fn scan_project(root : String, config : Config) -> ScanResult {
       changed_set[f] = true
     }
   }
-  // T1a-3: scan shares the unified ProgramWorld builder with ir-stats and
-  // call-graph — file facts come from the SAME single walk (symbols skipped:
-  // rule summaries are flow-engine based and do not consume PkgSymbols).
-  let world = load_program_world(root, config, with_symbols=false)
+  // E3: world arrives pre-built (symbols may be present; unused here).
   // T4.2 pre-pass: SCC-ordered iterative summary collection (replaces the
   // fixed two-pass). Collection CONSUMES callee summaries (ret_from +
   // param_sinks transitivity), so order matters: Tarjan SCC emits

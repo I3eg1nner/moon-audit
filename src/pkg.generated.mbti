@@ -286,6 +286,8 @@ pub fn rule_id_str(RuleId) -> String
 
 pub fn run_call_graph(String, Config, conservative_alias? : Bool) -> CallGraph
 
+pub fn run_call_graph_with_world(ProgramWorld) -> CallGraph
+
 pub fn run_cross_func_taint(@list.List[@syntax.Impl], String, String, Array[Finding], InterProceduralContext, ImportContext) -> Unit
 
 pub fn run_cwe022(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
@@ -324,11 +326,15 @@ pub fn run_flow_taint_trace(@list.List[@syntax.Parameter]?, @syntax.Expr, String
 
 pub fn run_ir_stats(String, Config, conservative_alias? : Bool) -> IRStatsResult
 
+pub fn run_ir_stats_with_world(ProgramWorld) -> IRStatsResult
+
 pub fn run_taint_analysis(@list.List[@syntax.Impl], String, String, ImportContext) -> TaintState
 
 pub fn scan_package_calls(Array[@syntax.Impl], String, PkgSymbols, IRStatsResult, pkg_alias? : Map[String, String], pt_deferred? : Bool) -> Unit
 
 pub fn scan_project(String, Config) -> ScanResult
+
+pub fn scan_project_with_world(ProgramWorld, Config) -> ScanResult
 
 pub fn set_cfg_verify_mode(Bool) -> Unit
 
@@ -361,6 +367,8 @@ pub fn type_to_ir(@syntax.Type, PkgSymbols) -> IRType
 pub fn validate_cfg(BlockIr) -> Array[String]
 
 pub fn world_identity_of(ProgramWorld, String, String) -> String?
+
+pub let world_loads : WorldLoadCounter
 
 pub fn world_pkg_imports(ProgramWorld, String) -> Array[String]
 
@@ -996,6 +1004,10 @@ pub(all) struct WorldIdentities {
   types : Array[String]
   traits : Array[String]
   fields : Array[String]
+}
+
+pub(all) struct WorldLoadCounter {
+  mut count : Int
 }
 
 // Type aliases

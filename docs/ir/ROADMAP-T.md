@@ -317,7 +317,7 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
       （薄切：AnalysisId{TaintFlow,CallGraph,PointsTo,LiveVars} + AnalysisSpec{deps,run}
       + AnalysisRegistry.run_all —— 依赖闭包/拓扑排序/memoize；三测试锁定
       t6_registry_dependency_order / _result_sharing_runs_once / _unknown_id_errors）
-- [~] T6.2 统一结果访问：程序级/函数级结果稳定接口；CLI 不各自维护事实来源
+- [~] T6.2 统一结果访问：程序级/函数级结果稳定接口；CLI 不各自维护事实来源 （E3 2026-09-08: 适配器废除内部 reload——scan_project_with_world / run_call_graph_with_world / run_ir_stats_with_world 三入口, 旧签名薄壳兼容; world_loads 计数器审计 e3_run_all_builds_world_once 断言 run_all 全五分析恰 1 次构建; 双二进制 9/9 SAME ±0）
       （薄切：scan 与 call-graph CLI 已改经 registry 请求（行为零变化，双二进制
       mocket/petgraph scan+cg+ir-stats 6/6 SAME）；薄切边界——适配层复用整项目
       入口点，各适配器可能重复走 load_program_world（单事实源不变），
