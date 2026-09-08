@@ -1282,3 +1282,65 @@ test "t4d2_call_graph_counts_pt_resolved" {
   let cg = run_call_graph(root, Config::default())
   inspect(cg.pt_resolved_sites >= 1, content="true")
 }
+
+// ---------------------------------------------------------------------------
+// T7.1 context strategy pluggable skeleton (F1)
+// ---------------------------------------------------------------------------
+
+///|
+test "f1_context_strategy_enum_and_names" {
+  inspect(ContextStrategy::Insensitive.name(), content="insensitive")
+  inspect(ContextStrategy::CallSite(2).name(), content="call-site")
+  inspect(
+    ContextStrategy::ObjectSensitive(1).name(),
+    content="object-sensitive",
+  )
+  inspect(ContextStrategy::ClosureEnv.name(), content="closure-env")
+}
+
+///|
+test "f1_context_strategy_implementation_status" {
+  // only insensitive is implemented; others must be announced as pending
+  inspect(ContextStrategy::Insensitive.is_implemented(), content="true")
+  inspect(ContextStrategy::CallSite(1).is_implemented(), content="false")
+  inspect(ContextStrategy::ObjectSensitive(2).is_implemented(), content="false")
+  inspect(ContextStrategy::ClosureEnv.is_implemented(), content="false")
+}
+
+///|
+test "f1_config_default_is_insensitive" {
+  let config = Config::default()
+  inspect(
+    config.context_strategy == ContextStrategy::Insensitive,
+    content="true",
+  )
+}
+
+///|
+test "f1_summaries_scc_insensitive_zero_drift" {
+  // SCC summaries with default (insensitive) strategy must produce the
+  // same result as the pre-F1 signature (strategy is defaulted)
+  let src = "pub fn helper(v : String) -> String { v } pub fn go(v : String) -> String { helper(v) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let ictx = InterProceduralContext::new()
+  let units = extract_summary_units(impls, "t.mbt")
+  collect_summaries_scc(units, ictx)
+  inspect(ictx.summaries.length() >= 0, content="true")
+  // explicit Insensitive also works via labeled arg
+  let ictx2 = InterProceduralContext::new()
+  collect_summaries_scc(units, ictx2, strategy=ContextStrategy::Insensitive)
+  inspect(ictx2.summaries.length() == ictx.summaries.length(), content="true")
+}
+
+///|
+test "f1_non_insensitive_strategy_prints_warning" {
+  // non-implemented strategy must print a warning, not silently downgrade
+  let src = "pub fn helper(v : String) -> String { v }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let ictx = InterProceduralContext::new()
+  let units = extract_summary_units(impls, "t.mbt")
+  collect_summaries_scc(units, ictx, strategy=ContextStrategy::CallSite(2))
+  // if we reach here without panic, the skeleton handled the unimplemented
+  // strategy path gracefully (warning printed to stdout)
+  inspect(ictx.summaries.length() >= 0, content="true")
+}

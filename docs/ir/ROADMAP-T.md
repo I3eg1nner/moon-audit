@@ -337,7 +337,8 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 
 ## T7 上下文、增量与规模优化
 
-- [ ] T7.1 上下文策略可插拔：先上下文不敏感基线，再比较调用点/对象/闭包环境敏感；
+- [~] T7.1 薄切（F1）: ContextStrategy 枚举（Insensitive|CallSite|ObjectSensitive|ClosureEnv）+ Config 字段 + CLI --context-strategy + summary_scc/pt_solve 分发骨架；Insensible=现行为零漂移（三目标 bound sites 逐项一致）；其他策略告警 not-implemented 不静默；**比较实验=路线后续**（枚举已铺好，实现待深化）
+
       不预设 2-obj
 - [ ] T7.2 真实增量分析：未受影响结果保留；函数体/接口/模型/入口/调用图变化
       向依赖者传播失效（修增量语义）

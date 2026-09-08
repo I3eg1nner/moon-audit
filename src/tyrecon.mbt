@@ -586,7 +586,10 @@ fn pt_carrier_append(ctx : ScanCtx, stats : IRStatsResult) -> Unit {
 }
 
 ///|
-pub fn pt_solve_batched(stats : IRStatsResult) -> Unit {
+pub fn pt_solve_batched(
+  stats : IRStatsResult,
+  strategy? : ContextStrategy = Insensitive,
+) -> Unit {
   match stats.pt_carrier {
     Some(car) => {
       if car.slices.length() == 0 && car.pendings.length() == 0 {
@@ -611,7 +614,7 @@ pub fn pt_solve_batched(stats : IRStatsResult) -> Unit {
         pending_closure: None,
         pkg_alias: Map([]),
       }
-      pt_solve_all(ctx)
+      pt_solve_all(ctx, strategy~)
     }
     None => ()
   }
@@ -2259,7 +2262,18 @@ fn pt_slice_has_alloc(slice : PTFnSlice, vname : String, site : String) -> Bool 
 //   then fill dispatch recv_pt from the final solutions
 
 ///|
-fn pt_solve_all(ctx : ScanCtx) -> Unit {
+fn pt_solve_all(
+  ctx : ScanCtx,
+  strategy? : ContextStrategy = Insensitive,
+) -> Unit {
+  // T7.1: dispatch skeleton — Insensitive is the current behavior
+  if !strategy.is_implemented() {
+    println(
+      "moon-audit: warning: context strategy '" +
+      strategy.name() +
+      "' is not implemented; using insensitive baseline (no silent downgrade)",
+    )
+  }
   if ctx.pt_fn_slices.length() == 0 {
     return
   }
@@ -2994,7 +3008,7 @@ pub fn run_ir_stats_with_world(world : ProgramWorld) -> IRStatsResult {
       )
     }
   }
-  pt_solve_batched(stats)
+  pt_solve_batched(stats, strategy=world.config.context_strategy)
   stats.alias_unresolved = world.symbols.alias_unresolved
   stats
 }
@@ -3438,7 +3452,7 @@ pub fn run_call_graph_with_world(world : ProgramWorld) -> CallGraph {
       )
     }
   }
-  pt_solve_batched(stats)
+  pt_solve_batched(stats, strategy=world.config.context_strategy)
   let edges : Array[String] = []
   let dispatch_edges : Array[String] = []
   let unresolved : Array[String] = []

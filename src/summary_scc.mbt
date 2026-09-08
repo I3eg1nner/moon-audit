@@ -285,7 +285,17 @@ fn summary_signature(ictx : InterProceduralContext, name : String) -> String {
 pub fn collect_summaries_scc(
   units : Array[SummaryUnit],
   ictx : InterProceduralContext,
+  strategy? : ContextStrategy = Insensitive,
 ) -> Unit {
+  // T7.1: dispatch skeleton — Insensitive is the current behavior; other
+  // strategies are announced but not yet implemented (warn, don't ignore)
+  if !strategy.is_implemented() {
+    println(
+      "moon-audit: warning: context strategy '" +
+      strategy.name() +
+      "' is not implemented; using insensitive baseline (no silent downgrade)",
+    )
+  }
   if units.length() == 0 {
     return
   }

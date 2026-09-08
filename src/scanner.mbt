@@ -70,7 +70,11 @@ pub fn scan_project_with_world(
         }
       }
     }
-    collect_summaries_scc(scc_units, interproc_ctx)
+    collect_summaries_scc(
+      scc_units,
+      interproc_ctx,
+      strategy=config.context_strategy,
+    )
   }
   // Phase 1: Regular rules + collect function summaries
   for pkgf in world.packages {

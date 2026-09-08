@@ -70,6 +70,32 @@ pub(all) struct ImportContext {
 }
 
 ///|
+pub(all) enum ContextStrategy {
+  Insensitive // baseline: current behavior — no context distinction
+  CallSite(Int) // call-site sensitivity with depth k
+  ObjectSensitive(Int) // allocation-site heap context with depth k
+  ClosureEnv // closure-environment sensitivity for higher-order calls
+} derive(Eq, Debug)
+
+///|
+pub fn ContextStrategy::name(self : ContextStrategy) -> String {
+  match self {
+    Insensitive => "insensitive"
+    CallSite(_) => "call-site"
+    ObjectSensitive(_) => "object-sensitive"
+    ClosureEnv => "closure-env"
+  }
+}
+
+///|
+pub fn ContextStrategy::is_implemented(self : ContextStrategy) -> Bool {
+  match self {
+    Insensitive => true
+    _ => false // strategies announced but not yet wired (no silent fallback)
+  }
+}
+
+///|
 pub(all) struct Config {
   rules : Map[String, RuleConfig]
   exclude : Array[String]
@@ -78,6 +104,7 @@ pub(all) struct Config {
   min_severity : Severity
   changed_files : Array[String]
   analysis_mode : String // T7.5: "quick" (default) | "deep" (force interproc)
+  context_strategy : ContextStrategy // T7.1: pluggable context sensitivity
 }
 
 ///|
@@ -116,6 +143,7 @@ pub fn Config::default() -> Config {
     min_severity: Warning,
     changed_files: [],
     analysis_mode: "quick",
+    context_strategy: Insensitive,
   }
 }
 

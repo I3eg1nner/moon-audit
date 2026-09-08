@@ -74,7 +74,7 @@ pub fn collect_mbti_trait_method(@mbti_ast.TraitMethodSig, String, PkgSymbols) -
 
 pub fn collect_mutate_receivers(@syntax.Expr, Array[String]) -> Unit
 
-pub fn collect_summaries_scc(Array[SummaryUnit], InterProceduralContext) -> Unit
+pub fn collect_summaries_scc(Array[SummaryUnit], InterProceduralContext, strategy? : ContextStrategy) -> Unit
 
 pub fn collect_symbols(Array[@syntax.Impl], PkgSymbols) -> Unit
 
@@ -274,7 +274,7 @@ pub fn project_trait_params(FnSig) -> Array[IRType?]
 
 pub fn pt_node_show(String) -> String
 
-pub fn pt_solve_batched(IRStatsResult) -> Unit
+pub fn pt_solve_batched(IRStatsResult, strategy? : ContextStrategy) -> Unit
 
 pub fn resolve_extends(TaintRuleset, String, Array[String], Array[String]) -> Unit
 
@@ -487,10 +487,20 @@ pub(all) struct Config {
   min_severity : Severity
   changed_files : Array[String]
   analysis_mode : String
+  context_strategy : ContextStrategy
 }
 pub fn Config::default() -> Self
 pub fn Config::get_severity(Self, String, Severity) -> Severity
 pub fn Config::is_enabled(Self, String) -> Bool
+
+pub(all) enum ContextStrategy {
+  Insensitive
+  CallSite(Int)
+  ObjectSensitive(Int)
+  ClosureEnv
+} derive(Eq, @debug.Debug)
+pub fn ContextStrategy::is_implemented(Self) -> Bool
+pub fn ContextStrategy::name(Self) -> String
 
 pub(all) struct FileStat {
   file : String

@@ -66,6 +66,12 @@ fn main {
         default_values=["quick"],
       ),
       @argparse.OptionArg(
+        "context-strategy",
+        long="context-strategy",
+        about="T7.1: insensitive (default) | call-site-N | object-N | closure-env (non-insensitive warns not-implemented)",
+        default_values=["insensitive"],
+      ),
+      @argparse.OptionArg(
         "severity",
         long="severity",
         about="Minimum severity: error, warning, info",
@@ -501,6 +507,20 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
       "moon-audit: warning: unknown --mode '" +
       mode +
       "', using quick (no silent downgrade)",
+    )
+  }
+  // T7.1: context strategy pluggable skeleton
+  let cs_raw = match matches.values.get("context-strategy") {
+    Some(arr) => if arr.length() > 0 { arr[0] } else { "insensitive" }
+    None => "insensitive"
+  }
+  let cs = parse_context_strategy(cs_raw)
+  config = { ..config, context_strategy: cs, }
+  if !cs.is_implemented() {
+    println(
+      "moon-audit: warning: --context-strategy '" +
+      cs_raw +
+      "' is not implemented; running insensitive baseline (no silent downgrade)",
     )
   }
   // T7.4: timing capture
@@ -1565,4 +1585,17 @@ fn cmd_dump_analyses(matches : @argparse.Matches) -> Unit {
   println(
     "done — each section carries provenance (fn @ file / file:line / iterations)",
   )
+}
+
+///|
+fn parse_context_strategy(raw : String) -> @audit.ContextStrategy {
+  match raw {
+    "insensitive" => @audit.ContextStrategy::Insensitive
+    "call-site-1" | "call-site" => @audit.ContextStrategy::CallSite(1)
+    "call-site-2" => @audit.ContextStrategy::CallSite(2)
+    "object-1" | "object" => @audit.ContextStrategy::ObjectSensitive(1)
+    "object-2" => @audit.ContextStrategy::ObjectSensitive(2)
+    "closure-env" => @audit.ContextStrategy::ClosureEnv
+    _ => @audit.ContextStrategy::Insensitive
+  }
 }
