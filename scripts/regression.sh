@@ -1,3 +1,15 @@
+#!/bin/bash
+# --record-commit: record corpus HEAD commits
+if [ "$1" = "--record-commit" ]; then
+  BF="$(dirname "$0")/../docs/ir/regression-baseline.md"
+  echo "" >> "$BF"
+  echo "## Corpus pins (recorded $(date -u +%Y-%m-%dT%H:%M:%SZ))" >> "$BF"
+  for d in /data/my/corpus/*/; do
+    n=$(basename "$d"); s=$(cd "$d" && git rev-parse --short HEAD 2>/dev/null || echo no-git)
+    echo "  $n: $s" >> "$BF"
+  done
+  echo "pins recorded"; exit 0
+fi
 #!/usr/bin/env bash
 # Corpus regression harness for moon-audit.
 # Runs (a) security scan (JSON), (b) ir-stats, (c) call-graph on every

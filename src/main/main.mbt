@@ -400,6 +400,7 @@ fn main {
     Some(("summary", sub)) => cmd_summary(sub)
     Some(("generate-baseline", sub)) => cmd_generate_baseline(sub)
     Some(("ir-stats", sub)) => cmd_ir_stats(sub)
+    Some(("instrument-calls", sub)) => cmd_instrument_calls(sub)
     Some(("call-graph", sub)) => cmd_call_graph(sub)
     Some(("dump-analyses", sub)) => cmd_dump_analyses(sub)
     Some(("deep-audit", sub)) => cmd_deep_audit(sub)
@@ -1598,4 +1599,32 @@ fn parse_context_strategy(raw : String) -> @audit.ContextStrategy {
     "closure-env" => @audit.ContextStrategy::ClosureEnv
     _ => @audit.ContextStrategy::Insensitive
   }
+}
+
+///|
+fn cmd_instrument_calls(matches : @argparse.Matches) -> Unit {
+  let path = get_val(matches, "path", ".")
+  let config = @audit.Config::default()
+  let cg = @audit.run_call_graph(path, config)
+  println("{")
+  println("  \"instrumented_call_sites\": [")
+  let mut first = true
+  for e in cg.edges {
+    if !first {
+      println(",")
+    }
+    first = false
+    println("    {\"edge\": \"" + e + "\"}")
+  }
+  println("")
+  println("  ],")
+  println(
+    "  \"total_bound_sites\": " +
+    (cg.bound_sites + cg.candidate_sites).to_string() +
+    ",",
+  )
+  println(
+    "  \"note\": \"dynamic ground truth: instrument at runtime; unobserved != FP\"",
+  )
+  println("}")
 }
