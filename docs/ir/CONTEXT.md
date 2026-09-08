@@ -874,3 +874,9 @@ t51 测试路径拼接留待下次触碰。
 - 323/323 × 4 targets; E 批成果保持（divergent=0, widening, pt 137/3/100/966）
 - 自主迭代战役至此: 22+ 工作流, 90+ 子任务, 18+ 评审门全 PASS, ~110 commit, 测试 92→323
 - 剩余深化项全部在 ROADMAP-T 留余清单（CallSite/ObjectSensitive 上下文、跨进程增量、动态真值实测、T5.2/T5.4 库模型深化）
+
+## 2026-09-08 · G 批（第八轮评审整改）
+- G1 (d1fcfc8): 真 CFG 权威——独立求解器产 findings, AST temp_facts 依赖移除, 不可达路径消除
+- G2 (8e271c7): --diagnose-fallback 每函数诊断
+- G3 (this): 文档准确性——F 批薄切限定, 数字刷新 (325 tests, fallback 85.4%), README/ACCEPTANCE 对齐
+- G4: pt 口径 B 深化（dispatch receiver propagation）——工作流执行中
