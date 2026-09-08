@@ -37,6 +37,12 @@ fn main {
         long="cfg-verify",
         about="E1b strict mode: fail the scan (exit 2) when any walk finding is NOT confirmed by the CFG executor (gates builder regressions)",
       ),
+      @argparse.FlagArg(
+        "diagnose-fallback",
+        short='F',
+        long="diagnose-fallback",
+        about="G2: list per-function CFG fallback reasons (file:fn — validation failure) then exit",
+      ),
     ],
     options=[
       @argparse.OptionArg(
@@ -565,6 +571,23 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
   let path_ok = @fs.is_dir(path) catch { _ => false }
   if !path_ok {
     println("moon-audit: error: path not found or not a directory: " + path)
+    return
+  }
+  // G2: per-function CFG fallback diagnosis
+  let diag_fb = match matches.flags.get("diagnose-fallback") {
+    Some(v) => v
+    None => false
+  }
+  if diag_fb {
+    let reasons = @audit.get_fallback_reasons(path, config)
+    println(
+      "== CFG fallback diagnosis (" +
+      reasons.length().to_string() +
+      " functions) ==",
+    )
+    for r in reasons {
+      println("  " + r)
+    }
     return
   }
   let machine_output = format == "json" || format == "sarif"

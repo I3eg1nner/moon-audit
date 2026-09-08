@@ -3911,3 +3911,56 @@ pub fn IRStatsResult::pt_resolved_dispatch(self : IRStatsResult) -> Int {
   }
   n
 }
+
+// ── G2: per-function CFG fallback diagnosis ──────────────────────────────
+
+///|
+pub fn get_fallback_reasons(root : String, config : Config) -> Array[String] {
+  let symbols = PkgSymbols::new()
+  walk_packages(root, config, fn(_pkg_dir, mbt_files) {
+    for file in mbt_files {
+      let source = @fs.read_file_to_string(file) catch { _ => return }
+      let (impls, _) = @parser.parse_string(source, name=file)
+      collect_symbols(impls.to_array(), symbols)
+    }
+  })
+  let result : Array[String] = []
+  walk_packages(root, config, fn(_pkg_dir, mbt_files) {
+    for file in mbt_files {
+      let source = @fs.read_file_to_string(file) catch { _ => return }
+      let (impls, _) = @parser.parse_string(source, name=file)
+      for item in impls {
+        match item {
+          TopFuncDef(fun_decl~, decl_body~, ..) => {
+            let fname = fun_decl.name.name
+            match decl_body {
+              DeclBody(expr=body) => {
+                let ir = build_block_ir(fname, body)
+                let errs = validate_cfg(ir)
+                if errs.length() > 0 {
+                  result.push(file + ":" + fname + " — " + errs[0])
+                }
+              }
+              _ => ()
+            }
+          }
+          TopImpl(method_name~, body~, ..) => {
+            let fname = method_name.name
+            match body {
+              DeclBody(expr=body) => {
+                let ir = build_block_ir(fname, body)
+                let errs = validate_cfg(ir)
+                if errs.length() > 0 {
+                  result.push(file + ":" + fname + " — " + errs[0])
+                }
+              }
+              _ => ()
+            }
+          }
+          _ => ()
+        }
+      }
+    }
+  })
+  result
+}
