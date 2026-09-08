@@ -23,6 +23,12 @@ pub fn scan_project_with_world(
 
   let root = world.root
 
+  // F2 (T7.2): per-function cache — in-process; symbols fingerprint is
+  // the generation marker (value-sensitive, T7.3). Cache is scoped to
+  // this scan invocation.
+  let fn_cache = FnCache::new()
+  let world_fp = symbols_fingerprint(world.symbols)
+
   let findings : Array[Finding] = []
   let errors : Array[String] = []
   let mut files_scanned = 0
@@ -106,6 +112,7 @@ pub fn scan_project_with_world(
         files_scanned += 1
         run_all_rules(
           impls, file, source, findings, imports, config, interproc_ctx, taint_rules,
+          fn_cache, world_fp,
         )
       }
     }
@@ -229,6 +236,8 @@ fn run_all_rules(
   config : Config,
   ictx : InterProceduralContext,
   taint_rules : TaintRuleset,
+  f_cache : FnCache,
+  f_fp : String,
 ) -> Unit {
   let cwe116_id = "CWE-116/replace-escaping"
   if config.is_enabled(cwe116_id) {
@@ -343,6 +352,8 @@ fn run_all_rules(
       ictx~,
       rules=taint_rules,
       output_sinks_enabled=config.is_enabled("CWE-116/tainted-output"),
+      cache=f_cache,
+      symbols_fp=f_fp,
     )
   }
   if imports.has_mocket || imports.has_crescent {

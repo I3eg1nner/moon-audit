@@ -132,6 +132,8 @@ pub fn dump_analyses(String, String, Config, conservative_alias? : Bool) -> Unit
 
 pub fn entry_stats_line(ProgramWorld) -> String
 
+pub fn env_terminal_size(Map[String, Taint]) -> Int
+
 pub fn executor_unconfirmed(Array[(String, Int)], Array[(String, Int)]) -> Int
 
 pub fn extend_ruleset_with_model(TaintRuleset, String) -> Bool
@@ -151,6 +153,8 @@ pub fn filter_baseline(Array[Finding], Map[String, Bool]) -> Array[Finding]
 pub fn filter_by_llm_results(Array[LLMAnalysisResult], Double) -> Array[LLMAnalysisResult]
 
 pub fn flow_engine_taint_report(Array[Finding]) -> String
+
+pub fn fn_body_hash(String, String) -> String
 
 pub fn format_baseline_diff(BaselineDiff) -> String
 
@@ -300,7 +304,7 @@ pub fn run_cwe079_template(@list.List[@syntax.Impl], String, String, Array[Findi
 
 pub fn run_cwe094(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
-pub fn run_cwe113(@list.List[@syntax.Impl], String, String, Array[Finding], Severity, ictx? : InterProceduralContext, rules? : TaintRuleset, output_sinks_enabled? : Bool) -> Unit
+pub fn run_cwe113(@list.List[@syntax.Impl], String, String, Array[Finding], Severity, ictx? : InterProceduralContext, rules? : TaintRuleset, output_sinks_enabled? : Bool, cache? : FnCache, symbols_fp? : String) -> Unit
 
 pub fn run_cwe116(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
@@ -522,6 +526,25 @@ pub(all) struct Finding {
   snippet : String
   fingerprint : String
 } derive(@debug.Debug)
+
+pub(all) struct FnCache {
+  entries : Map[String, FnCacheEntry]
+  mut hits : Int
+  mut misses : Int
+}
+pub fn FnCache::invalidate_all(Self) -> Unit
+pub fn FnCache::key(String, String) -> String
+pub fn FnCache::lookup(Self, String, String, String, String) -> Array[Finding]?
+pub fn FnCache::new() -> Self
+pub fn FnCache::size(Self) -> Int
+pub fn FnCache::store(Self, String, String, String, String, Array[Finding], Int) -> Unit
+
+pub(all) struct FnCacheEntry {
+  body_hash : String
+  symbols_fp : String
+  findings : Array[Finding]
+  env_keys : Int
+}
 
 pub(all) struct FnP {
   binder : String

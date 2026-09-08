@@ -340,8 +340,16 @@ MoonBit 的闭包、trait、错误效应、异步、FFI 必须有自己的模型
 - [~] T7.1 薄切（F1）: ContextStrategy 枚举（Insensitive|CallSite|ObjectSensitive|ClosureEnv）+ Config 字段 + CLI --context-strategy + summary_scc/pt_solve 分发骨架；Insensible=现行为零漂移（三目标 bound sites 逐项一致）；其他策略告警 not-implemented 不静默；**比较实验=路线后续**（枚举已铺好，实现待深化）
 
       不预设 2-obj
-- [ ] T7.2 真实增量分析：未受影响结果保留；函数体/接口/模型/入口/调用图变化
-      向依赖者传播失效（修增量语义）
+- [~] T7.2 真实增量（F2 薄切 2026-09-08）: fn 级 in-process 缓存——FnCache 以
+      (fn_name+file, body_hash, symbols_fp) 为 key; cwe113 流引擎 per-fn 结果
+      (findings 贡献切片) 缓存命中即跳过重分析; symbols_fp 变→全失效（值敏感已含
+      T7.3）; body 变→仅该函数 miss; SCC 邻居经 pre-pass 重算（摘要全局单次 SCC
+      求解不受缓存影响——诚实边界: 缓存只跳过 per-fn 规则执行, 不跳过全局摘要）
+      测试 f2_*×6（hit/symbols-invalidates/body-invalidates/hash-stable/
+      stats-zero/scan-twice-e2e）; 323/323 × native; 三目标 FP 0/0/0;
+      crescent 5 逐行稳定; **加速比**: CLI 单次调用为冷启动（每次进程新建缓存）,
+      增益面向 library API 复用与 registry 多分析场景; 跨进程持久化（磁盘序列化）
+      与 fn-body-hash→file-source-hash 精化留余
 - [x] T7.3 薄切（值敏感指纹）：symbols_fingerprint 从仅键名扩为键名+值哈希
       （fn_ret/impl/fields/ctor/trait/arrow/alias 全表入指纹；struct_fields 内层排序归一）；
       analyzer+parser 版本常量入键——gate15 known-gap 关闭（同名换类型必变指纹，t7 单测锁定）。
