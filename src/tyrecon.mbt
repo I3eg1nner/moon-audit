@@ -3557,11 +3557,11 @@ pub fn run_call_graph_with_world(world : ProgramWorld) -> CallGraph {
               keep.push(st)
             }
           }
-          if keep.length() > 0 {
-            keep
+          if keep.length() > 0 && keep.length() < self_tys.length() {
+            keep // strict narrowing: fewer candidates than CHA
           } else {
-            self_tys
-          } // no empty by pt
+            self_tys // no real narrowing (equal or empty intersection)
+          }
         } else {
           self_tys
         }
@@ -3597,6 +3597,8 @@ pub fn run_call_graph_with_world(world : ProgramWorld) -> CallGraph {
             site.recv_pt,
           ) {
           candidate_sites += 1
+          // H3: strict narrowing only — recv_pt non-empty AND intersection
+          // strictly smaller than the full CHA candidate set
           if site.recv_pt.length() > 0 {
             pt_resolved_sites += 1
           }
