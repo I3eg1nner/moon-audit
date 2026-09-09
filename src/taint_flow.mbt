@@ -889,6 +889,11 @@ pub fn run_flow_taint_func(
       }
     None => ()
   }
+  // H1: record finding index range — the unreachable filter must only
+  // affect findings produced by THIS function, not global findings
+  // (P0 fix: line-only matching could delete same-line findings
+  // from other files/functions processed earlier)
+  let findings_start = ctx.findings.length()
   let _ = flow(body, ctx)
   // T2.2: function exit — execute still-pending defers (uncaught-raise
   // path); defers from completed blocks already ran at their block tail
@@ -954,17 +959,34 @@ pub fn run_flow_taint_func(
     body,
     ctx.taint_rules,
   )
+  // H1 P0 fix: (a) scope filter to [findings_start, findings_end) — only
+  // findings produced by THIS function; (b) validate_cfg must pass before
+  // any filter runs — invalid CFG is a fallback and must not affect
+  // findings; (c) matching is (index-in-range) AND (line in unreachable)
+  let findings_end = ctx.findings.length()
   if !cfg_verify_mode() && unreachable_lines.length() > 0 {
-    let kept : Array[Finding] = []
-    for f in ctx.findings {
-      if !unreachable_lines.contains(f.line) {
-        kept.push(f)
+    // build the CFG and validate it — invalid = skip filter entirely
+    let ir = build_block_ir(d1_name, body, rules=ctx.taint_rules)
+    let errs = validate_cfg(ir)
+    if errs.length() == 0 {
+      // filter ONLY within this function's finding range
+      let kept : Array[Finding] = []
+      let mut i = 0
+      for f in ctx.findings {
+        let in_this_fn = i >= findings_start && i < findings_end
+        let is_unreachable = in_this_fn && unreachable_lines.contains(f.line)
+        if !is_unreachable {
+          kept.push(f)
+        }
+        i += 1
+      }
+      ctx.findings.clear()
+      for f in kept {
+        ctx.findings.push(f)
       }
     }
-    ctx.findings.clear()
-    for f in kept {
-      ctx.findings.push(f)
-    }
+    // invalid CFG: skip filter — fallback functions must not affect
+    // findings from any source
   }
 }
 

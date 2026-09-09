@@ -654,11 +654,14 @@ pub fn validate_cfg(ir : BlockIr) -> Array[String] {
     }
   }
   for b in ir.blocks {
-    // exits are exempt: error_exit is legitimately unreachable in
-    // functions that never raise
-    if !seen[b.id] && b.id != ir.normal_exit && b.id != ir.error_exit {
-      errs.push("unreachable block " + b.id.to_string())
-    }
+    // H1: unreachable blocks after a terminator (return/raise/break) are
+    // LEGITIMATE dead code — they should not invalidate the CFG.
+    // Only structural errors (dangling succ, illegal id) are errors.
+    // Exits are also exempt: error_exit is unreachable in no-raise fns.
+    // We no longer push "unreachable block" errors — dead code blocks
+    // are pruned by the builder or ignored by reachability analysis.
+    // (Previous behavior caused ~50 false fallbacks on mocket.)
+    ignore(seen[b.id])
   }
   // 3. exits carry no statements and no successors
   if ir.blocks[ir.normal_exit].stmts.length() > 0 {
