@@ -890,3 +890,10 @@ t51 测试路径拼接留待下次触碰。
   divergent=0; ptB=10; 全部 fmt/check/info 门清; HEAD=origin/main=79ece10
 - unresolved 442 保持——诚实归因: FFI(~41%)/cascade/higher-order 主导, 非 dispatch 缺口
 - 第八轮评审五项建议全部闭环: 真权威✅ fallback 诊断✅ pt 口径B✅ 文档漂移✅ F批降级✅
+
+## 2026-09-08 · H 批（第九轮评审整改——correctness + 指标诚实化）
+- H1 (97853af): P0 修复——unreachable filter 作用域限本函数+validate 门控; 同时含死块剪枝（DCE）→ ast-fallback 50→0, cfg-executed 386/386=100%
+- H3 (bb70d07): pt 严格精化——keep < self_tys 才算 narrowed; 等集/超集回退全 CHA; mocket ptB=10 不变（全部真实缩小）
+- 指标改名: G1→"CFG structural reachability filter"; G4→"trait-param upper-bound propagation"
+- 终验: 327/327 × native, run.sh 12/12, FP 0/0/0, crescent 5, divergent=0, fallback=0, coverage=100%
+- 第九轮评审: P0 修复✅ 死块清理✅ 指标重定义✅ 改名✅
