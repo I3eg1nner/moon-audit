@@ -192,8 +192,22 @@ fn loop_fixpoint_snapshot(
       continue // stale slot of a popped inner scope
     }
     match ctx.name_map.get(slot) {
-      Some(dkey) =>
+      Some(dkey) => {
         snap.push((slot, taint_to_fact(or_clean_taint(ctx.env.get(dkey)))))
+        match ctx.sites.get(dkey) {
+          Some(sites) => {
+            // Reuse set equality for points-to membership. A changed
+            // alias relation must keep the loop solver running even
+            // when the scalar taints and existing field facts are stable.
+            let mut members = SecurityFact::clean()
+            for site in sites {
+              members = members.join(fact_of_tainted_param(site))
+            }
+            snap.push(("p:" + slot, members))
+          }
+          None => ()
+        }
+      }
       None => ()
     }
   }
@@ -393,6 +407,13 @@ fn widen_unstable_facts(
           None => ()
         }
       }
+    } else if k.has_prefix("p:") {
+      // An unfinished alias solve must not leave a falsely clean object.
+      let slot = Show::to_string(k[2:])
+      match ctx.name_map.get(slot) {
+        Some(dkey) => ctx.env[dkey] = Tainted
+        None => ()
+      }
     } else if k.has_prefix("s") && find_last(k, ":") > 1 {
       // scope slot -> its current declaration key
       match ctx.name_map.get(k) {
@@ -423,8 +444,9 @@ priv struct FlowCtx {
   mut record_returns : Array[String]? // P3: params flowing to return value
   mut record_fields : Array[String]? // P3: "r|field|src-param" field writes
   ictx : InterProceduralContext? // P3: summaries consumed at call sites
-  // bounded heap slice (M4-lite): var -> alloc-site id ("file:line")
-  sites : Map[String, String]
+  // bounded heap slice (M4-lite): declaration -> possible alloc-site ids.
+  // Branch joins retain every candidate instead of keeping a stale site.
+  sites : Map[String, Array[String]]
   // alloc-site -> field -> taint. G4: PER-BRANCH fork/join (weak merge at
   // join points via fact-level join); monotone growth keeps joins sound.
   // (Historical note: pre-G4 this map was deliberately shared across
@@ -517,8 +539,8 @@ fn FlowCtx::copy(self : FlowCtx) -> FlowCtx {
   self.env.each(fn(k, v) { env[k] = v })
   let name_map : Map[String, String] = Map([])
   self.name_map.each(fn(k, v) { name_map[k] = v })
-  let sites : Map[String, String] = Map([])
-  self.sites.each(fn(k, v) { sites[k] = v })
+  let sites : Map[String, Array[String]] = Map([])
+  self.sites.each(fn(k, v) { sites[k] = v.copy() })
   let scope_stack : Array[Int] = []
   for id in self.scope_stack {
     scope_stack.push(id)
@@ -643,19 +665,19 @@ fn env_lookup(ctx : FlowCtx, name : String) -> Taint? {
 // binding see the same facts, and branch fork/join isolates them.
 
 ///|
-fn heap_site_of(ctx : FlowCtx, name : String) -> String? {
+fn heap_site_of(ctx : FlowCtx, name : String) -> Array[String]? {
   match sites_get(ctx, name) {
     Some(s) => Some(s)
     None =>
       match scope_lookup_key(ctx, name) {
-        Some(k) => Some("var:" + k)
+        Some(k) => Some(["var:" + k])
         None => None
       }
   }
 }
 
 ///|
-fn sites_get(ctx : FlowCtx, name : String) -> String? {
+fn sites_get(ctx : FlowCtx, name : String) -> Array[String]? {
   match scope_lookup_key(ctx, name) {
     Some(k) => ctx.sites.get(k)
     None => ctx.sites.get(name)
@@ -663,10 +685,10 @@ fn sites_get(ctx : FlowCtx, name : String) -> String? {
 }
 
 ///|
-fn sites_set(ctx : FlowCtx, name : String, site : String) -> Unit {
+fn sites_set(ctx : FlowCtx, name : String, site : Array[String]) -> Unit {
   match scope_lookup_key(ctx, name) {
-    Some(k) => ctx.sites[k] = site
-    None => ctx.sites[name] = site
+    Some(k) => ctx.sites[k] = site.copy()
+    None => ctx.sites[name] = site.copy()
   }
 }
 
@@ -1054,7 +1076,7 @@ priv struct ClosureBinding {
   func : @syntax.Func
   capture_names : Array[String]
   frozen_taints : Map[String, Taint] // value-copy snapshot at CREATION
-  frozen_sites : Map[String, String] // struct objects: shared via heap site
+  frozen_sites : Map[String, Array[String]] // struct objects: shared heap sites
   mut invoked : Bool // one-shot: the first call site wins (parity with
   // the call-graph's lazy rescan semantics)
 }
@@ -1164,7 +1186,7 @@ fn register_closure_binding(
   collect_idents(func.body, idents)
   let caps : Array[String] = []
   let ft : Map[String, Taint] = Map([])
-  let fs : Map[String, String] = Map([])
+  let fs : Map[String, Array[String]] = Map([])
   for n in idents {
     if param_names.contains(n) || caps.contains(n) {
       continue
@@ -1175,7 +1197,7 @@ fn register_closure_binding(
         caps.push(n)
         ft[n] = or_clean(env_lookup(ctx, n))
         match sites_get(ctx, n) {
-          Some(s) => fs[n] = s
+          Some(s) => fs[n] = s.copy()
           None => ()
         }
       }
@@ -1257,11 +1279,11 @@ fn call_closure_binding(
 // site for a binding RHS: fresh literal site (consumed) or alias of a var
 
 ///|
-fn resolve_binding_site(expr : @syntax.Expr, ctx : FlowCtx) -> String? {
+fn resolve_binding_site(expr : @syntax.Expr, ctx : FlowCtx) -> Array[String]? {
   let fresh = ctx.alloc_result
   ctx.alloc_result = None
   match fresh {
-    Some(s) => Some(s)
+    Some(s) => Some([s])
     None =>
       match expr {
         Ident(id~, ..) =>
@@ -1282,7 +1304,7 @@ fn resolve_binding_site(expr : @syntax.Expr, ctx : FlowCtx) -> String? {
 ///|
 fn bind_site_to_pattern(
   pat : @syntax.Pattern,
-  site : String?,
+  site : Array[String]?,
   ctx : FlowCtx,
 ) -> Unit {
   match (pat, site) {
@@ -1298,21 +1320,43 @@ fn bind_site_to_pattern(
 // field taint of a heap object; None = no fact for this site/field
 
 ///|
-fn heap_read(ctx : FlowCtx, site : String, field : String) -> Taint? {
-  match ctx.heap.get(site) {
-    Some(fm) => fm.get(field)
-    None => None
+fn heap_read(ctx : FlowCtx, sites : Array[String], field : String) -> Taint? {
+  let mut result : Taint? = None
+  for site in sites {
+    match ctx.heap.get(site) {
+      Some(fm) =>
+        match fm.get(field) {
+          Some(t) => result = Some(taint_or(or_clean(result), t))
+          None => ()
+        }
+      None => ()
+    }
   }
+  result
 }
 
 ///|
-fn heap_write(ctx : FlowCtx, site : String, field : String, t : Taint) -> Unit {
-  match ctx.heap.get(site) {
-    Some(fm) => fm[field] = t
-    None => {
-      let fm : Map[String, Taint] = Map([])
-      fm[field] = t
-      ctx.heap[site] = fm
+fn heap_write(
+  ctx : FlowCtx,
+  sites : Array[String],
+  field : String,
+  t : Taint,
+) -> Unit {
+  for site in sites {
+    match ctx.heap.get(site) {
+      Some(fm) =>
+        // One runtime object is written. With multiple possible targets,
+        // every other object may retain its previous field value.
+        fm[field] = if sites.length() == 1 {
+          t
+        } else {
+          taint_or(or_clean(fm.get(field)), t)
+        }
+      None => {
+        let fm : Map[String, Taint] = Map([])
+        fm[field] = t
+        ctx.heap[site] = fm
+      }
     }
   }
 }
@@ -1730,18 +1774,44 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       merge_env(ctx, then_ctx, else_ctx)
       taint_or(then_t, else_t)
     }
-    Guard(cond~, body~, ..) => {
-      // guard COND else OTHERWISE; BODY runs when cond holds
+    Guard(cond~, otherwise~, body~, ..) => {
+      // `guard cond else otherwise; body` is a two-way expression:
+      // failure evaluates otherwise and success evaluates the continuation.
+      // Their results and mutations both contribute to the enclosing block.
       let _ = flow(cond, ctx)
-      let refined = validated_var(cond)
-      match refined {
-        Some(name) => env_assign(ctx, name, Clean)
-        None => ()
+      if is_false_const(cond) {
+        scope_push(ctx)
+        let t = match otherwise {
+          Some(e) => flow(e, ctx)
+          None => Clean
+        }
+        scope_pop(ctx)
+        t
+      } else if is_true_const(cond) {
+        // Only one path survives: preserve its strong heap updates.
+        scope_push(ctx)
+        let t = flow(body, ctx)
+        scope_pop(ctx)
+        t
+      } else {
+        let then_ctx = ctx.copy()
+        match validated_var(cond) {
+          Some(name) => env_assign(then_ctx, name, Clean)
+          None => ()
+        }
+        scope_push(then_ctx)
+        let then_t = flow(body, then_ctx)
+        scope_pop(then_ctx)
+        let else_ctx = ctx.copy()
+        scope_push(else_ctx)
+        let else_t = match otherwise {
+          Some(e) => flow(e, else_ctx)
+          None => Clean
+        }
+        scope_pop(else_ctx)
+        merge_env(ctx, then_ctx, else_ctx)
+        taint_or(then_t, else_t)
       }
-      scope_push(ctx)
-      let gt = flow(body, ctx)
-      scope_pop(ctx)
-      gt
     }
     Is(expr~, ..) => {
       let _ = flow(expr, ctx)
@@ -2036,9 +2106,16 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
     }
     Pipe(lhs~, rhs~, ..) => taint_or(flow(lhs, ctx), flow(rhs, ctx))
     RevPipe(lhs~, rhs~, ..) => taint_or(flow(lhs, ctx), flow(rhs, ctx))
-    Assign(var_~, expr~, ..) => {
-      let t = flow(expr, ctx)
+    Assign(var_~, expr~, augmented_by~, ..) => {
       let name = longident_str(var_.name)
+      // Augmented assignment reads the existing value before evaluating
+      // its RHS. A clean suffix cannot erase taint already in the target;
+      // plain assignment still replaces the old value completely.
+      let previous = match augmented_by {
+        Some(_) => or_clean(env_lookup(ctx, name))
+        None => Clean
+      }
+      let t = taint_or(previous, flow(expr, ctx))
       env_assign(ctx, name, t)
       match resolve_binding_site(expr, ctx) {
         Some(s) => sites_set(ctx, name, s)
@@ -2404,8 +2481,47 @@ fn merge_heap_into(dst : FlowCtx, srcs : Array[FlowCtx]) -> Unit {
   }
 }
 
+// Join points-to candidates separately from field facts. Keep real sites
+// so subsequent writes through either the joined binding or an existing
+// alias remain visible. Site arrays are copied and never extended in place.
+
+///|
+fn merge_sites_into(ctx : FlowCtx, branches : Array[FlowCtx]) -> Unit {
+  let keys : Array[String] = []
+  for branch in branches {
+    branch.sites.each(fn(k, _) { if !keys.contains(k) { keys.push(k) } })
+  }
+  for key in keys {
+    let candidates : Array[String] = []
+    for branch in branches {
+      match branch.sites.get(key) {
+        Some(sites) =>
+          for site in sites {
+            if !candidates.contains(site) {
+              candidates.push(site)
+            }
+          }
+        None =>
+          // A live declaration without a concrete site has the same
+          // virtual site used by heap_site_of for direct field accesses.
+          if branch.env.contains(key) {
+            let site = "var:" + key
+            if !candidates.contains(site) {
+              candidates.push(site)
+            }
+          }
+      }
+    }
+    candidates.sort()
+    ctx.sites[key] = candidates
+  }
+}
+
 ///|
 fn merge_env(ctx : FlowCtx, a : FlowCtx, b : FlowCtx) -> Unit {
+  // Preserve each input branch's declaration presence before mutating ctx,
+  // which can itself be one of the inputs (short-circuit and loop joins).
+  merge_sites_into(ctx, [a, b])
   let keys : Array[String] = []
   a.env.each(fn(k, _) { keys.push(k) })
   b.env.each(fn(k, _) { keys.push(k) })
@@ -2438,6 +2554,7 @@ fn merge_envs(ctx : FlowCtx, branches : Array[FlowCtx]) -> Unit {
   }
   // G4: heap facts join weakly at this merge point
   merge_heap_into(ctx, branches)
+  merge_sites_into(ctx, branches)
   let keys : Array[String] = []
   for br in branches {
     br.env.each(fn(k, _) { keys.push(k) })

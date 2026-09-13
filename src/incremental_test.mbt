@@ -51,3 +51,68 @@ test "Incremental: changed_files limits scanned count" {
   assert_true(result_inc.files_scanned <= result_all.files_scanned)
   assert_true(result_inc.files_scanned <= 1)
 }
+
+///|
+fn make_incremental_fixture() -> String raise {
+  let root = test_tmp("moon_audit_incremental_exact")
+  @fs.create_dir(root) catch {
+    _ => ()
+  }
+  @fs.create_dir(pjoin(root, "src")) catch {
+    _ => ()
+  }
+  @fs.create_dir(pjoin(root, "other")) catch {
+    _ => ()
+  }
+  @fs.write_string_to_file(pjoin(root, "moon.mod"), "name = \"fixture/inc\"\n")
+  for dir in ["src", "other"] {
+    @fs.write_string_to_file(pjoin(pjoin(root, dir), "moon.pkg"), "")
+    @fs.write_string_to_file(
+      pjoin(pjoin(root, dir), "foo.mbt"),
+      "fn f(s : String) -> String { s.replace(old=\"<\", new=\"&lt;\") }",
+    )
+  }
+  @fs.write_string_to_file(
+    pjoin(pjoin(root, "src"), "myfoo.mbt"),
+    "fn g() -> Unit {}",
+  )
+  root
+}
+
+///|
+test "Incremental: explicit empty list scans zero files" {
+  let root = make_incremental_fixture()
+  let full = scan_project(root, Config::default())
+  inspect(full.files_scanned, content="3")
+  let result = scan_project(root, { ..Config::default(), incremental: true, })
+  inspect(result.files_scanned, content="0")
+  inspect(result.findings.length(), content="0")
+  assert_true(result.analysis_scope.contains("incremental=true"))
+}
+
+///|
+test "Incremental: paths are exact and relative to the project root" {
+  let root = make_incremental_fixture()
+  for
+    name in [
+      "src/foo.mbt",
+      "./src/../src/foo.mbt",
+      "src\\foo.mbt",
+      pjoin(pjoin(root, "src"), "foo.mbt"),
+    ] {
+    let result = scan_project(root, {
+      ..Config::default(),
+      changed_files: [name],
+    })
+    inspect(result.files_scanned, content="1")
+    inspect(result.findings.length(), content="1")
+    assert_true(
+      canonical_dir(result.findings[0].file).has_suffix("/src/foo.mbt"),
+    )
+  }
+  let missing = scan_project(root, {
+    ..Config::default(),
+    changed_files: ["foo.mbt"],
+  })
+  inspect(missing.files_scanned, content="0")
+}

@@ -3,7 +3,7 @@ fn main {
   let cmd = @argparse.Command(
     "moon-audit",
     about="Static security scanner for MoonBit projects",
-    version="0.1.0",
+    version=@audit.ANALYZER_VERSION,
     flags=[
       @argparse.FlagArg(
         "quiet",
@@ -86,6 +86,7 @@ fn main {
       @argparse.OptionArg(
         "rule",
         long="rule",
+        action=@argparse.Append,
         about="Only run specific rule(s)",
       ),
       @argparse.OptionArg(
@@ -457,13 +458,15 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     Some(arr) => if arr.length() > 0 { arr[0] } else { "." }
     None => "."
   }
-  let config_path = match matches.values.get("config") {
-    Some(arr) => if arr.length() > 0 { arr[0] } else { ".moon-audit.json" }
-    None => ".moon-audit.json"
-  }
   let format = match matches.values.get("format") {
     Some(arr) => if arr.length() > 0 { arr[0] } else { "text" }
     None => "text"
+  }
+  let machine_output = format == "json" || format == "sarif"
+  let diagnostics : Array[String] = []
+  if format != "text" && !machine_output {
+    cli_error("unknown output format: " + format)
+    return
   }
   let output_file = match matches.values.get("output") {
     Some(arr) => if arr.length() > 0 { Some(arr[0]) } else { None }
@@ -486,6 +489,13 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     None => false
   }
   @audit.set_cfg_verify_mode(cfg_verify)
+  let severity_name = get_val(matches, "severity", "warning")
+  if severity_name != "error" &&
+    severity_name != "warning" &&
+    severity_name != "info" {
+    cli_error("unknown severity: " + severity_name)
+    return
+  }
   let severity_filter = match matches.values.get("severity") {
     Some(arr) =>
       if arr.length() > 0 {
@@ -495,12 +505,10 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
       }
     None => @audit.Warning
   }
-  let resolved_config_path = if config_path == ".moon-audit.json" {
-    @path.Path(path).join(@path.Path(config_path)).0
-  } else {
-    config_path
+  let mut config = match load_scan_config(matches, path) {
+    Some(config) => config
+    None => return
   }
-  let mut config = @audit.load_config(resolved_config_path)
   config = { ..config, min_severity: severity_filter, }
   // T7.5: analysis mode (quick = default behavior; deep forces interproc)
   let mode = match matches.values.get("mode") {
@@ -510,21 +518,24 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
   if mode == "deep" || mode == "quick" {
     config = { ..config, analysis_mode: mode, }
   } else {
-    println(
-      "moon-audit: warning: unknown --mode '" +
-      mode +
-      "', using quick (no silent downgrade)",
-    )
+    cli_error("unknown analysis mode: " + mode)
+    return
   }
   // T7.1: context strategy pluggable skeleton
   let cs_raw = match matches.values.get("context-strategy") {
     Some(arr) => if arr.length() > 0 { arr[0] } else { "insensitive" }
     None => "insensitive"
   }
-  let cs = parse_context_strategy(cs_raw)
+  let cs = match parse_context_strategy(cs_raw) {
+    Some(strategy) => strategy
+    None => {
+      cli_error("unknown context strategy: " + cs_raw)
+      return
+    }
+  }
   config = { ..config, context_strategy: cs, }
   if !cs.is_implemented() {
-    println(
+    diagnostics.push(
       "moon-audit: warning: --context-strategy '" +
       cs_raw +
       "' is not implemented; running insensitive baseline (no silent downgrade)",
@@ -539,38 +550,50 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
   let changed_files_path = get_opt(matches, "changed-files")
   match changed_files_path {
     Some(cf_path) => {
-      let changed = @audit.load_changed_files(cf_path)
-      config = { ..config, changed_files: changed, }
+      let content = @fs.read_file_to_string(cf_path) catch {
+        _ => {
+          cli_error("cannot read changed-files list: " + cf_path)
+          return
+        }
+      }
+      let changed = @audit.parse_changed_files(content)
+      config = { ..config, changed_files: changed, incremental: true, }
       // T0.2/T0.4: incremental mode limits the scanned set; callers of a
       // changed function are NOT invalidated (G8) — the result describes
       // the changed files only, not the whole project
-      println(
-        "analysis-scope: incremental=true; scanned-files=" +
+      diagnostics.push(
+        "analysis-scope: incremental=true; requested-files=" +
         changed.length().to_string() +
         "; caller-invalidation=not-implemented (G8 — affected callers of changed functions are NOT re-analyzed); unanalyzed-is-not-safe",
       )
     }
     None => ()
   }
-  let rule_filter = match matches.values.get("rule") {
-    Some(arr) => if arr.length() > 0 { Some(arr[0]) } else { None }
-    None => None
-  }
-  match rule_filter {
-    Some(rule_id) => {
+  match matches.values.get("rule") {
+    Some(selected) if selected.length() > 0 => {
       let all_rules = @audit.list_all_rules()
+      for requested in selected {
+        if !all_rules.any(fn(rule) { @audit.rule_id_str(rule.id) == requested }) {
+          cli_error("unknown rule: " + requested)
+          return
+        }
+      }
       for rule in all_rules {
         let id = @audit.rule_id_str(rule.id)
-        if id != rule_id {
-          config.rules[id] = { enabled: false, severity: None, }
+        config.rules[id] = {
+          enabled: selected.contains(id),
+          severity: match config.rules.get(id) {
+            Some(previous) => previous.severity
+            None => None
+          },
         }
       }
     }
-    None => ()
+    _ => ()
   }
   let path_ok = @fs.is_dir(path) catch { _ => false }
   if !path_ok {
-    println("moon-audit: error: path not found or not a directory: " + path)
+    cli_error("path not found or not a directory: " + path)
     return
   }
   // G2: per-function CFG fallback diagnosis
@@ -590,11 +613,13 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     }
     return
   }
-  let machine_output = format == "json" || format == "sarif"
   if !quiet && !machine_output {
+    for diagnostic in diagnostics {
+      println(diagnostic)
+    }
     println("moon-audit v0.4.0 - Static security analyzer for MoonBit\n")
     println("Scanning: " + path)
-    if config.changed_files.length() > 0 {
+    if config.incremental || config.changed_files.length() > 0 {
       println(
         "Incremental mode: " +
         config.changed_files.length().to_string() +
@@ -605,7 +630,9 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
   }
   // T6.2: request via the analysis registry (behavior-identical adapter)
   let taint_world = timings.time("world-load", fn() {
-    @audit.load_program_world(path, config)
+    // TaintFlow declares no symbol-analysis dependency. Match scan_project's
+    // loader and avoid reconstructing dependency types that this scan never uses.
+    @audit.load_program_world(path, config, with_symbols=false)
   })
   let taint_registry = @audit.default_registry()
   let result = timings.time("analysis", fn() {
@@ -620,10 +647,35 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
   })
   let baseline_path = get_opt(matches, "baseline")
   let baseline = match baseline_path {
-    Some(bp) => @audit.load_baseline(bp)
+    Some(bp) => {
+      let content = @fs.read_file_to_string(bp) catch {
+        _ => {
+          cli_error("cannot read baseline: " + bp)
+          return
+        }
+      }
+      let parsed = @json.parse(content) catch {
+        _ => {
+          cli_error("invalid JSON baseline: " + bp)
+          return
+        }
+      }
+      match parsed {
+        Array(_) => ()
+        _ => {
+          cli_error("baseline must be a JSON array: " + bp)
+          return
+        }
+      }
+      @audit.load_baseline(bp)
+    }
     None => Map([])
   }
-  let after_baseline = @audit.filter_baseline(result.findings, baseline)
+  let after_baseline = @audit.filter_baseline(
+    result.findings,
+    baseline,
+    root=path,
+  )
   let baseline_filtered = result.findings.length() - after_baseline.length()
   if baseline_filtered > 0 && !quiet && !machine_output {
     println(
@@ -647,7 +699,20 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     Some(brp) => {
       let content = @fs.read_file_to_string(brp) catch {
         _ => {
-          println("moon-audit: error: cannot read baseline report: " + brp)
+          cli_error("cannot read baseline report: " + brp)
+          return
+        }
+      }
+      let parsed = @json.parse(content) catch {
+        _ => {
+          cli_error("invalid JSON baseline report: " + brp)
+          return
+        }
+      }
+      match parsed {
+        { "findings": Array(_), .. } => ()
+        _ => {
+          cli_error("baseline report must contain a findings array: " + brp)
           return
         }
       }
@@ -656,7 +721,7 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     }
     None => None
   }
-  let output = if format == "json" {
+  let mut output = if format == "json" {
     match diff {
       Some(d) => @audit.format_json_with_diff(filtered_result, d)
       None => @audit.format_json(filtered_result)
@@ -666,12 +731,63 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
   } else {
     @audit.format_text(filtered_result, verbose)
   }
+  let ledger_on = match matches.flags.get("ledger") {
+    Some(v) => v
+    None => false
+  }
+  let ledger = if ledger_on {
+    match diff {
+      Some(d) => Some(@audit.format_ledger(@audit.build_ledger(d, Map([]))))
+      None => {
+        diagnostics.push(
+          "moon-audit: note: --ledger requires --baseline-report; skipped",
+        )
+        None
+      }
+    }
+  } else {
+    None
+  }
+  // Supplemental information stays inside the report in machine-readable modes.
+  if machine_output && (diagnostics.length() > 0 || timing_on || ledger_on) {
+    let metadata : Map[String, Json] = Map([])
+    metadata["messages"] = Json::array(
+      diagnostics.map(fn(d) { Json::string(d) }),
+    )
+    if timing_on {
+      metadata["timing"] = Json::string(timings.render())
+    }
+    match ledger {
+      Some(text) => metadata["ledger"] = Json::string(text)
+      None => ()
+    }
+    let json = @json.parse(output) catch {
+      _ => {
+        cli_error("could not serialize scan report")
+        return
+      }
+    }
+    match json {
+      Object(obj) =>
+        if format == "sarif" {
+          match obj.get("runs") {
+            Some(Array([Object(run)])) =>
+              run["properties"] = Json::object(metadata)
+            _ => ()
+          }
+        } else {
+          obj["diagnostics"] = Json::object(metadata)
+        }
+      _ => ()
+    }
+    output = json.stringify(indent=2)
+  }
   match output_file {
     Some(out_path) => {
       @fs.write_string_to_file(out_path, output) catch {
-        err => {
-          let _ = err
-          println("moon-audit: error: failed to write output file: " + out_path)
+        _ => {
+          cli_error("failed to write output file: " + out_path)
+          return
         }
       }
       if !quiet && !machine_output {
@@ -680,11 +796,7 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     }
     None => println(output)
   }
-  // T7.4: stage timings (world-load/symbols from the world loader record)
-  if timing_on && !quiet {
-    timings.time("output", fn() { ignore(output) })
-    // NOTE: scan_project reloads its own world (with_symbols=false) which
-    // resets the loader record — the CLI-level line is the accurate one
+  if timing_on && !quiet && !machine_output {
     println(timings.render())
   }
   // text mode: print the baseline-diff summary after the report
@@ -692,20 +804,11 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     (Some(d), false, false) => println(@audit.format_baseline_diff(d))
     _ => ()
   }
-  // T8.4: precision ledger (thin slice: empty triage map; triage-file input
-  // is the documented remainder in docs/ir/ACCEPTANCE.md)
-  let ledger_on = match matches.flags.get("ledger") {
-    Some(v) => v
-    None => false
-  }
-  if ledger_on {
-    match diff {
-      Some(d) => {
-        let triage : Map[String, String] = Map([])
-        println(@audit.format_ledger(@audit.build_ledger(d, triage)))
-      }
+  if !quiet && !machine_output {
+    match ledger {
+      Some(text) => println(text)
       None =>
-        if !quiet {
+        if ledger_on {
           println(
             "moon-audit: note: --ledger requires --baseline-report; skipped",
           )
@@ -723,6 +826,10 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
       println("  " + e)
     }
   }
+  if result.errors.length() > 0 {
+    @sys.exit(2)
+    return
+  }
   if fail_on_error {
     let has_errors = filtered_findings
       .iter()
@@ -738,13 +845,15 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     let (_exec, _fallback, divergent, _capped) = @audit.cfg_exec_stats()
     let unconfirmed = @audit.cfg_exec_unconfirmed_count()
     if unconfirmed > 0 || divergent > 0 {
-      println(
-        "cfg-verify: FAILED — " +
-        unconfirmed.to_string() +
-        " unconfirmed candidate(s), " +
-        divergent.to_string() +
-        " divergent function(s)",
-      )
+      if !machine_output {
+        println(
+          "cfg-verify: FAILED — " +
+          unconfirmed.to_string() +
+          " unconfirmed candidate(s), " +
+          divergent.to_string() +
+          " divergent function(s)",
+        )
+      }
       @sys.exit(2)
     }
   }
@@ -775,7 +884,7 @@ fn write_pipeline_file(path : String, content : String) -> Unit {
   @fs.write_string_to_file(path, content) catch {
     err => {
       let _ = err
-      println("moon-audit: error: failed to write " + path)
+      cli_error("failed to write " + path)
     }
   }
 }
@@ -785,7 +894,10 @@ fn write_output(content : String, output_file : String?) -> Unit {
   match output_file {
     Some(out_path) => {
       @fs.write_string_to_file(out_path, content) catch {
-        _ => println("Error writing output file")
+        _ => {
+          cli_error("failed to write output file: " + out_path)
+          return
+        }
       }
       println("Output written to: " + out_path)
     }
@@ -798,17 +910,18 @@ fn do_scan(matches : @argparse.Matches) -> @audit.ScanResult? {
   let path = get_val(matches, "path", ".")
   let path_ok = @fs.is_dir(path) catch { _ => false }
   if !path_ok {
-    println("moon-audit: error: path not found or not a directory: " + path)
+    cli_error("path not found or not a directory: " + path)
     return None
   }
-  let config_path = get_val(matches, "config", ".moon-audit.json")
-  let resolved_config = if config_path == ".moon-audit.json" {
-    @path.Path(path).join(@path.Path(config_path)).0
-  } else {
-    config_path
+  let config = match load_scan_config(matches, path) {
+    Some(config) => config
+    None => return None
   }
-  let config = @audit.load_config(resolved_config)
-  Some(@audit.scan_project(path, config))
+  let result = @audit.scan_project(path, config)
+  if !scan_completed(result) {
+    return None
+  }
+  Some(result)
 }
 
 ///|
@@ -1002,11 +1115,9 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
     Some(v) => v
     None => false
   }
-  let config_path = get_val(matches, "config", ".moon-audit.json")
-  let resolved_config = if config_path == ".moon-audit.json" {
-    @path.Path(path).join(@path.Path(config_path)).0
-  } else {
-    config_path
+  let config = match load_scan_config(matches, path) {
+    Some(config) => config
+    None => return
   }
   println("=".repeat(60))
   println("  moon-audit Analysis Pipeline")
@@ -1017,19 +1128,16 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
   println("")
   let path_ok = @fs.is_dir(path) catch { _ => false }
   if !path_ok {
-    println("moon-audit: error: path not found or not a directory: " + path)
+    cli_error("path not found or not a directory: " + path)
     return
   }
   @fs.create_dir(out_dir) catch {
     err => {
       let _ = err
-      println(
-        "moon-audit: error: failed to create output directory: " + out_dir,
-      )
+      cli_error("failed to create output directory: " + out_dir)
       return
     }
   }
-  let config = @audit.load_config(resolved_config)
   // Phase 1: Static scan
   println("[1/3] Static scan...")
   let result = @audit.scan_project(path, config)
@@ -1049,6 +1157,9 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
   let json_out = @audit.format_json(result)
   let json_path = @path.Path(out_dir).join(@path.Path("scan-results.json")).0
   write_pipeline_file(json_path, json_out)
+  if !scan_completed(result) {
+    return
+  }
   if result.findings.length() == 0 {
     println("")
     println("No findings detected. Scan results written to " + out_dir + "/")
@@ -1113,26 +1224,17 @@ fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
 ///|
 fn cmd_generate_baseline(matches : @argparse.Matches) -> Unit {
   let path = get_val(matches, "path", ".")
-  let config_path = get_val(matches, "config", ".moon-audit.json")
   let output_path = get_val(matches, "output", ".moon-audit-baseline.json")
-  let resolved_config = if config_path == ".moon-audit.json" {
-    @path.Path(path).join(@path.Path(config_path)).0
-  } else {
-    config_path
-  }
-  let config = @audit.load_config(resolved_config)
-  let path_ok = @fs.is_dir(path) catch { _ => false }
-  if !path_ok {
-    println("moon-audit: error: path not found or not a directory: " + path)
-    return
-  }
   println("moon-audit: generating baseline from: " + path)
-  let result = @audit.scan_project(path, config)
-  let baseline = @audit.generate_baseline(result.findings)
+  let result = match do_scan(matches) {
+    Some(result) => result
+    None => return
+  }
+  let baseline = @audit.generate_baseline(result.findings, root=path)
   @fs.write_string_to_file(output_path, baseline) catch {
     err => {
       let _ = err
-      println("moon-audit: error: failed to write baseline to " + output_path)
+      cli_error("failed to write baseline to " + output_path)
       return
     }
   }
@@ -1150,21 +1252,19 @@ fn cmd_generate_baseline(matches : @argparse.Matches) -> Unit {
 fn cmd_deep_audit(matches : @argparse.Matches) -> Unit {
   let path = get_val(matches, "path", ".")
   let output_path = get_val(matches, "output", "deep_audit.py")
-  let config_path = get_val(matches, "config", ".moon-audit.json")
-  let resolved_config = if config_path == ".moon-audit.json" {
-    @path.Path(path).join(@path.Path(config_path)).0
-  } else {
-    config_path
-  }
-  let config = @audit.load_config(resolved_config)
-  let path_ok = @fs.is_dir(path) catch { _ => false }
-  if !path_ok {
-    println("moon-audit: error: path not found: " + path)
+  if !require_project_dir(path) {
     return
+  }
+  let config = match load_scan_config(matches, path) {
+    Some(config) => config
+    None => return
   }
   println("moon-audit Deep Audit\n")
   println("Scanning: " + path)
   let result = @audit.scan_project(path, config)
+  if !scan_completed(result) {
+    return
+  }
   println("Static findings: " + result.findings.length().to_string())
   let source_files = @audit.collect_audit_files(path, config)
   println("Source files collected: " + source_files.length().to_string())
@@ -1181,7 +1281,7 @@ fn cmd_deep_audit(matches : @argparse.Matches) -> Unit {
   )
   @fs.write_string_to_file(output_path, script) catch {
     _ => {
-      println("Error writing script: " + output_path)
+      cli_error("failed to write script: " + output_path)
       return
     }
   }
@@ -1237,6 +1337,9 @@ fn collect_mbt_files(root : String) -> Array[String] {
 ///|
 fn cmd_ir_stats(matches : @argparse.Matches) -> Unit {
   let path = get_val(matches, "path", ".")
+  if !require_project_dir(path) {
+    return
+  }
   let details = match matches.flags.get("details") {
     Some(v) => v
     None => false
@@ -1469,6 +1572,9 @@ fn pct(num : Int, den : Int) -> String {
 ///|
 fn cmd_call_graph(matches : @argparse.Matches) -> Unit {
   let path = get_val(matches, "path", ".")
+  if !require_project_dir(path) {
+    return
+  }
   let details = match matches.flags.get("details") {
     Some(v) => v
     None => false
@@ -1584,6 +1690,9 @@ fn avg_set_size(cg : @audit.CallGraph) -> String {
 ///|
 fn cmd_dump_analyses(matches : @argparse.Matches) -> Unit {
   let path = get_val(matches, "path", ".")
+  if !require_project_dir(path) {
+    return
+  }
   let dir = get_val(matches, "output", "moon-audit-dump")
   let conservative = match matches.flags.get("conservative-alias") {
     Some(v) => v
@@ -1612,21 +1721,24 @@ fn cmd_dump_analyses(matches : @argparse.Matches) -> Unit {
 }
 
 ///|
-fn parse_context_strategy(raw : String) -> @audit.ContextStrategy {
+fn parse_context_strategy(raw : String) -> @audit.ContextStrategy? {
   match raw {
-    "insensitive" => @audit.ContextStrategy::Insensitive
-    "call-site-1" | "call-site" => @audit.ContextStrategy::CallSite(1)
-    "call-site-2" => @audit.ContextStrategy::CallSite(2)
-    "object-1" | "object" => @audit.ContextStrategy::ObjectSensitive(1)
-    "object-2" => @audit.ContextStrategy::ObjectSensitive(2)
-    "closure-env" => @audit.ContextStrategy::ClosureEnv
-    _ => @audit.ContextStrategy::Insensitive
+    "insensitive" => Some(@audit.ContextStrategy::Insensitive)
+    "call-site-1" | "call-site" => Some(@audit.ContextStrategy::CallSite(1))
+    "call-site-2" => Some(@audit.ContextStrategy::CallSite(2))
+    "object-1" | "object" => Some(@audit.ContextStrategy::ObjectSensitive(1))
+    "object-2" => Some(@audit.ContextStrategy::ObjectSensitive(2))
+    "closure-env" => Some(@audit.ContextStrategy::ClosureEnv)
+    _ => None
   }
 }
 
 ///|
 fn cmd_instrument_calls(matches : @argparse.Matches) -> Unit {
   let path = get_val(matches, "path", ".")
+  if !require_project_dir(path) {
+    return
+  }
   let config = @audit.Config::default()
   let cg = @audit.run_call_graph(path, config)
   println("{")
@@ -1650,4 +1762,69 @@ fn cmd_instrument_calls(matches : @argparse.Matches) -> Unit {
     "  \"note\": \"dynamic ground truth: instrument at runtime; unobserved != FP\"",
   )
   println("}")
+}
+
+///|
+fn cli_error(message : String) -> Unit {
+  println("moon-audit: error: " + message)
+  @sys.exit(2)
+}
+
+///|
+fn require_project_dir(path : String) -> Bool {
+  let exists = @fs.is_dir(path) catch { _ => false }
+  if exists {
+    return true
+  }
+  cli_error("path not found or not a directory: " + path)
+  false
+}
+
+///|
+fn scan_completed(result : @audit.ScanResult) -> Bool {
+  if result.errors.is_empty() {
+    return true
+  }
+  for error in result.errors {
+    println("  " + error)
+  }
+  cli_error(
+    "scan incomplete: " + result.errors.length().to_string() + " file error(s)",
+  )
+  false
+}
+
+///|
+fn load_scan_config(
+  matches : @argparse.Matches,
+  path : String,
+) -> @audit.Config? {
+  let requested = get_val(matches, "config", ".moon-audit.json")
+  let resolved = if requested == ".moon-audit.json" {
+    @path.Path(path).join(@path.Path(requested)).0
+  } else {
+    requested
+  }
+  if requested != ".moon-audit.json" || @fs.path_exists(resolved) {
+    let content = @fs.read_file_to_string(resolved) catch {
+      _ => {
+        cli_error("cannot read config: " + resolved)
+        return None
+      }
+    }
+    let parsed = @json.parse(content) catch {
+      _ => {
+        cli_error("invalid JSON config: " + resolved)
+        return None
+      }
+    }
+    match parsed {
+      Object(_) => ()
+      _ => {
+        cli_error("config must be a JSON object: " + resolved)
+        return None
+      }
+    }
+  }
+  Some(@audit.load_config(resolved))
 }

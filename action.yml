@@ -43,8 +43,8 @@ runs:
         if command -v moon &> /dev/null; then
           echo "MoonBit toolchain already installed"
         else
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
-          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+          bash "$GITHUB_ACTION_PATH/scripts/install-moon.sh"
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
           export PATH="$HOME/.moon/bin:$PATH"
           moon update
         fi
@@ -52,63 +52,22 @@ runs:
     - name: Setup moon-audit
       shell: bash
       run: |
-        cd "${{ github.action_path }}"
+        cd "$GITHUB_ACTION_PATH"
         moon install
 
     - name: Run security scan
       id: scan
       shell: bash
-      run: |
-        cd "${{ github.action_path }}"
-
-        # Resolve scan target path
-        SCAN_PATH="${{ inputs.path }}"
-        if [[ "$SCAN_PATH" != /* ]]; then
-          SCAN_PATH="${{ github.workspace }}/$SCAN_PATH"
-        fi
-
-        FORMAT="${{ inputs.format }}"
-        SEVERITY="${{ inputs.severity }}"
-
-        # Determine output file path
-        EXT="$FORMAT"
-        [ "$FORMAT" = "text" ] && EXT="txt"
-        REPORT_FILE="${{ github.workspace }}/moon-audit-results.$EXT"
-
-        # Run scan with requested format
-        moon run src/main -- --format "$FORMAT" --severity "$SEVERITY" -o "$REPORT_FILE" "$SCAN_PATH"
-        echo "report-file=$REPORT_FILE" >> $GITHUB_OUTPUT
-
-        # Count findings from output file
-        if [ "$FORMAT" = "json" ]; then
-          COUNT=$(grep -c '"rule_id"' "$REPORT_FILE" 2>/dev/null || echo "0")
-        elif [ "$FORMAT" = "sarif" ]; then
-          COUNT=$(grep -c '"ruleId"' "$REPORT_FILE" 2>/dev/null || echo "0")
-        else
-          if grep -q "No issues found" "$REPORT_FILE" 2>/dev/null; then
-            COUNT=0
-          else
-            COUNT=$(grep -oE '[0-9]+ issues found' "$REPORT_FILE" 2>/dev/null | grep -oE '^[0-9]+' | head -1)
-            [ -z "$COUNT" ] && COUNT=0
-          fi
-        fi
-        echo "findings-count=$COUNT" >> $GITHUB_OUTPUT
-        echo "moon-audit: detected $COUNT finding(s)"
-
-        # Generate SARIF for upload if format is not already SARIF
-        if [ "${{ inputs.upload-sarif }}" = "true" ] && [ "$FORMAT" != "sarif" ]; then
-          SARIF_FILE="${{ github.workspace }}/moon-audit-results.sarif"
-          moon run src/main -- --format sarif --severity "$SEVERITY" -o "$SARIF_FILE" "$SCAN_PATH"
-        fi
-
-        # Fail the step if requested and findings exist
-        if [ "${{ inputs.fail-on-findings }}" = "true" ] && [ "$COUNT" -gt 0 ]; then
-          echo "::error::moon-audit detected $COUNT security finding(s)"
-          exit 1
-        fi
+      env:
+        AUDIT_PATH: ${{ inputs.path }}
+        AUDIT_FORMAT: ${{ inputs.format }}
+        AUDIT_SEVERITY: ${{ inputs.severity }}
+        AUDIT_FAIL_ON_FINDINGS: ${{ inputs.fail-on-findings }}
+        AUDIT_UPLOAD_SARIF: ${{ inputs.upload-sarif }}
+      run: bash "$GITHUB_ACTION_PATH/scripts/action-scan.sh"
 
     - name: Upload SARIF to GitHub Code Scanning
-      if: ${{ always() && inputs.upload-sarif == 'true' }}
+      if: ${{ always() && inputs.upload-sarif == 'true' && steps.scan.outputs.sarif-file != '' }}
       uses: github/codeql-action/upload-sarif@v3
       with:
-        sarif_file: ${{ github.workspace }}/moon-audit-results.sarif
+        sarif_file: ${{ steps.scan.outputs.sarif-file }}

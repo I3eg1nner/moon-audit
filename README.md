@@ -8,7 +8,7 @@ MoonBit 是一门年轻的语言，社区正在快速长出 Web 框架（mocket�
 
 Semgrep、CodeQL 不认识 `.mbt` 文件。手动审计当然可以，但你不可能盯着每一个 PR 看 `set_cookie()` 有没有加 `http_only=true`、`handle_cors()` 有没有限制 Origin。
 
-moon-audit 用 MoonBit 官方 parser 直接解析 AST，在语法树上匹配 14 条 CWE 安全规则。它知道 mocket 的 `handle_cors()` 应该限制 Origin，知道 cmark 的 `render(safe=false)` 会吞掉 XSS 防护，也知道 `extern "js"` 文件里的 `.cast()` 不是 bug 而是 FFI 的日常——会自动跳过。
+moon-audit 用 MoonBit 官方 parser 直接解析 AST，在语法树上匹配 15 条 CWE 安全规则。它知道 mocket 的 `handle_cors()` 应该限制 Origin，知道 cmark 的 `render(safe=false)` 会吞掉 XSS 防护，也知道 `extern "js"` 文件里的 `.cast()` 不是 bug 而是 FFI 的日常——会自动跳过。
 
 不需要运行时环境，不需要外部依赖，`moon build --target native` 编译出来就是一个独立二进制，扫一个项目几秒钟。
 
@@ -60,6 +60,10 @@ git diff --name-only HEAD~1 > changed.txt
 ./moon-audit --baseline .moon-audit-baseline.json /path/to/project
 ```
 
+`--changed-files` 中的相对路径以扫描项目根目录为基准，也接受绝对路径；空列表或没有 `.mbt` 的列表扫描零文件。结果仅覆盖列出的文件，调用者失效重分析尚未实现，不能据此判定整个项目安全。
+
+新生成的 baseline 用 `path_scope: "project"` 标明项目相对路径，按规则、文件、代码指纹和出现次数过滤，支持更换检出目录以及代码行号移动。新增的相同告警仍会保留，不同文件中的相同代码不会互相屏蔽；不含 `file` 的旧条目仍保留全局匹配语义。
+
 > 二进制位于 `_build/native/debug/build/src/main/main.exe`，可复制到 PATH。
 > 也可通过 `moon add minie135/moon-audit` 作为库依赖使用。
 
@@ -71,9 +75,12 @@ moon-audit --format sarif -o results.sarif /path/to  # SARIF（GitHub Code Scann
 moon-audit --fail-on-error /path/to/project         # 有 Error 级别漏洞时 exit 1
 ```
 
+静态扫描默认在完成时返回 `0`；使用 `--fail-on-error` 且存在 Error 告警时返回 `1`；参数、输入文件、源码解析或输出写入失败时返回 `2`。扫描类子命令也会拒绝不完整扫描：失败时不覆盖 baseline、不生成后续摘要或 LLM 脚本，pipeline 保留基础扫描报告供排查。JSON/SARIF 输出可直接解析，增量说明、计时与精度账本分别放在 JSON 的 `diagnostics` 或 SARIF run 的 `properties` 中。
+
+
 ## 检测规则
 
-14 条规则，覆盖通用安全和 OWASP Top 10。
+15 条规则，覆盖通用安全和 OWASP Top 10。
 
 ### 通用安全规则
 
@@ -263,7 +270,7 @@ fn check_security(project_path : String) -> Unit {
 ## 工作原理
 
 ```
-  .mbt 源码 → Import 分析 → AST 解析 → 14 条规则匹配 → 跨函数污点追踪 → 报告输出
+  .mbt 源码 → Import 分析 → AST 解析 → 15 条规则匹配 → 跨函数污点追踪 → 报告输出
                                                                          ↓（可选）
                                                               LLM 研判 / deep-audit / PoC 生成
 ```
@@ -277,10 +284,28 @@ fn check_security(project_path : String) -> Unit {
 ## 开发
 
 ```bash
-moon check     # 编译检查
-moon test      # 运行测试（325 个用例 × 4 编译目标，--deny-warn 全绿）
-moon fmt       # 格式化
+moon check --target all --deny-warn
+moon test --target all --deny-warn
+moon fmt --check
+moon info
+moon build --target native
+python3 tests/harness/test_harnesses.py  # 脚本失败路径及 Action 离线自测
+python3 scripts/cli_regression_test.py  # 真实 CLI 端到端回归
+bash tests/cases/run.sh                # 反例语料断言门禁
 ```
+
+性能对照使用同一工具链构建的两个独立二进制，计时期间保持项目源码不变，并暂停其他构建和扫描：
+
+```bash
+python3 scripts/benchmark.py \
+  --baseline-bin /path/to/baseline.exe \
+  --candidate-bin /path/to/candidate.exe \
+  --project /path/to/project --warmups 1 --iterations 5 \
+  --output /tmp/moon-audit-benchmark.json
+```
+
+脚本交替执行两个版本，先检查 findings、文件错误及扫描文件数是否一致，再记录原始样本与中位数。结果包含二进制 SHA-256；出现解析错误的项目只能视为部分扫描，不能将其耗时作为完整分析性能。
+
 
 ## 许可证
 

@@ -11,14 +11,34 @@
 # EXPECT-FAIL cases are registered with (current, wanted) counts: they are
 # KNOWN misses tracked in docs/ir/ROADMAP-T.md; the gate fails when the gap
 # changes in EITHER direction so status can never drift silently.
-set -u
+set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
 ANALYZER="${ANALYZER:-$REPO/_build/native/debug/build/src/main/main.exe}"
-export PATH="$HOME/.moon-latest/bin:$PATH"
-export MOON_HOME="${MOON_HOME:-$HOME/.moon-latest}"
+# Respect the selected toolchain and permit an explicit compiler override.
+MOON="${MOON_BIN:-moon}"
+if ! command -v "$MOON" >/dev/null && [ -z "${MOON_BIN:-}" ]; then
+  for candidate in "${MOON_HOME:-$HOME/.moon-latest}/bin/moon" "$HOME/.moon/bin/moon"; do
+    if [ -x "$candidate" ]; then MOON="$candidate"; break; fi
+  done
+fi
+COMMAND_TIMEOUT="${COMMAND_TIMEOUT:-300}"
 
 fail() { echo "GATE-FAIL($1): $2" >&2; exit "$1"; }
+command -v "$MOON" >/dev/null || fail 2 "moon compiler not found: $MOON"
+if command -v timeout >/dev/null; then
+  TIMEOUT=timeout
+elif command -v gtimeout >/dev/null; then
+  TIMEOUT=gtimeout
+else
+  fail 2 "timeout or gtimeout is required"
+fi
+[[ "$COMMAND_TIMEOUT" =~ ^[1-9][0-9]*$ ]] || fail 2 "COMMAND_TIMEOUT must be a positive integer"
+WORK_DIR="$(mktemp -d)" || fail 2 "cannot create temporary directory"
+trap 'rm -rf "$WORK_DIR"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+run_timed() { "$TIMEOUT" "$COMMAND_TIMEOUT" "$@"; }
 
 # ── infra: analyzer must exist and be executable ──────────────────────────
 [ -f "$ANALYZER" ] || fail 2 "analyzer not found: $ANALYZER"
@@ -26,13 +46,18 @@ fail() { echo "GATE-FAIL($1): $2" >&2; exit "$1"; }
 
 # ── infra: cases project must compile ────────────────────────────────────
 echo "== cases project compiles =="
-( cd "$HERE" && timeout 300 moon check 2>&1 | tail -1 ) | grep -q "0 errors" \
-  || fail 2 "cases project failed to compile"
+if ! (cd "$HERE" && run_timed "$MOON" check) > "$WORK_DIR/check.log" 2>&1; then
+  cat "$WORK_DIR/check.log" >&2
+  fail 2 "cases project failed to compile"
+fi
+tail -1 "$WORK_DIR/check.log"
 
 # ── scan ──────────────────────────────────────────────────────────────────
 echo "== scan (analyzer: $ANALYZER) =="
-OUT="$(timeout 300 "$ANALYZER" "$HERE" 2>/dev/null)" \
-  || fail 2 "analyzer run failed"
+if ! OUT="$(run_timed "$ANALYZER" "$HERE" 2> "$WORK_DIR/scan.stderr")"; then
+  cat "$WORK_DIR/scan.stderr" >&2
+  fail 2 "analyzer run failed"
+fi
 echo "$OUT" | grep -q "files scanned" || fail 2 "analyzer produced no scan summary"
 echo "$OUT" | tail -3
 
@@ -41,14 +66,18 @@ echo "$OUT" | tail -3
 # line), which silently collapses same-shaped cases (c9 control+original,
 # c10/c11 both `sink(x)`). Each case therefore runs in its own project.
 count() {
-  local f="$1" tmp
-  tmp="$(mktemp -d)"
-  printf 'name = "iso-case"\nversion = "0.1.0"\n' > "$tmp/moon.mod"
-  : > "$tmp/moon.pkg"
-  cp "$HERE/taint-rules.json" "$tmp/taint-rules.json" 2>/dev/null || true
-  cp "$HERE/c0_helpers.mbt" "$HERE/$f" "$tmp/" 2>/dev/null || true
-  timeout 300 "$ANALYZER" "$tmp" 2>/dev/null | grep -c "$f:" || true
-  rm -rf "$tmp"
+  local f="$1" tmp="$WORK_DIR/$1"
+  mkdir -p "$tmp" || return 2
+  printf 'name = "iso-case"\nversion = "0.1.0"\n' > "$tmp/moon.mod" || return 2
+  : > "$tmp/moon.pkg" || return 2
+  cp "$HERE/taint-rules.json" "$HERE/c0_helpers.mbt" "$HERE/$f" "$tmp/" || return 2
+  if ! run_timed "$ANALYZER" "$tmp" > "$tmp/scan.log" 2> "$tmp/scan.stderr"; then
+    cat "$tmp/scan.stderr" >&2
+    return 2
+  fi
+  grep -Eq 'files scanned|^No issues found\.$' "$tmp/scan.log" || return 2
+  # grep's status 1 means zero matches; all other errors must propagate.
+  grep -F -c "$f:" "$tmp/scan.log" || [ "$?" -eq 1 ]
 }
 
 # ── expectation table ─────────────────────────────────────────────────────
@@ -77,7 +106,7 @@ echo "== per-case assertions =="
 # rc=1 from any mismatch survives to the exit gate below (gate7 P0)
 while IFS='|' read -r file status cur want gap; do
   [ -n "$file" ] || continue
-  actual=$(count "$file")
+  actual=$(count "$file") || fail 2 "isolated scan failed: $file"
   if [ "$status" = "PASS" ]; then
     if [ "$actual" != "$cur" ]; then
       echo "  FAIL  $file: expected $cur, got $actual"
@@ -100,17 +129,23 @@ done <<< "$TABLE"
 # ── C8: default-param call sites must be in the call graph (T0.2(a)) ─────
 echo
 echo "== C8 default-param sites enter ir-stats =="
-IR="$(timeout 300 "$ANALYZER" ir-stats "$HERE" 2>/dev/null)" || fail 2 "ir-stats failed"
-SITES=$(echo "$IR" | grep -oE "call sites: +[0-9]+" | grep -oE "[0-9]+" || true)
-BOUND=$(echo "$IR" | grep -oE "bound sites: +[0-9]+/[0-9]+" | grep -oE "[0-9]+" | head -1 || true)
-[ -n "$SITES" ] && [ "$SITES" -gt 0 ] || fail 1 "ir-stats: no call sites counted"
-[ -n "$BOUND" ] && [ "$BOUND" -ge 1 ] || fail 1 "ir-stats: default-param call site not bound (C8 regression)"
+# Reuse C8's isolated project: unrelated calls must not satisfy this gate.
+if ! IR="$(run_timed "$ANALYZER" ir-stats "$WORK_DIR/c8_default_param_call.mbt" 2> "$WORK_DIR/ir.stderr")"; then
+  cat "$WORK_DIR/ir.stderr" >&2
+  fail 2 "ir-stats failed"
+fi
+SITES=$(printf '%s\n' "$IR" | sed -nE 's/^call sites: +([0-9]+).*$/\1/p')
+BOUND=$(printf '%s\n' "$IR" | sed -nE 's/^ +bound sites: +([0-9]+\/[0-9]+).*$/\1/p')
+# greet(), ignore(), and decorated() in the default expression must all bind.
+[ "$SITES" = 3 ] && [ "$BOUND" = 3/3 ] \
+  || fail 1 "C8: expected 3 call sites bound 3/3, got sites=$SITES bound=$BOUND"
 echo "  ok    call sites=$SITES bound=$BOUND"
 
 # ── C14: empty candidate set ⇒ unknown, not covered (R7) ──────────────
 echo
 echo "== C14 empty-candidate dispatch classification (R7) =="
-C14T="$(mktemp -d)"
+C14T="$WORK_DIR/c14"
+mkdir -p "$C14T" || fail 2 "cannot create C14 project"
 printf 'name = "c14iso"\nversion = "0.1.0"\n' > "$C14T/moon.mod"
 : > "$C14T/moon.pkg"
 cat > "$C14T/lib.mbt" <<'MBOF'
@@ -121,9 +156,11 @@ fn case14(a : &NoImplAction) -> Unit {
   a.act()
 }
 MBOF
-CG="$(timeout 300 "$ANALYZER" call-graph "$C14T" 2>/dev/null)" || fail 2 "call-graph failed"
-rm -rf "$C14T"
-echo "$CG" | grep -q "site coverage:      0/1 = 0%" \
+if ! CG="$(run_timed "$ANALYZER" call-graph "$C14T" 2> "$WORK_DIR/callgraph.stderr")"; then
+  cat "$WORK_DIR/callgraph.stderr" >&2
+  fail 2 "call-graph failed"
+fi
+echo "$CG" | grep -Eq "site coverage: +0/1 = 0%" \
   || fail 1 "C14: empty candidate set no longer classified unknown (R7 regression)"
 echo "  ok    empty candidate set → 0/1 coverage (unknown, no-impls)"
 

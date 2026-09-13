@@ -180,3 +180,169 @@ test "t8_4_ledger_empty_input" {
   let text = format_ledger(ledger)
   inspect(text.contains("corpus: tp-candidates=0"), content="true")
 }
+
+///|
+test "acceptance: symbols fingerprint covers semantic maps and alias policy" {
+  let changes : Array[(String, (PkgSymbols) -> Unit)] = [
+    ("alias_mode", fn(s) { s.alias_mode = false }),
+    ("constructors", fn(s) { s.constructors["Some"] = "Option" }),
+    ("value_types", fn(s) { s.value_types["limit"] = IRConcrete("Int", []) }),
+    ("globals", fn(s) { s.globals["state"] = IRConcrete("State", []) }),
+    (
+      "lib_fn_ret",
+      fn(s) { s.lib_fn_ret["extern_read"] = IRConcrete("String", []) },
+    ),
+    ("lib_callbacks", fn(s) { s.lib_callbacks["each"] = ["V"] }),
+    ("trait_names", fn(s) { s.trait_names["Show"] = true }),
+    ("type_params", fn(s) { s.type_params["T"] = true }),
+  ]
+  let initial = symbols_fingerprint(PkgSymbols::new())
+  for change in changes {
+    let symbols = PkgSymbols::new()
+    (change.1)(symbols)
+    assert_true(symbols_fingerprint(symbols) != initial, msg=change.0)
+  }
+  let symbols = PkgSymbols::new()
+  symbols.alias_unresolved = 99
+  assert_true(symbols_fingerprint(symbols) == initial)
+}
+
+///|
+test "acceptance: symbols fingerprint retains full signature and function identity" {
+  let a = PkgSymbols::new()
+  let b = PkgSymbols::new()
+  // IRType.display deliberately renders both closures as "fn".
+  a.fn_ret["factory"] = IRConcrete("Array", [IRFn("closure_a")])
+  b.fn_ret["factory"] = IRConcrete("Array", [IRFn("closure_b")])
+  assert_true(symbols_fingerprint(a) != symbols_fingerprint(b))
+  let sig : FnSig = {
+    params: [
+      {
+        binder: "value",
+        kind: "positional",
+        has_default: false,
+        ty: IRConcrete("String", []),
+        arrow_args: [],
+      },
+    ],
+    generic_constraints: [],
+    return_ty: IRUnit,
+    error_effect: "none",
+    is_async: false,
+    entry: "internal",
+  }
+  let c = PkgSymbols::new()
+  let d = PkgSymbols::new()
+  c.fn_sigs["f"] = sig
+  d.fn_sigs["f"] = { ..sig, is_async: true, }
+  assert_true(symbols_fingerprint(c) != symbols_fingerprint(d))
+  d.fn_sigs["f"] = { ..sig, params: [{ ..sig.params[0], kind: "labelled", }], }
+  assert_true(symbols_fingerprint(c) != symbols_fingerprint(d))
+}
+
+///|
+test "acceptance: nested symbol maps are insertion-order independent" {
+  let a = PkgSymbols::new()
+  let b = PkgSymbols::new()
+  a.struct_fields["S"] = Map([
+    ("a", IRFn("first")),
+    ("b", IRConcrete("Int", [])),
+  ])
+  b.struct_fields["S"] = Map([
+    ("b", IRConcrete("Int", [])),
+    ("a", IRFn("first")),
+  ])
+  a.globals["x"] = IRConcrete("String", [])
+  a.globals["y"] = IRConcrete("Int", [])
+  b.globals["y"] = IRConcrete("Int", [])
+  b.globals["x"] = IRConcrete("String", [])
+  assert_true(symbols_fingerprint(a) == symbols_fingerprint(b))
+}
+
+///|
+test "acceptance: analysis cache framing escapes separator collisions" {
+  assert_true(
+    analysis_cache_key("a\u001fb", "c") != analysis_cache_key("a", "b\u001fc"),
+  )
+}
+
+///|
+fn previous_finding(f : Finding) -> PrevFinding {
+  {
+    fingerprint: f.fingerprint,
+    rule_id: rule_id_str(f.rule_id),
+    file: f.file,
+    line: f.line,
+    message: f.message,
+  }
+}
+
+///|
+test "acceptance: same fingerprint in another file or rule is new" {
+  let before = mk_finding("shared")
+  let another_file = { ..before, file: "b.mbt", }
+  let another_rule = {
+    ..before,
+    rule_id: { cwe: 116, variant: "tainted-output", },
+  }
+  let diff = diff_findings([another_file, another_rule], [
+    previous_finding(before),
+  ])
+  inspect(diff.unchanged.length(), content="0")
+  inspect(diff.new_findings.length(), content="2")
+  inspect(diff.resolved.length(), content="1")
+}
+
+///|
+test "acceptance: duplicate occurrences are counted and JSON statuses agree" {
+  let first = mk_finding("shared")
+  let second = { ..first, line: 20, end_line: 20, }
+  let result : ScanResult = {
+    findings: [first, second],
+    files_scanned: 1,
+    errors: [],
+    analysis_scope: "incremental=true; note=unanalyzed-is-not-safe",
+  }
+  let diff = diff_findings(result.findings, [previous_finding(first)])
+  inspect(diff.unchanged.length(), content="1")
+  inspect(diff.new_findings.length(), content="1")
+  inspect(diff.new_findings[0].line, content="20")
+  inspect(diff.resolved.length(), content="0")
+  let json = @json.parse(format_json_with_diff(result, diff))
+  match json {
+    {
+      "findings": Array(
+        [
+          { "status": String(first_status), .. },
+          { "status": String(second_status), .. },
+        ]
+      ),
+      "analysis_scope": String(scope),
+      ..
+    } => {
+      inspect(first_status, content="unchanged")
+      inspect(second_status, content="new")
+      assert_true(scope == result.analysis_scope)
+    }
+    _ => fail("comparison report lost statuses or analysis scope")
+  }
+  let removed = diff_findings([first], [
+    previous_finding(first),
+    previous_finding(second),
+  ])
+  inspect(removed.unchanged.length(), content="1")
+  inspect(removed.new_findings.length(), content="0")
+  inspect(removed.resolved.length(), content="1")
+  inspect(removed.resolved[0].line, content="20")
+}
+
+///|
+test "acceptance: line movement and equivalent file paths remain unchanged" {
+  let previous = { ..mk_finding("stable"), file: "src/../a.mbt", }
+  let current = { ..previous, file: "./a.mbt", line: 99, end_line: 99, }
+  let diff = diff_findings([current], [previous_finding(previous)])
+  inspect(diff.unchanged.length(), content="1")
+  inspect(diff.new_findings.length(), content="0")
+  inspect(diff.resolved.length(), content="0")
+  inspect(diff.unchanged[0].line, content="99")
+}

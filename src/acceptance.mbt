@@ -3,7 +3,8 @@
 //
 // Baseline diff: compares a current scan against a PREVIOUS scan report
 // (the JSON emitted by `scan --format json`). Findings are keyed by the
-// stable FNV fingerprint (rule_id + code snippet, line-independent), so
+// (rule_id, normalized file, fingerprint), with occurrence counts; lines
+// can move without changing finding identity. Therefore
 //   new      = present now, absent before  → TP candidates (or regressions)
 //   resolved = present before, absent now  → fixes / noise removed
 //   unchanged= present in both            → existing inventory
@@ -78,16 +79,19 @@ pub fn parse_report_findings(content : String) -> Array[PrevFinding] {
 }
 
 ///|
-/// Classify current findings against a previous report's findings.
+/// Classify current findings by file/rule/fingerprint, consuming one prior
+/// occurrence per match. Line numbers do not participate, so line moves
+/// remain unchanged while duplicate additions/removals remain visible.
 pub fn diff_findings(
   current : Array[Finding],
   prev : Array[PrevFinding],
 ) -> BaselineDiff {
-  let prev_map : Map[String, PrevFinding] = Map([])
+  let previous_counts : Map[String, Int] = Map([])
   for p in prev {
-    prev_map[p.fingerprint] = p
+    let key = report_finding_key(p.rule_id, p.file, p.fingerprint)
+    previous_counts[key] = report_count(previous_counts, key) + 1
   }
-  let cur_map : Map[String, Bool] = Map([])
+  let consumed : Map[String, Int] = Map([])
   let diff : BaselineDiff = {
     new_findings: [],
     resolved: [],
@@ -96,19 +100,49 @@ pub fn diff_findings(
     current_total: current.length(),
   }
   for f in current {
-    cur_map[f.fingerprint] = true
-    match prev_map.get(f.fingerprint) {
-      Some(_) => diff.unchanged.push(f)
-      None => diff.new_findings.push(f)
+    let key = report_finding_key(rule_id_str(f.rule_id), f.file, f.fingerprint)
+    let remaining = report_count(previous_counts, key)
+    if remaining > 0 {
+      previous_counts[key] = remaining - 1
+      consumed[key] = report_count(consumed, key) + 1
+      diff.unchanged.push(f)
+    } else {
+      diff.new_findings.push(f)
     }
   }
-  // resolved: prev entries whose fingerprint is absent from current
+  // Consume earlier prior occurrences first, matching the stable input
+  // order used above; every remaining occurrence is independently resolved.
   for p in prev {
-    if !cur_map.contains(p.fingerprint) {
+    let key = report_finding_key(p.rule_id, p.file, p.fingerprint)
+    let matched = report_count(consumed, key)
+    if matched > 0 {
+      consumed[key] = matched - 1
+    } else {
       diff.resolved.push(p)
     }
   }
   diff
+}
+
+///|
+fn report_finding_key(
+  rule : String,
+  file : String,
+  fingerprint : String,
+) -> String {
+  cache_parts_repr([
+    rule,
+    canonical_dir(@path.Path(canonical_dir(file)).resolve().0),
+    fingerprint,
+  ])
+}
+
+///|
+fn report_count(counts : Map[String, Int], key : String) -> Int {
+  match counts.get(key) {
+    Some(count) => count
+    None => 0
+  }
 }
 
 ///|
@@ -175,8 +209,22 @@ pub fn format_json_with_diff(
   result : ScanResult,
   diff : BaselineDiff,
 ) -> String {
+  let unchanged_counts : Map[String, Int] = Map([])
+  for f in diff.unchanged {
+    let key = report_finding_key(rule_id_str(f.rule_id), f.file, f.fingerprint)
+    unchanged_counts[key] = report_count(unchanged_counts, key) + 1
+  }
   let findings_json : Array[Json] = []
   for f in result.findings {
+    let key = report_finding_key(rule_id_str(f.rule_id), f.file, f.fingerprint)
+    let unchanged = report_count(unchanged_counts, key)
+    let status = if unchanged > 0 {
+      unchanged_counts[key] = unchanged - 1
+      "unchanged"
+    } else {
+      "new"
+    }
+
     findings_json.push({
       "rule_id": Json::string(rule_id_str(f.rule_id)),
       "severity": Json::string(severity_str(f.severity)),
@@ -189,15 +237,7 @@ pub fn format_json_with_diff(
       "end_column": Json::number(f.end_column.to_double()),
       "snippet": Json::string(f.snippet),
       "fingerprint": Json::string(f.fingerprint),
-      "status": Json::string(
-        if diff.new_findings.any(fn(f2) {
-            f2.fingerprint == f.fingerprint && f2.file == f.file
-          }) {
-          "new"
-        } else {
-          "unchanged"
-        },
-      ),
+      "status": Json::string(status),
     })
   }
   let resolved_json : Array[Json] = []
@@ -214,6 +254,7 @@ pub fn format_json_with_diff(
     "findings": Json::array(findings_json),
     "files_scanned": Json::number(result.files_scanned.to_double()),
     "errors": Json::array(result.errors.map(fn(e) { Json::string(e) })),
+    "analysis_scope": Json::string(result.analysis_scope),
     "comparison": {
       "previous_total": Json::number(diff.prev_total.to_double()),
       "current_total": Json::number(diff.current_total.to_double()),
@@ -238,13 +279,9 @@ pub const PARSER_VERSION_KEY : String = "moonbitlang/parser@0.3.18"
 ///|
 fn fnv1a(parts : Array[String]) -> String {
   let mut h : UInt = 2166136261U
-  for part in parts {
-    for i = 0; i < part.length(); i = i + 1 {
-      h = h.lxor(part[i].to_uint())
-      h = h * 16777619U
-    }
-    // separator avoids concatenation ambiguity
-    h = h.lxor(0x1fU)
+  let framed = cache_parts_repr(parts)
+  for i = 0; i < framed.length(); i = i + 1 {
+    h = h.lxor(framed[i].to_uint())
     h = h * 16777619U
   }
   h.to_string()
@@ -264,75 +301,99 @@ pub fn analysis_cache_key(
 }
 
 ///|
-fn irtype_opt_repr(t : IRType?) -> String {
-  match t {
-    Some(ty) => ty.display()
-    None => "-"
+fn irtype_cache_repr(ty : IRType) -> String {
+  match ty {
+    IRUnresolved => "unresolved"
+    IRUnit => "unit"
+    IRConcrete(name, args) =>
+      cache_parts_repr([
+        "concrete",
+        name,
+        cache_parts_repr(args.map(irtype_cache_repr)),
+      ])
+    IRTraitObj(name) => cache_parts_repr(["trait", name])
+    IRTypeParam(name) => cache_parts_repr(["param", name])
+    IRFn(name) => cache_parts_repr(["fn", name])
   }
 }
 
 ///|
-/// Fingerprint of a PkgSymbols table. T7.3: VALUE-SENSITIVE — a same-name
-/// type change now changes the fingerprint (gate15 known-gap closed).
-/// Also stamped with analyzer + parser versions so a toolchain bump
-/// invalidates derived caches. Insertion-order independent.
-pub fn symbols_fingerprint(symbols : PkgSymbols) -> String {
-  let parts : Array[String] = []
-  // version stamps (T7.3): toolchain identity enters the key
-  parts.push("v:analyzer=" + ANALYZER_VERSION)
-  parts.push("v:parser=" + PARSER_SPEC_VERSION)
-  let keys : Array[String] = []
-  symbols.fn_ret.each(fn(k, ty) { keys.push("ret:" + k + "=" + ty.display()) })
-  symbols.impl_methods.each(fn(k, trait_path) {
-    keys.push("impl:" + k + "=" + trait_path)
-  })
-  symbols.struct_fields.each(fn(k, fields) {
-    // field map is itself insertion-order dependent: normalize by sorting
-    let fpairs : Array[String] = []
-    fields.each(fn(fk, fty) { fpairs.push(fk + ":" + fty.display()) })
-    fpairs.sort()
-    keys.push("field:" + k + "={" + fpairs.join(",") + "}")
-  })
-  symbols.constr_params.each(fn(k, tys) {
-    let reps : Array[String] = []
-    for ty in tys {
-      reps.push(ty.display())
-    }
-    keys.push("ctor:" + k + "=[" + reps.join(",") + "]")
-  })
-  symbols.trait_params.each(fn(k, tys) {
-    let reps : Array[String] = []
-    for t in tys {
-      reps.push(irtype_opt_repr(t))
-    }
-    keys.push("trait:" + k + "=[" + reps.join(",") + "]")
-  })
-  symbols.fn_param_arrows.each(fn(k, per_param) {
-    // per-param groups: each param's arrow-arg types rendered as a group
-    let groups : Array[String] = []
-    for grp in per_param {
-      let reps : Array[String] = []
-      for t in grp {
-        reps.push(irtype_opt_repr(t))
-      }
-      groups.push("(" + reps.join(",") + ")")
-    }
-    keys.push("arrow:" + k + "=[" + groups.join(",") + "]")
-  })
-  symbols.alias_arrows.each(fn(k, tys) {
-    let reps : Array[String] = []
-    for t in tys {
-      reps.push(irtype_opt_repr(t))
-    }
-    keys.push("alias:" + k + "=[" + reps.join(",") + "]")
-  })
-  // fn_exists values are constant `true` — key names suffice
-  symbols.fn_exists.each(fn(k, _) { keys.push("fn:" + k) })
-  keys.sort()
-  for k in keys {
-    parts.push(k)
+fn irtype_opt_repr(t : IRType?) -> String {
+  match t {
+    Some(ty) => cache_parts_repr(["some", irtype_cache_repr(ty)])
+    None => "none"
   }
-  fnv1a(parts)
+}
+
+///|
+fn[V] symbol_map_repr(map : Map[String, V], repr : (V) -> String) -> String {
+  let pairs : Array[String] = []
+  map.each(fn(key, value) { pairs.push(cache_parts_repr([key, repr(value)])) })
+  pairs.sort()
+  cache_parts_repr(pairs)
+}
+
+///|
+fn fn_sig_cache_repr(sig : FnSig) -> String {
+  cache_parts_repr([
+    cache_parts_repr(
+      sig.params.map(fn(p) {
+        cache_parts_repr([
+          p.binder,
+          p.kind,
+          p.has_default.to_string(),
+          irtype_cache_repr(p.ty),
+          cache_parts_repr(p.arrow_args.map(irtype_opt_repr)),
+        ])
+      }),
+    ),
+    cache_parts_repr(sig.generic_constraints),
+    irtype_cache_repr(sig.return_ty),
+    sig.error_effect,
+    sig.is_async.to_string(),
+    sig.entry,
+  ])
+}
+
+///|
+/// Value-sensitive fingerprint of every semantic PkgSymbols field.
+/// Maps are sorted; arrays retain their parameter/callback order. The
+/// alias_unresolved counter is diagnostic state and must not invalidate.
+/// Structural IRType encoding retains IRFn identities hidden by display().
+pub fn symbols_fingerprint(symbols : PkgSymbols) -> String {
+  fnv1a([
+    "v:analyzer=" + ANALYZER_VERSION,
+    "v:parser=" + PARSER_SPEC_VERSION,
+    symbols.alias_mode.to_string(),
+    symbol_map_repr(symbols.fn_exists, fn(b) { b.to_string() }),
+    symbol_map_repr(symbols.fn_ret, irtype_cache_repr),
+    symbol_map_repr(symbols.impl_methods, fn(s) { s }),
+    symbol_map_repr(symbols.constructors, fn(s) { s }),
+    symbol_map_repr(symbols.struct_fields, fn(fields) {
+      symbol_map_repr(fields, irtype_cache_repr)
+    }),
+    symbol_map_repr(symbols.constr_params, fn(tys) {
+      cache_parts_repr(tys.map(irtype_cache_repr))
+    }),
+    symbol_map_repr(symbols.trait_params, fn(tys) {
+      cache_parts_repr(tys.map(irtype_opt_repr))
+    }),
+    symbol_map_repr(symbols.fn_param_arrows, fn(groups) {
+      cache_parts_repr(
+        groups.map(fn(tys) { cache_parts_repr(tys.map(irtype_opt_repr)) }),
+      )
+    }),
+    symbol_map_repr(symbols.alias_arrows, fn(tys) {
+      cache_parts_repr(tys.map(irtype_opt_repr))
+    }),
+    symbol_map_repr(symbols.fn_sigs, fn_sig_cache_repr),
+    symbol_map_repr(symbols.value_types, irtype_cache_repr),
+    symbol_map_repr(symbols.globals, irtype_cache_repr),
+    symbol_map_repr(symbols.lib_fn_ret, irtype_cache_repr),
+    symbol_map_repr(symbols.lib_callbacks, cache_parts_repr),
+    symbol_map_repr(symbols.trait_names, fn(b) { b.to_string() }),
+    symbol_map_repr(symbols.type_params, fn(b) { b.to_string() }),
+  ])
 }
 
 // ── T8.4: precision ledger (per-rule four-state triage aggregation) ───────

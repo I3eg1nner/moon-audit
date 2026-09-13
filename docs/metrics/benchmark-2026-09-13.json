@@ -1,0 +1,171 @@
+{
+  "started_at": "2026-09-13T14:31:21.541708+00:00",
+  "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.35",
+  "cpu_count": 128,
+  "binaries": {
+    "baseline": {
+      "path": "/tmp/moon-audit-original.WG0TrR/_build/native/debug/build/src/main/main.exe",
+      "sha256": "2e87f9e8c24ede0e00f65e2b396500cac9d2076b74345e2add773a44360ccdbe"
+    },
+    "candidate": {
+      "path": "/tmp/moon-audit-20260913/candidate-final.exe",
+      "sha256": "ff4e8e6c2237836e5a491ae7c54f7f3cbd7a71de0f1e9656806c20a929dd2cfa"
+    }
+  },
+  "method": {
+    "clock": "time.perf_counter wall seconds, includes process startup and JSON output",
+    "order": "alternating baseline/candidate then candidate/baseline",
+    "warmup_pairs": 1,
+    "measured_pairs": 5,
+    "timeout_seconds": 180,
+    "equivalence": "all finding fields, multiplicity, file errors, and files_scanned; excludes analysis_scope metadata",
+    "limitations": "same local host; filesystem cache warm; no CPU isolation or release-build inference; source revision/status checked, ignored dependency contents must remain unchanged"
+  },
+  "projects": [
+    {
+      "path": "/data/my/corpus/oboard_mocket",
+      "source_state": {
+        "git_revision": "af354b7a031ee8e0a7e62e76875b82a0a39ac71b",
+        "tracked_worktree_status": []
+      },
+      "samples_seconds": {
+        "baseline": [
+          2.0714978417381644,
+          2.055451446212828,
+          2.092636010609567,
+          2.0690947407856584,
+          2.0656832987442613
+        ],
+        "candidate": [
+          1.0363796511664987,
+          1.0278721386566758,
+          1.0216462053358555,
+          1.0366208208724856,
+          1.015490174293518
+        ]
+      },
+      "equivalent": true,
+      "exit_codes": {
+        "baseline": 0,
+        "candidate": 0
+      },
+      "findings": 0,
+      "file_errors": 0,
+      "files_scanned": 42,
+      "statistics": {
+        "baseline": {
+          "median_seconds": 2.0690947407856584,
+          "min_seconds": 2.055451446212828,
+          "max_seconds": 2.092636010609567
+        },
+        "candidate": {
+          "median_seconds": 1.0278721386566758,
+          "min_seconds": 1.015490174293518,
+          "max_seconds": 1.0366208208724856
+        }
+      },
+      "speedup_baseline_over_candidate": 2.012988447658241
+    },
+    {
+      "path": "/data/my/moonbit-petgraph",
+      "source_state": {
+        "git_revision": "165060fa9ef09d4ec191c874035f40e71096db9f",
+        "tracked_worktree_status": []
+      },
+      "samples_seconds": {
+        "baseline": [
+          1.883160812780261,
+          1.867462077178061,
+          1.8800925314426422,
+          1.8843216123059392,
+          1.889063605107367
+        ],
+        "candidate": [
+          0.9297395721077919,
+          0.93343988340348,
+          0.943101136945188,
+          0.9786373293027282,
+          0.9627088839188218
+        ]
+      },
+      "equivalent": true,
+      "exit_codes": {
+        "baseline": 0,
+        "candidate": 0
+      },
+      "findings": 0,
+      "file_errors": 0,
+      "files_scanned": 56,
+      "statistics": {
+        "baseline": {
+          "median_seconds": 1.883160812780261,
+          "min_seconds": 1.867462077178061,
+          "max_seconds": 1.889063605107367
+        },
+        "candidate": {
+          "median_seconds": 0.943101136945188,
+          "min_seconds": 0.9297395721077919,
+          "max_seconds": 0.9786373293027282
+        }
+      },
+      "speedup_baseline_over_candidate": 1.9967750424732105
+    },
+    {
+      "path": "/data/my/corpus/moonbitlang_moonyacc",
+      "source_state": {
+        "git_revision": "b9b77bb0cff55825f801f75730f1ae881f7eaf26",
+        "tracked_worktree_status": []
+      },
+      "samples_seconds": {
+        "baseline": [
+          20.183965442702174,
+          19.96126116067171,
+          19.643320524133742,
+          19.934649292379618,
+          20.51622971519828
+        ],
+        "candidate": [
+          10.164070597849786,
+          10.230127862654626,
+          10.330684649758041,
+          10.512328806333244,
+          10.163826048374176
+        ]
+      },
+      "equivalent": true,
+      "exit_codes": {
+        "baseline": 0,
+        "candidate": 0
+      },
+      "findings": 0,
+      "file_errors": 0,
+      "files_scanned": 63,
+      "statistics": {
+        "baseline": {
+          "median_seconds": 19.96126116067171,
+          "min_seconds": 19.643320524133742,
+          "max_seconds": 20.51622971519828
+        },
+        "candidate": {
+          "median_seconds": 10.230127862654626,
+          "min_seconds": 10.163826048374176,
+          "max_seconds": 10.512328806333244
+        }
+      },
+      "speedup_baseline_over_candidate": 1.951223037352335
+    }
+  ],
+  "complete": true,
+  "finished_at": "2026-09-13T14:35:00.194365+00:00",
+  "build_context": {
+    "baseline_revision": "7c349ab",
+    "toolchain": "moon 0.1.20260827 / moonc 0.10.11+6ff76a5f9",
+    "build_profile": "native debug",
+    "candidate_note": "Measured before final project-scoped baseline keys and cfg-verify cache bypass; default scan path is unchanged by those fixes."
+  },
+  "post_review_validation": {
+    "binary_sha256": "5729ad445002377675f36482e573cb523a316a45a0faa90050dc17e82bbeee87",
+    "all_three_project_scan_results_rechecked": true,
+    "timing_repeated": false
+  }
+}

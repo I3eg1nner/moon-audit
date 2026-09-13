@@ -103,6 +103,7 @@ pub(all) struct Config {
   output_format : String
   min_severity : Severity
   changed_files : Array[String]
+  incremental : Bool // Explicit empty change lists must scan zero files.
   analysis_mode : String // T7.5: "quick" (default) | "deep" (force interproc)
   context_strategy : ContextStrategy // T7.1: pluggable context sensitivity
 }
@@ -142,6 +143,7 @@ pub fn Config::default() -> Config {
     output_format: "text",
     min_severity: Warning,
     changed_files: [],
+    incremental: false,
     analysis_mode: "quick",
     context_strategy: Insensitive,
   }

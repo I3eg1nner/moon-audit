@@ -81,13 +81,31 @@ pub fn run_cwe113(
     Some(b) => b
     None => true
   }
-  let c = match cache {
+  // Strict CFG verification needs fresh execution diagnostics, which a
+  // findings-only cache cannot replay. Keep its results out of a shared
+  // cache as well, because normal mode can filter unreachable findings.
+  let reusable_cache = if cfg_verify_mode() { None } else { cache }
+  let c = match reusable_cache {
     Some(c) => c
     None => FnCache::new() // no cache: each lookup misses → normal path
   }
-  let fp = match symbols_fp {
-    Some(f) => f
-    None => "-"
+  let fp = match reusable_cache {
+    None => "" // ephemeral cache cannot replay results from an earlier scan
+    Some(_) =>
+      taint_analysis_fingerprint(
+        match symbols_fp {
+          Some(f) => f
+          None => "-"
+        },
+        severity,
+        rules,
+        output_sinks,
+        ictx,
+      )
+  }
+  let source_lines : Array[String] = []
+  for line in source.split("\n") {
+    source_lines.push(line.to_owned())
   }
   for item in impls {
     match item {
@@ -101,7 +119,10 @@ pub fn run_cwe113(
         }
         match decl_body {
           DeclBody(..) => {
-            let bh = fn_body_hash(fn_key, body_loc_repr(body))
+            let bh = fn_body_hash(
+              fn_key,
+              fn_source_repr(item.loc(), source_lines),
+            )
             match c.lookup(file, fn_key, bh, fp) {
               Some(cached) =>
                 for f in cached {
@@ -126,7 +147,13 @@ pub fn run_cwe113(
         }
       }
       TopImpl(method_name~, params~, body~, ..) => {
-        let fn_key = method_name.name
+        // Distinguish same-named methods on different receiver/trait impls.
+        // Positions already enter validity because findings retain locations.
+        let fn_key = cache_parts_repr([
+          method_name.name,
+          item.loc().start.lnum.to_string(),
+          item.loc().start.column().to_string(),
+        ])
         let (params2, body2) = match body {
           DeclBody(expr=Function(func~, ..)) =>
             (Some(func.parameters), func.body)
@@ -135,7 +162,10 @@ pub fn run_cwe113(
         }
         match body {
           DeclBody(..) => {
-            let bh = fn_body_hash(fn_key, body_loc_repr(body2))
+            let bh = fn_body_hash(
+              fn_key,
+              fn_source_repr(item.loc(), source_lines),
+            )
             match c.lookup(file, fn_key, bh, fp) {
               Some(cached) =>
                 for f in cached {
@@ -193,31 +223,5 @@ fn unit_dummy_loc() -> @basic.Location {
   {
     start: { fname: "", lnum: 0, bol: 0, cnum: 0, },
     end: { fname: "", lnum: 0, bol: 0, cnum: 0, },
-  }
-}
-
-// lightweight body repr: loc + structural discriminant (no Show on Expr)
-
-///|
-fn body_loc_repr(body : @syntax.Expr) -> String {
-  let loc = body.loc()
-  loc.start.lnum.to_string() +
-  "-" +
-  loc.end.lnum.to_string() +
-  ":" +
-  body_variant_tag(body)
-}
-
-///|
-fn body_variant_tag(e : @syntax.Expr) -> String {
-  match e {
-    If(..) => "If"
-    Match(..) => "Match"
-    Let(..) => "Let"
-    Sequence(..) => "Seq"
-    Guard(..) => "Guard"
-    Try(..) => "Try"
-    While(..) => "While"
-    _ => "E"
   }
 }

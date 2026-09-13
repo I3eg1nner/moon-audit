@@ -78,7 +78,7 @@ pub fn collect_mbti_trait_method(@mbti_ast.TraitMethodSig, String, PkgSymbols) -
 
 pub fn collect_mutate_receivers(@syntax.Expr, Array[String]) -> Unit
 
-pub fn collect_summaries_scc(Array[SummaryUnit], InterProceduralContext, strategy? : ContextStrategy) -> Unit
+pub fn collect_summaries_scc(Array[SummaryUnit], InterProceduralContext, strategy? : ContextStrategy, warn_unimplemented? : Bool) -> Unit
 
 pub fn collect_symbols(Array[@syntax.Impl], PkgSymbols) -> Unit
 
@@ -152,7 +152,7 @@ pub fn fact_of_tainted_param(String) -> SecurityFact
 
 pub fn fact_of_tainted_unknown() -> SecurityFact
 
-pub fn filter_baseline(Array[Finding], Map[String, Bool]) -> Array[Finding]
+pub fn filter_baseline(Array[Finding], Map[String, Bool], root? : String) -> Array[Finding]
 
 pub fn filter_by_llm_results(Array[LLMAnalysisResult], Double) -> Array[LLMAnalysisResult]
 
@@ -192,7 +192,7 @@ pub fn generate_all_pocs(Array[Finding], ImportContext) -> Array[PoCTemplate]
 
 pub fn generate_analysis_prompt(Finding, String, ImportContext) -> LLMAnalysisRequest
 
-pub fn generate_baseline(Array[Finding]) -> String
+pub fn generate_baseline(Array[Finding], root? : String) -> String
 
 pub fn generate_batch_prompts(Array[Finding], Map[String, String], ImportContext) -> Array[LLMAnalysisRequest]
 
@@ -269,6 +269,8 @@ pub fn loop_fixpoint_widening_count() -> Int
 pub fn materialize_trait_from_sig(PkgSymbols, String) -> Unit
 
 pub fn merge_imports(ImportContext, ImportContext) -> ImportContext
+
+pub fn parse_changed_files(String) -> Array[String]
 
 pub fn parse_llm_response(Finding, String) -> LLMAnalysisResult?
 
@@ -496,6 +498,7 @@ pub(all) struct Config {
   output_format : String
   min_severity : Severity
   changed_files : Array[String]
+  incremental : Bool
   analysis_mode : String
   context_strategy : ContextStrategy
 }

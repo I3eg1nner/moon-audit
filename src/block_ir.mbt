@@ -337,19 +337,35 @@ fn lower_one(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
       ctx.blocks[ctx.cur].stmts.push(BindVar(name.name, RWhole))
       lower(body, ctx)
     }
-    Guard(cond~, body~, ..) => {
-      // guard: cond fails → otherwise path (treated as branch to join)
+    Guard(cond~, otherwise~, body~, ..) => {
       lower_effects(cond, ctx)
-      let header = ctx.cur
-      let ok_id = ctx.fresh_block()
-      let join_id = ctx.fresh_block()
-      ir_link(header, ok_id, ctx.blocks)
-      ir_link(header, join_id, ctx.blocks)
-      ctx.cur = ok_id
-      lower(body, ctx)
-      let end = cur_exit(ctx)
-      ir_link(end, join_id, ctx.blocks)
-      ctx.cur = join_id
+      // Match the flow walk's branch order and constant pruning so temps
+      // and sinks in the failure expression participate in CFG execution.
+      if is_true_const(cond) {
+        lower(body, ctx)
+      } else if is_false_const(cond) {
+        match otherwise {
+          Some(e) => lower(e, ctx)
+          None => ()
+        }
+      } else {
+        let header = ctx.cur
+        let ok_id = ctx.fresh_block()
+        let fail_id = ctx.fresh_block()
+        let join_id = ctx.fresh_block()
+        ir_link(header, ok_id, ctx.blocks)
+        ir_link(header, fail_id, ctx.blocks)
+        ctx.cur = ok_id
+        lower(body, ctx)
+        ir_link(cur_exit(ctx), join_id, ctx.blocks)
+        ctx.cur = fail_id
+        match otherwise {
+          Some(e) => lower(e, ctx)
+          None => ()
+        }
+        ir_link(cur_exit(ctx), join_id, ctx.blocks)
+        ctx.cur = join_id
+      }
     }
     TryOperator(body~, ..) => lower(body, ctx)
     _ => lower_effects(expr, ctx)
@@ -589,6 +605,16 @@ fn lower_effects(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
         }
       }
     ArrayGet(array~, ..) => lower_effects(array, ctx)
+    Record(fields~, ..) =>
+      for field in fields {
+        lower_effects(field.expr, ctx)
+      }
+    RecordUpdate(record~, fields~, ..) => {
+      lower_effects(record, ctx)
+      for field in fields {
+        lower_effects(field.expr, ctx)
+      }
+    }
     Field(record~, ..) => lower_effects(record, ctx)
     Pipe(lhs~, ..) | RevPipe(lhs~, ..) => lower_effects(lhs, ctx)
     Constraint(expr~, ..) => lower_effects(expr, ctx)

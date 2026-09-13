@@ -286,10 +286,11 @@ pub fn collect_summaries_scc(
   units : Array[SummaryUnit],
   ictx : InterProceduralContext,
   strategy? : ContextStrategy = Insensitive,
+  warn_unimplemented? : Bool = true,
 ) -> Unit {
   // T7.1: dispatch skeleton — Insensitive is the current behavior; other
   // strategies are announced but not yet implemented (warn, don't ignore)
-  if !strategy.is_implemented() {
+  if warn_unimplemented && !strategy.is_implemented() {
     println(
       "moon-audit: warning: context strategy '" +
       strategy.name() +

@@ -23,7 +23,7 @@ pub fn format_sarif(result : ScanResult) -> String {
         "tool": {
           "driver": {
             "name": Json::string("moon-audit"),
-            "version": Json::string("0.1.0"),
+            "version": Json::string(ANALYZER_VERSION),
             "rules": Json::array(rule_descriptors),
           },
         },

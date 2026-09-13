@@ -175,3 +175,88 @@ test "e1b_widening_counter_tracks_exhausted_loops" {
   inspect(findings.length(), content="1") // conservative firing (was 0)
   loop_budget_reset()
 }
+
+///|
+test "guard_cfg_confirms_success_and_failure_sinks" {
+  let (findings, mode) = d1b_run(
+    (
+      #|pub fn f(resp : Response, dirty : String, ok : Bool) -> Unit {
+      #|  guard ok else { resp.set_header("Rejected", dirty) }
+      #|  resp.set_header("Accepted", dirty)
+      #|}
+    ),
+  )
+  inspect(findings.length(), content="2")
+  inspect(mode, content="cfg=1 fb=0 div=0 cap=0")
+}
+
+///|
+test "guard_cfg_false_executes_only_failure_sink" {
+  let (findings, mode) = d1b_run(
+    (
+      #|pub fn f(resp : Response, dirty : String) -> Unit {
+      #|  guard false else { resp.set_header("Rejected", dirty) }
+      #|  resp.set_header("Accepted", dirty)
+      #|}
+    ),
+  )
+  inspect(findings.length(), content="1")
+  inspect(findings[0].line, content="2")
+  inspect(mode, content="cfg=1 fb=0 div=0 cap=0")
+}
+
+///|
+test "guard_cfg_true_executes_only_success_sink" {
+  let (findings, mode) = d1b_run(
+    (
+      #|pub fn f(resp : Response, dirty : String) -> Unit {
+      #|  guard true else { resp.set_header("Rejected", dirty) }
+      #|  resp.set_header("Accepted", dirty)
+      #|}
+    ),
+  )
+  inspect(findings.length(), content="1")
+  inspect(findings[0].line, content="3")
+  inspect(mode, content="cfg=1 fb=0 div=0 cap=0")
+}
+
+///|
+test "guard_cfg_record_field_effects_keep_sink_temps_aligned" {
+  let source =
+    #|fn f(resp : Response, dirty : String, ok : Bool) -> Unit {
+    #|  { guard ok else { ignore(Box::{ value: dirty.to_string() }) }; () }
+    #|  resp.set_header("Safe", "safe")
+    #|  resp.set_header("Dirty", dirty)
+    #|}
+  let (_, errors) = @parser.parse_string(source, name="t.mbt")
+  inspect(errors.length(), content="0")
+  set_cfg_verify_mode(true)
+  let (findings, mode) = d1b_run(source)
+  let unconfirmed = cfg_exec_unconfirmed_count()
+  set_cfg_verify_mode(false)
+  inspect(findings.length(), content="1")
+  inspect(findings[0].line, content="4")
+  inspect(mode, content="cfg=1 fb=0 div=0 cap=0")
+  inspect(unconfirmed, content="0")
+}
+
+///|
+test "cfg_record_update_effects_keep_sink_temps_aligned" {
+  let source =
+    #|fn f(resp : Response, dirty : String) -> Unit {
+    #|  let box = Box::{ value: "safe" }
+    #|  ignore({ ..box, value: dirty.to_string() })
+    #|  resp.set_header("Safe", "safe")
+    #|  resp.set_header("Dirty", dirty)
+    #|}
+  let (_, errors) = @parser.parse_string(source, name="t.mbt")
+  inspect(errors.length(), content="0")
+  set_cfg_verify_mode(true)
+  let (findings, mode) = d1b_run(source)
+  let unconfirmed = cfg_exec_unconfirmed_count()
+  set_cfg_verify_mode(false)
+  inspect(findings.length(), content="1")
+  inspect(findings[0].line, content="5")
+  inspect(mode, content="cfg=1 fb=0 div=0 cap=0")
+  inspect(unconfirmed, content="0")
+}

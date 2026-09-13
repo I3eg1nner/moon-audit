@@ -38,11 +38,17 @@ pub fn scan_project_with_world(
   let (taint_rules, _taint_source, model_warnings) = load_taint_rules(root)
   let interproc_ctx = InterProceduralContext::new()
   let mut has_web = false
-  let incremental = config.changed_files.length() > 0
+  let incremental = config.incremental || config.changed_files.length() > 0
   let changed_set : Map[String, Bool] = Map([])
   if incremental {
     for f in config.changed_files {
-      changed_set[f] = true
+      let path = @path.Path(canonical_dir(f))
+      let resolved = if path.is_absolute() {
+        path.resolve()
+      } else {
+        @path.Path(root).join(path).resolve()
+      }
+      changed_set[canonical_dir(resolved.0)] = true
     }
   }
   // E3: world arrives pre-built (symbols may be present; unused here).
@@ -80,6 +86,7 @@ pub fn scan_project_with_world(
       scc_units,
       interproc_ctx,
       strategy=config.context_strategy,
+      warn_unimplemented=false,
     )
   }
   // Phase 1: Regular rules + collect function summaries
@@ -91,6 +98,11 @@ pub fn scan_project_with_world(
       has_web = true
     }
     for file in pkgf.files {
+      // Summary collection already visits dependencies separately. Only
+      // selected files contribute diagnostics and rule findings here.
+      if incremental && !is_changed_file(file, changed_set) {
+        continue
+      }
       let source = @fs.read_file_to_string(file) catch {
         _ => {
           errors.push("Failed to read " + file)
@@ -103,23 +115,18 @@ pub fn scan_project_with_world(
       }
       // T4.2: summaries are solved once, globally, in the SCC pre-pass
       // (this in-walk re-collection was pass 2 of the fixed two-pass)
-      let should_scan = if incremental {
-        is_changed_file(file, changed_set)
-      } else {
-        true
-      }
-      if should_scan {
-        files_scanned += 1
-        run_all_rules(
-          impls, file, source, findings, imports, config, interproc_ctx, taint_rules,
-          fn_cache, world_fp,
-        )
-      }
+      files_scanned += 1
+      run_all_rules(
+        impls, file, source, findings, imports, config, interproc_ctx, taint_rules,
+        fn_cache, world_fp,
+      )
     }
   }
   // Phase 2: Cross-function taint analysis (web projects; deep mode
   // forces it for all projects — T7.5)
-  if (has_web || deep_mode) && interproc_ctx.summaries.length() > 0 {
+  if (has_web || deep_mode) &&
+    interproc_ctx.summaries.length() > 0 &&
+    config.is_enabled("CWE-113/crlf-injection") {
     for pkgf in world.packages {
       let pkg_dir = pkgf.dir
       let pkg_imports = analyze_imports(pkg_dir)
@@ -194,6 +201,10 @@ fn build_analysis_scope(
   model_warnings.to_string() +
   "(measured, T5.1 pipeline); mode=" +
   config.analysis_mode +
+  "; context-strategy=" +
+  config.context_strategy.name() +
+  "; context-implemented=" +
+  config.context_strategy.is_implemented().to_string() +
   "; incremental=" +
   (if incremental { "true" } else { "false" }) +
   "; " +
@@ -342,19 +353,30 @@ fn run_all_rules(
     )
   }
   let cwe113_id = "CWE-113/crlf-injection"
-  if config.is_enabled(cwe113_id) {
+  let output_id = "CWE-116/tainted-output"
+  if config.is_enabled(cwe113_id) || config.is_enabled(output_id) {
+    let taint_findings : Array[Finding] = []
     run_cwe113(
       impls,
       file,
       source,
-      findings,
+      taint_findings,
       config.get_severity(cwe113_id, cwe113_info().default_severity),
       ictx~,
       rules=taint_rules,
-      output_sinks_enabled=config.is_enabled("CWE-116/tainted-output"),
+      output_sinks_enabled=config.is_enabled(output_id),
       cache=f_cache,
       symbols_fp=f_fp,
     )
+    for finding in taint_findings {
+      let id = rule_id_str(finding.rule_id)
+      if config.is_enabled(id) {
+        findings.push({
+          ..finding,
+          severity: config.get_severity(id, finding.severity),
+        })
+      }
+    }
   }
   if imports.has_mocket || imports.has_crescent {
     let cwe079t_id = "CWE-79/template-injection"
@@ -477,20 +499,17 @@ fn should_exclude_file(name : String, config : Config) -> Bool {
 
 ///|
 fn is_changed_file(file : String, changed_set : Map[String, Bool]) -> Bool {
-  if changed_set.contains(file) {
-    return true
-  }
-  for entry in changed_set {
-    if file.has_suffix(entry.0) || entry.0.has_suffix(file) {
-      return true
-    }
-  }
-  false
+  changed_set.contains(canonical_dir(@path.Path(file).resolve().0))
 }
 
 ///|
 pub fn load_changed_files(path : String) -> Array[String] {
   let content = @fs.read_file_to_string(path) catch { _ => return [] }
+  parse_changed_files(content)
+}
+
+///|
+pub fn parse_changed_files(content : String) -> Array[String] {
   let files : Array[String] = []
   for line in content.split("\n") {
     let trimmed = line.to_owned().trim().to_owned()

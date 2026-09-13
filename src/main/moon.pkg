@@ -6,6 +6,7 @@ import {
   "moonbitlang/x/sys",
   "moonbitlang/core/argparse",
   "moonbitlang/core/builtin",
+  "moonbitlang/core/json",
 }
 
 pkgtype(kind: "executable")
