@@ -132,3 +132,220 @@ pub fn format_instrument_report_json(
   buf.write_string("}\n")
   buf.to_string()
 }
+
+// ── P1b: static/dynamic call comparison + recall/precision ───────────────
+
+///|
+pub(all) struct CallComparison {
+  recall_pct : Int // |dynamic ∩ static| / |dynamic| * 100
+  precision_pct : Int // |static ∩ dynamic| / |static| * 100
+  matched : Int
+  dynamic_only : Array[String] // dynamic edges not in static (recall gap)
+  static_only : Array[String] // static edges not observed (NOT false positives)
+  dynamic_total : Int
+  static_total : Int
+}
+
+///|
+pub fn compare_calls(
+  static_edges : Array[String],
+  dynamic_edges : Array[String],
+) -> CallComparison {
+  let sset : Map[String, Bool] = Map([])
+  for e in static_edges {
+    sset[e] = true
+  }
+  let dset : Map[String, Bool] = Map([])
+  for e in dynamic_edges {
+    dset[e] = true
+  }
+  let mut matched = 0
+  let dyn_only : Array[String] = []
+  dset.each(fn(e, _) {
+    if sset.contains(e) {
+      matched += 1
+    } else {
+      dyn_only.push(e)
+    }
+  })
+  let stat_only : Array[String] = []
+  sset.each(fn(e, _) { if !dset.contains(e) { stat_only.push(e) } })
+  let dt = dset.length()
+  let st = sset.length()
+  let recall = if dt > 0 { matched * 100 / dt } else { 0 }
+  let precision = if st > 0 { matched * 100 / st } else { 0 }
+  {
+    recall_pct: recall,
+    precision_pct: precision,
+    matched,
+    dynamic_only: dyn_only,
+    static_only: stat_only,
+    dynamic_total: dt,
+    static_total: st,
+  }
+}
+
+///|
+pub fn format_comparison_text(c : CallComparison) -> String {
+  let buf = StringBuilder()
+  buf.write_string("call comparison (P1b)\n")
+  buf.write_string("  matched edges:      " + c.matched.to_string() + "\n")
+  buf.write_string(
+    "  dynamic edges:      " + c.dynamic_total.to_string() + "\n",
+  )
+  buf.write_string("  static edges:       " + c.static_total.to_string() + "\n")
+  buf.write_string(
+    "  recall:             " +
+    c.recall_pct.to_string() +
+    "%  (dynamic edges covered by static)\n",
+  )
+  buf.write_string(
+    "  precision:          " +
+    c.precision_pct.to_string() +
+    "%  (static edges observed dynamically)\n",
+  )
+  buf.write_string("\n")
+  buf.write_string("  dynamic-only (recall gap):\n")
+  for e in c.dynamic_only {
+    buf.write_string("    " + e + "\n")
+  }
+  if c.dynamic_only.length() == 0 {
+    buf.write_string("    (none)\n")
+  }
+  buf.write_string("\n")
+  buf.write_string(
+    "  static-only (unobserved — may be un-executed paths, NOT false positives):\n",
+  )
+  for e in c.static_only {
+    buf.write_string("    " + e + "\n")
+  }
+  if c.static_only.length() == 0 {
+    buf.write_string("    (none)\n")
+  }
+  buf.write_string(
+    "\n  note: dynamic-only edges indicate static analysis gaps;\n",
+  )
+  buf.write_string(
+    "  static-only edges may be cold paths, error handlers, or unreached code.\n",
+  )
+  buf.to_string()
+}
+
+///|
+pub fn parse_dynamic_log(content : String) -> Array[String] {
+  // dynamic log format: one edge per line, "caller -> callee"
+  // (from record("caller -> callee") calls)
+  let edges : Array[String] = []
+  for line in content.split("\n") {
+    let t = Show::to_string(Show::to_string(line).trim())
+    if t.length() > 0 && t.has_prefix("\"") {
+      // JSON format: "edge1", "edge2", ...
+      let inner = Show::to_string(t[1:t.length() - 1])
+      edges.push(inner)
+    } else if t.length() > 0 && t.contains(" -> ") {
+      edges.push(t)
+    }
+  }
+  edges
+}
+
+///|
+pub fn parse_static_edges(json : String) -> Array[String] {
+  // parse the call-graph edges JSON array from call-graph output
+  // or instrument --report JSON
+  let edges : Array[String] = []
+  let json_obj = @json.parse(json) catch { _ => return edges }
+  match json_obj {
+    Object(obj) =>
+      match obj.get("instrumented_call_sites") {
+        Some(Array(arr)) =>
+          for item in arr {
+            match item {
+              String(s) => edges.push(s)
+              _ => ()
+            }
+          }
+        _ => ()
+      }
+    Array(arr) =>
+      // raw array format
+      for item in arr {
+        match item {
+          String(s) => edges.push(s)
+          _ => ()
+        }
+      }
+    _ => ()
+  }
+  edges
+}
+
+///|
+pub fn format_comparison_json(c : CallComparison) -> String {
+  let q : String = Show::to_string(Int::unsafe_to_char(34))
+  let buf = StringBuilder()
+  buf.write_string("{\n")
+  buf.write_string("  \"recall_pct\": " + c.recall_pct.to_string() + ",\n")
+  buf.write_string(
+    "  \"precision_pct\": " + c.precision_pct.to_string() + ",\n",
+  )
+  buf.write_string("  \"matched\": " + c.matched.to_string() + ",\n")
+  buf.write_string(
+    "  \"dynamic_total\": " + c.dynamic_total.to_string() + ",\n",
+  )
+  buf.write_string("  \"static_total\": " + c.static_total.to_string() + ",\n")
+  buf.write_string("  \"dynamic_only\": [")
+  for i, e in c.dynamic_only {
+    if i > 0 {
+      buf.write_string(", ")
+    }
+    buf.write_string(q + e + q)
+  }
+  buf.write_string("],\n")
+  buf.write_string("  \"static_only_unobserved\": [")
+  for i, e in c.static_only {
+    if i > 0 {
+      buf.write_string(", ")
+    }
+    buf.write_string(q + e + q)
+  }
+  buf.write_string("]\n")
+  buf.write_string("}\n")
+  buf.to_string()
+}
+
+///|
+test "p1b_compare_calls_basic" {
+  let stat = ["a -> b", "a -> c", "d -> e"]
+  let dynamic = ["a -> b", "a -> c", "x -> y"]
+  let c = compare_calls(stat, dynamic)
+  inspect(c.matched, content="2")
+  inspect(c.recall_pct, content="66")
+  inspect(c.dynamic_only.length(), content="1")
+  inspect(c.dynamic_only[0], content="x -> y")
+  inspect(c.static_only.length(), content="1")
+  inspect(c.static_only[0], content="d -> e")
+}
+
+///|
+test "p1b_compare_calls_empty_dynamic" {
+  let c = compare_calls(["a -> b"], [])
+  inspect(c.recall_pct, content="0")
+  inspect(c.matched, content="0")
+}
+
+///|
+test "p1b_parse_dynamic_log" {
+  let log = "fn1 -> fn2\nfn2 -> fn3\n"
+  let edges = parse_dynamic_log(log)
+  inspect(edges.length(), content="2")
+  inspect(edges[0], content="fn1 -> fn2")
+}
+
+///|
+test "p1b_parse_static_json" {
+  let json_str = "{\"instrumented_call_sites\": [\"a -> b\", \"c -> d\"]}"
+  let edges = parse_static_edges(json_str)
+  inspect(edges.length(), content="2")
+  inspect(edges[0], content="a -> b")
+}

@@ -255,6 +255,18 @@ fn main {
         ],
       ),
       @argparse.Command(
+        "compare-calls",
+        about="P1b: compare static call graph with dynamic log → recall/precision",
+        positionals=[
+          @argparse.PositionArg("static-json", about="Static edges JSON", default_values=[
+            "",
+          ]),
+          @argparse.PositionArg("dynamic-log", about="Dynamic log file", default_values=[
+            "",
+          ]),
+        ],
+      ),
+      @argparse.Command(
         "instrument",
         about="P1a: generate instrument runtime package + function report JSON",
         options=[
@@ -425,6 +437,7 @@ fn main {
     Some(("summary", sub)) => cmd_summary(sub)
     Some(("generate-baseline", sub)) => cmd_generate_baseline(sub)
     Some(("ir-stats", sub)) => cmd_ir_stats(sub)
+    Some(("compare-calls", sub)) => cmd_compare_calls(sub)
     Some(("instrument", sub)) => cmd_instrument(sub)
     Some(("instrument-calls", sub)) => cmd_instrument_calls(sub)
     Some(("call-graph", sub)) => cmd_call_graph(sub)
@@ -1863,4 +1876,42 @@ fn cmd_instrument(matches : @argparse.Matches) -> Unit {
   println("  (moon.mod + src/runtime.mbt + src/main.mbt)")
   println("")
   println(@audit.format_instrument_report_json(report))
+}
+
+///|
+fn cmd_compare_calls(matches : @argparse.Matches) -> Unit {
+  let static_path = get_val(matches, "static-json", "")
+  let dynamic_path = get_val(matches, "dynamic-log", "")
+  if static_path == "" || dynamic_path == "" {
+    println("usage: moon-audit compare-calls <static-json> <dynamic-log>")
+    println(
+      "  static-json: output from 'moon-audit call-graph' or 'instrument'",
+    )
+    println(
+      "  dynamic-log: output from instrumented runtime (one edge per line)",
+    )
+    return
+  }
+  let static_json = @fs.read_file_to_string(static_path) catch {
+    _ => {
+      println("error: cannot read static JSON: " + static_path)
+      return
+    }
+  }
+  let dynamic_log = @fs.read_file_to_string(dynamic_path) catch {
+    _ => {
+      println("error: cannot read dynamic log: " + dynamic_path)
+      return
+    }
+  }
+  let static_edges = @audit.parse_static_edges(static_json)
+  let dynamic_edges = @audit.parse_dynamic_log(dynamic_log)
+  if static_edges.length() == 0 {
+    println("warning: no static edges parsed (check JSON format)")
+  }
+  if dynamic_edges.length() == 0 {
+    println("warning: no dynamic edges parsed (check log format)")
+  }
+  let comp = @audit.compare_calls(static_edges, dynamic_edges)
+  println(@audit.format_comparison_text(comp))
 }

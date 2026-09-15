@@ -84,6 +84,8 @@ pub fn collect_symbols(Array[@syntax.Impl], PkgSymbols) -> Unit
 
 pub fn collect_workspace_members(@moon_config.Ast, String, Array[String]) -> Unit
 
+pub fn compare_calls(Array[String], Array[String]) -> CallComparison
+
 pub fn compute_fingerprint(RuleId, String) -> String
 
 pub fn confidence_from_str(String) -> Confidence
@@ -161,6 +163,10 @@ pub fn flow_engine_taint_report(Array[Finding]) -> String
 pub fn fn_body_hash(String, String) -> String
 
 pub fn format_baseline_diff(BaselineDiff) -> String
+
+pub fn format_comparison_json(CallComparison) -> String
+
+pub fn format_comparison_text(CallComparison) -> String
 
 pub fn format_instrument_report_json(Array[InstrumentReport]) -> String
 
@@ -276,11 +282,15 @@ pub fn merge_imports(ImportContext, ImportContext) -> ImportContext
 
 pub fn parse_changed_files(String) -> Array[String]
 
+pub fn parse_dynamic_log(String) -> Array[String]
+
 pub fn parse_llm_response(Finding, String) -> LLMAnalysisResult?
 
 pub fn parse_report_findings(String) -> Array[PrevFinding]
 
 pub fn parse_ruleset_json(Json, String, Array[String]) -> TaintRuleset
+
+pub fn parse_static_edges(String) -> Array[String]
 
 pub fn parse_type_expr(String) -> IRType
 
@@ -451,6 +461,16 @@ pub(all) struct CWEStat {
   cwe_id : Int
   name : String
   count : Int
+}
+
+pub(all) struct CallComparison {
+  recall_pct : Int
+  precision_pct : Int
+  matched : Int
+  dynamic_only : Array[String]
+  static_only : Array[String]
+  dynamic_total : Int
+  static_total : Int
 }
 
 pub(all) struct CallGraph {

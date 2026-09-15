@@ -181,3 +181,12 @@ P4 库模型 ──────────┘                                �
 | 上下文敏感在当前语料无差异 | 也是有效结论（语料可能不够大）；构造测试证明能力 |
 | 库模型投入大但收益递减 | 按 unknown reason 分布优先投入（FFI 41% → async → core） |
 | MoonBit 语言演化 | parser pin + moon.mod 版本声明 + CI 升级预警 |
+
+### P1.3 探针项目实测（2026-09-15）
+- **探针**: /tmp/probe — 4 函数、3 条动态边（`<top>->go`, `go->helper`, `go->other`）
+- **静态边**: 10 条（call-graph --details）
+- **结果**: matched=2, **recall=66%** (2/3), precision=20% (2/10)
+- **recall gap**: `<top> -> go` — 静态分析没有 top-level 入口点边（预期行为：moon test 入口）
+- **unobserved**: 8 条 — `record`/`println` 等框架内部调用，动态未插桩
+- **结论**: 对比器端到端工作正常；recall gap 来源于入口点建模缺失（需 P1.4 改进）；precision 低是预期的（静态分析发现更多可能路径）
+- **命令**: `moon-audit compare-calls <static.json> <dynamic-log.txt>`
