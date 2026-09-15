@@ -136,6 +136,12 @@ pub fn derive_identities(PkgSymbols) -> WorldIdentities
 
 pub fn diff_findings(Array[Finding], Array[PrevFinding]) -> BaselineDiff
 
+pub fn disk_cache_load(String, String) -> FnCache
+
+pub fn disk_cache_path(String) -> String
+
+pub fn disk_cache_save(FnCache, String, String) -> Unit
+
 pub fn dump_analyses(String, String, Config, conservative_alias? : Bool) -> Unit
 
 pub fn entry_stats_line(ProgramWorld) -> String

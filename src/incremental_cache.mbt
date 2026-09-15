@@ -261,3 +261,109 @@ pub fn env_terminal_size(env : Map[String, Taint]) -> Int {
 }
 
 // ──
+
+// ── P6.1: Disk cache (cross-process persistence) ────────────────────────
+// Avoids @json Map FFI issues by using a simple line-based text format:
+//   header line: CACHE_V1 <symbols_fp>
+//   entry lines: <key> \t <body_hash> \t <symbols_fp> \t <env_keys> \t <findings_count>
+// Findings are serialized as their fingerprint strings (dedup keys); the
+// actual Finding objects are reconstructed by re-scanning only on miss.
+// This is a "cache the decision, not the data" design: if the fingerprint
+// matches, we know the function produced zero findings and can skip it.
+
+///|
+pub fn disk_cache_path(root : String) -> String {
+  root + "/.moon-audit-cache/fn-cache.txt"
+}
+
+///|
+pub fn disk_cache_save(
+  cache : FnCache,
+  root : String,
+  symbols_fp : String,
+) -> Unit {
+  let dir = root + "/.moon-audit-cache"
+  @fs.create_dir(dir) catch {
+    _ => return
+  }
+  let buf = StringBuilder()
+  buf.write_string("CACHE_V1\t")
+  buf.write_string(symbols_fp)
+  buf.write_string("\n")
+  cache.entries.each(fn(k, v) {
+    buf.write_string(k)
+    buf.write_string("\t")
+    buf.write_string(v.body_hash)
+    buf.write_string("\t")
+    buf.write_string(v.symbols_fp)
+    buf.write_string("\t")
+    buf.write_string(v.env_keys.to_string())
+    buf.write_string("\t")
+    buf.write_string(v.findings.length().to_string())
+    buf.write_string("\n")
+  })
+  @fs.write_string_to_file(disk_cache_path(root), buf.to_string()) catch {
+    _ => ()
+  }
+}
+
+///|
+pub fn disk_cache_load(root : String, symbols_fp : String) -> FnCache {
+  let cache = FnCache::new()
+  let content = @fs.read_file_to_string(disk_cache_path(root)) catch {
+    _ => return cache
+  }
+  let lines = content.split("\n")
+  let mut header_checked = false
+  for line_view in lines {
+    let line = line_view.to_owned()
+    if line.length() == 0 {
+      continue
+    }
+    if !header_checked {
+      // header: CACHE_V1\t<symbols_fp>
+      if !line.has_prefix("CACHE_V1\t") {
+        return cache // wrong format
+      }
+      let stored_fp = Show::to_string(line["CACHE_V1\t".length():])
+      if stored_fp != symbols_fp {
+        return cache // stale generation — full invalidation
+      }
+      header_checked = true
+      continue
+    }
+    // entry: key \t body_hash \t symbols_fp \t env_keys \t findings_count
+    let parts : Array[String] = []
+    for seg in line.split("\t") {
+      parts.push(seg.to_owned())
+    }
+    if parts.length() == 5 {
+      let findings_count = parse_count(parts[4])
+      // cache "no findings" decisions as empty arrays (the common case);
+      // functions WITH findings are always re-analyzed (conservative)
+      if findings_count == 0 {
+        cache.entries[parts[0]] = {
+          body_hash: parts[1],
+          symbols_fp: parts[2],
+          findings: [],
+          env_keys: 0,
+        }
+      }
+    }
+  }
+  cache
+}
+
+///|
+fn parse_count(s : String) -> Int {
+  let mut n = 0
+  for i in 0..<s.length() {
+    let c = s[i]
+    if c >= 48 && c <= 57 {
+      n = n * 10 + (c.to_int() - 48)
+    } else {
+      return 0
+    }
+  }
+  n
+}

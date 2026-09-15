@@ -328,3 +328,46 @@ test "f2_strict_cfg_run_does_not_seed_normal_result_cache" {
   inspect(cache.misses, content="1")
   inspect(cache.hits, content="1")
 }
+
+///|
+test "p6_1_disk_cache_roundtrip" {
+  // build an in-memory cache, save, load, verify entries survive
+  let root = test_tmp("p6_1_disk")
+  @fs.create_dir(root) catch {
+    _ => ()
+  }
+  let cache = FnCache::new()
+  // simulate two functions with no findings
+  cache.entries[FnCache::key("file_a.mbt", "fn_one")] = {
+    body_hash: "hash1",
+    symbols_fp: "fp_gen_1",
+    findings: [],
+    env_keys: 0,
+  }
+  cache.entries[FnCache::key("file_b.mbt", "fn_two")] = {
+    body_hash: "hash2",
+    symbols_fp: "fp_gen_1",
+    findings: [],
+    env_keys: 0,
+  }
+  // save
+  disk_cache_save(cache, root, "fp_gen_1")
+  // load with matching generation
+  let loaded = disk_cache_load(root, "fp_gen_1")
+  inspect(loaded.size(), content="2")
+  let found = match loaded.lookup("file_a.mbt", "fn_one", "hash1", "fp_gen_1") {
+    Some(arr) => arr.length() == 0
+    None => false
+  }
+  inspect(found, content="true")
+  // stale generation → empty
+  let stale = disk_cache_load(root, "fp_gen_2")
+  inspect(stale.size(), content="0")
+}
+
+///|
+test "p6_1_disk_cache_no_crash_on_missing" {
+  // load from nonexistent path should return empty, not crash (the original SIGABRT scenario)
+  let cache = disk_cache_load("/nonexistent/path", "any_fp")
+  inspect(cache.size(), content="0")
+}
