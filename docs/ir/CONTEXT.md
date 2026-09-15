@@ -928,3 +928,15 @@ t51 测试路径拼接留待下次触碰。
 - Current architecture: AST walk = candidate generator + taint computer; CFG executor = validator
   (confirms/refutes via unreachable + comparison); H1 filter = dead-code elimination.
   This is correct but NOT "CFG as sole producer" — documented honestly.
+
+## TAI-E-PLAN 批次一收口（P1+P2+P4a, 2026-09-08）
+- P1a ✅ (e30993e): instrument runtime 包 + 函数报告 JSON
+- P1b ✅ (b05aa7f): compare-calls + **首个 recall/precision 数字**——探针 recall=66% precision=20%
+  - recall gap: 入口点边 (<top>→go) 不在静态图——P1.4 改进项
+  - precision 低: 静态发现更多可能路径属正常（8 条未观测≠FP）
+- P2a 部分 (994638b): block_exec/block_ir 改动保存
+- P2b BLOCKED (c42bc0e): 诚实回滚——CFG 独立产 findings 需 ~2000 行 exec_stmt 重构
+  （temp_facts 桥接不够: 循环收敛/noraise 分支/闭包时序 三类语义缺失）
+- P4a ✅ (46252cf): Array/Map/String 效应模型（回调 timing + 值约束 + 返回类型）
+- 387/387 × native, run.sh 12/12, FP 0/0/0, crescent 5
+- 下一步: P1.3 真实语料 recall 实测 / P3 上下文敏感 / P4b async 模型
