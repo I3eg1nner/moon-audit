@@ -162,6 +162,8 @@ pub fn fn_body_hash(String, String) -> String
 
 pub fn format_baseline_diff(BaselineDiff) -> String
 
+pub fn format_instrument_report_json(Array[InstrumentReport]) -> String
+
 pub fn format_json(ScanResult) -> String
 
 pub fn format_json_with_diff(ScanResult, BaselineDiff) -> String
@@ -197,6 +199,8 @@ pub fn generate_baseline(Array[Finding], root? : String) -> String
 pub fn generate_batch_prompts(Array[Finding], Map[String, String], ImportContext) -> Array[LLMAnalysisRequest]
 
 pub fn generate_deep_audit_script(LLMConfig, Array[Finding], Array[(String, String)]) -> String
+
+pub fn generate_instrument_report(String, Config) -> Array[InstrumentReport]
 
 pub fn generate_llm_script(LLMConfig, Array[LLMAnalysisRequest]) -> String
 
@@ -384,6 +388,8 @@ pub let world_loads : WorldLoadCounter
 
 pub fn world_pkg_imports(ProgramWorld, String) -> Array[String]
 
+pub fn write_runtime_package(String) -> Unit
+
 // Errors
 
 // Types and methods
@@ -438,6 +444,7 @@ pub(all) struct BlockIr {
   entry : Int
   normal_exit : Int
   error_exit : Int
+  temp_taints : Map[Int, Taint]
 }
 
 pub(all) struct CWEStat {
@@ -625,6 +632,13 @@ pub(all) struct ImportContext {
   is_stdlib : Bool
 }
 pub fn ImportContext::empty() -> Self
+
+pub(all) struct InstrumentReport {
+  fn_name : String
+  file : String
+  line : Int
+  pkg_dir : String
+}
 
 pub(all) struct InterProceduralContext {
   summaries : Map[String, FuncTaintSummary]

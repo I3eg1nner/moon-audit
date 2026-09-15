@@ -255,6 +255,24 @@ fn main {
         ],
       ),
       @argparse.Command(
+        "instrument",
+        about="P1a: generate instrument runtime package + function report JSON",
+        options=[
+          @argparse.OptionArg(
+            "output",
+            short='o',
+            long="output",
+            about="Output dir for runtime package",
+            default_values=["./instrument-runtime"],
+          ),
+        ],
+        positionals=[
+          @argparse.PositionArg("path", about="Project path", default_values=[
+            ".",
+          ]),
+        ],
+      ),
+      @argparse.Command(
         "dump-analyses",
         about="T6.4: export analysis results (HIR/call-graph/points-to/live-vars/plan) with provenance",
         flags=[
@@ -407,6 +425,7 @@ fn main {
     Some(("summary", sub)) => cmd_summary(sub)
     Some(("generate-baseline", sub)) => cmd_generate_baseline(sub)
     Some(("ir-stats", sub)) => cmd_ir_stats(sub)
+    Some(("instrument", sub)) => cmd_instrument(sub)
     Some(("instrument-calls", sub)) => cmd_instrument_calls(sub)
     Some(("call-graph", sub)) => cmd_call_graph(sub)
     Some(("dump-analyses", sub)) => cmd_dump_analyses(sub)
@@ -1827,4 +1846,21 @@ fn load_scan_config(
     }
   }
   Some(@audit.load_config(resolved))
+}
+
+///|
+fn cmd_instrument(matches : @argparse.Matches) -> Unit {
+  let path = get_val(matches, "path", ".")
+  let output = get_val(matches, "output", "./instrument-runtime")
+  println("moon-audit instrument (P1a simplified)")
+  println("target: " + path)
+  println("runtime output: " + output)
+  println("")
+  let config = @audit.Config::default()
+  let report = @audit.generate_instrument_report(path, config)
+  @audit.write_runtime_package(output)
+  println("runtime package written to " + output + "/")
+  println("  (moon.mod + src/runtime.mbt + src/main.mbt)")
+  println("")
+  println(@audit.format_instrument_report_json(report))
 }
