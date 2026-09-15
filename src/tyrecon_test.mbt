@@ -1540,3 +1540,22 @@ test "p5_3_container_multi_impl_dispatch" {
     .length()
   inspect(dispatch >= 1, content="true")
 }
+
+///|
+test "p2v2_self_computed_temp_facts" {
+  // P2-v2: CFG executor computes its own temp facts from expr_refs
+  let src = "pub fn go(resp : Response, val : String) -> Unit { resp.set_header(\"X-Custom\", val) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "t.mbt", src, findings, Error)
+  inspect(findings.length(), content="1")
+}
+
+///|
+test "p2v2_self_computed_constant_safe" {
+  let src = "pub fn go(resp : Response) -> Unit { resp.set_header(\"X-Custom\", \"fixed\") }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "t.mbt", src, findings, Error)
+  inspect(findings.length(), content="0")
+}

@@ -98,6 +98,39 @@ fn state_join_into(st : Map[String, Taint], other : Map[String, Taint]) -> Bool 
 // executes BlockIr statements (block executor today; D1c consumers next)
 
 ///|
+
+///|
+fn self_taint_of_expr(e : @syntax.Expr, st : Map[String, Taint]) -> Taint {
+  // P2v2: compute taint from the expression AST + variable binding state.
+  // This is a PURE function — no walk dependency.
+  match e {
+    Constant(..) | Unit(..) | Constr(..) => Clean
+    Ident(id~, ..) => {
+      let name = match id.name {
+        Ident(name~) => name
+        Dot(..) => return Clean // qualified: conservative clean
+      }
+      match st.get(name) {
+        Some(v) => v
+        None => Tainted // unbound var in this scope: conservative
+      }
+    }
+    Interp(..) => Tainted // interpolation is dynamic content
+    Field(record~, ..) =>
+      // field access: propagate receiver taint (parity with walk)
+      self_taint_of_expr(record, st)
+    As(expr~, ..) => self_taint_of_expr(expr, st)
+    Unary(expr~, ..) => self_taint_of_expr(expr, st)
+    Pipe(lhs~, rhs~, ..) => {
+      let lt = self_taint_of_expr(lhs, st)
+      let rt = self_taint_of_expr(rhs, st)
+      taint_or(lt, rt)
+    }
+    _ => Tainted // complex expr: conservative tainted
+  }
+}
+
+///|
 fn exec_stmt(
   s : Stmt,
   st : Map[String, Taint],
@@ -331,7 +364,34 @@ pub fn cfg_hybrid_classify(
   // than the walk, the excess candidates are REFUTED (dropped, counted);
   // --cfg-verify keeps the D1b comparison-only semantics.
   // P2a: temp_facts are embedded into the IR (self-contained execution)
-  let ir = { ..build_block_ir(fn_name, body, rules~), temp_taints: temp_facts, }
+  let base_ir = build_block_ir(fn_name, body, rules~)
+  // P2v2: self-compute temp taints from expr_refs when available
+  let self_facts : Map[Int, Taint] = Map([])
+  // collect param bindings from the body pattern (best effort)
+  let param_st : Map[String, Taint] = Map([])
+  match body {
+    Sequence(exprs~, ..) =>
+      for e in exprs {
+        match e {
+          Let(pattern~, ..) =>
+            match pattern {
+              Var(b) => param_st[b.name] = Tainted // function params are tainted
+              _ => ()
+            }
+          _ => ()
+        }
+      }
+    _ => ()
+  }
+  // self-compute taints for every referenced expr
+  base_ir.expr_refs.each(fn(tid, expr) {
+    self_facts[tid] = self_taint_of_expr(expr, param_st)
+  })
+  // merge: self-computed wins, embedded temp_facts fills gaps
+  let merged : Map[Int, Taint] = Map([])
+  temp_facts.each(fn(k, v) { merged[k] = v })
+  self_facts.each(fn(k, v) { merged[k] = v })
+  let ir = { ..base_ir, temp_taints: merged, }
   let problems = validate_cfg(ir)
   if problems.length() > 0 {
     cfg_exec.ast_fallback += 1

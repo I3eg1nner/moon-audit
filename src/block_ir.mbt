@@ -31,6 +31,8 @@ pub(all) struct BlockIr {
   // P2a: self-contained temp taints — populated once by the walk, then
   // the executor reads from the IR (no external map dependency)
   temp_taints : Map[Int, Taint]
+  // P2v2: expression references for self-computed temp facts
+  expr_refs : Map[Int, @syntax.Expr]
 }
 
 ///|
@@ -54,6 +56,7 @@ priv struct CfgCtx {
   loop_headers : Array[Int] // innermost last (break/continue targets)
   mut defer_count : Int
   rules : TaintRuleset // E1a: sink firing needs the SAME ruleset as walk
+  expr_refs : Map[Int, @syntax.Expr]
 }
 
 ///|
@@ -98,6 +101,7 @@ pub fn build_block_ir(
       Some(r) => r
       None => TaintRuleset::empty()
     },
+    expr_refs: Map([]),
   }
   lower(body, ctx)
   // implicit fallthrough of the last block → normal exit (unless sealed)
@@ -111,6 +115,7 @@ pub fn build_block_ir(
     normal_exit: 1,
     error_exit: 2,
     temp_taints: Map([]), // P2a: populated by embed_temp_taints
+    expr_refs: ctx.expr_refs,
   }
 }
 
@@ -416,6 +421,8 @@ fn emit_call(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
       for arg in args {
         let t = ctx.fresh_temp()
         temps.push(t)
+        // P2v2: store the expression for self-computed temp facts
+        ctx.expr_refs[t] = arg.value
         if arg_kind_is_value_slot(arg.kind, pos_idx, slot) {
           value_temps.push(t)
         }
@@ -436,6 +443,8 @@ fn emit_call(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
       // pass 2: contiguous outer temps [recv, args...]
       let recv_t = ctx.fresh_temp()
       temps.push(recv_t)
+      // P2v2: receiver expression for self-computed temp facts
+      ctx.expr_refs[recv_t] = self
       let mut pos_idx = 0
       for arg in args {
         let t = ctx.fresh_temp()

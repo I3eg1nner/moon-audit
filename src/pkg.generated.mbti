@@ -465,6 +465,7 @@ pub(all) struct BlockIr {
   normal_exit : Int
   error_exit : Int
   temp_taints : Map[Int, Taint]
+  expr_refs : Map[Int, @syntax.Expr]
 }
 
 pub(all) struct CWEStat {
