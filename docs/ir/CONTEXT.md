@@ -940,3 +940,10 @@ t51 测试路径拼接留待下次触碰。
 - P4a ✅ (46252cf): Array/Map/String 效应模型（回调 timing + 值约束 + 返回类型）
 - 387/387 × native, run.sh 12/12, FP 0/0/0, crescent 5
 - 下一步: P1.3 真实语料 recall 实测 / P3 上下文敏感 / P4b async 模型
+
+## TAI-E-PLAN 批次二收口（P1.3+P3+P4b, 2026-09-08）
+- P1.3 ✅ (7075a98): 中等探针 recall=100% (37/37), precision=68% (17冷路径≠FP); 22函数14语义形态
+- P3 ✅ (6947f38): CallSite(1) 上下文敏感（可插拔, Insensitive 默认）; 构造测试证明精度差异
+- P4b ✅ (278d581): async 语义模型——spawn(deferred)/channel/HTTP/file/ws 效应
+- 394/394 × native, 12/12 反例, FP 0/0/0, crescent 5
+- TAI-E-PLAN P1+P3+P4 全部交付; P2 BLOCKED(需~2000行重构); P5/P6 待启
