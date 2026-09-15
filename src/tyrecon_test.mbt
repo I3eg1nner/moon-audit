@@ -1302,7 +1302,7 @@ test "f1_context_strategy_enum_and_names" {
 test "f1_context_strategy_implementation_status" {
   // only insensitive is implemented; others must be announced as pending
   inspect(ContextStrategy::Insensitive.is_implemented(), content="true")
-  inspect(ContextStrategy::CallSite(1).is_implemented(), content="true") // P3: now implemented
+  inspect(ContextStrategy::CallSite(1).is_implemented(), content="false") // P3 skeleton: context key always empty in production
   inspect(ContextStrategy::ObjectSensitive(2).is_implemented(), content="false")
   inspect(ContextStrategy::ClosureEnv.is_implemented(), content="false")
 }
@@ -1443,7 +1443,8 @@ fn summary_lookup_for_test(
 
 ///|
 test "p3_callsite1_is_implemented_true" {
-  inspect(ContextStrategy::CallSite(1).is_implemented(), content="true")
+  // P3 skeleton only: context key is always "" in production; rename reflects reality
+  inspect(ContextStrategy::CallSite(1).is_implemented(), content="false")
   inspect(ContextStrategy::CallSite(2).is_implemented(), content="false")
   inspect(ContextStrategy::Insensitive.is_implemented(), content="true")
 }

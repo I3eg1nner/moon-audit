@@ -91,7 +91,7 @@ pub fn ContextStrategy::name(self : ContextStrategy) -> String {
 pub fn ContextStrategy::is_implemented(self : ContextStrategy) -> Bool {
   match self {
     Insensitive => true
-    CallSite(1) => true // P3: context-prefixed summary keys, per-caller collection
+    CallSite(1) => false // P3 skeleton: context key is always "" in production; summary keys not context-prefixed
     _ => false // deeper strategies announced but not yet wired
   }
 }

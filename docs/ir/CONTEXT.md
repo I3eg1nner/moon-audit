@@ -981,7 +981,13 @@ P6 性能: P6.2 ✅ release 基准; P6.1 BLOCKED 磁盘缓存 SIGABRT
 除 P2/P6.1 两项诚实留余外，TAI-E-PLAN 全部交付。
 
 ## 攻坚收口（P6.1+P2-v2, 2026-09-08）
-- P6.1 ✅ (fc47b14): 磁盘缓存 SIGABRT 修复——text-format 序列化替代 JSON, roundtrip 测试
-- P2-v2 ✅ (1c8390c): CFG 自建 temp facts——expr_refs + self_taint_of_expr（部分独立: 实参求值不再读 walk 的 temp_facts）
+- P6.1 部分 (fc47b14): 磁盘缓存读写 API roundtrip 通过, 但未接入生产扫描路径 (scanner 仍 FnCache::new)
+- P2-v2 部分 (1c8390c): CFG expr_refs 自建（实参求值仍混用 AST temp_facts; findings 仍由 AST 路径产生）
 - 402/402 × native, 12/12 反例, FP 0/0/0, crescent 5
 - TAI-E-PLAN 六阶段全部交付或部分交付（零 BLOCKED 项!）
+
+## 2026-09-15 · fix2: implemented 标记修正 + CLI 回归恢复 + 文档降级
+- types.mbt CallSite(1) is_implemented → false（生产路径上下文键恒空, 构造测试非真实验证）
+- cli_regression_test.py 18/18 恢复（not-implemented 提示再次触发）
+- CONTEXT/TAI-E-PLAN 全面降级: CallSite(1)→骨架, 磁盘缓存→未接入生产, CFG→部分独立
+- 402/402 × native; 评审 docs/review-taie-gap-2026-09-15.md 第十轮整改
