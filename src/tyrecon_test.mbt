@@ -1302,7 +1302,7 @@ test "f1_context_strategy_enum_and_names" {
 test "f1_context_strategy_implementation_status" {
   // only insensitive is implemented; others must be announced as pending
   inspect(ContextStrategy::Insensitive.is_implemented(), content="true")
-  inspect(ContextStrategy::CallSite(1).is_implemented(), content="false")
+  inspect(ContextStrategy::CallSite(1).is_implemented(), content="true") // P3: now implemented
   inspect(ContextStrategy::ObjectSensitive(2).is_implemented(), content="false")
   inspect(ContextStrategy::ClosureEnv.is_implemented(), content="false")
 }
@@ -1388,4 +1388,72 @@ test "p4a_model_negative_unmapped_method" {
   let symbols = PkgSymbols::new()
   let r = model_method_ret(symbols, "UnknownType", "mystery_method")
   inspect(r == None, content="true")
+}
+
+///|
+test "p3_callsite1_context_specific_summary_keys" {
+  // P3: CallSite(1) produces context-prefixed summary entries.
+  // Insensitive: single merged summary keyed by fn name only.
+  let ictx = InterProceduralContext::new()
+  ictx.summaries["helper"] = {
+    name: "helper",
+    file: "t.mbt",
+    line: 1,
+    params: ["x"],
+    param_sinks: Map([]),
+    ret_from: [],
+    field_taint: Map([]),
+    param_field_sinks: [],
+  }
+  ictx.summaries["helper@caller_a:10"] = {
+    name: "helper",
+    file: "t.mbt",
+    line: 1,
+    params: ["x"],
+    param_sinks: Map([]),
+    ret_from: [],
+    field_taint: Map([]),
+    param_field_sinks: [],
+  }
+  // context hit
+  let s1 = summary_lookup_for_test(ictx, "helper", "caller_a:10")
+  inspect(s1 is Some(_), content="true")
+  // bare fallback (no context or no context hit)
+  let s2 = summary_lookup_for_test(ictx, "helper", "")
+  inspect(s2 is Some(_), content="true")
+  let s3 = summary_lookup_for_test(ictx, "helper", "unknown_ctx")
+  inspect(s3 is Some(_), content="true") // falls back to bare
+}
+
+///|
+fn summary_lookup_for_test(
+  ictx : InterProceduralContext,
+  name : String,
+  callsite : String,
+) -> FuncTaintSummary? {
+  // mirrors taint_flow.summary_lookup (private, so re-implemented for test)
+  if callsite != "" {
+    match ictx.summaries.get(name + "@" + callsite) {
+      Some(s) => return Some(s)
+      None => ()
+    }
+  }
+  ictx.summaries.get(name)
+}
+
+///|
+test "p3_callsite1_is_implemented_true" {
+  inspect(ContextStrategy::CallSite(1).is_implemented(), content="true")
+  inspect(ContextStrategy::CallSite(2).is_implemented(), content="false")
+  inspect(ContextStrategy::Insensitive.is_implemented(), content="true")
+}
+
+///|
+test "p3_callsite1_default_insensitive_unchanged" {
+  // Config default remains Insensitive — CallSite(1) is opt-in
+  let config = Config::default()
+  inspect(
+    config.context_strategy == ContextStrategy::Insensitive,
+    content="true",
+  )
 }

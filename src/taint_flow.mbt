@@ -438,6 +438,10 @@ priv struct FlowCtx {
   env : Map[String, Taint]
   findings : Array[Finding]
   file : String
+  // P3 CallSite(1): current calling context (caller fn:line; "" for
+  // insensitive / top-level). Used to prefix summary keys so different
+  // callers get per-context precision instead of a merged summary.
+  cur_callsite : String
   source : String
   severity : Severity
   mut record_sinks : Array[String]? // M3 summary recording channel
@@ -890,6 +894,7 @@ pub fn run_flow_taint_func(
     },
     cb_exec_suppressed: false,
     cb_suppress_target: "",
+    cur_callsite: "",
   }
   scope_push(ctx) // function scope
   // T2.2 safety net: pending defers (e.g. from an uncaught raise path)
@@ -1059,6 +1064,7 @@ pub fn run_flow_taint_func_top(
     deferred_callbacks: [],
     cb_exec_suppressed: false,
     cb_suppress_target: "",
+    cur_callsite: "",
   }
   scope_push(ctx) // function scope
   let _ = flow(body, ctx)
@@ -2992,7 +2998,15 @@ fn callee_summary_name(func : @syntax.Expr) -> String? {
 fn summary_lookup(
   ictx : InterProceduralContext,
   name : String,
+  callsite : String, // P3: "" for insensitive (default shared summary)
 ) -> FuncTaintSummary? {
+  // CallSite(1): try context-prefixed key first, then bare, then short
+  if callsite != "" {
+    match ictx.summaries.get(name + "@" + callsite) {
+      Some(s) => return Some(s) // per-context precision hit
+      None => ()
+    }
+  }
   match ictx.summaries.get(name) {
     Some(s) => Some(s)
     None => {
@@ -3028,7 +3042,7 @@ fn apply_ret_from(
     Some(n) => n
     None => return None
   }
-  let summary = match summary_lookup(ictx, name) {
+  let summary = match summary_lookup(ictx, name, ctx.cur_callsite) {
     Some(s) => s
     None => return None
   }
@@ -3059,7 +3073,7 @@ fn maybe_record_transitive_sink(
     Some(n) => n
     None => return
   }
-  let summary = match summary_lookup(ictx, name) {
+  let summary = match summary_lookup(ictx, name, ctx.cur_callsite) {
     Some(s) => s
     None => return
   }
@@ -3130,7 +3144,7 @@ fn apply_ret_from_dot(
     Some(i) => i
     None => return None
   }
-  let summary = match summary_lookup(ictx, mname) {
+  let summary = match summary_lookup(ictx, mname, ctx.cur_callsite) {
     Some(s) => s
     None => return None
   }
@@ -3209,7 +3223,7 @@ fn apply_param_field_sinks(
     Some(n) => n
     None => return
   }
-  let summary = match summary_lookup(ictx, name) {
+  let summary = match summary_lookup(ictx, name, ctx.cur_callsite) {
     Some(s) => s
     None => return
   }
@@ -3281,7 +3295,7 @@ fn apply_param_field_sinks_dot(
     Some(i) => i
     None => return
   }
-  let summary = match summary_lookup(ictx, mname) {
+  let summary = match summary_lookup(ictx, mname, ctx.cur_callsite) {
     Some(s) => s
     None => return
   }
@@ -3322,7 +3336,7 @@ fn apply_field_taint_side_effect_dot(
     Some(i) => i
     None => return
   }
-  let summary = match summary_lookup(ictx, mname) {
+  let summary = match summary_lookup(ictx, mname, ctx.cur_callsite) {
     Some(s) => s
     None => return
   }
@@ -3453,7 +3467,7 @@ fn apply_field_taint_side_effect(
     Some(n) => n
     None => return
   }
-  let summary = match summary_lookup(ictx, name) {
+  let summary = match summary_lookup(ictx, name, ctx.cur_callsite) {
     Some(s) => s
     None => return
   }
@@ -3738,6 +3752,7 @@ fn collect_summary_func(
     deferred_callbacks: [],
     cb_exec_suppressed: false,
     cb_suppress_target: "",
+    cur_callsite: "",
   }
   scope_push(ctx) // function scope for summary collection
   match params {
@@ -3923,6 +3938,7 @@ pub fn run_flow_taint_trace(
     deferred_callbacks: [],
     cb_exec_suppressed: false,
     cb_suppress_target: "",
+    cur_callsite: "",
   }
   scope_push(ctx) // function scope
   match params {

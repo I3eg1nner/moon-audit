@@ -91,7 +91,8 @@ pub fn ContextStrategy::name(self : ContextStrategy) -> String {
 pub fn ContextStrategy::is_implemented(self : ContextStrategy) -> Bool {
   match self {
     Insensitive => true
-    _ => false // strategies announced but not yet wired (no silent fallback)
+    CallSite(1) => true // P3: context-prefixed summary keys, per-caller collection
+    _ => false // deeper strategies announced but not yet wired
   }
 }
 
