@@ -1948,6 +1948,13 @@ fn infer_apply(func : @syntax.Expr, ctx : ScanCtx) -> IRType {
               }
             Ident(..) => name
           }
+          // P5.2: closure invocation — load captured variables so their
+          // pointees flow into the closure body at this call site
+          match ctx.env.get(name) {
+            Some(IRFn(_)) =>
+              ctx.pt_constraints.push(PTLoad(name + "$capload", name, "cap:*"))
+            _ => ()
+          }
           let known = qualified ||
             ctx.symbols.fn_exists.contains(name) ||
             ctx.symbols.fn_exists.contains(full_key) ||
