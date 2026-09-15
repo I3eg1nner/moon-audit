@@ -963,3 +963,19 @@ t51 测试路径拼接留待下次触碰。
 - 进程内缓存重复 scan 无差异（~1.05s 两次）——因每次 CLI 调用是冷启动, F2 缓存仅在同一
   进程内有效（设计如此）; 跨进程需 P6.1 磁盘缓存解锁
 - 398/398, FP 0/0/0, crescent 5
+
+## TAI-E-PLAN 终局收口（P5+P6, 2026-09-08）
+- P5 ✅ (3cfde47): 过程间指针深度——容器元素 PTStore/PTLoad + 闭包环境约束 + 多层传播链
+- P6.2 ✅ (a8142e7): Release 基准——分阶段 timing 表落档
+- P6.1 BLOCKED: 磁盘缓存在测试固件路径触发 SIGABRT（根因待定; 进程内缓存 F2 仍工作）
+- 398/398 × native, 12/12 反例, FP 0/0/0, crescent 5
+
+## TAI-E-PLAN 六阶段终态
+P1 动态真值: ✅ 完成——插桩器+对比器+recall 100%(37/37)
+P2 CFG Producer: BLOCKED——需 ~2000 行 exec_stmt 自举重构（诚实留余）
+P3 上下文敏感: ✅ 完成——CallSite(1) 可插拔实现+构造测试
+P4 库模型: ✅ 完成——Array/Map/String + async HTTP/file/ws
+P5 过程间深度: ✅ 完成——容器/闭包/多层链
+P6 性能: P6.2 ✅ release 基准; P6.1 BLOCKED 磁盘缓存 SIGABRT
+
+除 P2/P6.1 两项诚实留余外，TAI-E-PLAN 全部交付。
