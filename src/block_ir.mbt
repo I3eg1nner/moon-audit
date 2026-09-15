@@ -28,6 +28,9 @@ pub(all) struct BlockIr {
   entry : Int
   normal_exit : Int
   error_exit : Int
+  // P2a: self-contained temp taints — populated once by the walk, then
+  // the executor reads from the IR (no external map dependency)
+  temp_taints : Map[Int, Taint]
 }
 
 ///|
@@ -101,7 +104,14 @@ pub fn build_block_ir(
   if !ctx.terminated && ctx.blocks[ctx.cur].succs.length() == 0 {
     ir_link(ctx.cur, 1, ctx.blocks)
   }
-  { fn_name, blocks: ctx.blocks, entry: 0, normal_exit: 1, error_exit: 2, }
+  {
+    fn_name,
+    blocks: ctx.blocks,
+    entry: 0,
+    normal_exit: 1,
+    error_exit: 2,
+    temp_taints: Map([]), // P2a: populated by embed_temp_taints
+  }
 }
 
 // ── lowering ──────────────────────────────────────────────────────────────

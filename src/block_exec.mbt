@@ -101,7 +101,7 @@ fn state_join_into(st : Map[String, Taint], other : Map[String, Taint]) -> Bool 
 fn exec_stmt(
   s : Stmt,
   st : Map[String, Taint],
-  temp_facts : Map[Int, Taint],
+  temp_facts : Map[Int, Taint], // P2a: passed from ir.temp_taints, not from walk
   fired : Array[(String, Int)],
 ) -> Unit {
   match s {
@@ -183,8 +183,7 @@ fn exec_stmt(
 
 ///|
 fn exec_block_ir(
-  ir : BlockIr,
-  temp_facts : Map[Int, Taint],
+  ir : BlockIr, // P2a: self-contained — reads temp_taints from ir
 ) -> Array[(String, Int)]? {
   // returns None only when even the E1b widening restart fails to
   // converge (phase 2 also hits the cap: caller keeps the AST result);
@@ -237,7 +236,7 @@ fn exec_block_ir(
     let st = states[b]
     let fired : Array[(String, Int)] = []
     for s in ir.blocks[b].stmts {
-      exec_stmt(s, st, temp_facts, fired)
+      exec_stmt(s, st, ir.temp_taints, fired)
     }
     // propagate to successors (join; re-enqueue on growth)
     for succ in ir.blocks[b].succs {
@@ -323,7 +322,7 @@ pub fn executor_unconfirmed(
 pub fn cfg_hybrid_classify(
   fn_name : String,
   body : @syntax.Expr,
-  temp_facts : Map[Int, Taint],
+  temp_facts : Map[Int, Taint], // P2a: still accepted, but embedded into ir
   ast_kinds : Array[(String, Int)],
   rules : TaintRuleset,
 ) -> String {
@@ -331,13 +330,14 @@ pub fn cfg_hybrid_classify(
   // E1b: default (authority) mode — when the executor fires FEWER sinks
   // than the walk, the excess candidates are REFUTED (dropped, counted);
   // --cfg-verify keeps the D1b comparison-only semantics.
-  let ir = build_block_ir(fn_name, body, rules~)
+  // P2a: temp_facts are embedded into the IR (self-contained execution)
+  let ir = { ..build_block_ir(fn_name, body, rules~), temp_taints: temp_facts, }
   let problems = validate_cfg(ir)
   if problems.length() > 0 {
     cfg_exec.ast_fallback += 1
     return "fallback"
   }
-  match exec_block_ir(ir, temp_facts) {
+  match exec_block_ir(ir) {
     None => {
       cfg_exec.cfg_divergent += 1
       "divergent"
