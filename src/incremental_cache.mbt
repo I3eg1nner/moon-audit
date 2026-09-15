@@ -259,3 +259,5 @@ fn taint_analysis_fingerprint(
 pub fn env_terminal_size(env : Map[String, Taint]) -> Int {
   env.length()
 }
+
+// ──

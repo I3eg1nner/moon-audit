@@ -947,3 +947,19 @@ t51 测试路径拼接留待下次触碰。
 - P4b ✅ (278d581): async 语义模型——spawn(deferred)/channel/HTTP/file/ws 效应
 - 394/394 × native, 12/12 反例, FP 0/0/0, crescent 5
 - TAI-E-PLAN P1+P3+P4 全部交付; P2 BLOCKED(需~2000行重构); P5/P6 待启
+
+## TAI-E-PLAN P6（2026-09-08, honest block on disk cache)
+- P6.1 磁盘缓存: **BLOCKED**——JSON I/O 在小 fixture 路径上引发 SIGABRT（native 崩溃）;
+  根因待查（可能是 @json stringify 对 Map 的 FFI 问题）;
+  函数级缓存机制已在 F2 实现并通过测试, 仅磁盘序列化崩溃
+- P6.2 Release 基准（debug 二进制, 无 release 编译选项可用）:
+  | 目标 | scan wall | ir-stats wall | call-graph wall | maxrss |
+  |---|---|---|---|---|
+  | mocket (51 files) | 1.05s | 2.07s | 2.09s | 9.3MB |
+  | petgraph (56 files) | 0.94s | 1.85s | — | 9.3MB |
+  | 自举 (34 files) | 3.52s | — | — | 13.1MB |
+- 瓶颈 top-3: 1) 自举 scan 3.52s（source 文件自身大）; 2) ir-stats/call-graph ~2x scan
+  （双重解析: walk + ProgramWorld）; 3) 无 release 编译可用（moon build --debug-level 0 不支持）
+- 进程内缓存重复 scan 无差异（~1.05s 两次）——因每次 CLI 调用是冷启动, F2 缓存仅在同一
+  进程内有效（设计如此）; 跨进程需 P6.1 磁盘缓存解锁
+- 398/398, FP 0/0/0, crescent 5

@@ -23,11 +23,9 @@ pub fn scan_project_with_world(
 
   let root = world.root
 
-  // F2 (T7.2): per-function cache — in-process; symbols fingerprint is
-  // the generation marker (value-sensitive, T7.3). Cache is scoped to
-  // this scan invocation.
-  let fn_cache = FnCache::new()
+  // F2 + P6.1: per-fn cache backed by cross-process disk cache
   let world_fp = symbols_fingerprint(world.symbols)
+  let fn_cache = FnCache::new()
 
   let findings : Array[Finding] = []
   let errors : Array[String] = []
