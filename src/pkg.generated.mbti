@@ -96,6 +96,8 @@ pub fn constraints_from_cfg(BlockIr, Array[PTConstraint]) -> Unit
 
 pub fn constraints_from_trace(Array[Stmt], Array[PTConstraint]) -> Unit
 
+pub fn core_model_types() -> Map[String, IRType]
+
 pub fn cwe022_info() -> RuleInfo
 
 pub fn cwe079_cmark_info() -> RuleInfo
@@ -279,6 +281,8 @@ pub fn loop_fixpoint_widening_count() -> Int
 pub fn materialize_trait_from_sig(PkgSymbols, String) -> Unit
 
 pub fn merge_imports(ImportContext, ImportContext) -> ImportContext
+
+pub fn model_method_ret(PkgSymbols, String, String) -> IRType?
 
 pub fn parse_changed_files(String) -> Array[String]
 
@@ -790,6 +794,7 @@ pub(all) struct PkgFiles {
 }
 
 pub(all) struct PkgSymbols {
+  model_types : Map[String, IRType]
   mut alias_mode : Bool
   mut alias_unresolved : Int
   fn_exists : Map[String, Bool]

@@ -159,3 +159,132 @@ fn parse_type_at(s : String, start : Int) -> (IRType, Int) {
   }
   (IRConcrete(full, args), i)
 }
+
+// ── P4a: Core container model (Array/Map/String) ─────────────────────────
+// Expresses the SAME information as builtin_method_ret, but in the model
+// JSON DSL — a first step toward migrating hardcoded tables to models.
+// When "core-containers" is extended, these types are consulted BEFORE
+// builtin_method_ret (which becomes the fallback for unmapped methods).
+
+///|
+let core_containers_model_json : String =
+  #|{
+  #|  "name": "core-containers",
+  #|  "description": "P4a: Array/Map/String method return types + callback timing",
+  #|  "types": {
+  #|    "Array::map": "Array[T]",
+  #|    "Array::filter": "Array[T]",
+  #|    "Array::rev": "Array[T]",
+  #|    "Array::sort": "Array[T]",
+  #|    "Array::concat": "Array[T]",
+  #|    "Array::flatten": "Array[T]",
+  #|    "Array::dedup": "Array[T]",
+  #|    "Array::take": "Array[T]",
+  #|    "Array::skip": "Array[T]",
+  #|    "Array::drop": "Array[T]",
+  #|    "Array::to_array": "Array[T]",
+  #|    "Array::copy": "Array[T]",
+  #|    "Array::iter": "Iter",
+  #|    "Array::join": "String",
+  #|    "Array::to_string": "String",
+  #|    "Array::fold": "String",
+  #|    "Array::exists": "Bool",
+  #|    "Array::contains": "Bool",
+  #|    "Array::length": "Int",
+  #|    "Array::size": "Int",
+  #|    "Array::blit": "Unit",
+  #|    "Array::sort_by": "Unit",
+  #|    "Map::get": "Option[V]",
+  #|    "Map::get_or_default": "V",
+  #|    "Map::get_or_init": "V",
+  #|    "Map::at": "V",
+  #|    "Map::get_unsafe": "V",
+  #|    "Map::set": "Unit",
+  #|    "Map::remove": "Unit",
+  #|    "Map::clear": "Unit",
+  #|    "Map::contains": "Bool",
+  #|    "Map::length": "Int",
+  #|    "Map::size": "Int",
+  #|    "Map::keys": "Array[K]",
+  #|    "Map::values": "Array[V]",
+  #|    "Map::each": "Unit",
+  #|    "Map::map": "Map[K,V]",
+  #|    "Map::filter": "Map[K,V]",
+  #|    "Map::iter": "Iter",
+  #|    "Map::iter2": "Iter",
+  #|    "String::to_string": "String",
+  #|    "String::to_owned": "String",
+  #|    "String::rev": "String",
+  #|    "String::concat": "String",
+  #|    "String::repeat": "String",
+  #|    "String::substring": "String",
+  #|    "String::trim": "String",
+  #|    "String::trim_start": "String",
+  #|    "String::trim_end": "String",
+  #|    "String::to_uppercase": "String",
+  #|    "String::to_lowercase": "String",
+  #|    "String::replace": "String",
+  #|    "String::pad_left": "String",
+  #|    "String::pad_right": "String",
+  #|    "String::length": "Int",
+  #|    "String::char_length": "Int",
+  #|    "String::codeunit_size": "Int",
+  #|    "String::compare": "Int",
+  #|    "String::hash": "Int",
+  #|    "String::is_empty": "Bool",
+  #|    "String::contains": "Bool",
+  #|    "String::starts_with": "Bool",
+  #|    "String::ends_with": "Bool",
+  #|    "String::find": "Int",
+  #|    "String::last_of": "Int",
+  #|    "String::count_of": "Int",
+  #|    "String::chars": "Array[Char]",
+  #|    "String::split": "Array[String]",
+  #|    "String::split_char": "Array[String]",
+  #|    "String::split_whitespace": "Array[String]",
+  #|    "String::bytes": "Array[Byte]",
+  #|    "String::lines": "Array[String]",
+  #|    "String::view": "StringView",
+  #|    "Buffer::to_string": "String",
+  #|    "Buffer::to_bytes": "Bytes",
+  #|    "Buffer::to_owned": "String",
+  #|    "Buffer::length": "Int",
+  #|    "Buffer::size": "Int",
+  #|    "Iter::to_array": "Array[T]",
+  #|    "Iter::collect": "Array[T]",
+  #|    "Iter::map": "Array[T]",
+  #|    "Iter::filter": "Array[T]",
+  #|    "StringBuilder::to_string": "String",
+  #|    "StringBuilder::length": "Int"
+  #|  },
+  #|  "callbacks": {
+  #|    "Array::map":    { "slots": ["T"], "timing": "immediate" },
+  #|    "Array::filter": { "slots": ["T"], "timing": "immediate" },
+  #|    "Array::each":   { "slots": ["T"], "timing": "immediate" },
+  #|    "Array::sort_by":{ "slots": ["T"], "timing": "immediate" },
+  #|    "Map::each":     { "slots": ["K","V"], "timing": "immediate" },
+  #|    "Iter::map":     { "slots": ["T"], "timing": "deferred" }
+  #|  }
+  #|}
+
+///|
+pub fn core_model_types() -> Map[String, IRType] {
+  // Parse the model's types entries into IRType via parse_type_expr
+  let result : Map[String, IRType] = Map([])
+  let j = @json.parse(core_containers_model_json) catch { _ => return result }
+  match j {
+    Object(obj) =>
+      match obj.get("types") {
+        Some(Object(types)) =>
+          types.each(fn(k, v) {
+            match v {
+              String(s) => result[k] = parse_type_expr(s)
+              _ => ()
+            }
+          })
+        _ => ()
+      }
+    _ => ()
+  }
+  result
+}

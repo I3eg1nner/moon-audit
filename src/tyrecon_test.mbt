@@ -1344,3 +1344,48 @@ test "f1_non_insensitive_strategy_prints_warning" {
   // strategy path gracefully (warning printed to stdout)
   inspect(ictx.summaries.length() >= 0, content="true")
 }
+
+// ── P4a core container model tests ────────────────────────────────────────
+
+///|
+test "p4a_model_type_binding" {
+  // types: Array::length -> Int, String::split -> Array[String]
+  let symbols = PkgSymbols::new()
+  let lt = symbols.model_types.get("Array::length")
+  inspect(lt != None, content="true")
+  inspect(lt == Some(IRConcrete("Int", [])), content="true")
+  let sp = symbols.model_types.get("String::split")
+  inspect(sp != None, content="true")
+}
+
+///|
+test "p4a_model_effect_propagation" {
+  // Array::map returns Array[T] — same receiver-preserving semantics
+  let src = "pub fn go(xs : Array[String]) -> Int { let ys = xs.map(fn(x) { x }); ys.length() }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let symbols = PkgSymbols::new()
+  let stats = IRStatsResult::new()
+  scan_package_calls(impls.to_array(), "t.mbt", symbols, stats)
+  // ys.length() resolves (ys = Array[T] from model, length = Int)
+  inspect(stats.receiver_resolved >= 1, content="true")
+}
+
+///|
+test "p4a_model_lookup_before_builtin" {
+  // model_method_ret checks model first, then builtin fallback
+  let symbols = PkgSymbols::new()
+  // Array::length is in the model
+  let a = model_method_ret(symbols, "Array", "length")
+  inspect(a == Some(IRConcrete("Int", [])), content="true")
+  // Buffer::to_string is in the model too
+  let b = model_method_ret(symbols, "Buffer", "to_string")
+  inspect(b != None, content="true")
+}
+
+///|
+test "p4a_model_negative_unmapped_method" {
+  // a method NOT in model or builtin -> None (no false resolution)
+  let symbols = PkgSymbols::new()
+  let r = model_method_ret(symbols, "UnknownType", "mystery_method")
+  inspect(r == None, content="true")
+}

@@ -15,6 +15,9 @@
 
 ///|
 pub(all) struct PkgSymbols {
+  // P4a: core container model types (Array::map -> Array[T] etc.)
+  // consulted BEFORE builtin_method_ret; the hardcoded table becomes fallback
+  model_types : Map[String, IRType]
   // T1.2 alias policy: conservative(true)=short_key fallback binds (legacy);
   // strict(false)=fallback miss counts as unresolved(reason=alias).
   mut alias_mode : Bool
@@ -40,6 +43,7 @@ pub(all) struct PkgSymbols {
 ///|
 pub fn PkgSymbols::new() -> PkgSymbols {
   let symbols : PkgSymbols = {
+    model_types: core_model_types(),
     alias_mode: true, // unit-test constructors keep legacy behavior
     alias_unresolved: 0,
     fn_exists: Map([]),
@@ -1997,10 +2001,11 @@ fn infer_dot_apply(
       let base = match get_fn_ret(ctx.symbols, key) {
         Some(t) =>
           match t {
-            IRUnresolved => or_unresolved(builtin_method_ret(name, mname))
+            IRUnresolved =>
+              or_unresolved(model_method_ret(ctx.symbols, name, mname))
             _ => t
           }
-        None => or_unresolved(builtin_method_ret(name, mname))
+        None => or_unresolved(model_method_ret(ctx.symbols, name, mname))
       }
       match base {
         IRConcrete("__arraymap__", _) =>
@@ -2868,6 +2873,25 @@ fn builtin_ctor_ret(name : String) -> IRType? {
     "Iter" => Some(IRConcrete("Iter", []))
     _ => None
   }
+}
+
+///|
+
+///|
+/// P4a: model-first lookup, builtin_method_ret as fallback
+pub fn model_method_ret(
+  symbols : PkgSymbols,
+  recv : String,
+  mname : String,
+) -> IRType? {
+  // 1. core-containers model (P4a)
+  let key = recv + "::" + mname
+  match symbols.model_types.get(key) {
+    Some(t) => return Some(t)
+    None => ()
+  }
+  // 2. fallback to hardcoded builtin table
+  builtin_method_ret(recv, mname)
 }
 
 ///|
