@@ -80,11 +80,28 @@ count() {
   grep -F -c "$f:" "$tmp/scan.log" || [ "$?" -eq 1 ]
 }
 
+# P0: c15 requires --mode deep for summary refinement (quick mode's
+# args-union fallback is intentionally conservative for non-web projects)
+count_deep() {
+  local f="$1" tmp="$WORK_DIR/deep_$1"
+  mkdir -p "$tmp" || return 2
+  printf 'name = "iso-case"\nversion = "0.1.0"\n' > "$tmp/moon.mod" || return 2
+  : > "$tmp/moon.pkg" || return 2
+  cp "$HERE/taint-rules.json" "$HERE/c0_helpers.mbt" "$HERE/$f" "$tmp/" || return 2
+  if ! run_timed "$ANALYZER" --mode deep "$tmp" > "$tmp/scan.log" 2> "$tmp/scan.stderr"; then
+    cat "$tmp/scan.stderr" >&2
+    return 2
+  fi
+  grep -Eq 'files scanned|^No issues found\.$' "$tmp/scan.log" || return 2
+  grep -F -c "$f:" "$tmp/scan.log" || [ "$?" -eq 1 ]
+}
+
 # ── expectation table ─────────────────────────────────────────────────────
 # format: file|status|current|wanted|gap-attribution
 #   status=PASS: gate requires count == current (== wanted)
 #   status=XFAIL: known miss; gate requires count == current; flipping to
 #                 `wanted` (or any other change) fails with a hint to update
+# note: c15 uses count_deep (--mode deep) — see function above
 TABLE="
 c1_shadowed_component.mbt|PASS|0|0|-
 c2_double_evaluation.mbt|PASS|1|1|-
@@ -97,6 +114,7 @@ c8_default_param_call.mbt|PASS|0|0|-
 c9_orig_same_name_destructure.mbt|PASS|2|2|-
 c10_c12_scope_cases.mbt|PASS|3|3|-
 c13_c14_error_and_dispatch.mbt|PASS|1|1|-
+c15_summary_collision.mbt|PASS|2|2|-
 "
 
 rc=0
@@ -106,7 +124,12 @@ echo "== per-case assertions =="
 # rc=1 from any mismatch survives to the exit gate below (gate7 P0)
 while IFS='|' read -r file status cur want gap; do
   [ -n "$file" ] || continue
-  actual=$(count "$file") || fail 2 "isolated scan failed: $file"
+  # c15 requires --mode deep for summary refinement
+  if [[ "$file" == c15_* ]]; then
+    actual=$(count_deep "$file") || fail 2 "isolated deep scan failed: $file"
+  else
+    actual=$(count "$file") || fail 2 "isolated scan failed: $file"
+  fi
   if [ "$status" = "PASS" ]; then
     if [ "$actual" != "$cur" ]; then
       echo "  FAIL  $file: expected $cur, got $actual"

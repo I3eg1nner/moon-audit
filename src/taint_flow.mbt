@@ -3000,24 +3000,17 @@ fn summary_lookup(
   name : String,
   callsite : String, // P3: "" for insensitive (default shared summary)
 ) -> FuncTaintSummary? {
-  // CallSite(1): try context-prefixed key first, then bare, then short
+  // CallSite(1): try context-prefixed key first
   if callsite != "" {
     match ictx.summaries.get(name + "@" + callsite) {
       Some(s) => return Some(s) // per-context precision hit
       None => ()
     }
   }
-  match ictx.summaries.get(name) {
-    Some(s) => Some(s)
-    None => {
-      let idx = find_last(name, "::")
-      if idx > 0 {
-        ictx.summaries.get(Show::to_string(name[idx + 2:]))
-      } else {
-        None
-      }
-    }
-  }
+  // P0: NO short-name fallback — "Type::method" must match a qualified
+  // summary key exactly. If not found, return None (conservative: no
+  // summary is better than a WRONG summary from a different type).
+  ictx.summaries.get(name)
 }
 
 // T4.1: consume ret_from at a call site — surgical refinement over the
@@ -3636,7 +3629,11 @@ pub fn collect_func_summaries_flow(
   for item in impls {
     match item {
       TopFuncDef(fun_decl~, decl_body~, ..) => {
-        let name = fun_decl.name.name
+        // P0: methods declared via "fn Type::method" get a qualified name
+        let name = match fun_decl.type_name {
+          Some(tn) => type_name_str_qual(tn) + "::" + fun_decl.name.name
+          None => fun_decl.name.name
+        }
         let params : Array[String] = []
         let pnames : Array[String] = []
         match fun_decl.decl_params {
@@ -3678,13 +3675,19 @@ pub fn collect_func_summaries_flow(
           _ => ()
         }
       }
-      TopImpl(method_name~, params~, body~, ..) =>
+      TopImpl(self_ty~, method_name~, params~, body~, ..) => {
+        // P0: qualified name to prevent cross-type summary collisions
+        let self_name = match self_ty {
+          Some(t) => qual_type_str_flow(t)
+          None => "?"
+        }
+        let qual_name = self_name + "::" + method_name.name
         match body {
           DeclBody(expr=Function(func~, ..)) =>
             collect_summary_func(
               Some(func.parameters),
               func.body,
-              method_name.name,
+              qual_name,
               method_name.loc.start.lnum,
               file,
               ictx,
@@ -3693,15 +3696,36 @@ pub fn collect_func_summaries_flow(
             collect_summary_func(
               Some(params),
               body,
-              method_name.name,
+              qual_name,
               method_name.loc.start.lnum,
               file,
               ictx,
             )
           _ => ()
         }
+      }
       _ => ()
     }
+  }
+}
+
+///|
+fn qual_type_str_flow(ty : @syntax.Type) -> String {
+  match ty {
+    Name(constr_id~, ..) =>
+      match constr_id.id {
+        Ident(name~) => name
+        Dot(pkg~, id~) => pkg + "::" + id
+      }
+    Option(ty~, ..) => qual_type_str_flow(ty)
+    Any(..) => "?"
+    Arrow(..) => "fn"
+    Tuple(..) => "Tuple"
+    Object(cid) =>
+      match cid.id {
+        Ident(name~) => name
+        Dot(pkg~, id~) => pkg + "::" + id
+      }
   }
 }
 

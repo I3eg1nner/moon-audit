@@ -10,7 +10,7 @@
 
 ///|
 pub(all) struct SummaryUnit {
-  name : String // summary key (short name; methods keyed by method name)
+  name : String // P0: qualified identity — "Type::method" or bare fn name
   params : @list.List[@syntax.Parameter]?
   body : @syntax.Expr
   file : String
@@ -28,7 +28,11 @@ pub fn extract_summary_units(
   for item in impls {
     match item {
       TopFuncDef(fun_decl~, decl_body~, ..) => {
-        let name = fun_decl.name.name
+        // P0: methods declared via "fn Type::method" get a qualified name
+        let name = match fun_decl.type_name {
+          Some(tn) => type_name_str_qual(tn) + "::" + fun_decl.name.name
+          None => fun_decl.name.name
+        }
         match decl_body {
           DeclBody(expr=Function(func~, ..)) =>
             units.push({
@@ -49,8 +53,14 @@ pub fn extract_summary_units(
           _ => ()
         }
       }
-      TopImpl(method_name~, params~, body~, ..) => {
-        let name = method_name.name
+      TopImpl(self_ty~, method_name~, params~, body~, ..) => {
+        // P0: methods keyed by "SelfTy::method" to prevent cross-type
+        // summary collisions (e.g. First::pick vs Second::pick)
+        let self_name = match self_ty {
+          Some(t) => qual_type_str(t)
+          None => "?"
+        }
+        let name = self_name + "::" + method_name.name
         match body {
           DeclBody(expr=Function(func~, ..)) =>
             units.push({
@@ -75,6 +85,36 @@ pub fn extract_summary_units(
     }
   }
   units
+}
+
+// ── helpers for qualified naming (P0) ─────────────────────────────────────
+
+///|
+fn type_name_str_qual(tn : @syntax.TypeName) -> String {
+  match tn.name {
+    Ident(name~) => name
+    Dot(pkg~, id~) => pkg + "::" + id
+  }
+}
+
+///|
+fn qual_type_str(ty : @syntax.Type) -> String {
+  match ty {
+    Name(constr_id~, ..) =>
+      match constr_id.id {
+        Ident(name~) => name
+        Dot(pkg~, id~) => pkg + "::" + id
+      }
+    Option(ty~, ..) => qual_type_str(ty)
+    Any(..) => "?"
+    Arrow(..) => "fn"
+    Tuple(..) => "Tuple"
+    Object(cid) =>
+      match cid.id {
+        Ident(name~) => name
+        Dot(pkg~, id~) => pkg + "::" + id
+      }
+  }
 }
 
 // ── callee extraction (lightweight visitor per unit body) ────────────────

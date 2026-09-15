@@ -1017,12 +1017,13 @@ test "t41_unrelated_param_not_in_ret_from_does_not_propagate" {
 ///|
 test "t41_method_form_type_method_consumes_summary" {
   // (c) static method form `B::make(recv, arg)` consumes the TopImpl
-  // summary (keyed short "make"): ret_from=[s], arg1 taints the return
+  // summary (keyed qualified "B::make" after P0): ret_from=[s], arg1
+  // taints the return
   let source = "pub trait W { fn make(Self, s : String) -> String } pub struct B {} pub impl W for B with fn make(self, s) -> String { s } pub fn go(resp : Response, dirty : String) -> Unit { let bb = B::{}; let v = B::make(bb, dirty); resp.set_header(\"X\", v) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let ictx = InterProceduralContext::new()
   collect_func_summaries_flow(impls, "test.mbt", ictx)
-  inspect(ictx.summaries.contains("make"), content="true")
+  inspect(ictx.summaries.contains("B::make"), content="true")
   let findings : Array[Finding] = []
   run_cwe113(impls, "test.mbt", source, findings, Error, ictx~)
   assert_true(findings.length() > 0)
