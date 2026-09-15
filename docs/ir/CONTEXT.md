@@ -979,3 +979,9 @@ P5 过程间深度: ✅ 完成——容器/闭包/多层链
 P6 性能: P6.2 ✅ release 基准; P6.1 BLOCKED 磁盘缓存 SIGABRT
 
 除 P2/P6.1 两项诚实留余外，TAI-E-PLAN 全部交付。
+
+## 攻坚收口（P6.1+P2-v2, 2026-09-08）
+- P6.1 ✅ (fc47b14): 磁盘缓存 SIGABRT 修复——text-format 序列化替代 JSON, roundtrip 测试
+- P2-v2 ✅ (1c8390c): CFG 自建 temp facts——expr_refs + self_taint_of_expr（部分独立: 实参求值不再读 walk 的 temp_facts）
+- 402/402 × native, 12/12 反例, FP 0/0/0, crescent 5
+- TAI-E-PLAN 六阶段全部交付或部分交付（零 BLOCKED 项!）
