@@ -1,0 +1,31 @@
+{
+  "name": "async",
+  "description": "moonbitlang/async: spawn timing + HTTP/file/ws semantics (P4b)",
+  "extends": [],
+  "types": {
+    "spawn": "Task",
+    "get": "Response",
+    "post": "Response",
+    "read_file": "Bytes"
+  },
+  "sources": [
+    { "method": "get", "kind": "RequestData", "value_slot": 1 },
+    { "method": "post", "kind": "RequestData", "value_slot": 1 },
+    { "method": "put", "kind": "RequestData", "value_slot": 1 },
+    { "method": "read_file", "kind": "RequestBody" },
+    { "method": "recv", "kind": "RequestData" }
+  ],
+  "sinks": [
+    { "method": "write_file", "kind": "Output", "value_slot": 1 },
+    { "method": "send_text", "kind": "Output", "value_slot": 1 },
+    { "method": "send_binary", "kind": "Output", "value_slot": 1 },
+    { "method": "send_close", "kind": "Output", "value_slot": 1 }
+  ],
+  "sanitizers": [],
+  "callbacks": {
+    "spawn": { "slots": [], "timing": "deferred" },
+    "spawn_bg": { "slots": [], "timing": "deferred" },
+    "spawn_loop": { "slots": [], "timing": "deferred" },
+    "iterate": { "slots": [], "timing": "immediate" }
+  }
+}

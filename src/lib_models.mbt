@@ -67,13 +67,14 @@ fn builtin_model_json(name : String) -> String? {
   match name {
     "mongoose" => Some(mongoose_model_json)
     "core-callbacks" => Some(core_callbacks_model_json)
+    "async" => Some(async_model_json)
     _ => None
   }
 }
 
 ///|
 pub fn builtin_model_names() -> Array[String] {
-  ["mongoose", "core-callbacks"]
+  ["mongoose", "core-callbacks", "async"]
 }
 
 ///|
@@ -288,3 +289,46 @@ pub fn core_model_types() -> Map[String, IRType] {
   }
   result
 }
+
+///| Built-in "async" model: moonbitlang/async semantics (P4b).
+
+///|
+/// - spawn callbacks are DEFERRED (stored, executed on scheduler advance)
+/// - HTTP response bodies arrive from the network → tainted source
+/// - file reads produce untrusted data → tainted source
+/// - file writes send data out → sink (Output kind, CWE-116 path)
+/// - websocket recv → tainted; send → sink
+
+///|
+/// Activated via `"extends": ["async"]` in taint-rules.json (opt-in).
+let async_model_json : String =
+  #|{
+  #|  "name": "async",
+  #|  "description": "moonbitlang/async: spawn timing + HTTP/file/ws semantics",
+  #|  "types": {
+  #|    "spawn": "Task",
+  #|    "get": "Response",
+  #|    "post": "Response",
+  #|    "read_file": "Bytes"
+  #|  },
+  #|  "sources": [
+  #|    { "method": "get",        "kind": "RequestData", "value_slot": 1 },
+  #|    { "method": "post",       "kind": "RequestData", "value_slot": 1 },
+  #|    { "method": "put",        "kind": "RequestData", "value_slot": 1 },
+  #|    { "method": "read_file",  "kind": "RequestBody" },
+  #|    { "method": "recv",       "kind": "RequestData" }
+  #|  ],
+  #|  "sinks": [
+  #|    { "method": "write_file",   "kind": "Output", "value_slot": 1 },
+  #|    { "method": "send_text",    "kind": "Output", "value_slot": 1 },
+  #|    { "method": "send_binary",  "kind": "Output", "value_slot": 1 },
+  #|    { "method": "send_close",   "kind": "Output", "value_slot": 1 }
+  #|  ],
+  #|  "sanitizers": [],
+  #|  "callbacks": {
+  #|    "spawn":      { "slots": [], "timing": "deferred" },
+  #|    "spawn_bg":   { "slots": [], "timing": "deferred" },
+  #|    "spawn_loop": { "slots": [], "timing": "deferred" },
+  #|    "iterate":    { "slots": [], "timing": "immediate" }
+  #|  }
+  #|}
