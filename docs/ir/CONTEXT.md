@@ -913,3 +913,18 @@ t51 测试路径拼接留待下次触碰。
 - 修复 baseline 重复次数与项目相对路径命名空间、扫描子命令失败传播、CFG 验证缓存旁路、Action 原子发布与安装/Windows CI 失败传播。
 - 本地最终 379/379 × 四目标，CLI 18/18、脚本 33/33、真实反例门禁通过。普通扫描固定三项目五对交错基准中位数约降低一半，原始样本与限制已保存。
 - 结果与后续待办见 [继续推进报告](../review-2026-09-13.md)，语料与性能证据在 `docs/metrics/`。独立分支 `codex/reliability-audit-20260913` 已有本地提交；自动审批拒绝推送，等待明确远端发布授权，尚未创建 PR 或运行远端 CI。
+
+## 2026-09-09 · P2b attempt + honest reversal
+- P1a (e30993e): instrumentation runtime package + function report — simplified (no source rewrite), 379/379
+- P2b attempt: tried CFG-as-sole-producer (refute AST findings not fired by executor)
+  → 11 test failures: executor fires fewer sinks than walk in loop fixpoint / noraise / closure capture
+  → root cause: executor's temp_facts bridge records per-expression evaluation from the walk;
+    complex semantics (loop convergence, noraise branches, closure timing) compute richer state
+    in the walk than what temp_facts captures. The executor then misses these → false refutation.
+  → REVERTED to green state (H1 unreachable filter + E1b comparison counters, 379/379)
+- Honest conclusion: "CFG independent producer" requires self-bootstrapping taint computation
+  (from function parameters, not walk-recorded temps) — this is a major refactoring of exec_stmt
+  to evaluate expression taint independently, estimated ~2000+ lines. Not a quick switch.
+- Current architecture: AST walk = candidate generator + taint computer; CFG executor = validator
+  (confirms/refutes via unreachable + comparison); H1 filter = dead-code elimination.
+  This is correct but NOT "CFG as sole producer" — documented honestly.
