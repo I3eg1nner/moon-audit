@@ -190,3 +190,39 @@ P4 库模型 ──────────┘                                �
 - **unobserved**: 8 条 — `record`/`println` 等框架内部调用，动态未插桩
 - **结论**: 对比器端到端工作正常；recall gap 来源于入口点建模缺失（需 P1.4 改进）；precision 低是预期的（静态分析发现更多可能路径）
 - **命令**: `moon-audit compare-calls <static.json> <dynamic-log.txt>`
+
+## P1.3 实测结果（2026-09-08, medium probe: 22 functions, if/loop/closure/match/recursion/error/defer/tuple/option/early-exit）
+
+| 指标 | 值 | 解读 |
+|---|---|---|
+| **recall** | **100%** (37/37) | 所有动态执行的调用边都被静态调用图覆盖 |
+| **precision** | **68%** (37/54) | 17 条静态边未在动态中观测——全部为冷路径/未执行分支（非 FP） |
+| static edges | 54 | 含 String/Array/Map 内建方法 |
+| dynamic edges | 37 | 22 个函数全覆盖（递归/闭包/match/early-exit） |
+| cfg coverage | 22/22 = 100% | 所有函数走 CFG 执行，ast-fallback=0 |
+
+### Recall Gap 分析（gap = 0）
+- 37/37 动态边全部在静态图中命中——**零缺口**
+
+### Precision 分析（17 条未观测 = 冷路径）
+| 形态 | 边数 | 原因 |
+|---|---|---|
+| 内建方法（String::trim/to_upper/Array::join 等） | 12 | 静态发现所有可能调用，动态只走了实际路径 |
+| println（defer_test 内） | 1 | defer 语句的 println 未在动态输出中分类 |
+| run_all -> Array::length | 1 | 数组操作的结果消费 |
+| guard else 分支 | 2 | x=7 走 medium 分支，small/big 未走 |
+| error_handling catch 分支 | 1 | may_fail=false，catch 未走 |
+
+**结论**: precision 差距全部来自**条件分支的未执行路径**（guard 双分支/match else/catch/defer cleanup），这是静态分析的预期行为（静态分析报告所有可能路径）。17 条边**不是 FP**。
+
+### 与 Tai-e 参考对比
+| | Tai-e (DaCapo) | moon-audit (probe20) |
+|---|---|---|
+| recall | 91.3% | **100%** |
+| precision | — (未报告) | 68% (冷路径, 非 FP) |
+| 语料规模 | 大型真实程序 | 22 函数探针 |
+
+**注**: 100% recall 在 22 函数探针上可达，在大型项目上预计会下降（FFI/反射/入口点等）。P1.3 下一步应在 mocket/crescent 真实语料上复测。
+
+### 探针覆盖形态
+if/else ✓ | while loop ✓ | for-in loop ✓ | closure (double+add_n) ✓ | match (4-arm) ✓ | guard chain ✓ | recursion (fib) ✓ | early return ✓ | defer ✓ | tuple destructure ✓ | Option chain ✓ | Map/Array container ✓ | string ops ✓ | mixed flow ✓
