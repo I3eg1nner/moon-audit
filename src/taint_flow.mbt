@@ -979,6 +979,7 @@ pub fn run_flow_taint_func(
       ctx.temp_facts,
       ast_kinds,
       ctx.taint_rules,
+      params~,
     ),
   )
   let unreachable_lines = cfg_unreachable_sink_lines(

@@ -134,9 +134,24 @@ fn self_taint_of_expr(e : @syntax.Expr, st : Map[String, Taint]) -> Taint {
 fn exec_stmt(
   s : Stmt,
   st : Map[String, Taint],
-  temp_facts : Map[Int, Taint], // P2a: passed from ir.temp_taints, not from walk
+  temp_facts : Map[Int, Taint],
+  expr_refs : Map[Int, @syntax.Expr],
   fired : Array[(String, Int)],
 ) -> Unit {
+  // P1-CFG: on-demand temp resolution — when a temp is not in the
+  // pre-computed table, compute it from expr_refs using CURRENT block
+  // state (this is the key independence step: expression taints reflect
+  // what has happened in the function so far, not walk-time facts)
+  let resolve_temp = fn(t : Int) -> Taint {
+    match temp_facts.get(t) {
+      Some(v) => v // pre-computed (self-computed or walk): trust it
+      None =>
+        match expr_refs.get(t) {
+          Some(e) => self_taint_of_expr(e, st) // on-demand: current st
+          None => Tainted // truly unknown: conservative
+        }
+    }
+  }
   match s {
     LetEvalTemp(_) => () // temp taints precomputed by the walk
     BindVar(key, rhs) =>
@@ -152,21 +167,14 @@ fn exec_stmt(
     BindTuplePositions(key, temps) => {
       let mut i = 0
       while i < temps.length() {
-        st[key + "|#tuple|" + i.to_string()] = match temp_facts.get(temps[i]) {
-          Some(v) => v
-          None => Tainted
-        }
+        st[key + "|#tuple|" + i.to_string()] = resolve_temp(temps[i])
         i += 1
       }
     }
     BindCtorPositions(key, ctor, temps) => {
       let mut i = 0
       while i < temps.length() {
-        st[key + "|" + ctor + "|" + i.to_string()] = match
-          temp_facts.get(temps[i]) {
-          Some(v) => v
-          None => Tainted
-        }
+        st[key + "|" + ctor + "|" + i.to_string()] = resolve_temp(temps[i])
         i += 1
       }
     }
@@ -180,15 +188,12 @@ fn exec_stmt(
       // a NON-field-ref taint
       let mut any_firable = false
       for t in temps {
-        match temp_facts.get(t) {
-          Some(v) =>
-            if is_tainted(v) {
-              match v {
-                TaintedFieldRef(_, _) => ()
-                _ => any_firable = true
-              }
-            }
-          None => any_firable = true // unknown temp: keep fired
+        let v = resolve_temp(t)
+        if is_tainted(v) {
+          match v {
+            TaintedFieldRef(_, _) => ()
+            _ => any_firable = true
+          }
         }
       }
       if any_firable {
@@ -205,11 +210,7 @@ fn exec_stmt(
         }
       }
     }
-    AssignStmt(key, t) =>
-      st[key] = match temp_facts.get(t) {
-        Some(v) => v
-        None => Tainted
-      }
+    AssignStmt(key, t) => st[key] = resolve_temp(t)
     RetStmt(_) | RaiseStmt(_) | BreakStmt(_) | ContinueStmt | DeferReg(_) => () // control-only: ordering lives in the CFG edges
   }
 }
@@ -269,7 +270,7 @@ fn exec_block_ir(
     let st = states[b]
     let fired : Array[(String, Int)] = []
     for s in ir.blocks[b].stmts {
-      exec_stmt(s, st, ir.temp_taints, fired)
+      exec_stmt(s, st, ir.temp_taints, ir.expr_refs, fired)
     }
     // propagate to successors (join; re-enqueue on growth)
     for succ in ir.blocks[b].succs {
@@ -358,6 +359,7 @@ pub fn cfg_hybrid_classify(
   temp_facts : Map[Int, Taint], // P2a: still accepted, but embedded into ir
   ast_kinds : Array[(String, Int)],
   rules : TaintRuleset,
+  params~ : @list.List[@syntax.Parameter]?,
 ) -> String {
   // returns "cfg" | "fallback" | "divergent" and bumps counters.
   // E1b: default (authority) mode — when the executor fires FEWER sinks
@@ -367,21 +369,21 @@ pub fn cfg_hybrid_classify(
   let base_ir = build_block_ir(fn_name, body, rules~)
   // P2v2: self-compute temp taints from expr_refs when available
   let self_facts : Map[Int, Taint] = Map([])
-  // collect param bindings from the body pattern (best effort)
+  // P1-CFG: initialize from ACTUAL signature params (not body Let patterns)
   let param_st : Map[String, Taint] = Map([])
-  match body {
-    Sequence(exprs~, ..) =>
-      for e in exprs {
-        match e {
-          Let(pattern~, ..) =>
-            match pattern {
-              Var(b) => param_st[b.name] = Tainted // function params are tainted
-              _ => ()
-            }
-          _ => ()
+  match params {
+    Some(ps) =>
+      for p in ps {
+        match p {
+          Positional(binder~, ..)
+          | Labelled(binder~, ..)
+          | Optional(binder~, ..)
+          | QuestionOptional(binder~, ..) =>
+            param_st[binder.name] = TaintedParam(binder.name)
+          DiscardPositional(..) => ()
         }
       }
-    _ => ()
+    None => ()
   }
   // self-compute taints for every referenced expr
   base_ir.expr_refs.each(fn(tid, expr) {

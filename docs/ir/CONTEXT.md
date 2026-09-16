@@ -991,3 +991,9 @@ P6 性能: P6.2 ✅ release 基准; P6.1 BLOCKED 磁盘缓存 SIGABRT
 - cli_regression_test.py 18/18 恢复（not-implemented 提示再次触发）
 - CONTEXT/TAI-E-PLAN 全面降级: CallSite(1)→骨架, 磁盘缓存→未接入生产, CFG→部分独立
 - 402/402 × native; 评审 docs/review-taie-gap-2026-09-15.md 第十轮整改
+
+## P1-CFG（2026-09-15 第十轮评审整改）
+- 签名参数初始化: cfg_hybrid_classify 接受 params~（从 run_flow_taint_func 传入），param_st 由真实形参初始化（TaintedParam(name)），不再从 body Let 推导
+- 按需表达式求值: exec_stmt 的 resolve_temp 闭包——当 temp 不在预计算表时，从 ir.expr_refs 查找表达式并用当前块状态 st 求 self_taint_of_expr（关键独立性步骤）
+- SinkStmt/BindVar/BindTuple/BindCtor/Assign 全部改用 resolve_temp（按需计算优先，预计算兜底）
+- 402/402 × native, 12/12 反例, FP 0/0/0, crescent 5 稳定
