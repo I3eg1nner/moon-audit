@@ -2386,14 +2386,21 @@ fn pt_build_summaries(
     let s = ctx.pt_fn_slices[i3]
     let ret_sites = sols[i3].pts_of("fn@" + s.fn_name + ".ret")
     if ret_sites.length() > 0 {
-      let tys : Array[String] = []
+      // P1-UNIFY: store BOTH type names and raw allocation-site ids.
+      // Types preserve the existing consumer contract (recv_pt checks);
+      // raw sites preserve object identity for downstream precision.
+      let results : Array[String] = []
       for r in ret_sites {
         let ty = pt_site_type(r)
-        if ty != "" && !tys.contains(ty) {
-          tys.push(ty)
+        if ty != "" && !results.contains(ty) {
+          results.push(ty)
+        }
+        // also include the raw site if it carries identity (alloc:N@f)
+        if r.has_prefix("alloc:") && !results.contains(r) {
+          results.push(r)
         }
       }
-      summaries[s.fn_name] = tys
+      summaries[s.fn_name] = results
     }
   }
   summaries

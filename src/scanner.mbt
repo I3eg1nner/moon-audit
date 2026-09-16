@@ -2,7 +2,9 @@
 pub fn scan_project(root : String, config : Config) -> ScanResult {
   // E3: thin compatibility shell — the single world build happens here;
   // registry callers pass an already-built world via scan_project_with_world
-  let world = load_program_world(root, config, with_symbols=false)
+  // P1-UNIFY: with_symbols=true — the taint path now consumes the same
+  // symbol table (fn_sigs, impl_methods) as the call-graph path
+  let world = load_program_world(root, config, with_symbols=true)
   scan_project_with_world(world, config)
 }
 
@@ -35,6 +37,23 @@ pub fn scan_project_with_world(
   // "taint" section) ADDs sources/sinks/sanitizers to the built-in tables
   let (taint_rules, _taint_source, model_warnings) = load_taint_rules(root)
   let interproc_ctx = InterProceduralContext::new()
+  // P1-UNIFY: bridge world symbols into the taint interprocedural context
+  // so summary_lookup resolves against qualified identity (fn_sigs)
+  interproc_ctx.world_symbols = Some(world.symbols)
+  // P1-UNIFY: populate dispatch hints from impl_methods — for each
+  // method name, record the impl self-types. Taint's DotApply for
+  // trait-object receivers consults this to narrow summary lookup
+  world.symbols.impl_methods.each(fn(k, _) {
+    let idx = find_last(k, "::")
+    if idx > 0 {
+      let mn = Show::to_string(k[idx + 2:])
+      let self_ty = Show::to_string(k[:idx])
+      match interproc_ctx.dispatch_hints.get(mn) {
+        Some(arr) => if !arr.contains(self_ty) { arr.push(self_ty) }
+        None => interproc_ctx.dispatch_hints[mn] = [self_ty]
+      }
+    }
+  })
   let mut has_web = false
   let incremental = config.incremental || config.changed_files.length() > 0
   let changed_set : Map[String, Bool] = Map([])

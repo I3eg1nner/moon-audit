@@ -673,6 +673,8 @@ pub(all) struct InstrumentReport {
 
 pub(all) struct InterProceduralContext {
   summaries : Map[String, FuncTaintSummary]
+  mut world_symbols : PkgSymbols?
+  dispatch_hints : Map[String, Array[String]]
   mut not_converged : Int
 }
 pub fn InterProceduralContext::new() -> Self

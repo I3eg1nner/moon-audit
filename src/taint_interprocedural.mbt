@@ -23,6 +23,12 @@ pub(all) struct FuncTaintSummary {
 ///|
 pub(all) struct InterProceduralContext {
   summaries : Map[String, FuncTaintSummary]
+  // P1-UNIFY: world symbols bridge — summary lookup consults fn_sigs/
+  // impl_methods for qualified-name resolution (replaces bare AST match)
+  mut world_symbols : PkgSymbols?
+  // P1-UNIFY: dispatch hints from pointer analysis — populated by the
+  // call-graph path, consumed by taint DotApply for refined callee sets
+  dispatch_hints : Map[String, Array[String]]
   // T4.2: cyclic SCCs that exhausted their convergence budget (|SCC|+2
   // sweeps) — disclosed in analysis-scope, never silently truncated
   mut not_converged : Int
@@ -30,7 +36,12 @@ pub(all) struct InterProceduralContext {
 
 ///|
 pub fn InterProceduralContext::new() -> InterProceduralContext {
-  { summaries: Map([]), not_converged: 0, }
+  {
+    summaries: Map([]),
+    world_symbols: None,
+    dispatch_hints: Map([]),
+    not_converged: 0,
+  }
 }
 
 ///|

@@ -3008,10 +3008,37 @@ fn summary_lookup(
       None => ()
     }
   }
-  // P0: NO short-name fallback — "Type::method" must match a qualified
-  // summary key exactly. If not found, return None (conservative: no
-  // summary is better than a WRONG summary from a different type).
-  ictx.summaries.get(name)
+  // P0: exact qualified match (no short-name fallback)
+  match ictx.summaries.get(name) {
+    Some(s) => return Some(s)
+    None => ()
+  }
+  // P1-UNIFY: consult world symbols — if fn_sigs has this name under a
+  // qualified identity that also has a summary, use it (bridge between
+  // AST-collected summaries and symbol-table qualified identity)
+  match ictx.world_symbols {
+    Some(syms) => {
+      if syms.fn_sigs.contains(name) {
+        return ictx.summaries.get(name) // already tried — no double hit
+      }
+      // try qualified key from impl_methods ("SelfTy::method")
+      if name.has_suffix("::") || !name.contains("::") {
+        // bare fn name — try to find it as a method in impl_methods
+        // (conservative: only if exactly one impl matches)
+        let matches : Array[String] = []
+        syms.impl_methods.each(fn(k, _) {
+          if k.has_suffix("::" + name) {
+            matches.push(k)
+          }
+        })
+        if matches.length() == 1 {
+          return ictx.summaries.get(matches[0])
+        }
+      }
+      None
+    }
+    None => None
+  }
 }
 
 // T4.1: consume ret_from at a call site — surgical refinement over the
