@@ -322,7 +322,7 @@ pub fn rule_id_str(RuleId) -> String
 
 pub fn run_call_graph(String, Config, conservative_alias? : Bool) -> CallGraph
 
-pub fn run_call_graph_with_world(ProgramWorld) -> CallGraph
+pub fn run_call_graph_with_world(ProgramWorld, event_cbs? : Array[(String, String) -> Unit]) -> CallGraph
 
 pub fn run_cross_func_taint(@list.List[@syntax.Impl], String, String, Array[Finding], InterProceduralContext, ImportContext) -> Unit
 
@@ -413,12 +413,25 @@ pub fn write_runtime_package(String) -> Unit
 // Errors
 
 // Types and methods
+pub(all) struct AnalysisCtx {
+  world : ProgramWorld
+  dep_results : Map[AnalysisId, AnalysisResult]
+  events : AnalysisEvents
+}
+
+pub(all) struct AnalysisEvents {
+  on_new_call_edge : Array[(String, String) -> Unit]
+}
+pub fn AnalysisEvents::emit_new_call_edge(Self, String, String) -> Unit
+pub fn AnalysisEvents::new() -> Self
+
 pub(all) enum AnalysisId {
   TaintFlow
   CallGraph
   HIRTrace
   PointsTo
   LiveVars
+  Custom(String)
 } derive(Eq, Hash, @debug.Debug)
 pub fn AnalysisId::display(Self) -> String
 
@@ -428,7 +441,7 @@ pub(all) struct AnalysisRegistry {
 pub fn AnalysisRegistry::new() -> Self
 pub fn AnalysisRegistry::plan(Self, Array[AnalysisId]) -> Result[Array[AnalysisId], String]
 pub fn AnalysisRegistry::register(Self, AnalysisSpec) -> Unit
-pub fn AnalysisRegistry::run_all(Self, Array[AnalysisId], ProgramWorld) -> Result[Map[AnalysisId, AnalysisResult], String]
+pub fn AnalysisRegistry::run_all(Self, Array[AnalysisId], ProgramWorld, events? : AnalysisEvents) -> Result[Map[AnalysisId, AnalysisResult], String]
 
 pub(all) enum AnalysisResult {
   TaintFlowR(ScanResult)
@@ -441,7 +454,7 @@ pub(all) enum AnalysisResult {
 pub(all) struct AnalysisSpec {
   id : AnalysisId
   deps : Array[AnalysisId]
-  run : (ProgramWorld) -> AnalysisResult
+  run : (ProgramWorld, AnalysisCtx) -> AnalysisResult
 }
 
 pub(all) struct BaselineDiff {

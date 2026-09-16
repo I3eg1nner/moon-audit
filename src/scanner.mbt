@@ -26,8 +26,9 @@ pub fn scan_project_with_world(
   let root = world.root
 
   // F2 + P6.1: per-fn cache backed by cross-process disk cache
+  // P2-CACHE: wire disk_cache_load/save into the production scan path
   let world_fp = symbols_fingerprint(world.symbols)
-  let fn_cache = FnCache::new()
+  let fn_cache = disk_cache_load(root, world_fp)
 
   let findings : Array[Finding] = []
   let errors : Array[String] = []
@@ -165,6 +166,9 @@ pub fn scan_project_with_world(
       }
     }
   }
+  // P2-CACHE: persist fn-level findings to .moon-audit-cache for
+  // cross-process incremental scanning (second run skips cached fns)
+  disk_cache_save(fn_cache, root, world_fp)
   {
     findings: dedup_findings(findings),
     files_scanned,

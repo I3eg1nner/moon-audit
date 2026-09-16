@@ -16,6 +16,7 @@ pub(all) enum AnalysisId {
   HIRTrace
   PointsTo
   LiveVars
+  Custom(String)
 } derive(Eq, Hash, Debug)
 
 ///|
@@ -26,6 +27,7 @@ pub fn AnalysisId::display(self : AnalysisId) -> String {
     PointsTo => "points-to"
     HIRTrace => "hir-trace"
     LiveVars => "live-vars"
+    Custom(s) => s
   }
 }
 
@@ -74,10 +76,40 @@ pub(all) enum AnalysisResult {
 }
 
 ///|
+// P2: shared-result context — runners can read dependency results and
+// subscribe to solver events (Tai-e Plugin-style)
+pub(all) struct AnalysisCtx {
+  world : ProgramWorld
+  dep_results : Map[AnalysisId, AnalysisResult]
+  events : AnalysisEvents
+}
+
+///|
+pub(all) struct AnalysisEvents {
+  on_new_call_edge : Array[(String, String) -> Unit] // caller, callee
+}
+
+///|
+pub fn AnalysisEvents::new() -> AnalysisEvents {
+  { on_new_call_edge: [], }
+}
+
+///|
+pub fn AnalysisEvents::emit_new_call_edge(
+  self : AnalysisEvents,
+  caller : String,
+  callee : String,
+) -> Unit {
+  for cb in self.on_new_call_edge {
+    cb(caller, callee)
+  }
+}
+
+///|
 pub(all) struct AnalysisSpec {
   id : AnalysisId
   deps : Array[AnalysisId]
-  run : (ProgramWorld) -> AnalysisResult
+  run : (ProgramWorld, AnalysisCtx) -> AnalysisResult
 }
 
 ///|
@@ -163,6 +195,7 @@ pub fn AnalysisRegistry::run_all(
   self : AnalysisRegistry,
   requested : Array[AnalysisId],
   world : ProgramWorld,
+  events? : AnalysisEvents,
 ) -> Result[Map[AnalysisId, AnalysisResult], String] {
   let order = match self.plan(requested) {
     Ok(o) => o
@@ -170,13 +203,26 @@ pub fn AnalysisRegistry::run_all(
   }
   // run each exactly once (memoized by construction) in dependency order
   let results : Map[AnalysisId, AnalysisResult] = Map([])
+  let ev = match events {
+    Some(e) => e
+    None => AnalysisEvents::new()
+  }
   for id in order {
     let spec = match self.specs.get(id) {
       Some(s) => s
       None => return Err("unknown analysis id: " + id.display())
     }
     let runner = spec.run
-    results[id] = runner(world)
+    // P2: pass dep results + shared event bus to each runner
+    let dep_res : Map[AnalysisId, AnalysisResult] = Map([])
+    for d in spec.deps {
+      match results.get(d) {
+        Some(r) => dep_res[d] = r
+        None => ()
+      }
+    }
+    let ctx : AnalysisCtx = { world, dep_results: dep_res, events: ev, }
+    results[id] = runner(world, ctx)
   }
   Ok(results)
 }
@@ -189,7 +235,7 @@ pub fn default_registry(conservative_alias? : Bool = false) -> AnalysisRegistry 
   reg.register({
     id: HIRTrace,
     deps: [],
-    run: fn(w) {
+    run: fn(w, _ctx) {
       // D1c: the shared statement layer as a registry product — dump
       // consumes this instead of re-collecting traces itself
       let out : Array[(String, String, Array[Stmt])] = []
@@ -208,7 +254,7 @@ pub fn default_registry(conservative_alias? : Bool = false) -> AnalysisRegistry 
   reg.register({
     id: TaintFlow,
     deps: [],
-    run: fn(w) {
+    run: fn(w, _ctx) {
       // E3 single-world: consume the caller's world; no internal reload
       // (world_loads counter guards this — see e3_single_world tests)
       TaintFlowR(scan_project_with_world(w, w.config))
@@ -217,7 +263,7 @@ pub fn default_registry(conservative_alias? : Bool = false) -> AnalysisRegistry 
   reg.register({
     id: CallGraph,
     deps: [],
-    run: fn(w) {
+    run: fn(w, _ctx) {
       // E3 single-world: the world's symbols already carry the alias
       // policy (callers build world and registry with the same flag);
       // conservative_alias param retained for API compat only
@@ -228,12 +274,12 @@ pub fn default_registry(conservative_alias? : Bool = false) -> AnalysisRegistry 
   reg.register({
     id: PointsTo,
     deps: [],
-    run: fn(w) { PointsToR(pt_world_summary(w)) },
+    run: fn(w, _ctx) { PointsToR(pt_world_summary(w)) },
   })
   reg.register({
     id: LiveVars,
     deps: [],
-    run: fn(w) { LiveVarsR(live_world_summary(w)) },
+    run: fn(w, _ctx) { LiveVarsR(live_world_summary(w)) },
   })
   reg
 }

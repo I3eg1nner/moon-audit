@@ -3502,7 +3502,11 @@ pub fn run_call_graph(
 ///|
 /// E3: world-parameterized entry. Alias policy is already applied to the
 /// world's symbols at load time; no internal reload.
-pub fn run_call_graph_with_world(world : ProgramWorld) -> CallGraph {
+pub fn run_call_graph_with_world(
+  world : ProgramWorld,
+  event_cbs? : Array[(String, String) -> Unit],
+) -> CallGraph {
+  // P2: NewCallEdge callbacks wired into resolve_dispatch below
   let symbols = world.symbols
   // devirtualization index keyed by TRAIT IDENTITY ("Trait::method" ->
   // self types); impl_methods values carry the trait path. A method-name-only
@@ -3557,6 +3561,11 @@ pub fn run_call_graph_with_world(world : ProgramWorld) -> CallGraph {
   // resolve a dispatch site by TRAIT IDENTITY first ("Trait::method"),
   // then fall back to the method-name-only index.
   // R7: returns true iff a NON-EMPTY target set was produced — callers
+  // P2: NewCallEdge event callbacks — registry callers can subscribe
+  let event_callbacks : Array[(String, String) -> Unit] = match event_cbs {
+    Some(cbs) => cbs
+    None => []
+  }
   // classify by the RESULT, never before resolving (an empty candidate set
   // is unknown/no-impls, not covered).
   // T4c-2: receiver pts TYPES refine the candidate set — when non-empty,
@@ -3606,6 +3615,12 @@ pub fn run_call_graph_with_world(world : ProgramWorld) -> CallGraph {
         let mut n = 0
         for st in refined {
           dispatch_edges.push(caller + " -> " + st + "::" + mname)
+          // P2: emit NewCallEdge event when pt narrowing refined the target
+          if refined.length() < self_tys.length() {
+            for cb in event_callbacks {
+              cb(caller, st + "::" + mname)
+            }
+          }
           n += 1
         }
         n > 0
