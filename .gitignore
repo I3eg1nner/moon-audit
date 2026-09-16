@@ -6,3 +6,6 @@ llm_analyze.py
 llm_analysis_results.json
 .DS_Store
 instrument-runtime/
+.moon-audit-cache/
+scripts/__pycache__/
+tests/cases/.moon-audit-cache/
