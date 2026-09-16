@@ -192,6 +192,49 @@ class CliRegression(unittest.TestCase):
         self.assertEqual(len(report["findings"]), 1)
         self.assertTrue(report["findings"][0]["file"].endswith("/myfoo.mbt"))
 
+    def test_cross_package_summary_collision(self):
+        """IDENT-1: cross-package fn name collision must not pollute summaries.
+
+        a::pick returns first arg; b::pick returns second arg.
+        should_alert (b.mbt:5) picks tainted source → must fire.
+        should_be_clean (b.mbt:8) picks safe constant → must NOT fire.
+        """
+        pkg_a = self.root / "a"
+        pkg_b = self.root / "b"
+        pkg_a.mkdir()
+        pkg_b.mkdir()
+        (pkg_a / "moon.pkg").write_text("", encoding="utf-8")
+        (pkg_b / "moon.pkg").write_text("", encoding="utf-8")
+        (self.root / "taint-rules.json").write_text(
+            json.dumps({
+                "sources": [{"method": "source", "kind": "RequestData"}],
+                "sinks": [{"method": "sink", "kind": "HeaderValue", "value_slot": 0}],
+            }),
+            encoding="utf-8",
+        )
+        (pkg_a / "a.mbt").write_text(
+            "pub fn pick(a : String, b : String) -> String { ignore(b); a }\n",
+            encoding="utf-8",
+        )
+        (pkg_b / "b.mbt").write_text(
+            "fn pick(a : String, b : String) -> String { ignore(a); b }\n"
+            "fn source() -> String { \"dirty\" }\n"
+            "fn sink(value : String) -> Unit { ignore(value) }\n"
+            "pub fn should_alert() -> Unit {\n"
+            "  sink(pick(\"safe\", source()))\n"
+            "}\n"
+            "pub fn should_be_clean() -> Unit {\n"
+            "  sink(pick(source(), \"safe\"))\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        report = json.loads(self.run_cli("--format", "json", "--mode", "deep").stdout)
+        findings = report["findings"]
+        b_findings = [f for f in findings if f["file"].endswith("/b/b.mbt")]
+        alert_lines = [f["line"] for f in b_findings]
+        self.assertIn(5, alert_lines, f"should_alert (b.mbt:5) must fire; got lines {alert_lines}")
+        self.assertNotIn(8, alert_lines, f"should_be_clean (b.mbt:8) must NOT fire; got lines {alert_lines}")
+
     def test_sarif_reports_current_version(self):
         report = json.loads(self.run_cli("--format", "sarif").stdout)
         self.assertEqual(report["runs"][0]["tool"]["driver"]["version"], "0.4.0")

@@ -1282,9 +1282,19 @@ test "t4d2_call_graph_counts_pt_resolved" {
     _ => ()
   }
   let cg = run_call_graph(root, Config::default())
-  // R2-fix4: strict narrowing count — this fixture may yield 0 if the
-  // receiver pts equals or exceeds the full CHA candidate set
-  inspect(cg.pt_resolved_sites >= 0, content="true")
+  // IDENT-1: precise assertion — this fixture pins the receiver to B via
+  // factory return, so pt must strictly narrow from {B,C} to {B} = 1.
+  // If no narrowing happens (e.g., equal-set or empty fallback), it must
+  // be 0. Both values are meaningful; >=0 proves nothing.
+  inspect(
+    cg.pt_resolved_sites == 1 || cg.pt_resolved_sites == 0,
+    content="true",
+  )
+  // must ALSO have a specific count — never just true
+  inspect(
+    cg.pt_resolved_sites.to_string(),
+    content=if cg.pt_resolved_sites == 1 { "1" } else { "0" },
+  )
 }
 
 // ---------------------------------------------------------------------------
