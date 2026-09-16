@@ -23,15 +23,32 @@ pub(all) struct SummaryUnit {
 pub fn extract_summary_units(
   impls : @list.List[@syntax.Impl],
   file : String,
+  pkg_root? : String = "", // R1 P0: project root for pkg-path derivation
 ) -> Array[SummaryUnit] {
+  // R1 P0: package-qualified identity prevents cross-package collisions
+  // (e.g. a/pick vs b/pick would share the bare name "pick")
+  let pkg_path = derive_pkg_path(file, pkg_root~)
   let units : Array[SummaryUnit] = []
   for item in impls {
     match item {
       TopFuncDef(fun_decl~, decl_body~, ..) => {
-        // P0: methods declared via "fn Type::method" get a qualified name
+        // P0: methods declared via "fn Type::method" get a qualified name;
+        // R1: free functions also get pkg prefix
         let name = match fun_decl.type_name {
-          Some(tn) => type_name_str_qual(tn) + "::" + fun_decl.name.name
-          None => fun_decl.name.name
+          Some(tn) => {
+            let base = type_name_str_qual(tn) + "::" + fun_decl.name.name
+            if pkg_path != "" {
+              pkg_path + "::" + base
+            } else {
+              base
+            }
+          }
+          None =>
+            if pkg_path != "" {
+              pkg_path + "::" + fun_decl.name.name
+            } else {
+              fun_decl.name.name
+            }
         }
         match decl_body {
           DeclBody(expr=Function(func~, ..)) =>
@@ -60,7 +77,8 @@ pub fn extract_summary_units(
           Some(t) => qual_type_str(t)
           None => "?"
         }
-        let name = self_name + "::" + method_name.name
+        let base = self_name + "::" + method_name.name
+        let name = if pkg_path != "" { pkg_path + "::" + base } else { base }
         match body {
           DeclBody(expr=Function(func~, ..)) =>
             units.push({
@@ -88,6 +106,45 @@ pub fn extract_summary_units(
 }
 
 // ── helpers for qualified naming (P0) ─────────────────────────────────────
+
+///|
+// R1 P0: derive a package path from the file path relative to the project
+// root. e.g. root="/proj", file="/proj/a/a.mbt" → "a"; file="/proj/src/main.mbt" → "src"
+
+///|
+fn derive_pkg_path(file : String, pkg_root? : String = "") -> String {
+  if pkg_root == "" {
+    return "" // no root context: unqualified (backward compat)
+  }
+  let norm_file = canonical_dir(file)
+  let norm_root = canonical_dir(pkg_root)
+  let prefix = norm_root + "/"
+  if norm_file.has_prefix(prefix) {
+    let rel = Show::to_string(norm_file[prefix.length():])
+    let idx = find_last_slash(rel)
+    if idx > 0 {
+      Show::to_string(rel[:idx])
+    } else {
+      "" // file is at root level
+    }
+  } else {
+    "" // file outside root
+  }
+}
+
+///|
+fn find_last_slash(s : String) -> Int {
+  let mut best = -1
+  let mut i = 0
+  while i < s.length() {
+    if s[i] == 47 {
+      // '/'
+      best = i
+    }
+    i += 1
+  }
+  best
+}
 
 ///|
 fn type_name_str_qual(tn : @syntax.TypeName) -> String {
@@ -122,6 +179,7 @@ fn qual_type_str(ty : @syntax.Type) -> String {
 ///|
 priv struct CalleeCollector {
   callees : Array[String]
+  pkg_path : String // R1 P0: for qualified callee names
 }
 
 ///|
@@ -136,15 +194,29 @@ impl @syntax.IterVisitor for CalleeCollector with fn visit_Expr_Apply(
   match func {
     Ident(id~, ..) =>
       match id.name {
-        Ident(name~) => env.callees.push(name)
-        Dot(id~, ..) => env.callees.push(id)
+        Ident(name~) =>
+          if env.pkg_path != "" {
+            env.callees.push(env.pkg_path + "::" + name)
+          } else {
+            env.callees.push(name)
+          }
+        Dot(id~, ..) =>
+          if env.pkg_path != "" {
+            env.callees.push(env.pkg_path + "::" + id)
+          } else {
+            env.callees.push(id)
+          }
       }
     Method(type_name~, method_name~, ..) => {
       let tn = match type_name.name {
         Ident(name~) => name
         Dot(pkg~, id~) => pkg + "::" + id
       }
-      env.callees.push(tn + "::" + method_name.name)
+      if env.pkg_path != "" {
+        env.callees.push(env.pkg_path + "::" + tn + "::" + method_name.name)
+      } else {
+        env.callees.push(tn + "::" + method_name.name)
+      }
     }
     _ => ()
   }
@@ -177,8 +249,11 @@ impl @syntax.IterVisitor for CalleeCollector with fn visit_Expr_DotApply(
 }
 
 ///|
-fn unit_callees(body : @syntax.Expr) -> Array[String] {
-  let collector : CalleeCollector = { callees: [], }
+fn unit_callees(
+  body : @syntax.Expr,
+  pkg_path? : String = "", // R1 P0
+) -> Array[String] {
+  let collector : CalleeCollector = { callees: [], pkg_path, }
   @syntax.IterVisitor::visit_Expr(collector, body)
   collector.callees
 }
@@ -322,6 +397,23 @@ fn summary_signature(ictx : InterProceduralContext, name : String) -> String {
 // ── driver ────────────────────────────────────────────────────────────────
 
 ///|
+// R1 P0: find the common root from unit file paths (longest shared dir)
+
+///|
+fn derive_root_from_units(units : Array[SummaryUnit]) -> String {
+  if units.length() == 0 {
+    return ""
+  }
+  let first = canonical_dir(units[0].file)
+  let idx = find_last_slash(first)
+  if idx > 0 {
+    Show::to_string(first[:idx])
+  } else {
+    ""
+  }
+}
+
+///|
 pub fn collect_summaries_scc(
   units : Array[SummaryUnit],
   ictx : InterProceduralContext,
@@ -349,7 +441,11 @@ pub fn collect_summaries_scc(
   let adj : Map[String, Array[String]] = Map([])
   for u in units {
     let edges : Array[String] = []
-    for c in unit_callees(u.body) {
+    for
+      c in unit_callees(
+        u.body,
+        pkg_path=derive_pkg_path(u.file, pkg_root=derive_root_from_units(units)),
+      ) {
       if node_set.contains(c) {
         edges.push(c)
       } else {

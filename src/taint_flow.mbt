@@ -3021,6 +3021,24 @@ fn summary_lookup(
     Some(s) => return Some(s)
     None => ()
   }
+  // R1 P0: caller sees bare name "pick" but summaries are now pkg-qualified
+  // ("a::pick", "b::pick"). Find all summaries with this suffix. Exactly one
+  // = safe to use; multiple = ambiguous, return None (conservative, no
+  // wrong-package refinement that could clear taint incorrectly).
+  {
+    let matches : Array[String] = []
+    ictx.summaries.each(fn(k, _) {
+      if k == name || k.has_suffix("::" + name) {
+        matches.push(k)
+      }
+    })
+    if matches.length() == 1 {
+      return ictx.summaries.get(matches[0])
+    }
+    if matches.length() > 1 {
+      return None // ambiguous cross-package: no refinement (conservative)
+    }
+  }
   // P1-UNIFY: consult world symbols — if fn_sigs has this name under a
   // qualified identity that also has a summary, use it (bridge between
   // AST-collected summaries and symbol-table qualified identity)

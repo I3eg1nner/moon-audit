@@ -1,0 +1,138 @@
+{
+  "date": "2026-09-16",
+  "baseline": {
+    "revision": "5b2d867f1a7806c7536f5c426ab38c8978d07676",
+    "binary_sha256": "ba8c2b474cf7ccf45d39423be780eadf6a2e0cc7c6652ce31955230d3ad4b7ad",
+    "corpora": {
+      "mocket": {
+        "original_path": "/data/my/corpus/oboard_mocket",
+        "revision": "af354b7a031ee8e0a7e62e76875b82a0a39ac71b",
+        "dirty": true
+      },
+      "crescent": {
+        "original_path": "/data/my/corpus/moonbit-community_crescent",
+        "revision": "5836fe842809e4a1117910581bbc725e09fa9a20",
+        "dirty": true
+      },
+      "async": {
+        "original_path": "/data/my/corpus/moonbitlang_async",
+        "revision": "4fa32e85f2055e1b5c94c78337659d4a49e722af",
+        "dirty": false
+      }
+    }
+  },
+  "toolchain": {
+    "moon": "0.1.20260807",
+    "moonc": "0.10.7+bc794d341"
+  },
+  "tests": {
+    "native": {
+      "passed": 405,
+      "failed": 0
+    },
+    "existing_case_gate": "pass",
+    "cli": {
+      "test_methods": 18,
+      "failing_methods": 1,
+      "failing_subtests": 2
+    },
+    "isolated_api_probes": {
+      "passed": 1,
+      "failed": 3
+    }
+  },
+  "probes": {
+    "previous_type_collision": {
+      "expected_lines": [
+        9,
+        12
+      ],
+      "actual_lines": [
+        9,
+        12
+      ]
+    },
+    "cross_package_collision": {
+      "expected_lines": [
+        5
+      ],
+      "actual_lines": [
+        8
+      ],
+      "renamed_unrelated_function_lines": [
+        5
+      ],
+      "callsite_1_cold_lines": [
+        8
+      ]
+    },
+    "context_summary_keys": [
+      "dirty",
+      "helper"
+    ],
+    "dispatch_events": {
+      "direct": 1,
+      "default_registry": 0
+    },
+    "mocket_precision_metric": {
+      "reported_pt_resolved_sites": 10,
+      "strict_narrowing_event_edges": 0
+    },
+    "cache": {
+      "created": true,
+      "updated_after_source_change": false
+    },
+    "clean_cfg_verify": {
+      "exit_code": 2,
+      "findings": 0,
+      "cfg_divergent": 1
+    }
+  },
+  "corpus": {
+    "mocket": {
+      "files_scanned": 42,
+      "findings": 0,
+      "parse_diagnostics": 0,
+      "exit_code": 0,
+      "cold_scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=4(measured); widening-applied=4(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=8) fns(library-pub=0,ffi-extern=0,internal=1); note=unanalyzed-is-not-safe; cfg-executed=386; ast-fallback=0; cfg-divergent=0; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))",
+      "warm_scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=2(measured); widening-applied=2(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=8) fns(library-pub=0,ffi-extern=0,internal=1); note=unanalyzed-is-not-safe; cfg-executed=70; ast-fallback=0; cfg-divergent=0; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))",
+      "cold_warm_findings_equal": true,
+      "cold_warm_errors_equal": true,
+      "callsite_coverage": {
+        "covered": 1497,
+        "total": 1941,
+        "percent": 77
+      },
+      "unresolved_edges": 444
+    },
+    "crescent": {
+      "files_scanned": 53,
+      "findings": 5,
+      "parse_diagnostics": 0,
+      "exit_code": 0,
+      "cold_scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=2(measured); widening-applied=2(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=15) fns(library-pub=0,ffi-extern=0,internal=1); note=unanalyzed-is-not-safe; cfg-executed=369; ast-fallback=0; cfg-divergent=0; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))",
+      "warm_scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=1(measured); widening-applied=1(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=15) fns(library-pub=0,ffi-extern=0,internal=1); note=unanalyzed-is-not-safe; cfg-executed=6; ast-fallback=0; cfg-divergent=0; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))",
+      "cold_warm_findings_equal": true,
+      "cold_warm_errors_equal": true,
+      "callsite_coverage": {
+        "covered": 1390,
+        "total": 2193,
+        "percent": 63
+      },
+      "unresolved_edges": 803
+    },
+    "async": {
+      "files_scanned": 170,
+      "findings": 0,
+      "parse_diagnostics": 39,
+      "exit_code": 2,
+      "cold_scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=39; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=12(measured); widening-applied=12(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=39) fns(library-pub=0,ffi-extern=0,internal=1); note=unanalyzed-is-not-safe; cfg-executed=1044; ast-fallback=0; cfg-divergent=0; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))"
+    }
+  },
+  "limitations": [
+    "Tai-e itself was not executed; comparison uses official 0.5.4 documentation and source architecture.",
+    "Native Linux checks only; full cross-backend and cross-platform CI not re-run.",
+    "No release performance comparison or independent dynamic recall measurement.",
+    "Corpora were copied to temporary directories without cache/build outputs; dependencies were referenced via read-only use of original .mooncakes paths."
+  ]
+}
