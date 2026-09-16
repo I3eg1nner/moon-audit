@@ -3004,7 +3004,7 @@ fn callee_summary_name(func : @syntax.Expr) -> String? {
 // the collection-side short keys ("method")
 
 ///|
-fn summary_lookup(
+pub fn summary_lookup(
   ictx : InterProceduralContext,
   name : String,
   callsite : String, // P3: "" for insensitive (default shared summary)

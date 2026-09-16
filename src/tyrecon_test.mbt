@@ -193,7 +193,7 @@ test "m3_structural_summary_cross_function" {
     has_pug: false,
     is_stdlib: false,
   }
-  run_cross_func_taint(impls, "t.mbt", src, findings, ictx, imports)
+  run_cross_func_taint(impls, "t.mbt", src, findings, ictx, imports, "")
   inspect(findings.length() > 0, content="true")
 }
 

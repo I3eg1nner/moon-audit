@@ -361,6 +361,7 @@ priv struct CrossFuncVisitor {
   source : String
   ctx : InterProceduralContext
   tainted_vars : Map[String, TaintSource]
+  pkg_root : String
 }
 
 ///|
@@ -371,6 +372,7 @@ pub fn run_cross_func_taint(
   findings : Array[Finding],
   ctx : InterProceduralContext,
   _imports : ImportContext,
+  pkg_root : String,
 ) -> Unit {
   impls.each(fn(impl_) {
     let visitor : CrossFuncVisitor = {
@@ -379,6 +381,7 @@ pub fn run_cross_func_taint(
       source,
       ctx,
       tainted_vars: Map([]),
+      pkg_root,
     }
     @syntax.IterVisitor::visit_Impl(visitor, impl_)
   })
@@ -448,9 +451,18 @@ impl @syntax.IterVisitor for CrossFuncVisitor with fn visit_Expr_Apply(
     _ => ""
   }
   if callee_name.length() > 0 {
-    match env.ctx.summaries.get(callee_name) {
+    // IDENT-1: prefer same-package qualified name — the caller's file
+    // determines which "pick" they see (a::pick vs b::pick)
+    let qualified = derive_pkg_path(env.file, pkg_root=env.pkg_root) +
+      "::" +
+      callee_name
+    match summary_lookup(env.ctx, qualified, "") {
       Some(summary) => ip_check_call_site(env, summary, args, loc)
-      None => ()
+      None =>
+        match summary_lookup(env.ctx, callee_name, "") {
+          Some(summary) => ip_check_call_site(env, summary, args, loc)
+          None => ()
+        }
     }
   }
   @syntax.IterVisitor::base(env).visit_Expr_Apply(func~, args~, loc~)

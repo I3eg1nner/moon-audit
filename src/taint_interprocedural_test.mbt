@@ -106,6 +106,7 @@ test "InterProc: tainted param through function call" {
     findings,
     ctx,
     ImportContext::empty(),
+    "",
   )
   assert_true(findings.length() > 0)
   assert_true(findings[0].message.contains("Taint"))
@@ -126,6 +127,7 @@ test "InterProc: constant arg should not trigger" {
     findings,
     ctx,
     ImportContext::empty(),
+    "",
   )
   assert_true(findings.length() == 0)
 }
@@ -145,6 +147,7 @@ test "InterProc: taint propagation through let binding" {
     findings,
     ctx,
     ImportContext::empty(),
+    "",
   )
   assert_true(findings.length() > 0)
 }
@@ -164,6 +167,7 @@ test "InterProc: untainted variable should not trigger" {
     findings,
     ctx,
     ImportContext::empty(),
+    "",
   )
   assert_true(findings.length() == 0)
 }
@@ -181,6 +185,7 @@ test "InterProc: no finding when callee has no summary" {
     findings,
     ctx,
     ImportContext::empty(),
+    "",
   )
   assert_true(findings.length() == 0)
 }
@@ -211,6 +216,7 @@ test "InterProc: direct taint source in call arg" {
     findings,
     ctx,
     ImportContext::empty(),
+    "",
   )
   assert_true(findings.length() > 0)
 }

@@ -94,7 +94,7 @@ pub fn scan_project_with_world(
         for file in pkgf.files {
           let source = @fs.read_file_to_string(file) catch { _ => continue }
           let (impls, _) = @parser.parse_string(source, name=file)
-          for u in extract_summary_units(impls, file) {
+          for u in extract_summary_units(impls, file, pkg_root=world.root) {
             scc_units.push(u)
           }
         }
@@ -160,7 +160,7 @@ pub fn scan_project_with_world(
           let source = @fs.read_file_to_string(file) catch { _ => continue }
           let (impls, _) = @parser.parse_string(source, name=file)
           run_cross_func_taint(
-            impls, file, source, findings, interproc_ctx, imports,
+            impls, file, source, findings, interproc_ctx, imports, root,
           )
         }
       }
