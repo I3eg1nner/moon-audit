@@ -3467,7 +3467,9 @@ pub(all) struct CallGraph {
   bound_sites : Int // T0.2: sites with a unique known target
   candidate_sites : Int // sites expanded into candidate sets (dispatch)
   unresolved_sites : Int // sites with no target at all
-  pt_resolved_sites : Int // T4c-2: dispatch sites REFINED by receiver pts
+  pt_resolved_sites : Int // R2-fix4: STRICTLY narrowed only (< CHA)
+  pt_equal_or_fallback : Int // R2-fix4: has_pt but no real narrowing
+  pt_has_pt_sites : Int // R2-fix4: any site with non-empty recv_pt
   pt_not_converged : Bool // E2: worklist budget exhausted (disclosed)
 }
 
@@ -3558,6 +3560,10 @@ pub fn run_call_graph_with_world(
   let edges : Array[String] = []
   let dispatch_edges : Array[String] = []
   let unresolved : Array[String] = []
+  // R2-fix4: pt category counters — must be declared BEFORE the closure
+  let pt_narrowed = [0] // strict narrowing (mut via Array holder)
+  let pt_eq_fb = [0] // equal-set or empty-intersection fallback
+  let pt_has_pt = [0] // any dispatch site with non-empty recv_pt
   // resolve a dispatch site by TRAIT IDENTITY first ("Trait::method"),
   // then fall back to the method-name-only index.
   // R7: returns true iff a NON-EMPTY target set was produced — callers
@@ -3605,8 +3611,12 @@ pub fn run_call_graph_with_world(
             }
           }
           if keep.length() > 0 && keep.length() < self_tys.length() {
-            keep // strict narrowing: fewer candidates than CHA
+            pt_has_pt[0] += 1
+            pt_narrowed[0] += 1
+            keep
           } else {
+            pt_has_pt[0] += 1
+            pt_eq_fb[0] += 1
             self_tys // no real narrowing (equal or empty intersection)
           }
         } else {
@@ -3634,7 +3644,6 @@ pub fn run_call_graph_with_world(
   let mut bound_sites = 0
   let mut candidate_sites = 0
   let mut unresolved_sites = 0
-  let mut pt_resolved_sites = 0
   for site in stats.sites {
     let clean_target = site.target
       .replace(old=" (unconfirmed)", new="")
@@ -3650,11 +3659,7 @@ pub fn run_call_graph_with_world(
             site.recv_pt,
           ) {
           candidate_sites += 1
-          // H3: strict narrowing only — recv_pt non-empty AND intersection
-          // strictly smaller than the full CHA candidate set
-          if site.recv_pt.length() > 0 {
-            pt_resolved_sites += 1
-          }
+          // R2-fix4: pt categories tracked inside resolve_dispatch
         } else {
           unresolved_sites += 1
         }
@@ -3669,9 +3674,6 @@ pub fn run_call_graph_with_world(
           site.recv_pt,
         ) {
         candidate_sites += 1
-        if site.recv_pt.length() > 0 {
-          pt_resolved_sites += 1
-        }
       } else {
         unresolved_sites += 1
       }
@@ -3679,9 +3681,6 @@ pub fn run_call_graph_with_world(
       // receiver typed as a trait object: use its trait identity
       if resolve_dispatch(clean_target, site.caller, site.recv_pt) {
         candidate_sites += 1
-        if site.recv_pt.length() > 0 {
-          pt_resolved_sites += 1
-        }
       } else {
         unresolved_sites += 1
       }
@@ -3692,7 +3691,6 @@ pub fn run_call_graph_with_world(
       let mname = last_segment(clean_target)
       if resolve_dispatch(mname, site.caller, site.recv_pt) {
         candidate_sites += 1
-        pt_resolved_sites += 1
       } else {
         unresolved_sites += 1
         unresolved.push(site.caller + " -> ?" + mname + " (no-impls)")
@@ -3709,7 +3707,9 @@ pub fn run_call_graph_with_world(
     bound_sites,
     candidate_sites,
     unresolved_sites,
-    pt_resolved_sites,
+    pt_resolved_sites: pt_narrowed[0],
+    pt_equal_or_fallback: pt_eq_fb[0],
+    pt_has_pt_sites: pt_has_pt[0],
     pt_not_converged: stats.pt_not_converged,
   }
 }

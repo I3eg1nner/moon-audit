@@ -91,7 +91,10 @@ pub fn ContextStrategy::name(self : ContextStrategy) -> String {
 pub fn ContextStrategy::is_implemented(self : ContextStrategy) -> Bool {
   match self {
     Insensitive => true
-    CallSite(1) => true // P1-CTX: call-site context generated at Apply/DotApply; keyed summary lookup
+    // R2-fix5: honest downgrade — call-site keys are generated but the
+    // production solver does not yet create per-context summaries
+    // (review #11 §3: strategy only controls warnings, no ctx-keyed facts)
+    CallSite(1) => false
     _ => false // deeper strategies announced but not yet wired
   }
 }

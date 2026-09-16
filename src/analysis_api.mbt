@@ -263,12 +263,15 @@ pub fn default_registry(conservative_alias? : Bool = false) -> AnalysisRegistry 
   reg.register({
     id: CallGraph,
     deps: [],
-    run: fn(w, _ctx) {
+    run: fn(w, ctx) {
       // E3 single-world: the world's symbols already carry the alias
-      // policy (callers build world and registry with the same flag);
-      // conservative_alias param retained for API compat only
+      // policy; conservative_alias param retained for API compat only
       ignore(conservative_alias)
-      CallGraphR(run_call_graph_with_world(w))
+      // R2-fix3: forward events from the registry (review #11 §6:
+      // default runner dropped event_cbs, so registry path had 0 events)
+      let evts = ctx.events
+      let cbs : Array[(String, String) -> Unit] = evts.on_new_call_edge
+      CallGraphR(run_call_graph_with_world(w, event_cbs=cbs))
     },
   })
   reg.register({

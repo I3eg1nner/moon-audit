@@ -283,8 +283,11 @@ pub fn disk_cache_save(
   symbols_fp : String,
 ) -> Unit {
   let dir = root + "/.moon-audit-cache"
+  // R2-fix2: mkdir already-exists must NOT block writes (review #11 §8:
+  // native mkdir raises on existing dir, so second+ saves were silently
+  // dropped). Catch-and-continue instead of catch-and-return.
   @fs.create_dir(dir) catch {
-    _ => return
+    _ => () // directory may already exist — proceed to write
   }
   let buf = StringBuilder()
   buf.write_string("CACHE_V1\t")

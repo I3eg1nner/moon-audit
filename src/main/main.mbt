@@ -662,9 +662,9 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
   }
   // T6.2: request via the analysis registry (behavior-identical adapter)
   let taint_world = timings.time("world-load", fn() {
-    // TaintFlow declares no symbol-analysis dependency. Match scan_project's
-    // loader and avoid reconstructing dependency types that this scan never uses.
-    @audit.load_program_world(path, config, with_symbols=false)
+    // R2-fix1: load with_symbols=true — the CLI main path must have the
+    // full symbol table so dispatch_hints and pt bridges have data
+    @audit.load_program_world(path, config, with_symbols=true)
   })
   let taint_registry = @audit.default_registry()
   let result = timings.time("analysis", fn() {
