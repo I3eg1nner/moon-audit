@@ -44,7 +44,7 @@ pub fn cfg_exec_unconfirmed_count() -> Int
 
 pub fn cfg_exec_widening_count() -> Int
 
-pub fn cfg_hybrid_classify(String, @syntax.Expr, Map[Int, Taint], Array[(String, Int)], TaintRuleset) -> String
+pub fn cfg_hybrid_classify(String, @syntax.Expr, Map[Int, Taint], Array[(String, Int)], TaintRuleset, params~ : @list.List[@syntax.Parameter]?) -> String
 
 pub fn cfg_kill_keys(BlockIr) -> Array[String]
 
