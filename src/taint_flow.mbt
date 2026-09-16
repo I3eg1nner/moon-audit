@@ -441,7 +441,7 @@ priv struct FlowCtx {
   // P3 CallSite(1): current calling context (caller fn:line; "" for
   // insensitive / top-level). Used to prefix summary keys so different
   // callers get per-context precision instead of a merged summary.
-  cur_callsite : String
+  mut cur_callsite : String // P1-CTX: set at each call site (fn:line)
   source : String
   severity : Severity
   mut record_sinks : Array[String]? // M3 summary recording channel
@@ -1446,6 +1446,9 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       let arg_pairs = flow_args_pairs(args, ctx)
       ctx.cb_exec_suppressed = saved_sup
       ctx.cb_suppress_target = saved_tgt
+      // P1-CTX: set call-site context for CallSite(1) summary lookup
+      let saved_callsite = ctx.cur_callsite
+      ctx.cur_callsite = ctx.file + ":" + func.loc().start.lnum.to_string()
       // statement layer: temps + call trace (args already flowed once)
       let hir_target = match apply_func_name(func) {
         Some(n) => n
@@ -1545,6 +1548,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
           let _ = flow(func, ctx)
           // T4.2 transitivity: callee param_sinks projected onto the caller
           maybe_record_transitive_sink(func, args, arg_pairs, ctx)
+          ctx.cur_callsite = saved_callsite // P1-CTX: restore
           ret
         }
       }
@@ -1566,6 +1570,9 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
       let arg_pairs = flow_args_pairs(args, ctx)
       ctx.cb_exec_suppressed = saved_sup
       ctx.cb_suppress_target = saved_tgt
+      // P1-CTX: set call-site context for CallSite(1) summary lookup
+      let saved_callsite = ctx.cur_callsite
+      ctx.cur_callsite = ctx.file + ":" + method_name.loc.start.lnum.to_string()
       // statement layer: receiver temp first, then args (method-call form)
       let hir_temps = hir_temps_from_pairs(ctx, arg_pairs.length() + 1)
       ctx.temp_facts[hir_temps[0]] = recv_taint // receiver-first temp
@@ -1631,6 +1638,7 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
             }
         }
       }
+      ctx.cur_callsite = saved_callsite // P1-CTX: restore
       ret
     }
     Infix(op~, lhs~, rhs~, ..) => {
@@ -3891,7 +3899,7 @@ fn collect_summary_func(
     ret_from.length() > 0 ||
     field_taint.length() > 0 ||
     param_field_sinks.length() > 0 {
-    ictx.summaries[name] = {
+    let summary : FuncTaintSummary = {
       name,
       file,
       line,
@@ -3900,6 +3908,12 @@ fn collect_summary_func(
       ret_from,
       field_taint,
       param_field_sinks,
+    }
+    ictx.summaries[name] = summary
+    // P1-CTX: also store under context-prefixed key when the collection
+    // ran under a specific callsite context (set by the caller's Apply)
+    if ctx.cur_callsite != "" {
+      ictx.summaries[name + "@" + ctx.cur_callsite] = summary
     }
   }
 }

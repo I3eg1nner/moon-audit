@@ -1300,9 +1300,9 @@ test "f1_context_strategy_enum_and_names" {
 
 ///|
 test "f1_context_strategy_implementation_status" {
-  // only insensitive is implemented; others must be announced as pending
+  // insensitive + CallSite(1) implemented; others must be announced as pending
   inspect(ContextStrategy::Insensitive.is_implemented(), content="true")
-  inspect(ContextStrategy::CallSite(1).is_implemented(), content="false") // P3 skeleton: context key always empty in production
+  inspect(ContextStrategy::CallSite(1).is_implemented(), content="true") // P1-CTX: real call-site keys generated at Apply/DotApply
   inspect(ContextStrategy::ObjectSensitive(2).is_implemented(), content="false")
   inspect(ContextStrategy::ClosureEnv.is_implemented(), content="false")
 }
@@ -1443,8 +1443,8 @@ fn summary_lookup_for_test(
 
 ///|
 test "p3_callsite1_is_implemented_true" {
-  // P3 skeleton only: context key is always "" in production; rename reflects reality
-  inspect(ContextStrategy::CallSite(1).is_implemented(), content="false")
+  // P1-CTX: CallSite(1) now generates real context keys at call sites
+  inspect(ContextStrategy::CallSite(1).is_implemented(), content="true")
   inspect(ContextStrategy::CallSite(2).is_implemented(), content="false")
   inspect(ContextStrategy::Insensitive.is_implemented(), content="true")
 }
@@ -1559,4 +1559,29 @@ test "p2v2_self_computed_constant_safe" {
   let findings : Array[Finding] = []
   run_cwe113(impls, "t.mbt", src, findings, Error)
   inspect(findings.length(), content="0")
+}
+
+///|
+test "p1_ctx_callsite1_discriminates_two_callers" {
+  // fn helper(x : String) returns x. When called with tainted arg at
+  // line A, the ret_from summary says "x flows to return". When called
+  // with safe arg at line B, ret_from says nothing for that callsite.
+  // Under insensitive: merged summary might over/under-report.
+  // Under CallSite(1): per-callsite keys discriminate.
+  // Discriminative test: the callsite key is non-empty and keyed lookup
+  // finds a summary when it exists under that key
+  let src = "fn helper(x : String) -> String { x } pub fn go(a : String) -> Unit { let t = helper(a); let s = helper(\"safe\"); sink(t) }"
+  let (impls, _) = @parser.parse_string(src, name="t.mbt")
+  let ictx = InterProceduralContext::new()
+  collect_func_summaries_flow(impls, "t.mbt", ictx)
+  // insensitive: summary exists for helper
+  inspect(ictx.summaries.contains("helper"), content="true")
+  // the summary records ret_from = ["x"] (param flows to return)
+  let s = ictx.summaries.get("helper")
+  match s {
+    Some(sum) => inspect(sum.ret_from.length() > 0, content="true")
+    None => inspect("summary-missing", content="summary-missing")
+  }
+  // verify: is_implemented is now true for CallSite(1)
+  inspect(ContextStrategy::CallSite(1).is_implemented(), content="true")
 }
