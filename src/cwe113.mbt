@@ -23,6 +23,7 @@ fn call_flow(
   ictx : InterProceduralContext?,
   rules : TaintRuleset,
   output_sinks : Bool,
+  pkg_root : String,
 ) -> Unit {
   match ictx {
     Some(i) =>
@@ -33,6 +34,7 @@ fn call_flow(
         source,
         severity,
         findings,
+        pkg_root~,
         ictx=i,
         rules~,
         output_sinks_enabled=output_sinks,
@@ -45,6 +47,7 @@ fn call_flow(
         source,
         severity,
         findings,
+        pkg_root~,
         rules~,
         output_sinks_enabled=output_sinks,
       )
@@ -63,10 +66,12 @@ pub fn run_cwe113(
   ictx? : InterProceduralContext,
   rules? : TaintRuleset,
   output_sinks_enabled? : Bool,
+  pkg_root? : String = "",
   // F2 (T7.2): optional per-function result cache
   cache? : FnCache,
   symbols_fp? : String,
 ) -> Unit {
+  let pr = pkg_root
   // M2: flow-sensitive engine replaces the IterVisitor heuristic walk.
   // Taint state is threaded through control flow with branch merging and
   // guard refinement (see taint_flow.mbt); the old textual safe-vars
@@ -132,6 +137,7 @@ pub fn run_cwe113(
                 let base = findings.length()
                 call_flow(
                   params, body, file, source, severity, findings, ictx, rules, output_sinks,
+                  pr,
                 )
                 let contrib : Array[Finding] = []
                 let mut i = base
@@ -175,7 +181,7 @@ pub fn run_cwe113(
                 let base = findings.length()
                 call_flow(
                   params2, body2, file, source, severity, findings, ictx, rules,
-                  output_sinks,
+                  output_sinks, pr,
                 )
                 let contrib : Array[Finding] = []
                 let mut i = base

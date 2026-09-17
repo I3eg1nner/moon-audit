@@ -400,23 +400,12 @@ fn summary_signature(ictx : InterProceduralContext, name : String) -> String {
 // R1 P0: find the common root from unit file paths (longest shared dir)
 
 ///|
-fn derive_root_from_units(units : Array[SummaryUnit]) -> String {
-  if units.length() == 0 {
-    return ""
-  }
-  let first = canonical_dir(units[0].file)
-  let idx = find_last_slash(first)
-  if idx > 0 {
-    Show::to_string(first[:idx])
-  } else {
-    ""
-  }
-}
 
 ///|
 pub fn collect_summaries_scc(
   units : Array[SummaryUnit],
   ictx : InterProceduralContext,
+  pkg_root? : String = "",
   strategy? : ContextStrategy = Insensitive,
   warn_unimplemented? : Bool = true,
 ) -> Unit {
@@ -441,21 +430,9 @@ pub fn collect_summaries_scc(
   let adj : Map[String, Array[String]] = Map([])
   for u in units {
     let edges : Array[String] = []
-    for
-      c in unit_callees(
-        u.body,
-        pkg_path=derive_pkg_path(u.file, pkg_root=derive_root_from_units(units)),
-      ) {
+    for c in unit_callees(u.body, pkg_path=derive_pkg_path(u.file, pkg_root~)) {
       if node_set.contains(c) {
         edges.push(c)
-      } else {
-        let idx = find_last(c, "::")
-        if idx > 0 {
-          let short = Show::to_string(c[idx + 2:])
-          if node_set.contains(short) {
-            edges.push(short)
-          }
-        }
       }
     }
     adj[u.name] = edges
@@ -521,7 +498,7 @@ fn collect_one_unit(
 ) -> Unit {
   for u in units {
     if u.name == name {
-      collect_summary_func(u.params, u.body, u.name, u.line, u.file, ictx)
+      collect_summary_func(u.params, u.body, u.name, u.line, u.file, ictx, "")
       return
     }
   }

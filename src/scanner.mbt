@@ -103,6 +103,7 @@ pub fn scan_project_with_world(
     collect_summaries_scc(
       scc_units,
       interproc_ctx,
+      pkg_root=root,
       strategy=config.context_strategy,
       warn_unimplemented=false,
     )
@@ -136,7 +137,7 @@ pub fn scan_project_with_world(
       files_scanned += 1
       run_all_rules(
         impls, file, source, findings, imports, config, interproc_ctx, taint_rules,
-        fn_cache, world_fp,
+        fn_cache, world_fp, root,
       )
     }
   }
@@ -270,6 +271,7 @@ fn run_all_rules(
   taint_rules : TaintRuleset,
   f_cache : FnCache,
   f_fp : String,
+  pkg_root : String,
 ) -> Unit {
   let cwe116_id = "CWE-116/replace-escaping"
   if config.is_enabled(cwe116_id) {
@@ -385,6 +387,7 @@ fn run_all_rules(
       config.get_severity(cwe113_id, cwe113_info().default_severity),
       ictx~,
       rules=taint_rules,
+      pkg_root~,
       output_sinks_enabled=config.is_enabled(output_id),
       cache=f_cache,
       symbols_fp=f_fp,

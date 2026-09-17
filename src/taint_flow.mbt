@@ -438,6 +438,7 @@ priv struct FlowCtx {
   env : Map[String, Taint]
   findings : Array[Finding]
   file : String
+  pkg_root : String // IDENT: project root for pkg-qualified summary lookup
   // P3 CallSite(1): current calling context (caller fn:line; "" for
   // insensitive / top-level). Used to prefix summary keys so different
   // callers get per-context precision instead of a merged summary.
@@ -846,6 +847,7 @@ pub fn run_flow_taint_func(
   source : String,
   severity : Severity,
   findings : Array[Finding],
+  pkg_root? : String = "",
   ictx? : InterProceduralContext,
   rules? : TaintRuleset,
   output_sinks_enabled? : Bool,
@@ -858,6 +860,7 @@ pub fn run_flow_taint_func(
     env: Map([]),
     findings,
     file,
+    pkg_root,
     source,
     severity,
     record_sinks: None,
@@ -1024,6 +1027,7 @@ pub fn run_flow_taint_func_top(
   file : String,
   source : String,
   severity : Severity,
+  pkg_root? : String = "",
   findings : Array[Finding],
   rules? : TaintRuleset,
   output_sinks_enabled? : Bool,
@@ -1032,6 +1036,7 @@ pub fn run_flow_taint_func_top(
     env: Map([]),
     findings,
     file,
+    pkg_root,
     source,
     severity,
     record_sinks: None,
@@ -2980,6 +2985,37 @@ fn param_index(params : Array[String], name : String) -> Int? {
 // the method name directly
 
 ///|
+
+///|
+fn summary_lookup_qualified(
+  ctx : FlowCtx,
+  func : @syntax.Expr,
+) -> FuncTaintSummary? {
+  let ictx = match ctx.ictx {
+    Some(i) => i
+    None => return None
+  }
+  let short_name = match callee_summary_name(func) {
+    Some(n) => n
+    None => return None
+  }
+  // IDENT: try same-package qualified key first (prevents cross-package
+  // collision; e.g. b::pick vs a::pick)
+  if ctx.pkg_root != "" {
+    let pkg = derive_pkg_path(ctx.file, pkg_root=ctx.pkg_root)
+    if pkg != "" {
+      let qualified = pkg + "::" + short_name
+      match summary_lookup(ictx, qualified, ctx.cur_callsite) {
+        Some(s) => return Some(s)
+        None => ()
+      }
+    }
+  }
+  // fallback: short name (old behavior for same-file or unqualified)
+  summary_lookup(ictx, short_name, ctx.cur_callsite)
+}
+
+///|
 fn callee_summary_name(func : @syntax.Expr) -> String? {
   match func {
     Ident(id~, ..) =>
@@ -3081,15 +3117,11 @@ fn apply_ret_from(
   arg_pairs : Array[ArgTaint],
   ctx : FlowCtx,
 ) -> Taint? {
-  let ictx = match ctx.ictx {
+  let _ictx = match ctx.ictx {
     Some(i) => i
     None => return None
   }
-  let name = match callee_summary_name(func) {
-    Some(n) => n
-    None => return None
-  }
-  let summary = match summary_lookup(ictx, name, ctx.cur_callsite) {
+  let summary = match summary_lookup_qualified(ctx, func) {
     Some(s) => s
     None => return None
   }
@@ -3112,15 +3144,11 @@ fn maybe_record_transitive_sink(
     Some(a) => a
     None => return
   }
-  let ictx = match ctx.ictx {
+  let _ictx = match ctx.ictx {
     Some(i) => i
     None => return
   }
-  let name = match callee_summary_name(func) {
-    Some(n) => n
-    None => return
-  }
-  let summary = match summary_lookup(ictx, name, ctx.cur_callsite) {
+  let summary = match summary_lookup_qualified(ctx, func) {
     Some(s) => s
     None => return
   }
@@ -3262,15 +3290,11 @@ fn apply_param_field_sinks(
   ctx : FlowCtx,
   call_expr : @syntax.Expr,
 ) -> Unit {
-  let ictx = match ctx.ictx {
+  let _ictx = match ctx.ictx {
     Some(i) => i
     None => return
   }
-  let name = match callee_summary_name(func) {
-    Some(n) => n
-    None => return
-  }
-  let summary = match summary_lookup(ictx, name, ctx.cur_callsite) {
+  let summary = match summary_lookup_qualified(ctx, func) {
     Some(s) => s
     None => return
   }
@@ -3506,15 +3530,11 @@ fn apply_field_taint_side_effect(
   ctx : FlowCtx,
   arg_taints : Array[Taint],
 ) -> Unit {
-  let ictx = match ctx.ictx {
+  let _ictx = match ctx.ictx {
     Some(i) => i
     None => return
   }
-  let name = match callee_summary_name(func) {
-    Some(n) => n
-    None => return
-  }
-  let summary = match summary_lookup(ictx, name, ctx.cur_callsite) {
+  let summary = match summary_lookup_qualified(ctx, func) {
     Some(s) => s
     None => return
   }
@@ -3678,7 +3698,9 @@ pub fn collect_func_summaries_flow(
   file : String,
   ictx : InterProceduralContext,
   rules? : TaintRuleset,
+  pkg_root? : String = "",
 ) -> Unit {
+  let pkg_root = pkg_root
   ignore(rules) // summaries use built-in classification; DSL affects rule scan only
   for item in impls {
     match item {
@@ -3712,6 +3734,7 @@ pub fn collect_func_summaries_flow(
               fun_decl.loc.start.lnum,
               file,
               ictx,
+              pkg_root,
             )
           DeclBody(expr=body) => {
             for p in pnames {
@@ -3724,6 +3747,7 @@ pub fn collect_func_summaries_flow(
               fun_decl.loc.start.lnum,
               file,
               ictx,
+              pkg_root,
             )
           }
           _ => ()
@@ -3745,6 +3769,7 @@ pub fn collect_func_summaries_flow(
               method_name.loc.start.lnum,
               file,
               ictx,
+              pkg_root,
             )
           DeclBody(expr=body) =>
             collect_summary_func(
@@ -3754,6 +3779,7 @@ pub fn collect_func_summaries_flow(
               method_name.loc.start.lnum,
               file,
               ictx,
+              pkg_root,
             )
           _ => ()
         }
@@ -3791,6 +3817,7 @@ fn collect_summary_func(
   line : Int,
   file : String,
   ictx : InterProceduralContext,
+  pkg_root : String,
 ) -> Unit {
   let param_names : Array[String] = []
   let sinks : Array[String] = []
@@ -3801,6 +3828,7 @@ fn collect_summary_func(
     env: Map([]),
     findings: [],
     file,
+    pkg_root,
     source: "",
     severity: Info,
     record_sinks: None,
@@ -3995,6 +4023,7 @@ pub fn run_flow_taint_trace(
     env: Map([]),
     findings,
     file,
+    pkg_root: "",
     source,
     severity,
     record_sinks: None,
