@@ -1135,3 +1135,82 @@ test "G1_reachable_sink_not_eliminated" {
   run_cwe113(impls, "test.mbt", source, findings, Error)
   inspect(findings.length(), content="1")
 }
+
+// ---------------------------------------------------------------------------
+// IDENT Section-3 full acceptance (suggest.md "必须通过的验收")
+// Pattern: param-taint (all fn params tainted) + resp.set_header sink
+// Key: if summaries collide, the WRONG pick's summary may clear taint
+// ---------------------------------------------------------------------------
+
+///|
+test "ident_s3_different_trait_same_name_method" {
+  // suggest.md: "不同 trait 的同名方法 | 按实际实现区分身份与目标"
+  // Alpha::pick returns 2nd param (tainted); Beta::pick returns 1st (safe).
+  // Collision would make Beta::pick also alert (wrong) or Alpha not alert.
+  let src = "trait Alpha { fn pick(Self, a : String, b : String) -> String } trait Beta { fn pick(Self, a : String, b : String) -> String } struct Impl1 {} struct Impl2 {} impl Alpha for Impl1 with fn pick(self, a : String, b : String) -> String { ignore(a); b } impl Beta for Impl2 with fn pick(self, a : String, b : String) -> String { ignore(b); a } pub fn go(resp : Response, val : String) -> Unit { resp.set_header(\"A\", Impl1::pick(Impl1::{}, \"safe\", val)); resp.set_header(\"B\", Impl2::pick(Impl2::{}, \"safe\", val)) }"
+  let (impls, _) = @parser.parse_string(src, name="test.mbt")
+  let ictx = InterProceduralContext::new()
+  collect_func_summaries_flow(impls, "test.mbt", ictx)
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", src, findings, Error, ictx~)
+  // i1.pick → Alpha → returns tainted 2nd param → header A alert
+  // i2.pick → Beta → returns safe 1st param → header B NO alert
+  // Total: exactly 1 (from i1, not from i2) — collision would give 2
+  inspect(findings.length(), content="1")
+}
+
+///|
+test "ident_s3_unrelated_rename_no_effect" {
+  // suggest.md: "无关符号重命名或新增无关包 | 原有绑定与告警不变"
+  // Adding fn unrelated_pick must not change pick's summary behavior
+  let base = "fn pick(a : String, b : String) -> String { ignore(a); b } pub fn go(resp : Response, val : String) -> Unit { resp.set_header(\"X\", pick(\"safe\", val)) }"
+  let extra = "fn pick(a : String, b : String) -> String { ignore(a); b } fn unrelated_pick(a : String, b : String) -> String { ignore(b); a } pub fn go(resp : Response, val : String) -> Unit { resp.set_header(\"X\", pick(\"safe\", val)) }"
+  let (impls1, _) = @parser.parse_string(base, name="a.mbt")
+  let findings1 : Array[Finding] = []
+  run_cwe113(impls1, "a.mbt", base, findings1, Error)
+  let (impls2, _) = @parser.parse_string(extra, name="a.mbt")
+  let findings2 : Array[Finding] = []
+  run_cwe113(impls2, "a.mbt", extra, findings2, Error)
+  // Both must alert (pick returns tainted 2nd param), same count
+  inspect(findings1.length(), content="1")
+  inspect(findings2.length(), content="1")
+}
+
+///|
+test "ident_s3_recursion_scc_converges" {
+  // suggest.md: "递归和互递归 | SCC 仍能收敛并产生正确传递关系"
+  // Self-recursive helper propagates taint from source() to sink
+  let src = "fn helper(n : Int, val : String) -> String { if n == 0 { val } else { helper(n - 1, val) } } pub fn go(resp : Response, val : String) -> Unit { resp.set_header(\"X\", helper(3, val)) }"
+  let (impls, _) = @parser.parse_string(src, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", src, findings, Error)
+  // helper(3, val) recursively passes val → tainted → header alert
+  inspect(findings.length(), content="1")
+}
+
+///|
+test "ident_s3_mutual_recursion_scc_converges" {
+  // suggest.md: "递归和互递归"
+  // Mutual recursion: wrap_a ↔ wrap_b propagate taint
+  let src = "fn wrap_a(n : Int, val : String) -> String { if n == 0 { val } else { wrap_b(n - 1, val) } } fn wrap_b(n : Int, val : String) -> String { wrap_a(n, val) } pub fn go(resp : Response, val : String) -> Unit { resp.set_header(\"X\", wrap_a(3, val)) }"
+  let (impls, _) = @parser.parse_string(src, name="test.mbt")
+  let findings : Array[Finding] = []
+  run_cwe113(impls, "test.mbt", src, findings, Error)
+  inspect(findings.length(), content="1")
+}
+
+///|
+test "ident_s3_declaration_order_independent" {
+  // suggest.md: "文件遍历或声明顺序变化 | 规范化后的语义结果一致"
+  // Same code, pick declared first vs last — same alert count
+  let order1 = "fn pick(a : String, b : String) -> String { ignore(a); b } pub fn go(resp : Response, val : String) -> Unit { resp.set_header(\"X\", pick(\"safe\", val)) }"
+  let order2 = "pub fn go(resp : Response, val : String) -> Unit { resp.set_header(\"X\", pick(\"safe\", val)) } fn pick(a : String, b : String) -> String { ignore(a); b }"
+  let (impls1, _) = @parser.parse_string(order1, name="test.mbt")
+  let findings1 : Array[Finding] = []
+  run_cwe113(impls1, "test.mbt", order1, findings1, Error)
+  let (impls2, _) = @parser.parse_string(order2, name="test.mbt")
+  let findings2 : Array[Finding] = []
+  run_cwe113(impls2, "test.mbt", order2, findings2, Error)
+  inspect(findings1.length(), content=findings2.length().to_string())
+  inspect(findings1.length(), content="1")
+}
