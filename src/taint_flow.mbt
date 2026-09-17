@@ -7,7 +7,7 @@
 //     taken branch (the key precision upgrade over the old rule)
 
 ///|
-enum Taint {
+pub(all) enum Taint {
   Clean
   Tainted // tainted, origin unknown (env/param/callback)
   TaintedParam(String) // tainted, originated from this fn parameter

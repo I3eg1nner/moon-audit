@@ -64,7 +64,7 @@ pub fn collect_fn_traces(@list.List[@syntax.Impl], String, String) -> Array[(Str
 
 pub fn collect_func_summaries(String, String, InterProceduralContext) -> Unit
 
-pub fn collect_func_summaries_flow(@list.List[@syntax.Impl], String, InterProceduralContext, rules? : TaintRuleset) -> Unit
+pub fn collect_func_summaries_flow(@list.List[@syntax.Impl], String, InterProceduralContext, rules? : TaintRuleset, pkg_root? : String) -> Unit
 
 pub fn collect_idents(@syntax.Expr, Array[String]) -> Unit
 
@@ -78,7 +78,7 @@ pub fn collect_mbti_trait_method(@mbti_ast.TraitMethodSig, String, PkgSymbols) -
 
 pub fn collect_mutate_receivers(@syntax.Expr, Array[String]) -> Unit
 
-pub fn collect_summaries_scc(Array[SummaryUnit], InterProceduralContext, strategy? : ContextStrategy, warn_unimplemented? : Bool) -> Unit
+pub fn collect_summaries_scc(Array[SummaryUnit], InterProceduralContext, pkg_root? : String, strategy? : ContextStrategy, warn_unimplemented? : Bool) -> Unit
 
 pub fn collect_symbols(Array[@syntax.Impl], PkgSymbols) -> Unit
 
@@ -148,11 +148,13 @@ pub fn entry_stats_line(ProgramWorld) -> String
 
 pub fn env_terminal_size(Map[String, Taint]) -> Int
 
+pub fn exec_independent(BlockIr, Array[(String, Taint)], TaintRuleset, InterProceduralContext?) -> Array[Finding]
+
 pub fn executor_unconfirmed(Array[(String, Int)], Array[(String, Int)]) -> Int
 
 pub fn extend_ruleset_with_model(TaintRuleset, String) -> Bool
 
-pub fn extract_summary_units(@list.List[@syntax.Impl], String) -> Array[SummaryUnit]
+pub fn extract_summary_units(@list.List[@syntax.Impl], String, pkg_root? : String) -> Array[SummaryUnit]
 
 pub fn fact_of_field_ref(String, String) -> SecurityFact
 
@@ -324,7 +326,7 @@ pub fn run_call_graph(String, Config, conservative_alias? : Bool) -> CallGraph
 
 pub fn run_call_graph_with_world(ProgramWorld, event_cbs? : Array[(String, String) -> Unit]) -> CallGraph
 
-pub fn run_cross_func_taint(@list.List[@syntax.Impl], String, String, Array[Finding], InterProceduralContext, ImportContext) -> Unit
+pub fn run_cross_func_taint(@list.List[@syntax.Impl], String, String, Array[Finding], InterProceduralContext, ImportContext, String) -> Unit
 
 pub fn run_cwe022(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
@@ -336,7 +338,7 @@ pub fn run_cwe079_template(@list.List[@syntax.Impl], String, String, Array[Findi
 
 pub fn run_cwe094(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
-pub fn run_cwe113(@list.List[@syntax.Impl], String, String, Array[Finding], Severity, ictx? : InterProceduralContext, rules? : TaintRuleset, output_sinks_enabled? : Bool, cache? : FnCache, symbols_fp? : String) -> Unit
+pub fn run_cwe113(@list.List[@syntax.Impl], String, String, Array[Finding], Severity, ictx? : InterProceduralContext, rules? : TaintRuleset, output_sinks_enabled? : Bool, pkg_root? : String, cache? : FnCache, symbols_fp? : String) -> Unit
 
 pub fn run_cwe116(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
@@ -354,9 +356,9 @@ pub fn run_cwe770(@list.List[@syntax.Impl], String, String, Array[Finding], Seve
 
 pub fn run_cwe942(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
-pub fn run_flow_taint_func(@list.List[@syntax.Parameter]?, @syntax.Expr, String, String, Severity, Array[Finding], ictx? : InterProceduralContext, rules? : TaintRuleset, output_sinks_enabled? : Bool, fn_name? : String, hir_out? : Array[(String, Array[Stmt])], deferred_facts? : Array[String]) -> Unit
+pub fn run_flow_taint_func(@list.List[@syntax.Parameter]?, @syntax.Expr, String, String, Severity, Array[Finding], pkg_root? : String, ictx? : InterProceduralContext, rules? : TaintRuleset, output_sinks_enabled? : Bool, fn_name? : String, hir_out? : Array[(String, Array[Stmt])], deferred_facts? : Array[String]) -> Unit
 
-pub fn run_flow_taint_func_top(@syntax.Expr, String, String, Severity, Array[Finding], rules? : TaintRuleset, output_sinks_enabled? : Bool) -> Unit
+pub fn run_flow_taint_func_top(@syntax.Expr, String, String, Severity, pkg_root? : String, Array[Finding], rules? : TaintRuleset, output_sinks_enabled? : Bool) -> Unit
 
 pub fn run_flow_taint_trace(@list.List[@syntax.Parameter]?, @syntax.Expr, String, String, Severity, Array[Finding]) -> Array[Stmt]
 
@@ -391,6 +393,8 @@ pub fn sink_value_slot_of(String, TaintRuleset) -> Int
 pub fn solve_pt_constraints(Array[PTConstraint], budget? : Int) -> PTSolution
 
 pub fn store_fn_sig(PkgSymbols, String, FnSig) -> Unit
+
+pub fn summary_lookup(InterProceduralContext, String, String) -> FuncTaintSummary?
 
 pub fn symbols_fingerprint(PkgSymbols) -> String
 
@@ -505,6 +509,8 @@ pub(all) struct CallGraph {
   candidate_sites : Int
   unresolved_sites : Int
   pt_resolved_sites : Int
+  pt_equal_or_fallback : Int
+  pt_has_pt_sites : Int
   pt_not_converged : Bool
 }
 pub fn CallGraph::site_coverage(Self) -> Int
@@ -1012,7 +1018,12 @@ pub(all) struct SummaryUnit {
   line : Int
 }
 
-type Taint derive(Eq)
+pub(all) enum Taint {
+  Clean
+  Tainted
+  TaintedParam(String)
+  TaintedFieldRef(String, String)
+} derive(Eq)
 
 pub(all) struct TaintFlow {
   source : TaintSource
