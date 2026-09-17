@@ -180,6 +180,7 @@ fn qual_type_str(ty : @syntax.Type) -> String {
 priv struct CalleeCollector {
   callees : Array[String]
   pkg_path : String // R1 P0: for qualified callee names
+  alias_map : Map[String, String] // CodEx-2: alias → canonical pkg path
 }
 
 ///|
@@ -200,11 +201,14 @@ impl @syntax.IterVisitor for CalleeCollector with fn visit_Expr_Apply(
           } else {
             env.callees.push(name)
           }
-        Dot(id~, ..) =>
-          if env.pkg_path != "" {
-            env.callees.push(env.pkg_path + "::" + id)
-          } else {
-            env.callees.push(id)
+        Dot(pkg~, id~) =>
+          // CodEx-2: `@alias.fn()` — pkg is the alias, id is the fn name.
+          // Resolve alias → canonical package path; fallback to caller pkg.
+          match env.alias_map.get(pkg) {
+            Some(imported_pkg) => env.callees.push(imported_pkg + "::" + id)
+            None =>
+              // Not a known alias — treat pkg as a package qualifier directly
+              env.callees.push(pkg + "::" + id)
           }
       }
     Method(type_name~, method_name~, ..) => {
@@ -252,8 +256,13 @@ impl @syntax.IterVisitor for CalleeCollector with fn visit_Expr_DotApply(
 fn unit_callees(
   body : @syntax.Expr,
   pkg_path? : String = "", // R1 P0
+  alias_map? : Map[String, String],
 ) -> Array[String] {
-  let collector : CalleeCollector = { callees: [], pkg_path, }
+  let am = match alias_map {
+    Some(m) => m
+    None => Map([])
+  }
+  let collector : CalleeCollector = { callees: [], pkg_path, alias_map: am, }
   @syntax.IterVisitor::visit_Expr(collector, body)
   collector.callees
 }
