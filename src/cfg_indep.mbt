@@ -5,6 +5,10 @@
 // fixpoint), return. SinkStmt triggers CWE-113 findings directly.
 
 ///|
+// CodEx-1: count of unsupported expressions encountered (for scope disclosure)
+pub let indep_unsupported_count : Ref[Int] = Ref(0)
+
+///|
 pub fn exec_independent(
   ir : BlockIr,
   params : Array[(String, Taint)], // (param name, entry taint)
@@ -287,11 +291,19 @@ fn eval_expr_indep(
     Ident(id~, ..) => {
       let name = match id.name {
         Ident(name~) => name
-        Dot(..) => return Clean
+        Dot(..) => {
+          // CodEx-1: qualified ident not yet resolved — conservative Tainted
+          indep_unsupported_count.val += 1
+          return Tainted
+        }
       }
       or_tainted_indep(env.get(name))
     }
-    Method(..) => Clean
+    // CodEx-1: method call not yet resolved — conservative Tainted
+    Method(..) => {
+      indep_unsupported_count.val += 1
+      Tainted
+    }
     Infix(lhs~, rhs~, ..) => {
       let lt = eval_expr_indep(lhs, env, rules, ictx)
       let rt = eval_expr_indep(rhs, env, rules, ictx)
@@ -299,7 +311,12 @@ fn eval_expr_indep(
     }
     Interp(..) => Tainted // interpolation: conservative
     BytesInterp(..) => Tainted
-    _ => Clean // conservative for unsupported: Clean (simplified subset)
+    // CodEx-1: unsupported expressions return Tainted (conservative —
+    // prefer over-reporting to silent false negatives)
+    _ => {
+      indep_unsupported_count.val += 1
+      Tainted
+    }
   }
 }
 

@@ -23,6 +23,8 @@ pub(all) struct FuncTaintSummary {
 ///|
 pub(all) struct InterProceduralContext {
   summaries : Map[String, FuncTaintSummary]
+  // CodEx-1: caller's package path for same-package suffix filtering
+  mut pkg_hint : String?
   // P1-UNIFY: world symbols bridge — summary lookup consults fn_sigs/
   // impl_methods for qualified-name resolution (replaces bare AST match)
   mut world_symbols : PkgSymbols?
@@ -38,6 +40,7 @@ pub(all) struct InterProceduralContext {
 pub fn InterProceduralContext::new() -> InterProceduralContext {
   {
     summaries: Map([]),
+    pkg_hint: None,
     world_symbols: None,
     dispatch_hints: Map([]),
     not_converged: 0,

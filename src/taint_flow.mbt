@@ -3009,10 +3009,14 @@ fn summary_lookup_qualified(
         Some(s) => return Some(s)
         None => ()
       }
+      // CodEx-1: set same-package hint so suffix fallback stays in-package
+      ictx.pkg_hint = Some(pkg)
     }
   }
-  // fallback: short name (old behavior for same-file or unqualified)
-  summary_lookup(ictx, short_name, ctx.cur_callsite)
+  // fallback: short name — suffix matching now filtered by pkg_hint
+  let result = summary_lookup(ictx, short_name, ctx.cur_callsite)
+  ictx.pkg_hint = None // reset for next lookup
+  result
 }
 
 ///|
@@ -3057,23 +3061,26 @@ pub fn summary_lookup(
     Some(s) => return Some(s)
     None => ()
   }
-  // R1 P0: caller sees bare name "pick" but summaries are now pkg-qualified
-  // ("a::pick", "b::pick"). Find all summaries with this suffix. Exactly one
-  // = safe to use; multiple = ambiguous, return None (conservative, no
-  // wrong-package refinement that could clear taint incorrectly).
-  {
-    let matches : Array[String] = []
-    ictx.summaries.each(fn(k, _) {
-      if k == name || k.has_suffix("::" + name) {
-        matches.push(k)
+  // CodEx-1: suffix matching restricted to SAME-PACKAGE candidates only.
+  // The caller's pkg_path (if known) filters the suffix-matched candidates;
+  // without pkg_path context (e.g. external callers), no suffix fallback —
+  // preventing cross-package summary confusion.
+  match ictx.pkg_hint {
+    Some(pkg) =>
+      if pkg != "" {
+        let prefix = pkg + "::"
+        let matches : Array[String] = []
+        ictx.summaries.each(fn(k, _) {
+          if k.has_prefix(prefix) && k.has_suffix("::" + name) {
+            matches.push(k)
+          }
+        })
+        if matches.length() == 1 {
+          return ictx.summaries.get(matches[0])
+        }
       }
-    })
-    if matches.length() == 1 {
-      return ictx.summaries.get(matches[0])
-    }
-    if matches.length() > 1 {
-      return None // ambiguous cross-package: no refinement (conservative)
-    }
+    // no pkg hint or ambiguous: no suffix fallback (conservative)
+    None => () // no context: no suffix fallback
   }
   // P1-UNIFY: consult world symbols — if fn_sigs has this name under a
   // qualified identity that also has a summary, use it (bridge between

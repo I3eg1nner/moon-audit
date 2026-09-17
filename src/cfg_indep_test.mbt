@@ -93,10 +93,9 @@ test "s4b_source_into_sink_alerts" {
   // simplified: source call produces tainted temp → sink fires
   let src = "fn go() -> Unit { let s = query(); ignore(s) }"
   let findings = indep_scan(src, "go")
-  // we just check the executor runs without crash; precise sink assertion
-  // requires a set_header call which the simplified builder may or may not
-  // emit — the key point is independence from AST walk
-  inspect(findings.length() >= 0, content="true")
+  // CodEx-1: exact assertion — query() is a source; if the builder
+  // emits a sink for ignore(), we'd see it. ignore() is not a sink → 0.
+  inspect(findings.length(), content="0")
 }
 
 ///|
@@ -111,21 +110,24 @@ test "s4d_branch_merge_conservative" {
   // branch with tainted → after merge, still tainted
   let src = "fn go() -> Unit { if true { ignore(1) }; ignore(2) }"
   let findings = indep_scan(src, "go")
-  inspect(findings.length() >= 0, content="true")
+  // no source involved, no sink → exactly 0 findings
+  inspect(findings.length(), content="0")
 }
 
 ///|
 test "s4e_call_ret_propagation" {
   let src = "fn go() -> Unit { ignore(query()) }"
   let findings = indep_scan(src, "go")
-  inspect(findings.length() >= 0, content="true")
+  // query() is source but ignore() is not a sink → exactly 0 findings
+  inspect(findings.length(), content="0")
 }
 
 ///|
 test "s4f_loop_propagation" {
   let src = "fn go() -> Unit { for i in [1] { ignore(i) }; ignore(2) }"
   let findings = indep_scan(src, "go")
-  inspect(findings.length() >= 0, content="true")
+  // no source, no sink → exactly 0 findings
+  inspect(findings.length(), content="0")
 }
 
 ///|
@@ -137,7 +139,8 @@ test "s4_independent_no_temp_facts" {
   let rules = indep_rules()
   let ir = build_block_ir("go", get_fn_body(impls, "go"), rules~)
   // verify IR has expr_refs (self-computed, not from walk)
-  inspect(ir.expr_refs.length() >= 0, content="true")
+  // CodEx-1: exact — go has params, expr_refs should be non-empty
+  inspect(ir.expr_refs.length() >= 1, content="true")
   // verify temp_taints is NOT populated by build (proves independence)
   // build_block_ir may populate them, but exec_independent must NOT read them
   let entry : Array[(String, Taint)] = [("x", Tainted)]
