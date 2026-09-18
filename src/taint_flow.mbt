@@ -3226,6 +3226,43 @@ fn apply_ret_from_dot(
     Some(i) => i
     None => return None
   }
+  // S5c: consume unified dispatch targets from pointer analysis.
+  // If dispatch_hints has a narrowed set for this method, try each
+  // SelfTy::method key BEFORE falling back to the bare method name.
+  // This prevents wrong-trait summary confusion (e.g. Responder::output
+  // vs Show::output sharing the bare name "output").
+  match ictx.dispatch_hints.get(mname) {
+    Some(self_tys) => {
+      // try each impl's qualified summary key
+      let mut found : FuncTaintSummary? = None
+      for st in self_tys {
+        let qual_key = st + "::" + mname
+        match summary_lookup(ictx, qual_key, ctx.cur_callsite) {
+          Some(s) => {
+            found = Some(s)
+            break
+          }
+          None => ()
+        }
+      }
+      match found {
+        Some(s) => {
+          // use the dispatch-refined summary
+          let no_recv_args = args
+          let joined = ret_from_join(s, no_recv_args, arg_pairs, 1)
+          let mut result = joined
+          if s.ret_from.length() > 0 &&
+            s.params.length() > 0 &&
+            s.ret_from.contains(s.params[0]) {
+            result = Some(taint_or(or_taint(result), recv_taint))
+          }
+          return result
+        }
+        None => () // no qualified hit, fall through to bare name
+      }
+    }
+    None => () // no dispatch hints for this method
+  }
   let summary = match summary_lookup(ictx, mname, ctx.cur_callsite) {
     Some(s) => s
     None => return None
