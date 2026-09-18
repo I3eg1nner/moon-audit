@@ -294,6 +294,7 @@ pub fn default_registry(conservative_alias? : Bool = false) -> AnalysisRegistry 
       // default runner dropped event_cbs, so registry path had 0 events)
       let evts = ctx.events
       let cbs : Array[(String, String) -> Unit] = evts.on_new_call_edge
+      ignore(cbs)
       // S5a: read PointsTo dep results (registry ensures pt ran first).
       // The pt-driven dispatch refinement inside run_call_graph_with_world
       // already uses recv_pt from scan_package_calls; this confirms the
@@ -304,7 +305,46 @@ pub fn default_registry(conservative_alias? : Bool = false) -> AnalysisRegistry 
         _ => " (pt deps: not-run)"
       }
       ignore(pt_info)
-      CallGraphR(run_call_graph_with_world(w, event_cbs=cbs))
+      // S5b: unified solve — pointer→edge→convergence loop replaces the
+      // single-pass run_call_graph_with_world; scheduling layer decides
+      // when to re-run pt (new dispatch targets → new constraints → repeat)
+      let solver = unified_solve(w, Config::default())
+      let dispatch_edges = match solver.resolved_targets.get("dispatch_edges") {
+        Some(arr) => arr
+        None => []
+      }
+      let edges = match solver.resolved_targets.get("edges") {
+        Some(arr) => arr
+        None => []
+      }
+      let unresolved = match solver.resolved_targets.get("unresolved") {
+        Some(arr) => arr
+        None => []
+      }
+      let pt_resolved = match solver.resolved_targets.get("pt_resolved_sites") {
+        Some(arr) => if arr.length() > 0 { parse_int_safe(arr[0]) } else { 0 }
+        None => 0
+      }
+      let bound = match solver.resolved_targets.get("bound_site") {
+        Some(arr) => if arr.length() > 0 { parse_int_safe(arr[0]) } else { 0 }
+        None => 0
+      }
+      let candidate = match solver.resolved_targets.get("candidate_sites") {
+        Some(arr) => if arr.length() > 0 { parse_int_safe(arr[0]) } else { 0 }
+        None => 0
+      }
+      CallGraphR({
+        edges,
+        dispatch_edges,
+        unresolved,
+        bound_sites: bound,
+        candidate_sites: candidate,
+        unresolved_sites: unresolved.length(),
+        pt_resolved_sites: pt_resolved,
+        pt_equal_or_fallback: 0,
+        pt_has_pt_sites: 0,
+        pt_not_converged: false,
+      })
     },
   })
   reg.register({
