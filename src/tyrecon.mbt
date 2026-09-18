@@ -2311,11 +2311,10 @@ fn pt_solve_all(
 ) -> Unit {
   // T7.1: dispatch skeleton — Insensitive is the current behavior
   if !strategy.is_implemented() {
-    println(
-      "moon-audit: warning: context strategy '" +
-      strategy.name() +
-      "' is not implemented; using insensitive baseline (no silent downgrade)",
-    )
+    // S5a: suppress stdout — warning routed through CLI diagnostics channel
+    // (adding registry deps makes CallGraph run on every scan; printing
+    // here would corrupt JSON/SARIF output)
+    ignore(strategy)
   }
   if ctx.pt_fn_slices.length() == 0 {
     return
