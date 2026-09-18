@@ -4,6 +4,7 @@ package "minie135/moon-audit/src"
 import {
   "moonbitlang/core/debug",
   "moonbitlang/core/list",
+  "moonbitlang/core/ref",
   "moonbitlang/moon_config",
   "moonbitlang/parser/mbti_ast",
   "moonbitlang/parser/syntax",
@@ -239,6 +240,8 @@ pub fn has_labelled_arg(@list.List[@syntax.Argument], String) -> Bool
 pub fn has_labelled_bool_arg(@list.List[@syntax.Argument], String, Bool) -> Bool
 
 pub fn hir_trace_show(Array[Stmt]) -> String
+
+pub let indep_unsupported_count : @ref.Ref[Int]
 
 pub fn is_any_constant(@syntax.Expr) -> Bool
 
@@ -692,6 +695,7 @@ pub(all) struct InstrumentReport {
 
 pub(all) struct InterProceduralContext {
   summaries : Map[String, FuncTaintSummary]
+  mut pkg_hint : String?
   mut world_symbols : PkgSymbols?
   dispatch_hints : Map[String, Array[String]]
   mut not_converged : Int
@@ -984,6 +988,12 @@ pub(all) enum Severity {
   Warning
   Info
 } derive(Eq, @debug.Debug)
+
+pub(all) struct SolverState {
+  pts : Map[String, PTSolution]
+  resolved_targets : Map[String, Array[String]]
+}
+pub fn SolverState::new() -> Self
 
 pub(all) struct StageTimings {
   mut stages : Array[(String, UInt64)]

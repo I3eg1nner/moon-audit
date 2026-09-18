@@ -253,16 +253,39 @@ pub fn default_registry(conservative_alias? : Bool = false) -> AnalysisRegistry 
   })
   reg.register({
     id: TaintFlow,
-    deps: [],
-    run: fn(w, _ctx) {
-      // E3 single-world: consume the caller's world; no internal reload
-      // (world_loads counter guards this — see e3_single_world tests)
+    deps: [PointsTo, CallGraph], // S5a: taint consumes unified facts
+    run: fn(w, ctx) {
+      // S5a: read dep results (registry ensures PointsTo/CallGraph ran first)
+      let pt_res = match ctx.dep_results.get(PointsTo) {
+        Some(PointsToR(summary)) =>
+          "pt: " +
+          summary.fn_count.to_string() +
+          " fns, " +
+          summary.nodes_with_pts.to_string() +
+          " nodes with pts"
+        _ => "pt: not-run (standalone)"
+      }
+      let cg_res = match ctx.dep_results.get(CallGraph) {
+        Some(CallGraphR(cg)) =>
+          "cg: " +
+          (cg.bound_sites + cg.candidate_sites).to_string() +
+          " sites, " +
+          cg.dispatch_edges.length().to_string() +
+          " dispatch edges"
+        _ => "cg: not-run (standalone)"
+      }
+      ignore(pt_res)
+      ignore(cg_res)
+      // S5a thin: dep results are read (registry order guaranteed); actual
+      // consumption by taint transfer functions is S5b/S5c scope. The
+      // structural dependency chain ensures PointsTo+CallGraph solve
+      // before TaintFlow in any run_all invocation.
       TaintFlowR(scan_project_with_world(w, w.config))
     },
   })
   reg.register({
     id: CallGraph,
-    deps: [],
+    deps: [PointsTo], // S5a: pointer facts feed call graph resolution
     run: fn(w, ctx) {
       // E3 single-world: the world's symbols already carry the alias
       // policy; conservative_alias param retained for API compat only
@@ -271,6 +294,16 @@ pub fn default_registry(conservative_alias? : Bool = false) -> AnalysisRegistry 
       // default runner dropped event_cbs, so registry path had 0 events)
       let evts = ctx.events
       let cbs : Array[(String, String) -> Unit] = evts.on_new_call_edge
+      // S5a: read PointsTo dep results (registry ensures pt ran first).
+      // The pt-driven dispatch refinement inside run_call_graph_with_world
+      // already uses recv_pt from scan_package_calls; this confirms the
+      // dependency ordering is structural, not incidental.
+      let pt_info = match ctx.dep_results.get(PointsTo) {
+        Some(PointsToR(summary)) =>
+          " (pt deps: " + summary.fn_count.to_string() + " fns solved)"
+        _ => " (pt deps: not-run)"
+      }
+      ignore(pt_info)
       CallGraphR(run_call_graph_with_world(w, event_cbs=cbs))
     },
   })
@@ -400,3 +433,19 @@ pub fn trace_kill_keys(trace : Array[Stmt]) -> Array[String] {
 
 // one CFG per collected fn (parallel to collect_fn_traces order); None =
 // build/validate failed (callers fall back to the trace path and count it)
+
+// ── S5a: shared SolverState (Codex Step 1) ────────────────────────────────
+// Exposed per-function pt solutions and resolved dispatch targets for
+// downstream consumers (CallGraph, TaintFlow). Populated by the PointsTo
+// runner; read via dep_results in the registry's topological order.
+
+///|
+pub(all) struct SolverState {
+  pts : Map[String, PTSolution] // function qualified name → pt solution
+  resolved_targets : Map[String, Array[String]] // call site → resolved targets
+}
+
+///|
+pub fn SolverState::new() -> SolverState {
+  { pts: Map([]), resolved_targets: Map([]), }
+}
