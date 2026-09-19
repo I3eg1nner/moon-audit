@@ -388,6 +388,7 @@ fn run_all_rules(
       ictx~,
       rules=taint_rules,
       pkg_root~,
+      cfg_engine=config.cfg_engine,
       output_sinks_enabled=config.is_enabled(output_id),
       cache=f_cache,
       symbols_fp=f_fp,

@@ -110,6 +110,7 @@ pub(all) struct Config {
   incremental : Bool // Explicit empty change lists must scan zero files.
   analysis_mode : String // T7.5: "quick" (default) | "deep" (force interproc)
   context_strategy : ContextStrategy // T7.1: pluggable context sensitivity
+  mut cfg_engine : Bool // PROD-1: true = independent CFG executor (exec_independent)
 }
 
 ///|
@@ -150,6 +151,7 @@ pub fn Config::default() -> Config {
     incremental: false,
     analysis_mode: "quick",
     context_strategy: Insensitive,
+    cfg_engine: false,
   }
 }
 

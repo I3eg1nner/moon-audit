@@ -43,6 +43,11 @@ fn main {
         long="diagnose-fallback",
         about="G2: list per-function CFG fallback reasons (file:fn — validation failure) then exit",
       ),
+      @argparse.FlagArg(
+        "cfg-engine",
+        long="cfg-engine",
+        about="PROD-1: use the independent CFG executor (exec_independent) as findings producer; AST walk is fallback for unsupported functions",
+      ),
     ],
     options=[
       @argparse.OptionArg(
@@ -651,6 +656,9 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     }
     println("moon-audit v0.4.0 - Static security analyzer for MoonBit\n")
     println("Scanning: " + path)
+    if config.cfg_engine {
+      println("Engine: independent CFG executor (--cfg-engine)")
+    }
     if config.incremental || config.changed_files.length() > 0 {
       println(
         "Incremental mode: " +
@@ -667,6 +675,14 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
     @audit.load_program_world(path, config, with_symbols=true)
   })
   let taint_registry = @audit.default_registry()
+  // PROD-1: --cfg-engine flag → config.cfg_engine = true
+  let cfg_engine = match matches.flags.get("cfg-engine") {
+    Some(v) => v
+    None => false
+  }
+  if cfg_engine {
+    config.cfg_engine = true
+  }
   let result = timings.time("analysis", fn() {
     match taint_registry.run_all([@audit.TaintFlow], taint_world) {
       Ok(results) =>

@@ -341,7 +341,7 @@ pub fn run_cwe079_template(@list.List[@syntax.Impl], String, String, Array[Findi
 
 pub fn run_cwe094(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
-pub fn run_cwe113(@list.List[@syntax.Impl], String, String, Array[Finding], Severity, ictx? : InterProceduralContext, rules? : TaintRuleset, output_sinks_enabled? : Bool, pkg_root? : String, cache? : FnCache, symbols_fp? : String) -> Unit
+pub fn run_cwe113(@list.List[@syntax.Impl], String, String, Array[Finding], Severity, ictx? : InterProceduralContext, rules? : TaintRuleset, output_sinks_enabled? : Bool, pkg_root? : String, cfg_engine? : Bool, cache? : FnCache, symbols_fp? : String) -> Unit
 
 pub fn run_cwe116(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
@@ -406,6 +406,8 @@ pub fn taint_flows_to_findings(Array[TaintFlow], Severity) -> Array[Finding]
 pub fn trace_kill_keys(Array[Stmt]) -> Array[String]
 
 pub fn type_to_ir(@syntax.Type, PkgSymbols) -> IRType
+
+pub fn unified_solve(ProgramWorld, Config) -> SolverState
 
 pub fn validate_cfg(BlockIr) -> Array[String]
 
@@ -561,6 +563,7 @@ pub(all) struct Config {
   incremental : Bool
   analysis_mode : String
   context_strategy : ContextStrategy
+  mut cfg_engine : Bool
 }
 pub fn Config::default() -> Self
 pub fn Config::get_severity(Self, String, Severity) -> Severity

@@ -24,7 +24,43 @@ fn call_flow(
   rules : TaintRuleset,
   output_sinks : Bool,
   pkg_root : String,
+  cfg_engine : Bool, // PROD-1: true = exec_independent primary, AST fallback
 ) -> Unit {
+  if cfg_engine {
+    // PROD-1: build BlockIr from the AST, run exec_independent, and use
+    // its findings directly; fall back to AST flow on validation failure
+    let fn_name = "fn"
+    let ir = build_block_ir(fn_name, body, rules~)
+    let errs = validate_cfg(ir)
+    if errs.length() == 0 {
+      // entry taints: all params conservatively tainted (callback semantics)
+      let param_taints : Array[(String, Taint)] = []
+      match params {
+        Some(ps) =>
+          for p in ps {
+            match p {
+              Positional(binder~, ..)
+              | Labelled(binder~, ..)
+              | Optional(binder~, ..)
+              | QuestionOptional(binder~, ..) =>
+                param_taints.push((binder.name, Tainted))
+              DiscardPositional(..) => ()
+            }
+          }
+        None => ()
+      }
+      let ictx_opt = match ictx {
+        Some(i) => Some(i)
+        None => None
+      }
+      let cfg_findings = exec_independent(ir, param_taints, rules, ictx_opt)
+      for f in cfg_findings {
+        findings.push(f)
+      }
+      return // success: no AST fallback needed
+    }
+    // validation failure: fall through to AST flow below (disclosed as fallback)
+  }
   match ictx {
     Some(i) =>
       run_flow_taint_func(
@@ -67,11 +103,14 @@ pub fn run_cwe113(
   rules? : TaintRuleset,
   output_sinks_enabled? : Bool,
   pkg_root? : String = "",
+  // PROD-1: cfg_engine flag — use exec_independent as primary producer
+  cfg_engine? : Bool = false,
   // F2 (T7.2): optional per-function result cache
   cache? : FnCache,
   symbols_fp? : String,
 ) -> Unit {
   let pr = pkg_root
+  let cfg_engine_on = cfg_engine
   // M2: flow-sensitive engine replaces the IterVisitor heuristic walk.
   // Taint state is threaded through control flow with branch merging and
   // guard refinement (see taint_flow.mbt); the old textual safe-vars
@@ -137,7 +176,7 @@ pub fn run_cwe113(
                 let base = findings.length()
                 call_flow(
                   params, body, file, source, severity, findings, ictx, rules, output_sinks,
-                  pr,
+                  pr, cfg_engine_on,
                 )
                 let contrib : Array[Finding] = []
                 let mut i = base
@@ -181,7 +220,7 @@ pub fn run_cwe113(
                 let base = findings.length()
                 call_flow(
                   params2, body2, file, source, severity, findings, ictx, rules,
-                  output_sinks, pr,
+                  output_sinks, pr, cfg_engine_on,
                 )
                 let contrib : Array[Finding] = []
                 let mut i = base
