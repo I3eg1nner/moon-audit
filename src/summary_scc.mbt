@@ -70,14 +70,19 @@ pub fn extract_summary_units(
           _ => ()
         }
       }
-      TopImpl(self_ty~, method_name~, params~, body~, ..) => {
+      TopImpl(self_ty~, trait_~, method_name~, params~, body~, ..) => {
         // P0: methods keyed by "SelfTy::method" to prevent cross-type
-        // summary collisions (e.g. First::pick vs Second::pick)
+        // PROD-2: trait impls keyed by "SelfTy:Trait::method" to prevent
+        // cross-trait summary collisions (Alpha::pick vs Beta::pick)
         let self_name = match self_ty {
           Some(t) => qual_type_str(t)
           None => "?"
         }
-        let base = self_name + "::" + method_name.name
+        let trait_name = match trait_.name {
+          Ident(name~) => name
+          Dot(pkg~, id~) => pkg + "::" + id
+        }
+        let base = self_name + ":" + trait_name + "::" + method_name.name
         let name = if pkg_path != "" { pkg_path + "::" + base } else { base }
         match body {
           DeclBody(expr=Function(func~, ..)) =>
