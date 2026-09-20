@@ -23,6 +23,8 @@ pub fn exec_independent(
   // independent temp taints: computed from stmts, NOT from ir.temp_taints
   let temps : Map[Int, Taint] = Map([])
   let findings : Array[Finding] = []
+  // FIX-3: dedup findings by (block_id, stmt_index, rule_id)
+  let emitted : Map[String, Bool] = Map([])
   // entry fact for the walk: all params as source candidates
   // (simplified: taint = what the entry says, no AST dependency)
 
@@ -102,7 +104,16 @@ pub fn exec_independent(
       block_envs[block.id] = cur_env
       // process statements
       for stmt in block.stmts {
-        exec_stmt_indep(stmt, cur_env, temps, rules, ictx, findings, ir)
+        exec_stmt_indep(
+          stmt,
+          cur_env,
+          temps,
+          rules,
+          ictx,
+          findings,
+          ir,
+          emitted~,
+        )
       }
     }
   }
@@ -135,6 +146,7 @@ fn exec_stmt_indep(
   ictx : InterProceduralContext?,
   findings : Array[Finding],
   ir : BlockIr,
+  emitted? : Map[String, Bool] = Map([]),
 ) -> Unit {
   match stmt {
     LetEvalTemp(temp_id, _arg_idx) =>
@@ -197,15 +209,19 @@ fn exec_stmt_indep(
         if value_idx < arg_tids.length() {
           let vt = or_tainted_indep(temps.get(arg_tids[value_idx]))
           if vt != Clean {
-            findings.push(
-              make_indep_finding(
-                "CWE-113/crlf-injection",
-                vt,
-                ir.fn_name,
-                file=ir.file,
-                line=0,
-              ),
-            )
+            let dedup_key = "CWE-113:" + ir.fn_name + ":call"
+            if !emitted.contains(dedup_key) {
+              emitted[dedup_key] = true
+              findings.push(
+                make_indep_finding(
+                  "CWE-113/crlf-injection",
+                  vt,
+                  ir.fn_name,
+                  file=ir.file,
+                  line=0,
+                ),
+              )
+            }
           }
         }
       }
@@ -253,17 +269,24 @@ fn exec_stmt_indep(
       for tid in arg_tids {
         let t = or_tainted_indep(temps.get(tid))
         if t != Clean {
-          findings.push(
-            make_indep_finding(
-              if kind == "output" {
-                "CWE-116/tainted-output"
-              } else {
-                "CWE-113/crlf-injection"
-              },
-              t,
-              ir.fn_name + ":" + line.to_string(),
-            ),
-          )
+          let rule = if kind == "output" {
+            "CWE-116/tainted-output"
+          } else {
+            "CWE-113/crlf-injection"
+          }
+          let dedup_key = rule + ":" + ir.fn_name + ":" + line.to_string()
+          if !emitted.contains(dedup_key) {
+            emitted[dedup_key] = true
+            findings.push(
+              make_indep_finding(
+                rule,
+                t,
+                ir.fn_name + ":" + line.to_string(),
+                file=ir.file,
+                line~,
+              ),
+            )
+          }
         }
       }
     AssignStmt(name, tid) => env[name] = or_tainted_indep(temps.get(tid))

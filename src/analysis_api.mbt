@@ -313,6 +313,17 @@ pub fn default_registry(conservative_alias? : Bool = false) -> AnalysisRegistry 
         Some(arr) => arr
         None => []
       }
+      // FIX-1: Fire events for each dispatch edge through registry ctx
+      for edge in dispatch_edges {
+        let sep = find_last(edge, " -> ")
+        if sep > 0 {
+          let caller = Show::to_string(edge[:sep])
+          let callee = Show::to_string(edge[sep + 4:])
+          for cb in cbs {
+            cb(caller, callee)
+          }
+        }
+      }
       let edges = match solver.resolved_targets.get("edges") {
         Some(arr) => arr
         None => []
