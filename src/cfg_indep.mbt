@@ -209,7 +209,7 @@ fn exec_stmt_indep(
         if value_idx < arg_tids.length() {
           let vt = or_tainted_indep(temps.get(arg_tids[value_idx]))
           if vt != Clean {
-            let dedup_key = "CWE-113:" + ir.fn_name + ":call"
+            let dedup_key = "CWE-113:" + ir.fn_name + ":" + "0"
             if !emitted.contains(dedup_key) {
               emitted[dedup_key] = true
               findings.push(
