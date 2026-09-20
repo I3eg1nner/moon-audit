@@ -198,7 +198,13 @@ fn exec_stmt_indep(
           let vt = or_tainted_indep(temps.get(arg_tids[value_idx]))
           if vt != Clean {
             findings.push(
-              make_indep_finding("CWE-113/crlf-injection", vt, ir.fn_name),
+              make_indep_finding(
+                "CWE-113/crlf-injection",
+                vt,
+                ir.fn_name,
+                file=ir.file,
+                line=0,
+              ),
             )
           }
         }
@@ -325,6 +331,8 @@ fn make_indep_finding(
   rule_id_str : String,
   _t : Taint,
   location : String,
+  file? : String = "<independent>",
+  line? : Int = 0,
 ) -> Finding {
   let slash = "/"
   let mut idx = -1
@@ -352,13 +360,13 @@ fn make_indep_finding(
     confidence: Medium,
     message: "Independent CFG executor: tainted value reached sink at " +
     location,
-    file: "<independent>",
-    line: 0,
+    file,
+    line,
     column: 0,
-    end_line: 0,
+    end_line: line,
     end_column: 0,
     snippet: "",
-    fingerprint: "indep_" + rule_id_str + "_" + location,
+    fingerprint: "indep_" + rule_id_str + "_" + file + ":" + line.to_string(),
   }
 }
 

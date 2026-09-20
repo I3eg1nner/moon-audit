@@ -145,6 +145,7 @@ pub fn run_cwe113(
         rules,
         output_sinks,
         ictx,
+        engine=if cfg_engine { "cfg_indep" } else { "ast" },
       )
   }
   let source_lines : Array[String] = []

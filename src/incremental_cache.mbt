@@ -241,6 +241,7 @@ fn taint_analysis_fingerprint(
   rules : TaintRuleset,
   output_sinks : Bool,
   ictx : InterProceduralContext?,
+  engine? : String = "ast",
 ) -> String {
   fnv1a([
     ANALYZER_VERSION,
@@ -250,6 +251,7 @@ fn taint_analysis_fingerprint(
     output_sinks.to_string(),
     taint_rules_cache_repr(rules),
     taint_context_cache_repr(ictx),
+    engine,
   ])
 }
 

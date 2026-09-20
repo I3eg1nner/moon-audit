@@ -3236,13 +3236,37 @@ fn apply_ret_from_dot(
       // try each impl's qualified summary key
       let mut found : FuncTaintSummary? = None
       for st in self_tys {
+        // PROD-2: try both key formats — old "SelfTy::method" and new
+        // "SelfTy:Trait::method" (trait-qualified, from summary_scc)
         let qual_key = st + "::" + mname
         match summary_lookup(ictx, qual_key, ctx.cur_callsite) {
           Some(s) => {
             found = Some(s)
             break
           }
-          None => ()
+          None => {
+            // Try trait-qualified format: find matching impl_methods keys
+            // that have prefix "SelfTy:" and suffix "::method"
+            let trait_keys : Array[String] = []
+            match ictx.world_symbols {
+              Some(syms) =>
+                syms.impl_methods.each(fn(k, _) {
+                  if k.has_prefix(st + ":") && k.has_suffix("::" + mname) {
+                    trait_keys.push(k)
+                  }
+                })
+              None => ()
+            }
+            if trait_keys.length() == 1 {
+              match summary_lookup(ictx, trait_keys[0], ctx.cur_callsite) {
+                Some(s) => {
+                  found = Some(s)
+                  break
+                }
+                None => ()
+              }
+            }
+          }
         }
       }
       match found {

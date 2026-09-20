@@ -24,6 +24,7 @@ pub(all) struct Block {
 ///|
 pub(all) struct BlockIr {
   fn_name : String
+  file : String
   blocks : Array[Block] // 0 = entry, last two = normal_exit, error_exit
   entry : Int
   normal_exit : Int
@@ -110,6 +111,7 @@ pub fn build_block_ir(
   }
   {
     fn_name,
+    file: "",
     blocks: ctx.blocks,
     entry: 0,
     normal_exit: 1,
