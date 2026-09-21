@@ -1143,6 +1143,7 @@ test "t0_site_coverage_per_site_denominator" {
     pt_equal_or_fallback: 0,
     pt_has_pt_sites: 0,
     pt_not_converged: false,
+    pt_solutions: Map([]),
   }
   inspect(cg.site_total(), content="4")
   inspect(cg.site_coverage(), content="75") // (2+1)/4 — NOT 3/7 by edges

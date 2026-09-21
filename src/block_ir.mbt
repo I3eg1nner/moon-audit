@@ -29,6 +29,10 @@ pub(all) struct BlockIr {
   entry : Int
   normal_exit : Int
   error_exit : Int
+  // rc-fix: original let/assign expressions keyed by decl name — the
+  // independent executor evaluates RWhole bindings from these instead of
+  // the conservative blanket Tainted (constant lets stayed "dirty")
+  let_srcs : Map[String, @syntax.Expr]
   // P2a: self-contained temp taints — populated once by the walk, then
   // the executor reads from the IR (no external map dependency)
   temp_taints : Map[Int, Taint]
@@ -58,6 +62,7 @@ priv struct CfgCtx {
   mut defer_count : Int
   rules : TaintRuleset // E1a: sink firing needs the SAME ruleset as walk
   expr_refs : Map[Int, @syntax.Expr]
+  let_srcs : Map[String, @syntax.Expr] // rc-fix: RWhole value sources
 }
 
 ///|
@@ -89,6 +94,7 @@ pub fn build_block_ir(
   fn_name : String,
   body : @syntax.Expr,
   rules? : TaintRuleset,
+  file? : String = "",
 ) -> BlockIr {
   // fixed layout: 0 = entry, 1 = normal_exit, 2 = error_exit
   let ctx : CfgCtx = {
@@ -103,6 +109,7 @@ pub fn build_block_ir(
       None => TaintRuleset::empty()
     },
     expr_refs: Map([]),
+    let_srcs: Map([]),
   }
   lower(body, ctx)
   // implicit fallthrough of the last block → normal exit (unless sealed)
@@ -111,13 +118,14 @@ pub fn build_block_ir(
   }
   {
     fn_name,
-    file: "",
+    file,
     blocks: ctx.blocks,
     entry: 0,
     normal_exit: 1,
     error_exit: 2,
     temp_taints: Map([]), // P2a: populated by embed_temp_taints
     expr_refs: ctx.expr_refs,
+    let_srcs: ctx.let_srcs,
   }
 }
 
@@ -150,12 +158,14 @@ fn lower_one(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
       // every let-chained function after its first binding
       let decl = pattern_decl_key(pattern)
       ignore(eval_value_expr(expr, ctx, decl~))
+      ctx.let_srcs[decl] = expr // rc-fix: RWhole value source
       ctx.blocks[ctx.cur].stmts.push(BindVar(decl, RWhole))
       lower(body, ctx)
     }
     LetMut(binder~, expr~, body~, ..) => {
       let decl = binder.name
       ignore(eval_value_expr(expr, ctx, decl~))
+      ctx.let_srcs[decl] = expr // rc-fix: RWhole value source
       ctx.blocks[ctx.cur].stmts.push(BindVar(decl, RWhole))
       lower(body, ctx)
     }
@@ -163,6 +173,7 @@ fn lower_one(expr : @syntax.Expr, ctx : CfgCtx) -> Unit {
       // E1a: walk assigns allocate NO temp (env update only)
       let name = longident_of(var_.name)
       ignore(eval_value_expr(expr, ctx, decl=name))
+      ctx.let_srcs[name] = expr // rc-fix: RWhole value source
       ctx.blocks[ctx.cur].stmts.push(BindVar(name, RWhole))
     }
     If(cond~, ifso~, ifnot~, ..) => {

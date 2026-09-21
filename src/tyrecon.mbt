@@ -122,6 +122,7 @@ pub(all) struct IRStatsResult {
   mut pt_iterations : Int // D2b: interprocedural feedback rounds executed
   mut pt_not_converged : Bool // E2: worklist budget exhausted (disclosed)
   mut pt_carrier : PtCarrier? // E2: batch-mode cross-file slice/pending merge
+  mut pt_solutions : Map[String, PTSolution] // rc-fix: final per-fn pt solutions
   sites : Array[CallSiteStat]
 }
 
@@ -142,6 +143,7 @@ pub fn IRStatsResult::new() -> IRStatsResult {
     pt_iterations: 0,
     pt_not_converged: false,
     pt_carrier: None,
+    pt_solutions: Map([]),
     sites: [],
   }
 }
@@ -2364,6 +2366,13 @@ fn pt_solve_all(
     }
   }
   ctx.stats.pt_iterations = iterations
+  // rc-fix: export final per-function solutions (fn identity from the
+  // slice) so the unified solver can share pts with dependent analyses
+  for i4 in 0..<ctx.pt_fn_slices.length() {
+    if i4 < sols.length() {
+      ctx.stats.pt_solutions[ctx.pt_fn_slices[i4].fn_name] = sols[i4]
+    }
+  }
 }
 
 ///|
@@ -3470,6 +3479,7 @@ pub(all) struct CallGraph {
   pt_equal_or_fallback : Int // R2-fix4: has_pt but no real narrowing
   pt_has_pt_sites : Int // R2-fix4: any site with non-empty recv_pt
   pt_not_converged : Bool // E2: worklist budget exhausted (disclosed)
+  pt_solutions : Map[String, PTSolution] // rc-fix: shared pointer facts
 }
 
 ///|
@@ -3710,6 +3720,7 @@ pub fn run_call_graph_with_world(
     pt_equal_or_fallback: pt_eq_fb[0],
     pt_has_pt_sites: pt_has_pt[0],
     pt_not_converged: stats.pt_not_converged,
+    pt_solutions: stats.pt_solutions,
   }
 }
 

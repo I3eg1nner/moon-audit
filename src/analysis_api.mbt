@@ -336,7 +336,15 @@ pub fn default_registry(conservative_alias? : Bool = false) -> AnalysisRegistry 
         Some(arr) => if arr.length() > 0 { parse_int_safe(arr[0]) } else { 0 }
         None => 0
       }
-      let bound = match solver.resolved_targets.get("bound_site") {
+      let bound = match solver.resolved_targets.get("bound_sites") {
+        Some(arr) => if arr.length() > 0 { parse_int_safe(arr[0]) } else { 0 }
+        None => 0
+      }
+      let pt_has = match solver.resolved_targets.get("pt_has_pt_sites") {
+        Some(arr) => if arr.length() > 0 { parse_int_safe(arr[0]) } else { 0 }
+        None => 0
+      }
+      let pt_eqfb = match solver.resolved_targets.get("pt_equal_or_fallback") {
         Some(arr) => if arr.length() > 0 { parse_int_safe(arr[0]) } else { 0 }
         None => 0
       }
@@ -352,9 +360,10 @@ pub fn default_registry(conservative_alias? : Bool = false) -> AnalysisRegistry 
         candidate_sites: candidate,
         unresolved_sites: unresolved.length(),
         pt_resolved_sites: pt_resolved,
-        pt_equal_or_fallback: 0,
-        pt_has_pt_sites: 0,
+        pt_equal_or_fallback: pt_eqfb,
+        pt_has_pt_sites: pt_has,
         pt_not_converged: false,
+        pt_solutions: solver.pts,
       })
     },
   })

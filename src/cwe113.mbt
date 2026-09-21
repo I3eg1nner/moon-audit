@@ -25,12 +25,15 @@ fn call_flow(
   output_sinks : Bool,
   pkg_root : String,
   cfg_engine : Bool, // PROD-1: true = exec_independent primary, AST fallback
+  fn_name? : String = "fn", // rc-fix: real identity for findings/dedup
 ) -> Unit {
-  if cfg_engine {
+  if cfg_engine && !cfg_verify_mode() {
+    // rc-fix: --cfg-verify forces the AST path — strict E1b comparison
+    // (walk vs executor) must never be bypassed by the engine switch
+    // (review: verify+engine silently exited 0 while diverging)
     // PROD-1: build BlockIr from the AST, run exec_independent, and use
     // its findings directly; fall back to AST flow on validation failure
-    let fn_name = "fn"
-    let ir = build_block_ir(fn_name, body, rules~)
+    let ir = build_block_ir(fn_name, body, rules~, file~)
     let errs = validate_cfg(ir)
     if errs.length() == 0 {
       // entry taints: all params conservatively tainted (callback semantics)
@@ -53,13 +56,22 @@ fn call_flow(
         Some(i) => Some(i)
         None => None
       }
+      let unsupported_before = indep_unsupported_count.val
       let cfg_findings = exec_independent(ir, param_taints, rules, ictx_opt)
-      for f in cfg_findings {
-        findings.push(f)
+      if indep_unsupported_count.val > unsupported_before {
+        // rc-fix: unsupported semantics hit during execution — WHOLE-FUNCTION
+        // AST fallback (partial CFG results on unsupported constructs are
+        // unsound in both directions); disclosed via the ast_fallback counter
+        cfg_exec.ast_fallback += 1
+      } else {
+        for f in cfg_findings {
+          findings.push(f)
+        }
+        return // success: no AST fallback needed
       }
-      return // success: no AST fallback needed
     }
-    // validation failure: fall through to AST flow below (disclosed as fallback)
+    // validation failure / unsupported semantics / verify mode: fall through
+    // to AST flow below (disclosed as fallback)
   }
   match ictx {
     Some(i) =>
@@ -176,8 +188,18 @@ pub fn run_cwe113(
               None => {
                 let base = findings.length()
                 call_flow(
-                  params, body, file, source, severity, findings, ictx, rules, output_sinks,
-                  pr, cfg_engine_on,
+                  params,
+                  body,
+                  file,
+                  source,
+                  severity,
+                  findings,
+                  ictx,
+                  rules,
+                  output_sinks,
+                  pr,
+                  cfg_engine_on,
+                  fn_name=fn_key,
                 )
                 let contrib : Array[Finding] = []
                 let mut i = base
@@ -220,8 +242,18 @@ pub fn run_cwe113(
               None => {
                 let base = findings.length()
                 call_flow(
-                  params2, body2, file, source, severity, findings, ictx, rules,
-                  output_sinks, pr, cfg_engine_on,
+                  params2,
+                  body2,
+                  file,
+                  source,
+                  severity,
+                  findings,
+                  ictx,
+                  rules,
+                  output_sinks,
+                  pr,
+                  cfg_engine_on,
+                  fn_name=method_name.name,
                 )
                 let contrib : Array[Finding] = []
                 let mut i = base

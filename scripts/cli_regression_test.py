@@ -239,6 +239,105 @@ class CliRegression(unittest.TestCase):
         report = json.loads(self.run_cli("--format", "sarif").stdout)
         self.assertEqual(report["runs"][0]["tool"]["driver"]["version"], "0.4.0")
 
+    # ── review contract probes (2026-09-20): --cfg-engine identity/dedup ──
+
+    def _new_project(self, rules, files):
+        root = self.root / f"proj{len(list(self.root.iterdir()))}"
+        root.mkdir()
+        (root / "moon.mod").write_text('name = "fixture/contract"\n', encoding="utf-8")
+        (root / "moon.pkg").write_text("", encoding="utf-8")
+        if rules:
+            (root / "taint-rules.json").write_text(json.dumps(rules), encoding="utf-8")
+        for name, source in files.items():
+            (root / name).write_text(source, encoding="utf-8")
+        return root
+
+    def _cfg_findings(self, root, *flags):
+        report = json.loads(self.run_cli("--cfg-engine", "--format", "json", *flags, target=root).stdout)
+        return report["findings"]
+
+    SINK_RULES = {"sources": [{"method": "source", "kind": "RequestData"}],
+                  "sinks": [{"method": "sink", "kind": "HeaderValue", "value_slot": 0}],
+                  "sanitizers": [{"method": "sanitize", "kind": "HeaderValue"}]}
+
+    def test_rc_sanitizer_no_fp_under_cfg_engine(self):
+        # review case cfg_sanitizer: sanitize(value) must clean before sink
+        root = self._new_project(self.SINK_RULES, {"main.mbt": (
+            'fn sanitize(value : String) -> String { ignore(value); "safe" }\n'
+            'fn sink(value : String) -> Unit { ignore(value) }\n'
+            'pub fn go(value : String) -> Unit { sink(sanitize(value)) }\n')})
+        self.assertEqual(self._cfg_findings(root), [])
+
+    def test_rc_two_files_two_findings(self):
+        # review case cfg_two_files: same-shape sink in two files must not
+        # collide into one finding (file must be part of identity)
+        src = 'fn sink(value : String) -> Unit { ignore(value) }\nfn source() -> String { "dirty" }\npub fn go() -> Unit { sink(source()) }\n'
+        root = self._new_project(self.SINK_RULES, {"a.mbt": src, "b.mbt": src})
+        findings = self._cfg_findings(root)
+        self.assertEqual(len(findings), 2)
+        self.assertEqual({f["file"] for f in findings}, {str(root / "a.mbt"), str(root / "b.mbt")})
+
+    def test_rc_same_line_two_sinks(self):
+        # review case dedup_same_line: two call sites on one line report both
+        root = self._new_project(self.SINK_RULES, {"main.mbt": (
+            'fn sink(value : String) -> Unit { ignore(value) }\n'
+            'fn source() -> String { "dirty" }\n'
+            'pub fn go() -> Unit { sink(source()); sink(source()) }\n')})
+        self.assertEqual(len(self._cfg_findings(root)), 2)
+
+    def test_rc_receiver_sink_single_finding_real_line(self):
+        # review case dedup_receiver: method-form sink fires once at real
+        # line — no line-0 duplicate
+        rules = {"sources": [{"method": "source", "kind": "RequestData"}],
+                 "sinks": [{"method": "set_header", "kind": "HeaderValue", "value_slot": 0}]}
+        root = self._new_project(rules, {"main.mbt": (
+            'fn source() -> String { "dirty" }\n'
+            'pub struct Req { }\n'
+            'pub fn go(r : Req) -> Unit { r.set_header(source()) }\n')})
+        findings = self._cfg_findings(root)
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0]["line"], 3)
+        self.assertTrue(findings[0]["file"].endswith("main.mbt"))
+
+    def test_rc_trait_dispatch_exact_lines(self):
+        # review case dispatch: only Second impls (lines 8, 10) report;
+        # First impls (9, 11) stay clean — summary query must resolve the
+        # trait-qualified key via impl_methods
+        rules = {"sources": [{"method": "source", "kind": "RequestData"}],
+                 "sinks": [{"method": "sink", "kind": "HeaderValue", "value_slot": 0}]}
+        root = self._new_project(rules, {"main.mbt": (
+            'pub trait Pick { fn pick(Self, String, String) -> String }\n'
+            'pub struct First { }\n'
+            'pub struct Second { }\n'
+            'pub impl Pick for First with fn pick(self, a, b) -> String { ignore(self); ignore(b); a }\n'
+            'pub impl Pick for Second with fn pick(self, a, b) -> String { ignore(self); ignore(a); b }\n'
+            'fn source() -> String { "dirty" }\n'
+            'fn sink(value : String) -> Unit { ignore(value) }\n'
+            'pub fn dirty_dot() -> Unit { let x = Second::{}; sink(x.pick("safe", source())) }\n'
+            'pub fn clean_dot() -> Unit { let x = First::{}; sink(x.pick("safe", source())) }\n'
+            'pub fn dirty_static() -> Unit { sink(Second::pick(Second::{}, "safe", source())) }\n'
+            'pub fn clean_static() -> Unit { sink(First::pick(First::{}, "safe", source())) }\n')})
+        for engine_flags in ([], ["--cfg-engine"]):
+            with self.subTest(engine=engine_flags or ["default"]):
+                report = json.loads(self.run_cli("--format", "json", "--mode", "deep", *engine_flags, target=root).stdout)
+                self.assertEqual([f["line"] for f in report["findings"]], [8, 10],
+                                 f"engine={engine_flags}: {report['findings']}")
+
+    def test_rc_cfg_verify_strict_even_with_cfg_engine(self):
+        # review case: --cfg-verify must still run the strict comparison when
+        # --cfg-engine is on (safe program must exit 2, not silently pass)
+        root = self._new_project(self.SINK_RULES, {"main.mbt": (
+            'fn sanitize(value : String) -> String { ignore(value); "safe" }\n'
+            'fn sink(value : String) -> Unit { ignore(value) }\n'
+            'pub fn go(value : String) -> Unit { sink(sanitize(value)) }\n')})
+        # strict verify may legitimately exit 2 on divergence — the CONTRACT
+        # is that --cfg-engine must not change the strictness: both runs
+        # must produce the SAME exit code (review: engine silently exited 0)
+        base = subprocess.run([str(ANALYZER), "--cfg-verify", str(root)], capture_output=True, text=True)
+        eng = subprocess.run([str(ANALYZER), "--cfg-verify", "--cfg-engine", str(root)], capture_output=True, text=True)
+        self.assertEqual(eng.returncode, base.returncode,
+                         f"verify bypassed: base={base.returncode} engine={eng.returncode}")
+
 
 if __name__ == "__main__":
     if not ANALYZER.is_file():

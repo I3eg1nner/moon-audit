@@ -159,7 +159,14 @@ fn exec_stmt_indep(
         None => temps[temp_id] = Tainted // conservative
       }
     BindVar(name, RTemp(tid)) => env[name] = or_tainted_indep(temps.get(tid))
-    BindVar(name, RWhole) => env[name] = Tainted
+    BindVar(name, RWhole) =>
+      // rc-fix: evaluate the ORIGINAL let/assign expression when the IR
+      // kept its source (let_srcs) — constant lets previously degraded to
+      // conservative Tainted and fired sinks on "safe" strings
+      env[name] = match ir.let_srcs.get(name) {
+        Some(expr) => eval_expr_indep(expr, env, rules, ictx)
+        None => Tainted
+      }
     BindTuplePositions(name, tids) => {
       // conservative: any tainted component → whole tuple tainted
       let mut any = false
@@ -199,32 +206,10 @@ fn exec_stmt_indep(
           temps[tid] = Tainted
         }
       }
-      // sink hit → check value arg taint
-      if rules.header_sink_hit(target) {
-        let slot = rules.sink_value_slot(target)
-        let value_idx = match slot {
-          Some(i) => i + 1 // receiver is arg 0, value is arg (slot+1)
-          None => 1 // default: second positional arg
-        }
-        if value_idx < arg_tids.length() {
-          let vt = or_tainted_indep(temps.get(arg_tids[value_idx]))
-          if vt != Clean {
-            let dedup_key = "CWE-113/crlf-injection:" + ir.fn_name + ":0"
-            if !emitted.contains(dedup_key) {
-              emitted[dedup_key] = true
-              findings.push(
-                make_indep_finding(
-                  "CWE-113/crlf-injection",
-                  vt,
-                  ir.fn_name,
-                  file=ir.file,
-                  line=0,
-                ),
-              )
-            }
-          }
-        }
-      }
+      // rc-fix: NO sink firing here — E1a single-firing semantics: the
+      // SinkStmt emitted right after this CallStmt is the ONLY firing
+      // point (firing here too produced the line-0 duplicate on
+      // method-form sinks; review case dedup_receiver)
       // ret_from refinement: if ictx has a summary for target, use it
       match ictx {
         Some(ctx) =>
@@ -265,7 +250,9 @@ fn exec_stmt_indep(
       }
     }
     SinkStmt(kind, arg_tids, line) =>
-      // check all args: if any tainted → finding
+      // check all args: if any tainted → finding (rc-fix: dedup key uses
+      // the first value-temp id — the CALL-SITE identity — so two sinks on
+      // the same line report separately; review case dedup_same_line)
       for tid in arg_tids {
         let t = or_tainted_indep(temps.get(tid))
         if t != Clean {
@@ -274,7 +261,15 @@ fn exec_stmt_indep(
           } else {
             "CWE-113/crlf-injection"
           }
-          let dedup_key = rule + ":" + ir.fn_name + ":" + line.to_string()
+          let dedup_key = rule +
+            ":" +
+            ir.file +
+            ":" +
+            ir.fn_name +
+            ":" +
+            line.to_string() +
+            ":" +
+            tid.to_string()
           if !emitted.contains(dedup_key) {
             emitted[dedup_key] = true
             findings.push(
@@ -284,9 +279,11 @@ fn exec_stmt_indep(
                 ir.fn_name + ":" + line.to_string(),
                 file=ir.file,
                 line~,
+                site_id=tid,
               ),
             )
           }
+          break // one finding per sink call-site (not per tainted arg)
         }
       }
     AssignStmt(name, tid) => env[name] = or_tainted_indep(temps.get(tid))
@@ -333,6 +330,46 @@ fn eval_expr_indep(
       indep_unsupported_count.val += 1
       Tainted
     }
+    // rc-fix: apply-position calls honor the rule vocabulary — a declared
+    // sanitizer CLEANS its result (review case cfg_sanitizer FP), a source
+    // TAINTS it; unknown calls stay conservative Tainted
+    Apply(func~, ..) => {
+      let tgt = match func {
+        Ident(id~, ..) =>
+          match id.name {
+            Ident(name~) => name
+            Dot(..) => ""
+          }
+        _ => ""
+      }
+      if tgt != "" {
+        if rules.sanitizer_hit(tgt) {
+          return Clean
+        }
+        if rules.source_hit(tgt) {
+          return Tainted
+        }
+      }
+      // summary refinement: if a callee summary exists, its ret semantics
+      // apply (ret_from any-tainted → Tainted; else Clean)
+      if tgt != "" {
+        match ictx {
+          Some(ctx) =>
+            match ctx.summaries.get(tgt) {
+              Some(s) =>
+                if s.ret_from.length() > 0 {
+                  return Tainted // conservative: some param flows to ret
+                } else {
+                  return Clean
+                }
+              None => ()
+            }
+          None => ()
+        }
+      }
+      indep_unsupported_count.val += 1
+      Tainted
+    }
     Infix(lhs~, rhs~, ..) => {
       let lt = eval_expr_indep(lhs, env, rules, ictx)
       let rt = eval_expr_indep(rhs, env, rules, ictx)
@@ -356,6 +393,9 @@ fn make_indep_finding(
   location : String,
   file? : String = "<independent>",
   line? : Int = 0,
+  site_id? : Int = 0, // rc-fix: call-site identity — two sinks on the
+  // same line must produce DISTINCT fingerprints (output-level dedup
+  // collapsed them; review case dedup_same_line)
 ) -> Finding {
   let slash = "/"
   let mut idx = -1
@@ -389,7 +429,14 @@ fn make_indep_finding(
     end_line: line,
     end_column: 0,
     snippet: "",
-    fingerprint: "indep_" + rule_id_str + "_" + file + ":" + line.to_string(),
+    fingerprint: "indep_" +
+    rule_id_str +
+    "_" +
+    file +
+    ":" +
+    line.to_string() +
+    ":" +
+    site_id.to_string(),
   }
 }
 

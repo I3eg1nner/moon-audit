@@ -437,6 +437,9 @@ fn or_clean_taint(t : Taint?) -> Taint {
 priv struct FlowCtx {
   env : Map[String, Taint]
   findings : Array[Finding]
+  // rc-fix: receiver construction types — binder -> "Second" (from
+  // `let x = Second::{}`); enables RECEIVER-AWARE summary dispatch
+  recv_types : Map[String, String]
   file : String
   pkg_root : String // IDENT: project root for pkg-qualified summary lookup
   // P3 CallSite(1): current calling context (caller fn:line; "" for
@@ -859,6 +862,7 @@ pub fn run_flow_taint_func(
   let ctx : FlowCtx = {
     env: Map([]),
     findings,
+    recv_types: Map([]),
     file,
     pkg_root,
     source,
@@ -1035,6 +1039,7 @@ pub fn run_flow_taint_func_top(
   let ctx : FlowCtx = {
     env: Map([]),
     findings,
+    recv_types: Map([]),
     file,
     pkg_root,
     source,
@@ -1635,8 +1640,30 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
             } else {
               // T4.1: method form consumes ret_from with the receiver
               // bound to param 0 (self), positional args shifted by one
+              // rc-fix: receiver-aware dispatch — when the receiver's
+              // constructed type is known (`let x = Second::{}`), prefer
+              // that impl's summary over the hint-list order
+              let recv_ty : String? = match self {
+                Ident(id~, ..) =>
+                  match id.name {
+                    Ident(name~) =>
+                      match ctx.recv_types.get(name) {
+                        Some(ty) => Some(ty)
+                        None => None
+                      }
+                    Dot(..) => None
+                  }
+                _ => None
+              }
               match
-                apply_ret_from_dot(mname, args, arg_pairs, ctx, recv_taint) {
+                apply_ret_from_dot(
+                  mname,
+                  args,
+                  arg_pairs,
+                  ctx,
+                  recv_taint,
+                  recv_ty~,
+                ) {
                 Some(t) => t
                 None => combined
               }
@@ -1922,6 +1949,14 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
           ctx.hir_trace.push(BindTuplePositions(dkey, temps.copy()))
           comps_set(ctx, dkey, "#tuple", comps)
         }
+        (Var(binder), Record(type_name=Some(tn), ..)) => {
+          // rc-fix: struct literal `let x = Second::{}` parses as Record
+          // with the TypeName — record the constructed type for
+          // RECEIVER-AWARE summary dispatch (review: trait case).
+          // Field flow delegates to the generic binder (no taint change).
+          ctx.recv_types[binder.name] = type_name_str_flow_of(tn)
+          bind_let_taint(pattern, expr, ctx)
+        }
         (Var(binder), Apply(func=Constr(constr~, ..), args~, ..)) => {
           // T2.3: enum payload positions — `let v = Some(dirty)` parses as
           // Apply(Constr(Some), [dirty]); record (decl, "Some", 0) so
@@ -1945,6 +1980,10 @@ fn flow(expr : @syntax.Expr, ctx : FlowCtx) -> Taint {
           if payload.length() > 0 {
             comps_set(ctx, dkey, constr.name.name, payload)
           }
+          // rc-fix: receiver-aware dispatch — a struct-literal binding
+          // (`let x = Second::{}`) records the constructed type so later
+          // `x.pick(..)` selects the matching impl summary
+          ctx.recv_types[binder.name] = constr.name.name
         }
         _ => bind_let_taint(pattern, expr, ctx)
       }
@@ -3088,7 +3127,42 @@ pub fn summary_lookup(
   match ictx.world_symbols {
     Some(syms) => {
       if syms.fn_sigs.contains(name) {
-        return ictx.summaries.get(name) // already tried — no double hit
+        match ictx.summaries.get(name) {
+          Some(s) => return Some(s)
+          None => () // rc-fix: fall through to the trait-qualified retry
+        }
+      }
+      // rc-fix: trait-qualified retry — impl_methods maps
+      // "SelfTy::method" -> trait path, and trait-impl summaries are
+      // keyed "SelfTy:Trait::method" (the static form `First::pick(..)`
+      // previously missed here and fell back to the conservative union)
+      match syms.impl_methods.get(name) {
+        Some(trait_path) => {
+          // name = "SelfTy::method" → "SelfTy:Trait::method"
+          let sep = find_last(name, "::")
+          if sep > 0 {
+            let self_ty = Show::to_string(name[:sep])
+            let meth = Show::to_string(name[sep + 2:])
+            let tkey = self_ty + ":" + trait_path + "::" + meth
+            match ictx.summaries.get(tkey) {
+              Some(s) => return Some(s)
+              None => {
+                // package-prefixed variants end with the same suffix
+                let mut hit : FuncTaintSummary? = None
+                ictx.summaries.each(fn(k, v) {
+                  if k.has_suffix(tkey) && k != tkey {
+                    hit = Some(v)
+                  }
+                })
+                match hit {
+                  Some(s) => return Some(s)
+                  None => ()
+                }
+              }
+            }
+          }
+        }
+        None => ()
       }
       // try qualified key from impl_methods ("SelfTy::method")
       if name.has_suffix("::") || !name.contains("::") {
@@ -3215,12 +3289,23 @@ fn ret_from_join(
 // T4.1: DotApply ret_from — receiver binds param 0, args shifted by one
 
 ///|
+
+///|
+fn type_name_str_flow_of(tn : @syntax.TypeName) -> String {
+  match tn.name {
+    Ident(name~) => name
+    Dot(pkg~, id~) => pkg + "::" + id
+  }
+}
+
+///|
 fn apply_ret_from_dot(
   mname : String,
   args : @list.List[@syntax.Argument],
   arg_pairs : Array[ArgTaint],
   ctx : FlowCtx,
   recv_taint : Taint,
+  recv_ty~ : String?, // rc-fix: receiver's constructed type (None = unknown)
 ) -> Taint? {
   let ictx = match ctx.ictx {
     Some(i) => i
@@ -3232,12 +3317,36 @@ fn apply_ret_from_dot(
   // This prevents wrong-trait summary confusion (e.g. Responder::output
   // vs Show::output sharing the bare name "output").
   match ictx.dispatch_hints.get(mname) {
-    Some(self_tys) => {
+    Some(self_tys_raw) => {
+      // rc-fix: receiver-aware ordering — the receiver's constructed type
+      // (when known, `let x = Second::{}`) is tried FIRST; other impls
+      // remain as fallback so unknown receivers keep the old behavior
+      let self_tys : Array[String] = match recv_ty {
+        Some(ty) => {
+          let reordered : Array[String] = []
+          if self_tys_raw.contains(ty) {
+            reordered.push(ty)
+          }
+          for s in self_tys_raw {
+            if s != ty {
+              reordered.push(s)
+            }
+          }
+          reordered
+        }
+        None => self_tys_raw
+      }
       // try each impl's qualified summary key
       let mut found : FuncTaintSummary? = None
       for st in self_tys {
-        // PROD-2: try both key formats — old "SelfTy::method" and new
-        // "SelfTy:Trait::method" (trait-qualified, from summary_scc)
+        match found {
+          Some(_) => break // rc-fix: first hit wins (no overwrite)
+          None => ()
+        }
+        // rc-fix: try both key formats — old "SelfTy::method" and new
+        // "SelfTy:Trait::method" (trait-qualified, from summary_scc).
+        // The trait path lives in the impl_methods VALUE (key is
+        // "SelfTy::method" → value is the trait path), NOT in the key.
         let qual_key = st + "::" + mname
         match summary_lookup(ictx, qual_key, ctx.cur_callsite) {
           Some(s) => {
@@ -3245,27 +3354,42 @@ fn apply_ret_from_dot(
             break
           }
           None => {
-            // Try trait-qualified format: find matching impl_methods keys
-            // that have prefix "SelfTy:" and suffix "::method"
-            let trait_keys : Array[String] = []
+            // Build the trait-qualified key from the impl_methods VALUE,
+            // then try exact and package-prefixed variants
+            let trait_paths : Array[String] = []
             match ictx.world_symbols {
               Some(syms) =>
-                syms.impl_methods.each(fn(k, _) {
-                  if k.has_prefix(st + ":") && k.has_suffix("::" + mname) {
-                    trait_keys.push(k)
-                  }
-                })
+                match syms.impl_methods.get(st + "::" + mname) {
+                  Some(tp) => trait_paths.push(tp)
+                  None => ()
+                }
               None => ()
             }
-            if trait_keys.length() == 1 {
-              match summary_lookup(ictx, trait_keys[0], ctx.cur_callsite) {
-                Some(s) => {
-                  found = Some(s)
-                  break
+            let mut matched = false
+            for tp in trait_paths {
+              if matched {
+                break
+              }
+              let suffix = st + ":" + tp + "::" + mname
+              let candidates : Array[String] = [suffix]
+              // package-prefixed summary keys end with the same suffix
+              ictx.summaries.each(fn(k, _) {
+                if k.has_suffix(suffix) && k != suffix {
+                  candidates.push(k)
                 }
-                None => ()
+              })
+              for cand in candidates {
+                match summary_lookup(ictx, cand, ctx.cur_callsite) {
+                  Some(s) => {
+                    found = Some(s)
+                    matched = true
+                    break
+                  }
+                  None => ()
+                }
               }
             }
+            ignore(matched)
           }
         }
       }
@@ -3895,6 +4019,7 @@ fn collect_summary_func(
   let ctx : FlowCtx = {
     env: Map([]),
     findings: [],
+    recv_types: Map([]),
     file,
     pkg_root,
     source: "",
@@ -4090,6 +4215,7 @@ pub fn run_flow_taint_trace(
   let ctx : FlowCtx = {
     env: Map([]),
     findings,
+    recv_types: Map([]),
     file,
     pkg_root: "",
     source,
