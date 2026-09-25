@@ -140,6 +140,8 @@ class ApiTests(unittest.TestCase):
                      self.envelope(message={'content': '{}', 'tool_calls': [{}]}),
                      self.envelope(message={'content': '{}', 'refusal': 'no'}),
                      self.envelope(message={'content': '```json\n{}\n```'}),
+                     self.envelope(message=None),
+                     self.envelope(message=[]),
                      {'choices': []}]
         for envelope in envelopes:
             with self.subTest(envelope=envelope):

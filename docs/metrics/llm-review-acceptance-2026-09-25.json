@@ -1,0 +1,57 @@
+{
+  "schema": "moon-audit.llm-review-acceptance.v1",
+  "date": "2026-09-25",
+  "status": "local_acceptance_passed",
+  "offline_tests": {
+    "total": 102,
+    "legacy_harness": 33,
+    "prepare_validate": 45,
+    "api_client": 14,
+    "popular_corpus": 10
+  },
+  "extracted_linux_package_api_tests": 14,
+  "live_api": {
+    "requests": 3,
+    "failed": 1,
+    "accepted": 2,
+    "final_finding_count": 2,
+    "verdicts": {
+      "needs_review": 2
+    },
+    "origin": "llm_unverified",
+    "credentials_or_endpoint_published": false,
+    "private_model_name_removed": true,
+    "result": "../../experiments/popular_projects/llm-biosequences-review-2026-09-25.json"
+  },
+  "independent_review": {
+    "reviewer": "pi",
+    "closed_findings": [
+      "non-MoonBit source context read boundary",
+      "missing list-rules timeout",
+      "stale local package",
+      "broken package documentation link",
+      "NUL filename traceback"
+    ],
+    "path_identity_fix_review": "accepted; outermost matching project-root identity then component lstat; tested with root aliases and nested symlinks",
+    "real_platform_validation": "Linux/macOS/Windows source and extracted-package client tests passed on 004889c"
+  },
+  "ci_path_fix_evidence": {
+    "commit": "004889c0f51c8250421a24c6d60e516028590501",
+    "jobs_passed": 9,
+    "checks": "https://github.com/I3eg1nner/moon-audit/actions/runs/36112702948",
+    "native_delivery": "https://github.com/I3eg1nner/moon-audit/actions/runs/36112703019",
+    "scope_note": "This CI record covers the path-identity fix. Later malformed-input error-handling changes have local tests above; final-head CI is linked on PR #2."
+  },
+  "review_pr": "https://github.com/I3eg1nner/moon-audit/pull/2",
+  "source_sha256": {
+    "scripts/llm_review.py": "d65168bf297258e2c084a4bbf98d23c2718084d92409170f862ee6410c9318ee",
+    "scripts/llm_api_review.py": "032211b878844d1482404caff538733c824edd805b55c33973be3799471e615e",
+    "tests/harness/test_llm_review.py": "7b0681deebc6a734aad6a93c194bf3a324aafe0e3a490fdf13cd664d4e3c9bf0",
+    "tests/harness/test_llm_api_review.py": "157d3d8158d4d5595de7b0fdacd17a89bd07a6fb85d917c020a084d8e1d32aca"
+  },
+  "limitations": [
+    "Opinions remain unverified; exact citations do not establish exploitability.",
+    "Python 3.12+ is required only for optional helpers.",
+    "No arbitrary source fetching, tools, automatic baseline changes or automatic multi-batch aggregation."
+  ]
+}

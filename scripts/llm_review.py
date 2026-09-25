@@ -155,7 +155,7 @@ def open_regular_file(path: str, label: str, max_bytes: int) -> bytes:
 def parse_json_bytes(data: bytes, label: str):
     try:
         return json.loads(data.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
         raise ReviewError(f"{label} is not valid UTF-8 JSON: {exc}") from exc
 
 
@@ -207,6 +207,8 @@ def parse_report(raw: bytes) -> dict:
         for key in FINDING_TEXT_FIELDS:
             if not isinstance(finding[key], str):
                 raise ReviewError(f"finding {index} field '{key}' must be a string")
+        if "\x00" in finding["file"]:
+            raise ReviewError(f"finding {index} file contains a NUL byte")
         for key in FINDING_LOCATION_FIELDS:
             value = finding[key]
             if isinstance(value, bool) or not isinstance(value, int):

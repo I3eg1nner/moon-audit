@@ -117,6 +117,8 @@ def call_api(url, key, payload, timeout, retries):
             raise ValueError()
         choice = choices[0]
         message = choice['message']
+        if not isinstance(message, dict):
+            raise ValueError()
         if choice.get('finish_reason') == 'length':
             raise contract.ReviewError('API output token budget exhausted; response was not accepted')
         if choice.get('finish_reason') != 'stop' or message.get('tool_calls') or message.get('function_call') or message.get('refusal'):
@@ -129,7 +131,7 @@ def call_api(url, key, payload, timeout, retries):
             raise ValueError()
         # Strict JSON, including no markdown fences. Contract validator checks citations next.
         json.loads(encoded)
-    except (ValueError, KeyError, TypeError, UnicodeError):
+    except (ValueError, KeyError, TypeError, UnicodeError, RecursionError):
         raise contract.ReviewError('API returned an incomplete, refused, tool-call or invalid JSON response') from None
     # Only numeric usage fields are retained; provider strings may echo secrets or arbitrary data.
     usage = envelope.get('usage')

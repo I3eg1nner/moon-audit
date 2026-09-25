@@ -771,6 +771,12 @@ class LlmReviewContractTests(unittest.TestCase):
         self.assertEqual(finding["status"], "context_ready")
         self.assertEqual(finding["source_sha256"], sha_of_file(self.source))
 
+    def test_nul_in_filename_rejected_without_traceback_or_output(self):
+        result = self.prepare(findings=[self.make_finding(file="bad\x00.mbt")], expect=2)
+        self.assertIn("NUL", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+        self.assertFalse(self.bundle_dir.exists())
+
     def test_non_moonbit_source_is_never_copied_to_context(self):
         other = self.project / "notes.txt"
         private_marker = "DO_NOT_UPLOAD_INTERNAL_MARKER"
