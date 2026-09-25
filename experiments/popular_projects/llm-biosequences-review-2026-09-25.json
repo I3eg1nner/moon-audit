@@ -1,0 +1,106 @@
+{
+  "analysis_scope": "analyzer=moon-audit 0.5.0-dev (moonbitlang/parser 0.4.0); engine=syntax-pattern; interprocedural=false; type-resolution=false; sanitizer-resolution=false; cache=none; excludes=[_build,.mooncakes,examples,benchmarks]; implicit-excludes=[dotdirs,_build,*_test.mbt,*_wbtest.mbt]; selected=443; parsed=443; parse-failures=0; incremental=false; unanalyzed-is-not-safe",
+  "bundle_id": "62e57bb588c689a38219acfd660007e785b7dfddd27973059c3ef9f7372d1bad",
+  "disclosures": [],
+  "errors": [],
+  "files_parsed": 443,
+  "files_scanned": 443,
+  "files_selected": 443,
+  "limitations": [
+    "llm_review_is_advisory_and_unverified",
+    "zero_findings_or_completed_reviews_do_not_prove_safety",
+    "excluded_unparsed_and_omitted_content_is_not_analyzed_and_not_safe",
+    "llm_opinions_cannot_upgrade_static_evidence_or_verify_dataflow",
+    "this_layer_never_modifies_the_original_report_or_baseline"
+  ],
+  "omitted_findings": [],
+  "origin": "llm_unverified",
+  "project_verification": null,
+  "report_fingerprint": "ad7aee4ff52655ae61ac5c6fa70039edd61150f6f98f892dc3fe7d9d7ffd33c0",
+  "response_accepted": true,
+  "reviews": [
+    {
+      "column": 3,
+      "end_line": 424,
+      "evidence": [
+        {
+          "end_line": 424,
+          "file": "src/seqxml_io.mbt",
+          "quote": "  s\n  .replace(old=\"&\", new=\"&amp;\")\n  .replace(old=\"<\", new=\"&lt;\")\n  .replace(old=\">\", new=\"&gt;\")\n  .replace(old=\"\\\"\", new=\"&quot;\")\n  .replace(old=\"'\", new=\"&apos;\")",
+          "start_line": 419
+        }
+      ],
+      "file": "src/seqxml_io.mbt",
+      "finding_context_reason": "",
+      "finding_context_status": "context_ready",
+      "finding_id": "6d055a88b9db84f5f530aff9f91e8a22",
+      "line": 419,
+      "missing_context": [
+        "Definition or resolution of the callee replace (builtin String::replace vs user-defined method) for the receiver type",
+        "Verified semantics of the resolved replace (all occurrences vs first occurrence only) in the pinned toolchain",
+        "Call sites of seqxml_escape_attr and the output context consuming the escaped value"
+      ],
+      "opinion_origin": "llm_unverified",
+      "rationale": "The window confirms the reported pattern: inside seqxml_escape_attr a String parameter is passed through a chain of .replace(old=..., new=...) calls performing XML attribute escaping, with & replaced first (correct order to avoid double-escaping) and both quote characters covered. The reported snippet corresponds to line 419. The decisive question, whether the resolved replace replaces all occurrences or only the first, cannot be answered from the window: no definition of replace is shown, the scan has type-resolution=false and semantic_analysis=none, and the toolchain was not verified. Under first-occurrence-only semantics the escaping would be incomplete (relevant under CWE-116 for generated XML); under replace-all semantics the sequence looks correct. This is an advisory, unverified opinion and the finding requires human review of the callee resolution and stdlib semantics.",
+      "rule_id": "CWE-116/replace-escaping",
+      "static_dataflow": [],
+      "static_evidence": "syntax_hint",
+      "verdict": "needs_review"
+    },
+    {
+      "column": 3,
+      "end_line": 433,
+      "evidence": [
+        {
+          "end_line": 433,
+          "file": "src/seqxml_io.mbt",
+          "quote": "  s\n  .replace(old=\"&\", new=\"&amp;\")\n  .replace(old=\"<\", new=\"&lt;\")\n  .replace(old=\">\", new=\"&gt;\")",
+          "start_line": 430
+        }
+      ],
+      "file": "src/seqxml_io.mbt",
+      "finding_context_reason": "",
+      "finding_context_status": "context_ready",
+      "finding_id": "6ddfdeda2269f1f6efbf1597b2a9727c",
+      "line": 430,
+      "missing_context": [
+        "Definition or resolution of the callee replace for the receiver type",
+        "Verified all-occurrences vs first-occurrence semantics of the resolved replace in the target toolchain",
+        "Call sites of seqxml_escape_text and the output context consuming the escaped value"
+      ],
+      "opinion_origin": "llm_unverified",
+      "rationale": "Same pattern as the sibling finding: seqxml_escape_text chains .replace(old=..., new=...) calls on its String parameter to escape &, < and > for XML text content, again replacing & first to avoid double-escaping. The code shape matches the finding and the reported snippet corresponds to line 430, but whether the concern holds depends entirely on the semantics of the resolved replace, which neither the window nor the scan state establishes (no callee definition shown, type-resolution=false, target_toolchain_not_verified). If only the first occurrence is replaced, escaping would be incomplete; if all occurrences are replaced, the sequence looks correct. Advisory and unverified; human review of the resolved replace semantics is required.",
+      "rule_id": "CWE-116/replace-escaping",
+      "static_dataflow": [],
+      "static_evidence": "syntax_hint",
+      "verdict": "needs_review"
+    }
+  ],
+  "schema": "moon-audit.llm-review-result.v1",
+  "scope_complete": true,
+  "scope_note": "scope_complete describes only whether this response covered every finding included in this bundle with no omitted or stale context; it says nothing about project safety and never clears static errors or incompleteness",
+  "semantic_analysis": null,
+  "static_incomplete": true,
+  "static_incomplete_reasons": [
+    "target_toolchain_not_verified"
+  ],
+  "status": "reviewed",
+  "verdict_counts": {
+    "insufficient_context": 0,
+    "likely_false_positive": 0,
+    "needs_review": 2,
+    "supported_concern": 0
+  },
+  "provider": {
+    "protocol": "chat-completions",
+    "attempts": 1,
+    "elapsed_seconds": 69.134,
+    "usage": {
+      "prompt_tokens": 2134,
+      "total_tokens": 9900,
+      "completion_tokens": 7766
+    },
+    "response_sha256": "91167a47c68beecf943340d4e99a493be4715a38e7faf63dbca619e32615570e",
+    "model_disclosed": false
+  }
+}

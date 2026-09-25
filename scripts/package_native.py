@@ -56,6 +56,9 @@ def main():
         package.write(ROOT / 'LICENSE', 'LICENSE')
         package.write(core_license, 'licenses/core/LICENSE')
         package.write(ROOT / 'README.md', 'README.md')
+        package.write(ROOT / 'docs/llm-review.md', 'docs/llm-review.md')
+        for helper in ('llm_review.py', 'llm_api_review.py'):
+            package.write(ROOT / 'scripts' / helper, 'extras/' + helper)
         package.write(metadata, 'build-info.json')
         notices = []
         apache_text = ROOT / '.mooncakes/moonbitlang/parser/LICENSE'

@@ -1,0 +1,47 @@
+{
+  "schema": "moon-audit.manual-escaping-check.v1",
+  "date": "2026-09-25",
+  "project": "paipai-Studio/BioSeqs",
+  "commit": "7dfa3c22ec304fa0b4a97610e097340c371209e4",
+  "source": "src/seqxml_io.mbt",
+  "source_sha256": "3b2646c1b0c422bb8e7aae319ca7dda0cfb3ef96a448d5f9fe8092cbc6dbdb68",
+  "functions": [
+    {
+      "name": "seqxml_escape_attr",
+      "start_line": 418,
+      "end_line": 425,
+      "input": "&&",
+      "observed": "&amp;&",
+      "expected_complete_escape": "&amp;&amp;"
+    },
+    {
+      "name": "seqxml_escape_text",
+      "start_line": 429,
+      "end_line": 434,
+      "input": "<<",
+      "observed": "&lt;<",
+      "expected_complete_escape": "&lt;&lt;"
+    }
+  ],
+  "method": "Copy the two exact pure helper bodies into an isolated dependency-free MoonBit module; run native with the fixed core. No upstream application executed.",
+  "toolchain": "moon 0.1.20260920 / moonc 0.10.14+7d59c7ec9",
+  "reproduction_source": "fn seqxml_escape_attr(s : String) -> String {\n  s\n  .replace(old=\"&\", new=\"&amp;\")\n  .replace(old=\"<\", new=\"&lt;\")\n  .replace(old=\">\", new=\"&gt;\")\n  .replace(old=\"\\\"\", new=\"&quot;\")\n  .replace(old=\"'\", new=\"&apos;\")\n}\n\n///|\n/// Escape a string for use as XML text content.\nfn seqxml_escape_text(s : String) -> String {\n  s\n  .replace(old=\"&\", new=\"&amp;\")\n  .replace(old=\"<\", new=\"&lt;\")\n  .replace(old=\">\", new=\"&gt;\")\n}\n\nfn main {\n println(seqxml_escape_attr(\"&&\"))\n println(seqxml_escape_text(\"<<\"))\n}\n",
+  "stdout": "&amp;&\n&lt;<\n",
+  "exit_code": 0,
+  "classification": "reproduced incomplete escaping under this fixed core; application exploitability not verified",
+  "source_call_lines": [
+    703,
+    707,
+    714,
+    716,
+    724,
+    745,
+    750,
+    758
+  ],
+  "limitations": [
+    "No claim about all MoonBit versions.",
+    "No upstream input-trust, application execution, XML consumer behavior or deployment exploit verification.",
+    "Static evidence and LLM verdicts remain unchanged."
+  ]
+}

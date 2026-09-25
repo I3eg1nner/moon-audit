@@ -29,6 +29,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Check optional LLM client before native build
+        run: python tests/harness/test_llm_api_review.py
       - name: Install reviewed compiler and core archives
         run: python scripts/install_fixed_toolchain.py --destination "${{ runner.temp }}/moon-audit-toolchain"
       - name: Record toolchain
@@ -43,6 +45,10 @@ jobs:
         run: moon build --target native --release
       - name: Package and extract release
         run: python scripts/package_native.py --platform ${{ matrix.artifact }} --output dist
+      - name: Accept optional LLM helpers from extracted package
+        env:
+          LLM_API_SCRIPT: dist/extracted/extras/llm_api_review.py
+        run: python tests/harness/test_llm_api_review.py
       - name: Accept extracted release
         shell: bash
         run: |
