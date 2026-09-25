@@ -748,6 +748,25 @@ class LlmReviewContractTests(unittest.TestCase):
         proc = self.validate(expect=2)
         self.assertIn("report_path", proc.stderr)
 
+    def test_non_moonbit_source_is_never_copied_to_context(self):
+        other = self.project / "notes.txt"
+        private_marker = "DO_NOT_UPLOAD_INTERNAL_MARKER"
+        other.write_text(private_marker, encoding="utf-8")
+        self.prepare(findings=[self.make_finding(file=str(other), line=1, snippet="")])
+        finding = self.load_bundle()["findings"][0]
+        self.assertEqual(finding["status"], "unavailable")
+        self.assertEqual(finding["status_reason"], "not_moonbit_source")
+        self.assertNotIn(private_marker, (self.bundle_dir / "prompt.txt").read_text())
+        self.assertNotIn(private_marker, (self.bundle_dir / "bundle.json").read_text())
+
+    def test_non_string_verdict_rejected_cleanly(self):
+        self.prepare()
+        for verdict in ([], {}, 42, None):
+            reviews = self.default_reviews(self.load_bundle())
+            reviews[0]["verdict"] = verdict
+            result = self.validate(reviews=reviews, expect=2)
+            self.assertNotIn("Traceback", result.stderr)
+
     def test_zero_findings_validate_claims_no_safety(self):
         self.prepare(findings=[])
         bundle = self.load_bundle()

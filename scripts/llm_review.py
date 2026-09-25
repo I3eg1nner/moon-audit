@@ -288,6 +288,9 @@ def resolve_finding_source(root: str, file_value: str):
         if any(part == ".." for part in normalized.split("/")):
             return normalized, None, "path_escape"
         rel = normalized
+    rel = rel.replace("\\", "/")
+    if not rel.endswith(".mbt"):
+        return rel, None, "not_moonbit_source"
     parts = [part for part in rel.split("/") if part not in ("", ".")]
     if not parts:
         return normalized, None, "invalid_path"
@@ -883,7 +886,7 @@ def validate_response(bundle: dict, response) -> list:
         if finding_id in seen:
             raise ReviewError(f"finding reviewed more than once: {finding_id}")
         verdict = review["verdict"]
-        if verdict not in VERDICTS:
+        if not isinstance(verdict, str) or verdict not in VERDICTS:
             raise ReviewError(f"invalid verdict for {finding_id}: {verdict!r}")
         rationale = review["rationale"]
         if not isinstance(rationale, str) or not rationale.strip():

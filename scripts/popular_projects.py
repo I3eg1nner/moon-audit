@@ -130,7 +130,7 @@ def run(args):
     manifest=json.loads(args.manifest.read_text());args.work_dir=args.work_dir.resolve();args.output_dir.mkdir(parents=True,exist_ok=True)
     args.work_dir.mkdir(parents=True,exist_ok=True)
     binary=args.analyzer.resolve();binary_hash=sha(binary.read_bytes())
-    registry=json.loads(subprocess.check_output([str(binary),'--format','json','list-rules'],text=True))
+    registry=json.loads(subprocess.check_output([str(binary),'--format','json','list-rules'],text=True,timeout=args.timeout))
     all_rules=[word for entry in registry for word in ('--rule',entry['id'])]
     result={'schema':'moon-audit.popular-project-scan.v1','started_at':datetime.now(timezone.utc).isoformat(),'manifest_sha256':sha(args.manifest.read_bytes()),'analyzer_sha256':binary_hash,'scope':'default syntax and opt-in all registered syntax hints; not full security analysis','projects':[],'limitations':['Registry popularity and GitHub stars are separate cohorts; duplicates across cohorts retain different source versions.','Examples, tests, dot directories and configured exclusions follow the scanner manifest, not whole-repository coverage.','No findings is not a safety conclusion. Parse and compilation failures remain incomplete.','Optional compiler checks use one explicitly selected toolchain; failure is not evidence the project itself is invalid.']}
     verified={}

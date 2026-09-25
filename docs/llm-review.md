@@ -57,6 +57,6 @@ python3 scripts/llm_review.py prepare --report /tmp/scan.json \
 
 ## 验收依据
 
-本地 HTTP 服务测试覆盖请求协议、配置别名、重试、重定向、拒绝/截断、伪造引用和请求前后源码变化；CI 不读取密钥，不调用真实模型。真实 `.env` 联调使用公开 BioSeqs 两条发现，结果与失败过程见[热门项目审查](../experiments/popular_projects/README.md)。
+本地 HTTP 服务测试覆盖请求协议、配置别名、重试、重定向、拒绝/截断、伪造引用和请求前后源码变化；CI 不读取密钥，不调用真实模型。真实 `.env` 联调使用公开 BioSeqs 两条发现，结果与失败过程见[热门项目审查](https://github.com/I3eg1nner/moon-audit/blob/codex/popular-projects-llm-20260925/experiments/popular_projects/README.md)。
 
 协议参考：[官方 Chat Completions 文档](https://developers.openai.com/api/reference/cli/resources/chat)、[JSON 模式与结构化输出说明](https://developers.openai.com/api/docs/guides/structured-outputs)。自定义服务实现可能不同，以本地契约校验和实际联调结果为准。
