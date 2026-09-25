@@ -189,7 +189,7 @@ fn walk_pattern_files(
 
 ///|
 pub fn canonical_dir(dir : String) -> String {
-  dir.replace(old="\\", new="/")
+  dir.replace_all(old="\\", new="/")
 }
 
 ///|
@@ -309,7 +309,7 @@ pub fn excluded_by_policy(
   root : String,
   config : Config,
 ) -> Bool {
-  let relative = @path.Path(file).relative(base=@path.Path(root)).0.replace(
+  let relative = @path.Path(file).relative(base=@path.Path(root)).0.replace_all(
     old="\\",
     new="/",
   )

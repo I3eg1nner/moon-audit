@@ -3,6 +3,7 @@
 import argparse, hashlib, json, pathlib, subprocess, tempfile
 from validate import C
 HERE=pathlib.Path(__file__).resolve().parent
+AUDIT={x['id']:x for x in json.loads((HERE/'decisions.json').read_text())['rules']}
 DEFAULT={'CWE-116/replace-escaping','CWE-79/cmark-unsafe'}
 GATED={'CWE-79/cmark-unsafe','CWE-79/inner-html','CWE-79/template-injection','CWE-942/cors-credentials','CWE-614/cookie-attrs','CWE-346/ws-origin','CWE-770/no-body-limit'}
 STDLIB_GATED={'CWE-676/unsafe-call','CWE-248/panic-reachable','CWE-704/unsafe-cast'}
@@ -44,6 +45,7 @@ def main():
                 if current_caps!=caps:reasons.append('registry_changes_with_selection')
                 if {x['id'] for x in current_caps if x['default_enabled']}!=DEFAULT:reasons.append('registry_defaults')
                 if any(x['evidence']!='syntax_hint' for x in current_caps):reasons.append('registry_evidence')
+                if any(x['call_forms']!='; '.join(AUDIT[x['id']]['forms']) for x in current_caps):reasons.append('audited_call_forms_drift')
                 if len(coverage)!=14 or {x['id'] for x in coverage}!=ids:reasons.append('coverage_ids')
                 if any(x.get('evidence')!='syntax_hint' for x in findings):reasons.append('finding_evidence')
                 if report['errors'] or run.returncode!=0:reasons.append('scan_failure')

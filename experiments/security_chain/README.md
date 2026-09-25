@@ -1,6 +1,6 @@
 # 第一条真实安全链：mocket HTML 响应
 
-本目录分别保留真实 API 运行、官方声明绑定和受限源码到原生 IR 的实验验收。**它们不是生产语义模式的放行证明。** 分发工具运行不依赖这些 Python 开发脚本。
+本目录分别保留真实 API 运行、官方声明绑定和受限源码到原生 IR 的实验验收。本目录的早期实验单独不构成生产放行证明；当前受限生产入口的独立验收见 [生产验收](../../docs/metrics/semantic-production-acceptance-2026-09-25.json)。 分发工具运行不依赖这些 Python 开发脚本。
 
 已固定 mocket `0.9.1`、提交 `af354b7a031ee8e0a7e62e76875b82a0a39ac71b`，使用已有依赖 async `0.21.0`、x `0.5.1`、mimetype `0.2.0`。运行前脚本将全部已跟踪源码与该 Git 提交逐文件比较，拒绝额外的未登记代码文件；不会升级或安装依赖。完整源码和依赖 SHA-256、编译器版本、命令、实际输出及诊断见 [机器证据](mocket-runtime-2026-09-25.json)。本次工具链是 moon `0.1.20260920` / moonc `v0.10.14+7d59c7ec9`，后端 native。
 
@@ -103,3 +103,11 @@ python3 experiments/security_chain/validate_native.py \
 下一门槛是独立复核反例、固定冷/热结果与峰值内存、减少逐调用启动 IDE 的成本、第二个真实库场景复用；然后才能决定是否做生产接入。不得把本实验称为完整的 MoonBit 安全分析框架。
 
 独立 subagent 复跑同一验收脚本 13/13 通过（约 29.4 秒合计），确认本轮三个阻塞项关闭；[精简复核记录](../../docs/metrics/native-ir-independent-review-2026-09-25.json)保留各案例结论和范围限制。
+
+## 受限生产接入（2026-09-25）
+
+上述实验结论保留其原始时间和范围。当前 `--analysis semantic --verify-project --semantic-scope mocket-get-callbacks` 已接入独立 worker，生产报告使用 `moon-audit.scoped-dataflow.v1`。其结论以明确的回调执行、返回值和固定模型为前提，不声称证明注册可达性。开发 probe 仍输出实验 schema。
+
+Linux 独立生产验收通过 15 组，覆盖冷/热确定性、文本/JSON/SARIF、0/1/2 退出码、基线、模型/依赖变化、递归/展开预算，以及真实内存失败和超时后子进程清理。绑定查询先初始化元数据，再最多 4 路并发，总上限 256；完整 worker 最长 60 秒，每进程地址空间（POSIX）或提交内存（Windows）上限 2048 MiB，非整个进程树 RSS 合计上限。四路由样本冷/热约 6.7/5.9 秒，不代表任意项目规模。
+
+cmark 在同一 IR 内复用，见 [第二库生产验收](../cmark_chain/production-ir-2026-09-25.json)。unsafe Markdown 保留来源路径，但未知 HTML 上下文返回 partial_dataflow 和退出 2；不能作为完整已验证漏洞。跨平台最终交付以 PR 三平台实际 CI 记录为准。

@@ -323,7 +323,9 @@ class CliRegression(unittest.TestCase):
         report = json.loads(self.run_cli('--format', 'json', '--rule', 'CWE-113/crlf-injection').stdout)
         self.assertEqual(len(report['findings']), 1)
         self.assertEqual(report['findings'][0]['confidence'], 'low')
-        self.assertIn('Pattern-only', report['findings'][0]['message'])
+        self.assertEqual(report['findings'][0]['evidence'], 'syntax_hint')
+        self.assertEqual(report['findings'][0]['dataflow'], [])
+        self.assertIn('Confirm API identity', report['findings'][0]['message'])
 
 if __name__ == '__main__':
     unittest.main()

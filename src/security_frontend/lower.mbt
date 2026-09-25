@@ -20,6 +20,7 @@ priv struct Collector {
   file : String
   candidates : Array[Candidate]
   query_sites : Array[(String, @basic.Location)]
+  unsupported_registrations : Array[String]
 }
 
 ///|
@@ -57,6 +58,12 @@ impl @syntax.IterVisitor for Collector with fn visit_Expr_Apply(
   loc~,
 ) {
   env.query_sites.push((env.file, func.loc()))
+  if func is Method(method_name~, ..) && method_name.name == "get" {
+    env.unsupported_registrations.push(
+      "unsupported_static_registration_candidate: " +
+      site(env.file, method_name.loc),
+    )
+  }
   @syntax.IterVisitor::visit_Expr_Apply(
     @syntax.IterVisitor::base(env),
     func~,
@@ -452,7 +459,12 @@ pub async fn analyze(
       errors.push("parser_rejected: " + file)
       continue
     }
-    let visitor = Collector::{ file, candidates, query_sites, }
+    let visitor = Collector::{
+      file,
+      candidates,
+      query_sites,
+      unsupported_registrations: errors,
+    }
     for item in items {
       match item {
         TopFuncDef(fun_decl~, decl_body=DeclBody(expr~), where_clause=None, ..) =>
@@ -569,7 +581,10 @@ pub async fn analyze(
     routes.push(result)
   }
   let bindings : Array[Json] = []
-  for query, binding in ctx.bindings {
+  let query_keys = ctx.bindings.keys().to_array()
+  query_keys.sort_by(String::lexical_compare)
+  for query in query_keys {
+    let binding = ctx.bindings[query]
     bindings.push({
       "query": Json::string(query),
       "definition": Json::string(binding.0),

@@ -2,6 +2,8 @@
 #include <moonbit.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 #ifdef _WIN32
 #include <windows.h>
 static HANDLE audit_job = NULL;
@@ -38,7 +40,11 @@ moonbit_bytes_t audit_executable(void) {
 #include <mach-o/dyld.h>
 #include <stdlib.h>
 #endif
-int32_t audit_isolate(void) { return setsid() >= 0; }
+int32_t audit_isolate(void) {
+  const char *parent_group = getenv("MOON_AUDIT_SUPERVISED_GROUP");
+  if (parent_group && strtol(parent_group, NULL, 10) == (long)getpgrp()) return 1;
+  return setsid() >= 0;
+}
 void audit_stop_tree(int32_t pid, int32_t direct) {
   if (pid <= 1) return;
   kill(-pid, SIGKILL);
@@ -101,6 +107,11 @@ int32_t audit_limit_memory(int32_t mebibytes) {
 int32_t audit_limit_memory(int32_t mebibytes) {
   struct rlimit limit;
   limit.rlim_cur = limit.rlim_max = (rlim_t)mebibytes * 1024 * 1024;
-  return setrlimit(RLIMIT_AS, &limit) == 0;
+  if (setrlimit(RLIMIT_AS, &limit) != 0) return 0;
+  // Nested compiler clients must stay in the outer semantic worker group.
+  // Otherwise killing that worker would orphan clients with their own sessions.
+  char group[32];
+  snprintf(group, sizeof(group), "%ld", (long)getpgrp());
+  return setenv("MOON_AUDIT_SUPERVISED_GROUP", group, 1) == 0;
 }
 #endif

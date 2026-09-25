@@ -50,6 +50,15 @@ jobs:
           if [ "${{ runner.os }}" = Windows ]; then export ANALYZER="$ANALYZER.exe"; fi
           python scripts/native_delivery_test.py
           python scripts/process_supervision_test.py
+      - name: Prepare fingerprinted semantic corpora
+        run: python scripts/prepare_semantic_corpus.py --destination "${{ runner.temp }}/moon-audit-models"
+      - name: Accept scoped dataflow from extracted release
+        shell: bash
+        run: |
+          export ANALYZER="$PWD/dist/extracted/moon-audit"
+          if [ "${{ runner.os }}" = Windows ]; then export ANALYZER="$ANALYZER.exe"; fi
+          python scripts/native_semantic_test.py --corpus "${{ runner.temp }}/moon-audit-models/mocket" --output dist/semantic-acceptance.json
+          python experiments/cmark_chain/validate_production.py --mocket "${{ runner.temp }}/moon-audit-models/mocket" --cmark "${{ runner.temp }}/moon-audit-models/cmark" --toolchain "$PROJECT_TOOLCHAIN" --analyzer "$ANALYZER" --output dist/cmark-acceptance.json
       - uses: actions/upload-artifact@v4
         with:
           name: moon-audit-${{ matrix.artifact }}
@@ -57,4 +66,5 @@ jobs:
             dist/*.zip
             dist/*.sha256
             dist/build-info.json
+            dist/*acceptance.json
           if-no-files-found: error

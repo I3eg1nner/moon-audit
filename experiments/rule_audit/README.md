@@ -16,7 +16,7 @@
 | crescent 0.11.0 真实源码 | 4/4 未核实 | 固定编译器拒绝该库旧 lexscan API；不能声称调用编译通过 |
 | builtin String 和 JavaScript FFI 运行时 oracle | native 2/2，JS 2/2 | 首次/全部替换语义；JS 注释不执行 eval |
 | 统一登记后的新二进制形状复验 | 44/44 | 显式选择规则保持原有可审查的匹配边界 |
-| 能力登记 / 默认策略 / 实际执行一致性 | 84/84 | 14 条规则 × 6 种选择与门控模式 |
+| 能力登记 / 默认策略 / 实际执行一致性 | 98/98 | 14 条规则 × 7 种选择、门控、严重度模式 |
 
 这里的“符合预期”**包括重现误报、漏报**，不是安全准确率。`dangerous_shape` 是原规则宣称的危险形状；对合成 API 不赋予真实安全含义。每个 fixture 的证据类型在 JSON 中单独记录。
 
@@ -58,7 +58,7 @@ python3 experiments/rule_audit/validate_runtime.py \
   --output /tmp/rule-runtime-oracle.json
 ```
 
-新登记的 84 项一致性验收覆盖默认选择、`--rule`、配置启用、配置停用、缺少库导入提示、标准库模块门控；同时核对报告能力登记与逐文件覆盖中的完整 14 条规则、两个默认启用项和 `syntax_hint` 证据类型。它不把重现语法匹配当作安全准确率。
+新登记的最终 98 项一致性验收覆盖默认选择、`--rule`、配置启用、配置停用、缺少库导入提示、标准库模块门控、显式严重度降级；同时核对报告能力登记与逐文件覆盖中的完整 14 条规则、两个默认启用项和 `syntax_hint` 证据类型。它不把重现语法匹配当作安全准确率。
 
 ```bash
 python3 experiments/rule_audit/validate_registry.py \
@@ -66,7 +66,9 @@ python3 experiments/rule_audit/validate_registry.py \
   --output /tmp/rule-registry-acceptance.json
 ```
 
-`shape-matrix-registry-2026-09-25.json` 和 `registry-acceptance-2026-09-25.json` 保存新登记实现的独立复验，包含各自二进制指纹。
+`shape-matrix-final-2026-09-25.json` 和 `registry-acceptance-final-2026-09-25.json` 保存最终实现的独立复验，包含二进制指纹。报告中的调用形式也逐条对照独立审计裁决。
+
+复核发现 CWE-942 曾忽略用户严重度配置、硬编码为 Error；`registry-severity-regression-2026-09-25.json` 留存该缺陷的 97/98 观察。修复后达到 98/98。较早的 `*-registry-*` / `registry-acceptance-2026-09-25.json` 记录仅证明修复前的 44 / 84 项阶段验收，不能代替最终证据。
 
 审计保存了原生扫描器 SHA256、编译器版本、fixture SHA256 和真实库源文件 SHA256。`shape-matrix-2026-09-25.json` 与 `real-library-matrix-2026-09-25.json` 是策略修订前的观察；生产改动后应使用新二进制再跑矩阵，而不是重写历史观察。
 

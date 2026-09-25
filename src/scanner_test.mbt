@@ -551,3 +551,11 @@ test "t0_4_analysis_scope_disclosure" {
   let json = @src.format_json(result)
   inspect(json.contains("\"analysis_scope\""), content="true")
 }
+
+///|
+test "canonical directory normalizes every Windows separator" {
+  assert_eq(
+    @src.canonical_dir("C:\\work\\nested\\project"),
+    "C:/work/nested/project",
+  )
+}

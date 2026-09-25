@@ -24,12 +24,15 @@ fn failed(status : String, detail : String, target : String) -> Verification {
 
 ///|
 pub fn absolute(path : String) -> String {
-  @path.Path(path).resolve().0.replace(old="\\", new="/")
+  @path.Path(path).resolve().0.replace_all(old="\\", new="/")
 }
 
 ///|
 fn join(root : String, path : String) -> String {
-  @path.Path(root).join(@path.Path(path)).resolve().0.replace(old="\\", new="/")
+  @path.Path(root).join(@path.Path(path)).resolve().0.replace_all(
+    old="\\",
+    new="/",
+  )
 }
 
 ///|
@@ -98,7 +101,7 @@ pub fn file_plan(
       continue
     }
     let base = words[0]
-      .replace(old="\\", new="/")
+      .replace_all(old="\\", new="/")
       .split("/")
       .to_array()
       .last()

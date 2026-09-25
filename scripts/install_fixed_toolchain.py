@@ -17,10 +17,12 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--destination', type=Path, required=True)
+    p.add_argument('--lock', type=Path, default=ROOT / 'scripts/toolchain-lock.json',
+                   help='Reviewed archive lock; compatibility CI uses one per real target toolchain')
     args = p.parse_args()
     os_name = {'Linux': 'linux', 'Darwin': 'macos', 'Windows': 'windows'}[platform.system()]
     arch = {'x86_64': 'x86_64', 'AMD64': 'x86_64', 'aarch64': 'arm64', 'arm64': 'arm64'}[platform.machine()]
-    lock = json.loads((ROOT / 'scripts/toolchain-lock.json').read_text())
+    lock = json.loads(args.lock.read_text(encoding='utf-8'))
     artifact = lock['artifacts'][os_name + '-' + arch]
     destination = args.destination.resolve()
     if destination.exists() and any(destination.iterdir()):

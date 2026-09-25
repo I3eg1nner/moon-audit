@@ -65,3 +65,9 @@ python3 experiments/cmark_chain/validate_callmode.py \
 ```
 
 该开发验收脚本在 Linux 使用资源限制关闭 core dump，生产工具没有 Python 依赖。此处未验证 Mocket handler 注册；后续统一生产入口仍需通过完整调用与返回路径验收。
+
+## 同一 IR 的生产验收（2026-09-25）
+
+`validate_production.py` 通过真实 CLI 验证 14 项：默认/显式安全片段、unsafe、先文本编码再 unsafe、脚本上下文、动态选项、未支持选项、源码变更。结果见 [production-ir-2026-09-25.json](production-ir-2026-09-25.json)。它复用 mocket 的 query 来源和返回消费者；保留 mocket 所用 async 0.21.0，cmark renderer 本身不导入 async。
+
+`safe=true` 是经核实的 HTML 片段属性，仅在受支持的普通正文位置成立；不等同于文本编码。`safe=false` 清除文本编码保证并引入未知 HTML 上下文，因此即使保留输入来源路径，也只输出 partial_dataflow 和退出 2。`try! render(...)` 仅建模正常返回，异常不会被当作成功返回。未知调用、动态 safe 或其他未支持选项返回不完整。

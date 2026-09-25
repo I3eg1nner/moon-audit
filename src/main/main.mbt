@@ -30,6 +30,9 @@ async fn main {
         },
       )
       fields["coverage_status"] = Json::string("explicit_callback_scope")
+      fields["schema"] = Json::string("moon-audit.scoped-dataflow.v1")
+      fields.remove("production_ready")
+      fields["support"] = Json::string("validated_callback_subset")
       fields["budget"] = {
         "wall_seconds": 60,
         "worker_address_space_or_commit_mib": 2048,

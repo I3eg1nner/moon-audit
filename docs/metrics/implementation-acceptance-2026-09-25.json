@@ -1,44 +1,50 @@
 {
   "date": "2026-09-25",
-  "scope": "native_delivery_and_restricted_core_experiment",
-  "production_analysis": "syntax_only",
+  "scope": "finite_scanner_and_explicit_callback_dataflow",
+  "production_analysis": [
+    "syntax_hints",
+    "mocket-get-callbacks explicit native scope"
+  ],
   "build_toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
-  "linux_artifact": {
-    "path": "dist/moon-audit-0.5.0-dev-linux-x86_64.zip",
-    "sha256": "8865ade373dace993489251f5819b05490a1a1aa15acf092809197719bcd5613",
-    "binary_sha256": "b72d6537de7497b79b7ff81519aa66c0fd81e9e007fafceec32e19588003cce0",
-    "independent_delivery_tests": {
-      "passed": 22,
-      "failed": 0
-    },
-    "process_supervision_tests": {
-      "passed": 4,
-      "failed": 0
-    }
-  },
   "validation": {
     "moon_check_all_deny_warn": "passed",
     "moon_fmt_check": "passed",
     "moon_test_all_deny_warn": {
-      "wasm": 73,
-      "wasm-gc": 73,
-      "js": 73,
-      "native": 75
+      "wasm": 75,
+      "wasm-gc": 75,
+      "js": 75,
+      "native": 77
     },
     "cli_regressions": 21,
     "native_toolchain_backend_matrix": 12,
     "native_source_ir_cases": 13,
-    "independent_native_source_ir_cases": 13
+    "independent_native_source_ir_cases": 13,
+    "rule_shape_matrix": 44,
+    "rule_registry_acceptance": 98,
+    "cmark_production_cases": 14,
+    "semantic_production_groups_linux": 15,
+    "historical_project_selected": 30,
+    "historical_project_parsed": 16,
+    "historical_project_parse_errors": 14
   },
   "evidence": [
     "native-version-matrix-2026-09-25.json",
     "native-ir-independent-review-2026-09-25.json",
-    "../../experiments/security_chain/native-ir-2026-09-25.json"
+    "../../experiments/security_chain/native-ir-2026-09-25.json",
+    "semantic-production-acceptance-2026-09-25.json",
+    "historical-project-2026-09-25.json",
+    "../../experiments/rule_audit/registry-acceptance-final-2026-09-25.json",
+    "../../experiments/cmark_chain/production-ir-2026-09-25.json"
   ],
   "pending": [
-    "macOS arm64 and Windows x86_64 actual runner acceptance",
-    "production semantic coverage, cost and integration gates",
-    "cmark reuse, full 14-rule adjudication and genuinely older project acceptance"
+    "Latest commit actual three-platform extracted-artifact and scoped semantic acceptance"
   ],
-  "release_published": false
+  "release_published": false,
+  "draft_pull_request": "https://github.com/I3eg1nner/moon-audit/pull/1",
+  "limits": [
+    "Conditional callback normal-return paths; not registration reachability or browser exploitability.",
+    "Per-process 2048 MiB address/commit cap; not aggregate process-tree RSS.",
+    "Unsafe Markdown retains partial dataflow and exits 2 for unknown HTML context.",
+    "No universal historical parser compatibility or complete MoonBit/Tai-e analysis."
+  ]
 }

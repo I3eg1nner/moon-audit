@@ -1,37 +1,63 @@
 # moon-audit
 
-面向项目开发者和第三方源码审计者的本地 MoonBit 安全检测工具。当前开发版本为 **0.5.0-dev**，生产能力仍为语法模式扫描；真实数据流核心正在独立验证。
+面向下载源码自行编译、或下载原生二进制的用户，检测自己的 MoonBit 项目和第三方源码。当前为 **0.5.0-dev**：默认提供有限语法扫描，另有**显式限定范围的可选安全数据流分析**。零发现不等于项目安全；报告同时给出发现、证据和未分析范围。
 
-当前保留 14 条模式规则、官方 parser、文本/JSON/SARIF 报告、baseline 和文件列表扫描。**不提供类型解析、跨函数污点、字段别名或净化效果证明。** 零告警不表示项目安全；报告始终披露分析范围。
+## 当前能做什么
 
-CWE-113 当前只对动态头部值提供低置信度人工复核提示。与旧版相比，CFG/调用图/污点 DSL/LLM/pipeline 等入口已移除；请求旧引擎选项或污点配置会报错。
+| 模式 | 已实现能力 | 边界 |
+| --- | --- | --- |
+| 默认 `syntax` | 14 条语法提示规则、文本/JSON/SARIF、baseline、文件列表扫描 | 仅默认启用 `CWE-116/replace-escaping`、`CWE-79/cmark-unsafe`；其余显式选择。全部为 `syntax_hint`，不证明 API 身份或漏洞 |
+| `--verify-project` | 用项目自己的工具链编译检查、按后端文件计划选源、核对源码和依赖快照 | 编译通过不代表分析器能解析全部语法；不自动安装或升级项目依赖 |
+| 可选 `semantic` | 固定 mocket 查询参数→String helper→最终返回 HTML responder；复用同一 IR 接入固定 cmark 渲染模型 | 仅 native、声明的 `mocket-get-callbacks` 范围与核实的模型指纹；不证明注册可达性、中间件行为或浏览器可利用性 |
 
-## 本地使用与原生构建
+规则默认策略、分发和报告能力由同一登记生成。`--rule` 可选择其余规则，但不会把名称匹配升级为真实绑定。逐条依据见 [14 条规则审计](experiments/rule_audit/README.md)。旧 CFG/污点 DSL/LLM/pipeline 入口已移除；旧选项和配置会被拒绝。
 
-原生入口无需 Python。源码模式无需安装目标项目工具链；显式项目验证需要项目自身的 MoonBit 工具链和已安装依赖。当前 Linux x86_64 已完成本地归档验收；macOS arm64、Windows x86_64 的交付工作流已加入，须以对应原生 runner 的实际结果为准，尚未据此宣称发布。
+## 本地使用与构建
+
+用户运行原生二进制无需 Python。默认源码扫描也无需目标项目工具链；项目验证和语义模式需要项目工具链及已准备的依赖。
 
 ```bash
-# 解包后的单个可执行文件；Windows 使用 moon-audit.exe
 moon-audit --format json /path/to/project
+moon-audit --rule CWE-113/crlf-injection /path/to/project
 moon-audit --verify-project --project-toolchain /path/to/project-moon \
   --target native --format sarif -o results.sarif /path/to/project
 moon-audit list-rules
 ```
 
-`--project-toolchain` 指向包含 `bin/moon` 或 `bin/moon.exe` 的工具链根目录。也可用互斥的 `--project-moon /path/to/moon` 指定可执行文件，此时保留调用者环境；两者都未指定时从 PATH 查找。工具链选项须和 `--verify-project` 一起使用。工具按参数数组调用，不接受 shell 命令字符串。
+`--project-toolchain` 指向含 `bin/moon` 或 `bin/moon.exe` 的根目录。互斥选项 `--project-moon /path/to/moon` 可指定可执行文件并保留调用者环境；都不指定时从 PATH 查找。工具链选项须配合 `--verify-project`，参数按数组传递，不接受 shell 命令字符串。
 
-源码构建固定 moon `0.1.20260920` / moonc `v0.10.14`；需要本机 C 编译器。分析器的构建版本独立于目标项目版本，依赖版本见 [moon.mod](moon.mod)。
+分析器构建固定 moon `0.1.20260920` / moonc `v0.10.14+7d59c7ec9` 和本机 C 编译器，依赖见 [moon.mod](moon.mod)。构建版本独立于待检测项目版本。下载安装器使用的编译器归档 ID 是 `0.10.14+7d59c7ec9`，不是 moon 的日期版本。
 
 ```bash
 moon update
 moon check --target all --deny-warn
 moon build --target native --release
 # 产物：_build/native/release/build/src/main/main.exe
-# 也可在开发环境使用：
 moon run src/main -- --format json /path/to/project
 ```
 
-保留 `--format`、`--output`、`--config`、`--severity`、可重复 `--rule`、`--changed-files`、`--baseline`、`--fail-on-error`、`--verbose`、`--quiet`。`--analysis syntax` 为默认；`--analysis semantic` 尚未通过生产接入验收，明确拒绝。增量文件列表不分析受影响调用者，空列表主动检查零文件。
+Linux x86_64 已有本地解包和搬迁验收。macOS arm64、Windows x86_64 的真实 CI 尚在验收，Windows 路径问题正在修复；工作流存在不等于三平台通过。[草稿 PR #1](https://github.com/I3eg1nner/moon-audit/pull/1) 尚未合并或发布，开发归档不代表正式发行版。
+
+## 可选语义检测
+
+```bash
+moon-audit --analysis semantic --verify-project \
+  --semantic-scope mocket-get-callbacks \
+  --project-toolchain /path/to/project-moon --target native \
+  --format json /path/to/project
+```
+
+当前范围是核实到 mocket `0.9.1` 的 `.get("固定路径", 内联单形参回调)`：查询来源、受支持的 String 参数/返回传播、局部顺序覆盖、HTML 文本编码和最终 responder 返回。创建后丢弃或覆盖的 responder 不算实际输出。成立前提包括注册代码会执行、中间件不改变 responder/content-type 语义；报告不证明这些前提。`--changed-files`、其他后端或省略显式 scope 都不能用于语义模式。没有可支持回调也返回不完整。
+
+固定 cmark `0.4.8` 的 `try! render(...)` 复用同一 IR：核实的默认/显式 `safe=true` 可作为 HTML 正文片段处理；它不是通用字符串编码器。`safe=false`、编码后再 unsafe 渲染或脚本上下文保留已知路径为 `partial_dataflow`，并返回 **2**。动态安全标志、非默认配置、模型/依赖指纹变化和未支持构造都不会被当成安全结果。[cmark 生产入口证据](experiments/cmark_chain/production-ir-2026-09-25.json)覆盖 14 项对照。
+
+JSON 顶层与 SARIF run properties 的 `semantic_analysis` 保存声明范围、绑定、模型、路径和不完整原因。完整受限路径使用 `verified_dataflow`，部分路径使用 `partial_dataflow`；它们都不是已证实漏洞。生产报告 schema 为 `moon-audit.scoped-dataflow.v1`，`support=validated_callback_subset`；是否完成请求以 `status` 和显式 scope 为准。独立实验 probe 仍使用实验 schema。
+
+语义 worker 的墙钟上限为 **60 秒**（用户 `--timeout-seconds` 更小时取较小值），最多 **256 次绑定查询、4 个并发查询**，IR 预算 10000 单位。受监督 worker/子进程采用每进程 **2048 MiB** 地址空间上限（POSIX）或提交内存上限（Windows），不是整棵进程树的总 RSS 上限。超时、资源限制或子进程失败保留可获得的语法结果，标记不完整。Linux 生产入口 [15 项验收](docs/metrics/semantic-production-acceptance-2026-09-25.json)包含冷/热一致性、baseline、未知边界及资源故障；不替代 macOS/Windows 实测。
+
+## 报告、退出码和 baseline
+
+支持 `--format`、`--output`、`--config`、`--severity`、可重复 `--rule`、`--changed-files`、`--baseline`、`--fail-on-error`、`--verbose`、`--quiet`。语法增量文件列表不分析受影响调用者，空列表主动检查零文件。
 
 ```bash
 moon-audit generate-baseline -o baseline.json /path/to/project
@@ -40,49 +66,33 @@ moon-audit generate-baseline --verify-project \
   --project-toolchain /path/to/project-moon -o baseline.json /path/to/project
 ```
 
-退出码：`0` 表示所请求检查结束且未触发告警退出策略；`--fail-on-error` 遇到 Error 级发现返回 `1`；参数、读取、解析、项目验证或报告写入失败返回 `2`。baseline 不会隐藏验证失败，验证或解析失败不会更新 baseline。源码模式的明确能力边界不会使其恒定返回 `2`。零文件和零发现不表示项目安全。
+- `0`：所请求范围完成，未触发告警退出策略；可以仍有发现，不表示项目安全。
+- `1`：`--fail-on-error` 命中 Error 级发现。
+- `2`：参数、读取、解析、验证、语义范围/资源或报告写入失败；已有发现可以保留。
 
-显式验证执行 `moon check --frozen` 和同一工具链的文件计划，不自动安装或升级依赖，可能写入项目构建缓存。失败时保留可获得的源码发现，并标记验证失败；成功时仅扫描该后端计划内符合选择策略的文件。
+baseline 只抑制记录的发现，不能清除不完整状态；不完整扫描不会覆盖 baseline。
 
-`--timeout-seconds` 默认 300，作用于每次外部命令；不代表整个项目的总预算。双流捕获各限 16 MiB，超限或超时终止受监督的进程树。快照最多 100000 个相关文件、单文件 16 MiB、累计 256 MiB、遍历检查 30 秒；链接/特殊路径无法核实时显式返回不完整。扫描前后源码、包配置或依赖快照变化同样使验证失效。
+`analysis_manifest` 记录逐文件 `parsed`、`parse_failed`、`read_failed`、`skipped`，及逐规则 `evaluated`、`disabled`、`gated_out`。语法 `evaluated` 仅表示规则执行，`gated_out` 依据导入提示而非 API 身份。`files_selected` 与 `files_parsed` 分开计数；旧 `files_scanned` 表示已读取并尝试解析。排除目录与测试文件在选择策略中披露，不计为已检查内容。
 
-JSON 顶层和 SARIF run properties 的 `project_verification` 记录工具链、后端、编译文件、排除/缺失文件及 SHA-256 快照。源码模式该字段为 null。`compiler_verified` 只证明编译、文件选择和解析范围，不证明规则绑定或漏洞。默认文本提供摘要，`--verbose` 才展开快照。
+`project_verification` 记录工具链、后端、编译选源、策略排除/缺失文件和 SHA-256 快照账本指纹。验证执行 `moon check --frozen` 及同工具链文件计划，可能写入构建缓存。默认 `--timeout-seconds 300` 限制每次外部命令，不是全项目总预算；stdout/stderr 各限 16 MiB。快照最多 100000 个相关文件、单文件 16 MiB、累计 256 MiB，遍历检查 30 秒；特殊路径、源码或依赖变化使验证失效。
 
-## 不同 MoonBit 版本的项目
+## 检测不同版本的 MoonBit 项目
 
-扫描器可以独立于目标项目的工具链运行；它使用打包的 parser 解析目标源码。若需确认该源码在项目自己的 MoonBit 版本下有效，使用上述原生 `--verify-project` 入口（[Python 开发对照](experiments/version_compat/README.md)仍保留）：指定项目工具链后先编译，再读取该工具链的后端文件计划，只扫描实际选中的 `.mbt` 文件，并报告编译器身份、文件差异、解析错误及扫描状态。普通 CLI 不按后端过滤文件。
+目标工具链负责判断项目是否能编译，打包的 parser 负责解析供分析使用，两者的兼容性分别报告。`moon.mod` 的版本是模块版本，不用来推断编译器版本。新 `moon.pkg` 与旧 `moon.pkg.json` 均可提供包导入提示。
 
-目前目标 moon `0.1.20260904`、`0.1.20260915`、`0.1.20260920` 已通过一组便携语法的真实编译与 CWE-116 点调用、显式调用正负对照；这只证明该子集。先前漏报的等价调用 `String::replace(s, ...)` 已在这三个版本的真实编译与扫描中修复；但 `compiled_and_parsed` 仍只说明编译和解析完成，不代表全部规则的语义覆盖。三个编译器都接受的 `for (x, y) in ...`，打包的 parser `0.4.0` 仍会拒绝，严格入口返回 `scope_incomplete`。发现这种差异时，报告保留已分析文件的发现，但不能解释为整个项目已检测完成。完整[版本矩阵与缺口](docs/metrics/project-version-compat-2026-09-24.json)可复核。
+[三套 2026 工具链 × 四后端矩阵](docs/metrics/native-version-matrix-2026-09-25.json)通过便携语法的选源和规则对照，但不代表完整语言支持。真实 2025 QuickCheck 项目在对应 moon `0.1.20251030` / moonc `v0.6.30` 下可编译；30 个文件选择一致，当前 parser 仅解析 **16 个，14 个失败**，扫描返回 `scope_incomplete` / **2**。这是旧工具链接入的通过证据，也是旧语法覆盖不完整的证据，不能承诺任意老项目兼容。[历史项目验收](experiments/historical_project/README.md)
 
-JSON/SARIF 另报告 `files_selected`（排除与增量过滤后选中）、`files_parsed`（解析成功并执行规则）计数。旧 `files_scanned` 保留已读取且尝试解析的兼容含义；解析失败文件不会计入 `files_parsed`。规则语义覆盖仍需单独验证。
+已知新语法 `for (x, y) in ...` 也存在编译器接受而 parser `0.4.0` 拒绝的差异。工具保留已解析文件的发现和明确错误，不把部分 AST 或零告警当成全项目完成。
 
-JSON 的 `analysis_manifest`（SARIF 位于 `runs[0].properties.analysis_manifest`）以 `moon-audit.analysis-manifest.v1` 记录候选文件的 `parsed`、`parse_failed`、`read_failed` 或增量 `skipped` 状态，并列出已解析文件上 14 条规则的 `evaluated`、`disabled` 或 `gated_out` 状态。`evaluated` 只表示语法规则已运行，发现的 `evidence` 始终是 `syntax_hint`；`gated_out` 依据包导入提示，不是已验证的 API 身份。新 `moon.pkg` 和旧 `moon.pkg.json` 均可提供包导入提示；模块依赖本身不会替包启用规则，损坏的旧包配置会使扫描返回错误。`selection` 说明默认与配置排除：被排除的目录和测试文件不会逐一枚举。普通入口未核实目标工具链与后端实际编译文件，`incomplete_reasons` 会保留这两个缺口；零发现不能解释为完整安全结论。`analysis_scope` 和旧计数字段继续保留。
-
-## 验证
+## 开发验证与后续方向
 
 ```bash
 moon test --target all --deny-warn
 moon fmt --check
 moon info
 python3 scripts/cli_regression_test.py
-python3 -m unittest experiments.core_semantics.test_engine -v
-```
-
-CLI 回归需要先生成 `_build/native/debug/build/src/main/main.exe`。最后一项验证独立 Python IR 规格，不能作为生产跨函数能力的证明。另有 [受限源码到 IR 实验](experiments/frontend_adapter/README.md)，在固定分析器工具链与三套目标编译器下验证 Box 字段顺序及无堆 String 直接调用/返回；它尚未接入生产 CLI。`tests/cases` 和 `docs/review-fixtures` 保留旧语义反例及原预期，当前有限扫描器不承诺通过它们。
-
-## 重设计方向
-
-1. 先完善有限扫描器的文件、规则和项目版本覆盖报告，并保持语法提示的证据等级。
-2. 为一条真实安全链固定可编译的库/API、工具链与后端，验证声明绑定、危险输出和安全负例；当前 mocket 查询参数到 HTML 返回值的受限链已完成运行、绑定和原生 IR 实验；CWE-113 不作为首条链。
-3. 仅在真实 API 验证通过后，从受限源码生成顺序 IR，在独立核心中验收正反例和成本，再决定该规则是否接入生产入口。
-
-[当前 TODO 与里程碑](TODO.md) · [当前架构方案](docs/architecture-plan-2026-09-24.md) · [Tai-e 核心取舍与基础设施调研](docs/moonbit-infrastructure-research-2026-09-22.md) · [精简落地与重设计方案](docs/redesign-2026-09-22.md) · [当前建议](suggest.md)
-
-删减前工作区已保存在 `.recovery/2026-09-22-before-redesign`，这是被 Git 忽略的本机恢复点。历史功能说明见 [归档 README](docs/legacy/README-before-redesign.md)，不代表当前支持能力。
-
-## 原生交付验收
-
-```bash
+python3 experiments/rule_audit/validate_registry.py \
+  --analyzer _build/native/debug/build/src/main/main.exe --output /tmp/rules.json
 moon build --target native --release
 python3 scripts/package_native.py --platform linux-x86_64 --output dist
 ANALYZER="$PWD/dist/extracted/moon-audit" PROJECT_TOOLCHAIN=/path/to/moon \
@@ -90,4 +100,10 @@ ANALYZER="$PWD/dist/extracted/moon-audit" PROJECT_TOOLCHAIN=/path/to/moon \
 ANALYZER="$PWD/dist/extracted/moon-audit" python3 scripts/process_supervision_test.py
 ```
 
-打包和验收脚本属于开发工具，分发包运行不依赖 Python。三平台归档由 `native-delivery` 工作流分别构建和测试。固定项目的运行和声明绑定证据见 [mocket 首条真实安全链](experiments/security_chain/README.md)：这些实验已包含真实源码到原生 IR 的 13 项正反例验收；仅覆盖固定库的受限回调返回值，不代表生产语义检测已经完成。
+这些 Python 是开发验收工具，分发包运行不依赖 Python。旧 [Python IR 规格](experiments/core_semantics/README.md)和 [前端原型](experiments/frontend_adapter/README.md)保留为研究对照，不能算生产通用堆/别名能力。旧反例保留原预期。
+
+本阶段 A–D 的有限实现已形成闭环；剩余发布门是三平台最终 CI 与归档验收。下一阶段才考虑历史语法适配、更多真实模型、控制流和堆；不以复制 Tai-e 的广度为目标。
+
+[TODO 与里程碑](TODO.md) · [架构方案](docs/architecture-plan-2026-09-24.md) · [当前建议](suggest.md) · [基础设施调研](docs/moonbit-infrastructure-research-2026-09-22.md)
+
+删减前工作区保存在被 Git 忽略的本机 `.recovery/2026-09-22-before-redesign`；[归档 README](docs/legacy/README-before-redesign.md)不代表当前能力。

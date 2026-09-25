@@ -81,10 +81,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Install analyzer toolchain
         shell: bash
         run: |
-          MOON_HOME="$RUNNER_TEMP/analyzer-moon" MOONBIT_INSTALL_VERSION="0.1.20260920" bash scripts/install-moon.sh
+          python scripts/install_fixed_toolchain.py --destination "$RUNNER_TEMP/analyzer-moon"
           printf '%s\n' '#!/bin/sh' "export MOON_HOME=\"$RUNNER_TEMP/analyzer-moon\"" 'export PATH="$MOON_HOME/bin:$PATH"' 'exec "$@"' > "$RUNNER_TEMP/analyzer-moon-wrapper"
           chmod +x "$RUNNER_TEMP/analyzer-moon-wrapper"
           echo "ANALYZER_MOON_WRAPPER=$RUNNER_TEMP/analyzer-moon-wrapper" >> "$GITHUB_ENV"
@@ -94,7 +97,7 @@ jobs:
           if [[ "${{ matrix.project_version }}" == "0.1.20260920" ]]; then
             cp "$RUNNER_TEMP/analyzer-moon-wrapper" "$RUNNER_TEMP/project-moon-wrapper"
           else
-            MOON_HOME="$RUNNER_TEMP/project-moon" MOONBIT_INSTALL_VERSION="${{ matrix.project_version }}" bash scripts/install-moon.sh
+            python scripts/install_fixed_toolchain.py --destination "$RUNNER_TEMP/project-moon" --lock "scripts/compat-toolchains/${{ matrix.project_version }}.json"
             printf '%s\n' '#!/bin/sh' "export MOON_HOME=\"$RUNNER_TEMP/project-moon\"" 'export PATH="$MOON_HOME/bin:$PATH"' 'exec "$@"' > "$RUNNER_TEMP/project-moon-wrapper"
           fi
           chmod +x "$RUNNER_TEMP/project-moon-wrapper"

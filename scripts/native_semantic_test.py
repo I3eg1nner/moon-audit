@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -230,8 +231,13 @@ os.execv(home+'/bin/moon',[home+'/bin/moon',*sys.argv[1:]])
             self.positive=cold
         self.case('cold_hot_json_consistency_and_default_rules',cold_hot)
         def fail_one():
-            c,r,_=self.cli('fail_on_error',extra=['--fail-on-error'])
-            self.complete(c,r,1)
+            self.hint_file.unlink()
+            try:
+                c,r,_=self.cli('fail_on_error',extra=['--fail-on-error'])
+                findings=self.complete(c,r,1)
+                require(len(findings)==1 and all(f['rule_id']==SEMANTIC_ID for f in r['findings']), 'exit 1 must be caused by semantic evidence alone')
+            finally:
+                self.hint_file.write_text(HINT)
         self.case('exit_1_requires_findings_policy',fail_one)
         def sarif():
             c,r,_=self.cli('sarif_positive',fmt='sarif')
@@ -303,12 +309,32 @@ os.execv(home+'/bin/moon',[home+'/bin/moon',*sys.argv[1:]])
             require(not semantic['routes'],'explicit unsupported call treated as supported')
             self.source_file.write_text(POSITIVE)
         self.case('zero_supported_candidates_is_incomplete',no_candidates)
+        def mixed_registration():
+            self.source_file.write_text(POSITIVE + 'pub fn explicit(app : @mocket.Mocket) -> Unit { @mocket.Mocket::get(app,"/explicit", event => @mocket.html(event.req.query().get("q").unwrap_or(""))) }\n')
+            c,r,_=self.cli('mixed_unsupported_registration')
+            semantic=self.incomplete(c,r)
+            require(semantic['routes'],'supported callbacks disappeared in mixed registration project')
+            require(semantic['errors'],'unsupported explicit registration was not disclosed')
+            require(any(f['rule_id']==SEMANTIC_ID for f in r['findings']),'known dataflow discarded by unsupported registration')
+            self.source_file.write_text(POSITIVE)
+        self.case('mixed_registration_discloses_gap_and_keeps_known_paths',mixed_registration)
         def safe_zero():
             self.source_file.write_text(SAFE);self.hint_file.unlink()
             c,r,_=self.cli('safe_zero',extra=['--fail-on-error'])
             require(not self.complete(c,r) and not r['findings'],'safe-only sample produces finding/failure')
             self.source_file.write_text(POSITIVE);self.hint_file.write_text(HINT)
         self.case('complete_safe_zero_findings_exit_0',safe_zero)
+        def explicit_contract():
+            for name, extra in [
+                ('missing_scope', ['--analysis','semantic','--verify-project']),
+                ('missing_verification', ['--analysis','semantic','--semantic-scope','mocket-get-callbacks']),
+                ('unknown_scope', ['--analysis','semantic','--verify-project','--semantic-scope','all']),
+            ]:
+                c,_,_=self.cli(name,scoped=False,extra=extra)
+                require(c==2,name+' was not rejected')
+            c,_,_=self.cli('unsupported_backend',extra=['--target','js'])
+            require(c==2,'semantic model accepted unsupported backend')
+        self.case('semantic_requires_explicit_scope_verification_and_backend',explicit_contract)
         if sys.platform.startswith('linux'):
             def binding_error():
                 wrapper,marker=self.wrapper('binding_error',"    marker.write_text(json.dumps({'reached':True}))\n    sys.exit(37)")
@@ -317,11 +343,13 @@ os.execv(home+'/bin/moon',[home+'/bin/moon',*sys.argv[1:]])
                 require(marker.exists(),'failure injector not reached')
             self.case('binding_subprocess_failure_preserves_syntax',binding_error)
             def memory():
-                wrapper,marker=self.wrapper('memory',"    limit=resource.getrlimit(resource.RLIMIT_AS)[0]\n    marker.write_text(json.dumps({'address_space_limit':limit}))\n    try:\n        data=bytearray(2300*1024*1024)\n    except MemoryError:\n        sys.exit(42)\n    sys.exit(43)")
+                wrapper,marker=self.wrapper('memory',"    limit=resource.getrlimit(resource.RLIMIT_AS)[0]\n    marker.write_text(json.dumps({'address_space_limit':limit}))\n    try:\n        data=bytearray(2300*1024*1024)\n    except MemoryError:\n        marker.write_text(json.dumps({'address_space_limit':limit,'allocation_blocked':True}))\n        sys.exit(42)\n    sys.exit(43)")
                 c,r,_=self.cli('worker_memory',wrapper=wrapper,measure=True)
                 self.incomplete(c,r)
                 limits=json.loads(marker.read_text())
                 require(0<limits['address_space_limit']<=2048*1024*1024,'worker memory cap not inherited')
+                require(limits.get('allocation_blocked') is True,'oversized allocation was not actually rejected')
+                self.record['memory_injection']=limits
             self.case('worker_address_space_cap_and_syntax_survival',memory)
             def timeout():
                 wrapper,marker=self.wrapper('timeout',"    child=subprocess.Popen([sys.executable,'-c','import time; time.sleep(120)'])\n    marker.write_text(json.dumps({'pid':child.pid}))\n    time.sleep(120)")
@@ -331,7 +359,15 @@ os.execv(home+'/bin/moon',[home+'/bin/moon',*sys.argv[1:]])
                 pid=json.loads(marker.read_text())['pid']
                 deadline=time.monotonic()+3
                 while active_process(pid) and time.monotonic()<deadline:time.sleep(.05)
-                require(not active_process(pid),'semantic timeout leaked a live descendant')
+                live=active_process(pid)
+                self.record['timeout_injection']={'child_pid':pid,'child_live_after_grace':live}
+                if live:
+                    topology=subprocess.run(['ps','-eo','pid,ppid,pgid,sid,stat,args'],text=True,capture_output=True).stdout
+                    self.record['timeout_injection']['remaining_processes']=[line for line in topology.splitlines() if str(self.temporary) in line or str(pid) in line]
+                    group=os.getpgid(pid)
+                    if group!=os.getpgrp():
+                        os.killpg(group,signal.SIGKILL)
+                require(not live,'semantic timeout leaked a live descendant')
             self.case('worker_timeout_cleans_descendants_and_keeps_syntax',timeout)
         else:
             self.record['platform_resource_injections']='not executed; Linux-only harness'
