@@ -36,7 +36,7 @@ moon build --target native --release
 moon run src/main -- --format json /path/to/project
 ```
 
-Linux x86_64 已有本地解包和搬迁验收。macOS arm64、Windows x86_64 的真实 CI 尚在验收，真实 CI 已发现 Windows 路径及 macOS worker 资源初始化问题，修复后的完整复验仍待完成；工作流存在不等于三平台通过。[草稿 PR #1](https://github.com/I3eg1nner/moon-audit/pull/1) 尚未合并或发布，开发归档不代表正式发行版。
+Linux x86_64、macOS arm64、Windows x86_64 的构建、解包搬迁、项目验证和受限语义入口均已通过[真实 CI](https://github.com/I3eg1nner/moon-audit/actions/runs/36105436648)。平台测试数、提交与归档指纹见[验收记录](docs/metrics/three-platform-acceptance-2026-09-25.json)。开发包可从 CI 的 Artifacts 下载；[草稿 PR #1](https://github.com/I3eg1nner/moon-audit/pull/1) 尚未合并，尚未发布正式版本。
 
 ## 可选语义检测
 
@@ -61,7 +61,7 @@ JSON 顶层与 SARIF run properties 的 `semantic_analysis` 保存声明范围�
 | Windows | 每进程提交内存硬上限，使用 Job Object；不是进程树的总 RSS 上限 |
 | macOS | 每 50 ms 采样进程组各进程的 physical footprint 并求和；超过阈值或无法采样时终止整个组。属于采样阈值，可能短暂超额，不是硬地址空间上限 |
 
-报告的 `budget.memory` 包含 `mechanism`、`scope`、`hard_limit`，IR 字段为 `ir_units_per_callback`。超时、资源限制或子进程失败保留可获得的语法结果，标记不完整。Linux 生产入口 [15 项验收](docs/metrics/semantic-production-acceptance-2026-09-25.json)包含冷/热一致性、baseline、未知边界及资源故障。macOS 新采样机制及 Windows 修复后的真实复验仍待完成，不能用 Linux 结果替代。
+报告的 `budget.memory` 包含 `mechanism`、`scope`、`hard_limit`，IR 字段为 `ir_units_per_callback`。超时、资源限制或子进程失败保留可获得的语法结果，标记不完整。Linux 生产入口 [15 项验收](docs/metrics/semantic-production-acceptance-2026-09-25.json)包含冷/热一致性、baseline、未知边界及资源故障。macOS 的实际进程组超额分配与子孙清理测试已通过；Windows 长短路径、大小写身份及 13 组语义验收通过。Windows 提交内存超额的专门注入尚未执行，不与 Linux/macOS 的内存故障证据混称。
 
 ## 报告、退出码和 baseline
 
@@ -110,7 +110,7 @@ ANALYZER="$PWD/dist/extracted/moon-audit" python3 scripts/process_supervision_te
 
 这些 Python 是开发验收工具，分发包运行不依赖 Python。旧 [Python IR 规格](experiments/core_semantics/README.md)和 [前端原型](experiments/frontend_adapter/README.md)保留为研究对照，不能算生产通用堆/别名能力。旧反例保留原预期。
 
-本阶段 A–D 的有限实现已形成闭环；剩余发布门是三平台最终 CI 与归档验收。下一阶段才考虑历史语法适配、更多真实模型、控制流和堆；不以复制 Tai-e 的广度为目标。
+本阶段 A–D 的有限实现及三平台交付验收已完成；审查分支和 draft PR 已准备好，合并与正式发行由维护者决定。下一阶段才考虑历史语法适配、更多真实模型、控制流和堆；不以复制 Tai-e 的广度为目标。
 
 [TODO 与里程碑](TODO.md) · [架构方案](docs/architecture-plan-2026-09-24.md) · [当前建议](suggest.md) · [基础设施调研](docs/moonbit-infrastructure-research-2026-09-22.md)
 

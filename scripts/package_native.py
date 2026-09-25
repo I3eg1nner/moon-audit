@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
 import subprocess
 import zipfile
@@ -56,9 +57,28 @@ def main():
         package.write(core_license, 'licenses/core/LICENSE')
         package.write(ROOT / 'README.md', 'README.md')
         package.write(metadata, 'build-info.json')
+        notices = []
+        apache_text = ROOT / '.mooncakes/moonbitlang/parser/LICENSE'
         for dependency in ('parser', 'lexer', 'x', 'async'):
-            for license in (ROOT / '.mooncakes/moonbitlang' / dependency).glob('LICENSE*'):
-                package.write(license, f'licenses/{dependency}/{license.name}')
+            module = ROOT / '.mooncakes/moonbitlang' / dependency
+            manifest = module / 'moon.mod'
+            metadata_text = manifest.read_text(encoding='utf-8')
+            declared = re.search(r'^license\s*=\s*"([^"]+)"', metadata_text, re.MULTILINE)
+            license_id = declared.group(1) if declared else 'See bundled module metadata'
+            package.write(manifest, f'licenses/{dependency}/moon.mod')
+            license_files = sorted(path for path in module.rglob('LICENSE*') if path.is_file())
+            for license_file in license_files:
+                package.write(license_file, f'licenses/{dependency}/{license_file.relative_to(module).as_posix()}')
+            # Some registry archives declare Apache-2.0 but omit its standard text.
+            # Reuse the unmodified standard text from the pinned parser archive;
+            # retain each module's own metadata and any nested third-party notices.
+            if not (module / 'LICENSE').is_file() and license_id == 'Apache-2.0':
+                package.write(apache_text, f'licenses/{dependency}/LICENSE')
+            notices.append(f'moonbitlang/{dependency}: {license_id}; see licenses/{dependency}/moon.mod')
+        package.writestr('THIRD_PARTY_NOTICES.txt',
+            'Dependency module metadata and license texts accompany this archive.\n'
+            'Apache-2.0 standard text is also supplied when a registry archive omits it.\n'
+            + '\n'.join(notices) + '\nMoonBit core: see licenses/core/LICENSE\n')
     archive.with_suffix('.zip.sha256').write_text(hashlib.sha256(archive.read_bytes()).hexdigest() + '  ' + archive.name + '\n', encoding='ascii')
     extracted = output / 'extracted'
     if extracted.exists():

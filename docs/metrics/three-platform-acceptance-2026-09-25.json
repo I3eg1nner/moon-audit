@@ -1,0 +1,608 @@
+{
+  "schema": "moon-audit.three-platform-acceptance.v1",
+  "date": "2026-09-25",
+  "status": "passed",
+  "implementation_commit": "1a3e8b1a7918853bd97db133344f057343a5b34f",
+  "draft_pr": "https://github.com/I3eg1nner/moon-audit/pull/1",
+  "ci": [
+    {
+      "databaseId": 36105436648,
+      "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436648",
+      "headSha": "1a3e8b1a7918853bd97db133344f057343a5b34f",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "native (windows-2022, windows-x86_64)",
+          "conclusion": "success",
+          "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436648/job/107976812550"
+        },
+        {
+          "name": "native (ubuntu-24.04, linux-x86_64)",
+          "conclusion": "success",
+          "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436648/job/107976812704"
+        },
+        {
+          "name": "native (macos-14, macos-arm64)",
+          "conclusion": "success",
+          "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436648/job/107976812707"
+        }
+      ]
+    },
+    {
+      "databaseId": 36105436592,
+      "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436592",
+      "headSha": "1a3e8b1a7918853bd97db133344f057343a5b34f",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "MoonBit project 0.1.20260920 compatibility",
+          "conclusion": "success",
+          "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436592/job/107976812628"
+        },
+        {
+          "name": "build (ubuntu-latest)",
+          "conclusion": "success",
+          "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436592/job/107976812629"
+        },
+        {
+          "name": "MoonBit project 0.1.20260904 compatibility",
+          "conclusion": "success",
+          "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436592/job/107976812650"
+        },
+        {
+          "name": "build (macos-latest)",
+          "conclusion": "success",
+          "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436592/job/107976812693"
+        },
+        {
+          "name": "MoonBit project 0.1.20260915 compatibility",
+          "conclusion": "success",
+          "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436592/job/107976812715"
+        },
+        {
+          "name": "build (windows-latest)",
+          "conclusion": "success",
+          "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436592/job/107976812766"
+        }
+      ]
+    }
+  ],
+  "platforms": {
+    "linux-x86_64": {
+      "archive": "moon-audit-0.5.0-dev-linux-x86_64.zip",
+      "archive_sha256": "ec5514232db0a5cc1722d57ff59038a803d717ff0b6887e2de1126ca469232c1",
+      "binary_sha256": "30547947b89d5513cda6df4012a9abe375b77472aedd0e7acd6018ee05cf2ffc",
+      "archive_files": [
+        "LICENSE",
+        "README.md",
+        "build-info.json",
+        "licenses/async/LICENSE",
+        "licenses/core/LICENSE",
+        "licenses/parser/LICENSE",
+        "moon-audit"
+      ],
+      "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) ~/work/_temp/moon-audit-toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) ~/work/_temp/moon-audit-toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) ~/work/_temp/moon-audit-toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "delivery": {
+        "run": 24,
+        "passed": 24,
+        "skipped": 0
+      },
+      "supervision": {
+        "passed": 4
+      },
+      "semantic": {
+        "passed": 15,
+        "cases": [
+          {
+            "name": "cold_hot_json_consistency_and_default_rules",
+            "passed": true
+          },
+          {
+            "name": "exit_1_requires_findings_policy",
+            "passed": true
+          },
+          {
+            "name": "sarif_preserves_evidence_and_scope",
+            "passed": true
+          },
+          {
+            "name": "text_preserves_semantic_scope",
+            "passed": true
+          },
+          {
+            "name": "baseline_survives_lines_and_checkout",
+            "passed": true
+          },
+          {
+            "name": "baseline_never_clears_incomplete_or_replaces_file",
+            "passed": true
+          },
+          {
+            "name": "recursion_and_expansion_budgets",
+            "passed": true
+          },
+          {
+            "name": "library_and_dependency_mismatch_preserve_syntax",
+            "passed": true
+          },
+          {
+            "name": "zero_supported_candidates_is_incomplete",
+            "passed": true
+          },
+          {
+            "name": "mixed_registration_discloses_gap_and_keeps_known_paths",
+            "passed": true
+          },
+          {
+            "name": "complete_safe_zero_findings_exit_0",
+            "passed": true
+          },
+          {
+            "name": "semantic_requires_explicit_scope_verification_and_backend",
+            "passed": true
+          },
+          {
+            "name": "binding_subprocess_failure_preserves_syntax",
+            "passed": true
+          },
+          {
+            "name": "worker_address_space_cap_and_syntax_survival",
+            "passed": true
+          },
+          {
+            "name": "worker_timeout_cleans_descendants_and_keeps_syntax",
+            "passed": true
+          }
+        ]
+      },
+      "cmark": {
+        "passed": 14,
+        "cases": [
+          {
+            "name": "safe_default",
+            "passed": true,
+            "exit_code": 0
+          },
+          {
+            "name": "safe_explicit",
+            "passed": true,
+            "exit_code": 0
+          },
+          {
+            "name": "unsafe",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "encoded_then_unsafe",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "safe_in_script",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "dynamic_flag",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "safe_attribute",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "same_name_render",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "literal_supported_options",
+            "passed": true,
+            "exit_code": 0
+          },
+          {
+            "name": "unsupported_options",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "cmark_model_mismatch",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "casefold_model_mismatch",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "charclass_model_mismatch",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "ucd_model_mismatch",
+            "passed": true,
+            "exit_code": 2
+          }
+        ]
+      },
+      "evidence_sha256": {
+        "build-info.json": "a1aaeccc0039a87fe55463ad0afcc5f59b8f979950aabbc540050784fb61333c",
+        "semantic-acceptance.json": "89c8871397181ac2510c2a84892b3044c2d48bb54ac2a76337d4fde6de1a4b48",
+        "cmark-acceptance.json": "df586693b5898d4e94316c8a4100c271b7d05c1d8f4ea5cdb82bf52e0e5e86a5",
+        "job.log": "5b8aa019be221adc5e3c550e3d10d4a2bccb7d82cd1e218b626c81b43a754fe6"
+      }
+    },
+    "macos-arm64": {
+      "archive": "moon-audit-0.5.0-dev-macos-arm64.zip",
+      "archive_sha256": "529d53384a053d05190e3c9fe098986603a5f52c29b64b113207f1400a248098",
+      "binary_sha256": "da8f63ae627f42d18ab3fabbb510962b5f2e6da08c654ebc241faf1352bc2061",
+      "archive_files": [
+        "LICENSE",
+        "README.md",
+        "build-info.json",
+        "licenses/async/LICENSE",
+        "licenses/core/LICENSE",
+        "licenses/parser/LICENSE",
+        "moon-audit"
+      ],
+      "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) ~/work/_temp/moon-audit-toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) ~/work/_temp/moon-audit-toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) ~/work/_temp/moon-audit-toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "delivery": {
+        "run": 24,
+        "passed": 24,
+        "skipped": 0
+      },
+      "supervision": {
+        "passed": 4
+      },
+      "semantic": {
+        "passed": 12,
+        "cases": [
+          {
+            "name": "cold_hot_json_consistency_and_default_rules",
+            "passed": true
+          },
+          {
+            "name": "exit_1_requires_findings_policy",
+            "passed": true
+          },
+          {
+            "name": "sarif_preserves_evidence_and_scope",
+            "passed": true
+          },
+          {
+            "name": "text_preserves_semantic_scope",
+            "passed": true
+          },
+          {
+            "name": "baseline_survives_lines_and_checkout",
+            "passed": true
+          },
+          {
+            "name": "baseline_never_clears_incomplete_or_replaces_file",
+            "passed": true
+          },
+          {
+            "name": "recursion_and_expansion_budgets",
+            "passed": true
+          },
+          {
+            "name": "library_and_dependency_mismatch_preserve_syntax",
+            "passed": true
+          },
+          {
+            "name": "zero_supported_candidates_is_incomplete",
+            "passed": true
+          },
+          {
+            "name": "mixed_registration_discloses_gap_and_keeps_known_paths",
+            "passed": true
+          },
+          {
+            "name": "complete_safe_zero_findings_exit_0",
+            "passed": true
+          },
+          {
+            "name": "semantic_requires_explicit_scope_verification_and_backend",
+            "passed": true
+          }
+        ]
+      },
+      "cmark": {
+        "passed": 14,
+        "cases": [
+          {
+            "name": "safe_default",
+            "passed": true,
+            "exit_code": 0
+          },
+          {
+            "name": "safe_explicit",
+            "passed": true,
+            "exit_code": 0
+          },
+          {
+            "name": "unsafe",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "encoded_then_unsafe",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "safe_in_script",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "dynamic_flag",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "safe_attribute",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "same_name_render",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "literal_supported_options",
+            "passed": true,
+            "exit_code": 0
+          },
+          {
+            "name": "unsupported_options",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "cmark_model_mismatch",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "casefold_model_mismatch",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "charclass_model_mismatch",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "ucd_model_mismatch",
+            "passed": true,
+            "exit_code": 2
+          }
+        ]
+      },
+      "evidence_sha256": {
+        "build-info.json": "a43a6c2c3306fbcbdabb3e2dff74bf37604d6055fff0b6460e6136f6c4b02c8e",
+        "semantic-acceptance.json": "2b2ba725c24cb17e32752f085379c827f504b23a658c8219896855ac5f937d92",
+        "cmark-acceptance.json": "26acea6ea956a488dbe6e248eca87e514bff4055b2f6b3a51f69f6aee1781fdb",
+        "job.log": "ceff53f7f6aced7f17ee39c59f88bdfd73fed5227b43d5ea64ed63dedaadf743"
+      },
+      "memory_injection": {
+        "status": "passed",
+        "threshold_bytes": 2147483648,
+        "diagnostics": [
+          {
+            "event": "monitor_started",
+            "mechanism": "process_group_physical_footprint_sampling",
+            "group": 6851,
+            "limit_bytes": 2147483648,
+            "observed_bytes": 3180352,
+            "processes": 2,
+            "sample_interval_ms": 50,
+            "sample_gap_ms": 0,
+            "elapsed_ms": 0,
+            "errno": 0
+          },
+          {
+            "event": "budget_exhausted",
+            "mechanism": "process_group_physical_footprint_sampling",
+            "group": 6851,
+            "limit_bytes": 2147483648,
+            "observed_bytes": 2175837376,
+            "processes": 6,
+            "sample_interval_ms": 50,
+            "sample_gap_ms": 178,
+            "elapsed_ms": 4340,
+            "errno": 0
+          }
+        ],
+        "surviving_allocator_pids": [],
+        "limits": [
+          "50ms sampling threshold; allocations and scheduler delays can cause transient overshoot.",
+          "Physical footprint is summed over the isolated process group; it is not an allocation-time hard cap."
+        ],
+        "seconds": 6.449
+      }
+    },
+    "windows-x86_64": {
+      "archive": "moon-audit-0.5.0-dev-windows-x86_64.zip",
+      "archive_sha256": "ea397c8b2268ce568455a334bbfa2d24d5aa8bd1453e15ddadbd91efb43acd13",
+      "binary_sha256": "a77d0fa9c7d60ca1c46ba3b3c301bcc45a450a09182f8b70c02269a9ebf4db7f",
+      "archive_files": [
+        "LICENSE",
+        "README.md",
+        "build-info.json",
+        "licenses/async/LICENSE",
+        "licenses/async/licenserc.toml",
+        "licenses/core/LICENSE",
+        "licenses/parser/LICENSE",
+        "licenses/x/licenserc.toml",
+        "moon-audit.exe"
+      ],
+      "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) D:\\a\\_temp\\moon-audit-toolchain\\bin\\moon.exe\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) D:\\a\\_temp\\moon-audit-toolchain\\bin\\moonc.exe\nmoonrun 0.1.20260920 (914d7da 2026-09-20) D:\\a\\_temp\\moon-audit-toolchain\\bin\\moonrun.exe\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "delivery": {
+        "run": 24,
+        "passed": 19,
+        "skipped": 5
+      },
+      "supervision": {
+        "passed": 4
+      },
+      "semantic": {
+        "passed": 13,
+        "cases": [
+          {
+            "name": "cold_hot_json_consistency_and_default_rules",
+            "passed": true
+          },
+          {
+            "name": "windows_long_short_and_case_paths_share_binding_identity",
+            "passed": true
+          },
+          {
+            "name": "exit_1_requires_findings_policy",
+            "passed": true
+          },
+          {
+            "name": "sarif_preserves_evidence_and_scope",
+            "passed": true
+          },
+          {
+            "name": "text_preserves_semantic_scope",
+            "passed": true
+          },
+          {
+            "name": "baseline_survives_lines_and_checkout",
+            "passed": true
+          },
+          {
+            "name": "baseline_never_clears_incomplete_or_replaces_file",
+            "passed": true
+          },
+          {
+            "name": "recursion_and_expansion_budgets",
+            "passed": true
+          },
+          {
+            "name": "library_and_dependency_mismatch_preserve_syntax",
+            "passed": true
+          },
+          {
+            "name": "zero_supported_candidates_is_incomplete",
+            "passed": true
+          },
+          {
+            "name": "mixed_registration_discloses_gap_and_keeps_known_paths",
+            "passed": true
+          },
+          {
+            "name": "complete_safe_zero_findings_exit_0",
+            "passed": true
+          },
+          {
+            "name": "semantic_requires_explicit_scope_verification_and_backend",
+            "passed": true
+          }
+        ]
+      },
+      "cmark": {
+        "passed": 14,
+        "cases": [
+          {
+            "name": "safe_default",
+            "passed": true,
+            "exit_code": 0
+          },
+          {
+            "name": "safe_explicit",
+            "passed": true,
+            "exit_code": 0
+          },
+          {
+            "name": "unsafe",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "encoded_then_unsafe",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "safe_in_script",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "dynamic_flag",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "safe_attribute",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "same_name_render",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "literal_supported_options",
+            "passed": true,
+            "exit_code": 0
+          },
+          {
+            "name": "unsupported_options",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "cmark_model_mismatch",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "casefold_model_mismatch",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "charclass_model_mismatch",
+            "passed": true,
+            "exit_code": 2
+          },
+          {
+            "name": "ucd_model_mismatch",
+            "passed": true,
+            "exit_code": 2
+          }
+        ]
+      },
+      "evidence_sha256": {
+        "build-info.json": "411613f1fdd92f9cedc6c385c8bf045fb7584535a092169ec00ad86b17a4351d",
+        "semantic-acceptance.json": "0cab62c9e8a8a1948c7d01677c8947f5b17000d5f28d70f3c2da1d8b3c5af356",
+        "cmark-acceptance.json": "f0332ccd276cc0c4b5890693b1d8e9d2733a38fb6e41b24b8a81259d62a64795",
+        "job.log": "4d4342f2e4ccbaaddd4694419734918ab2123f95809154f2ae99ceb7d6414cfc"
+      }
+    }
+  },
+  "limits": [
+    "Acceptance covers the explicitly declared mocket-get-callbacks subset, not whole-project security or browser exploitability.",
+    "Windows has five explicitly inapplicable POSIX file tests skipped; its dedicated long/short/case identity checks passed.",
+    "Linux and macOS have real memory-failure injection; Windows commit-memory exhaustion injection was not executed.",
+    "macOS memory sampling permits transient overshoot and scheduling gaps; not an allocation-time hard limit.",
+    "These archives identify the tested implementation commit. Subsequent packaging adds missing standard Apache-2.0 texts and dependency metadata without modifying production code."
+  ],
+  "merged": false,
+  "release_published": false
+}

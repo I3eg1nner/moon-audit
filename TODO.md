@@ -6,7 +6,7 @@
 
 ## 当前状态
 
-**A–D 的有限功能已实现并在 Linux 完成本地验收；三平台发布门仍未关闭。** 默认语法扫描保留 14 条规则，仅默认启用 replace-escaping、cmark-unsafe。可选生产 `semantic` 已接入，须同时选择 `--verify-project --semantic-scope mocket-get-callbacks`，仅限 native 和核实的模型。
+**A–D 的有限功能及三平台交付验收已完成，审查分支和 draft PR 已就绪；尚未合并或正式发布。** 默认语法扫描保留 14 条规则，仅默认启用 replace-escaping、cmark-unsafe。可选生产 `semantic` 已接入，须同时选择 `--verify-project --semantic-scope mocket-get-callbacks`，仅限 native 和核实的模型。
 
 | 里程碑 | 当前裁决 | 可核实证据 |
 | --- | --- | --- |
@@ -15,7 +15,7 @@
 | B：真实 API 裁决 | 固定 mocket / cmark 的运行、身份与模型契约通过 | [mocket](experiments/security_chain/README.md)、[cmark](experiments/cmark_chain/README.md) |
 | C：受限源码语义链 | 源码→官方绑定→顺序 IR→独立原生核心通过 | [mocket 13 项](experiments/security_chain/native-ir-2026-09-25.json)、[cmark 生产 14 项](experiments/cmark_chain/production-ir-2026-09-25.json) |
 | D：可选生产接入 | 显式回调范围下本地验收通过；不宣称全项目安全分析 | [生产入口 15 项](docs/metrics/semantic-production-acceptance-2026-09-25.json) |
-| 交付发布 | **进行中**，不能宣称三平台完成或已发布 | [草稿 PR #1](https://github.com/I3eg1nner/moon-audit/pull/1)、[原生 CI](.github/workflows/native-delivery.yml) |
+| 交付审查 | **三平台验收通过**，已推送 draft PR；尚未正式发布 | [草稿 PR #1](https://github.com/I3eg1nner/moon-audit/pull/1)、[原生 CI](.github/workflows/native-delivery.yml) |
 
 完成的是上述范围内的交付，不是把旧引擎的字段、别名、异常、trait 或全项目覆盖承诺全部恢复。Crescent API 编译失配和旧语法解析缺口允许继续存在，前提是状态、退出码和默认规则裁决明确。
 
@@ -45,13 +45,13 @@
 - [x] 统一语法提示、`verified_dataflow`、`partial_dataflow`、路径、模型与不完整原因；baseline 不会把不完整结果清零或覆盖已有文件。
 - [x] 冷/热结果一致，未知/模型失配/绑定子进程故障保留语法结果；固定 Linux 生产入口 15/15。
 - [x] worker 最长 60 秒、256 查询/4 并发、每回调 IR 10000 单位；Linux 每进程 2048 MiB `RLIMIT_AS` 地址空间硬上限。资源失败与超时子孙进程清理已做 Linux 注入验收，不是全进程树 RSS 总量承诺。
-- [ ] 平台资源策略复验：Windows 每进程 2048 MiB 提交内存硬上限；macOS 每 50 ms 采样进程组 physical footprint 求和，超过 2048 MiB 或无法采样则终止整个组。macOS 为采样阈值、可能短暂超额；新机制尚待真实 CI 验收。报告以 `memory.mechanism/scope/hard_limit` 和 `ir_units_per_callback` 明示机制。
+- [x] 平台资源策略按实际机制披露：Windows Job Object 初始化及实际语义运行通过；macOS 50 ms 采样组 footprint 的真实超额分配测试通过，超过阈值后无存活子孙。Windows 专门提交内存超额注入未执行，不声称所有平台都完成同类注入。报告以 `memory.mechanism/scope/hard_limit` 和 `ir_units_per_callback` 明示机制。
 
-## 当前剩余发布门
+## 已完成的交付门
 
-- [ ] 完成 Linux x86_64、macOS arm64、Windows x86_64 最终提交的真实 CI 和解包产物验收；Windows 路径和 macOS worker 资源初始化问题修复后的完整复验仍待完成，不以工作流配置代替结果。
-- [ ] 对最终归档校验 SHA-256、许可证、build-info 和二进制搬迁结果，保存对应提交与平台日志。
-- [ ] 完成草稿 PR #1 的最终审查后才裁决合并和发布；当前未合并、未正式发布。
+- [x] Linux x86_64、macOS arm64、Windows x86_64 的真实构建、解包搬迁、项目验证、mocket/cmark 语义验收通过；Windows 文件身份和 macOS 内存监督缺陷已修复并复验。[CI](https://github.com/I3eg1nner/moon-audit/actions/runs/36105436648)
+- [x] 核验平台归档 SHA-256、二进制指纹与 build-info，保存对应实现提交和日志；补充依赖模块元数据、标准许可证及第三方说明。[平台记录](docs/metrics/three-platform-acceptance-2026-09-25.json)
+- [x] 子代理已独立复核规则、语义和交付；实现及证据已上传 [draft PR #1](https://github.com/I3eg1nner/moon-audit/pull/1)。本轮授权范围在审查交付处结束；合并主分支和正式发行是维护者后续决定。
 
 ## 后续工作：不属于本阶段的已完成承诺
 
