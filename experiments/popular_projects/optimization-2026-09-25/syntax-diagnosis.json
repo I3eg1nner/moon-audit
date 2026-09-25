@@ -1,6 +1,6 @@
 {
   "compiler_version": "v0.10.14+7d59c7ec9 (2026-09-18)",
-  "analyzer_sha256": "e932ae33a70c17ba3b11c9019a84b7d555380bcc4728358514329e7f91cadf0c",
+  "analyzer_sha256": "2210d8ba98ac905727f1b31de0e43b8a552944e5d731a319089faf77d168d7cd",
   "scope": "Minimal syntax acceptance only; not type checking or historical compiler support",
   "cases": [
     {

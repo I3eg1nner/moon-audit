@@ -37,7 +37,7 @@
       "/tmp/moon-audit-upgrade-20260922/toolchain",
       "/tmp/moon-audit-popular-20260925/sources/star-moonbitlang--core"
     ],
-    "seconds": 2.623,
+    "seconds": 2.583,
     "exit_code": 2,
     "stderr": "",
     "status": "incomplete",
@@ -87,7 +87,7 @@
       "/tmp/moon-audit-upgrade-20260922/toolchain",
       "/tmp/moon-audit-popular-20260925/sources/star-mizchi--actrun"
     ],
-    "seconds": 4.098,
+    "seconds": 4.209,
     "exit_code": 2,
     "stderr": "",
     "status": "incomplete",

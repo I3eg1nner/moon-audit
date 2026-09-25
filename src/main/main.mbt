@@ -450,8 +450,7 @@ async fn scan(matches : @argparse.Matches, baseline : Bool) -> Unit {
   }
   let selected = match verification {
     Some(v) =>
-      if v.status == "compiler_verified" ||
-        (v.status == "scope_incomplete" && !v.files.is_empty()) {
+      if v.status == "compiler_verified" || v.status == "scope_incomplete" {
         Some(v.files)
       } else {
         None

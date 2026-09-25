@@ -1,8 +1,8 @@
 {
   "schema": "moon-audit.popular-project-scan.v1",
-  "started_at": "2026-09-25T09:45:09.657921+00:00",
+  "started_at": "2026-09-25T10:01:57.888238+00:00",
   "manifest_sha256": "81e74f54d33ddfeb5c9111cd6b93ccbb3a9146454e2354ba1f09fef105b4cd6c",
-  "analyzer_sha256": "e932ae33a70c17ba3b11c9019a84b7d555380bcc4728358514329e7f91cadf0c",
+  "analyzer_sha256": "2210d8ba98ac905727f1b31de0e43b8a552944e5d731a319089faf77d168d7cd",
   "scope": "default syntax and opt-in all registered syntax hints; not full security analysis",
   "projects": [
     {
@@ -26,7 +26,7 @@
           "json",
           "/tmp/moon-audit-popular-20260925/sources/star-moonbitlang--core"
         ],
-        "seconds": 0.47,
+        "seconds": 0.475,
         "exit_code": 0,
         "stderr": "",
         "status": "completed_requested_syntax_scope",
@@ -72,7 +72,7 @@
           "CWE-704/unsafe-cast",
           "/tmp/moon-audit-popular-20260925/sources/star-moonbitlang--core"
         ],
-        "seconds": 0.5,
+        "seconds": 0.508,
         "exit_code": 0,
         "stderr": "",
         "status": "completed_requested_syntax_scope",
@@ -87,7 +87,7 @@
         "exit_code": 0,
         "module": ".",
         "other_modules_not_compiled": [],
-        "diagnostics": "Finished. moon: no work to do\n"
+        "diagnostics": "Finished. moon: ran 182 tasks, now up to date\n"
       },
       "verified": {
         "command": [
@@ -101,7 +101,7 @@
           "30",
           "/tmp/moon-audit-popular-20260925/sources/star-moonbitlang--core"
         ],
-        "seconds": 2.574,
+        "seconds": 2.578,
         "exit_code": 2,
         "stderr": "",
         "status": "incomplete",
@@ -136,7 +136,7 @@
           "json",
           "/tmp/moon-audit-popular-20260925/sources/star-mizchi--actrun"
         ],
-        "seconds": 0.187,
+        "seconds": 0.194,
         "exit_code": 0,
         "stderr": "",
         "status": "completed_requested_syntax_scope",
@@ -182,7 +182,7 @@
           "CWE-704/unsafe-cast",
           "/tmp/moon-audit-popular-20260925/sources/star-mizchi--actrun"
         ],
-        "seconds": 0.201,
+        "seconds": 0.211,
         "exit_code": 0,
         "stderr": "",
         "status": "completed_requested_syntax_scope",
@@ -217,7 +217,7 @@
           "30",
           "/tmp/moon-audit-popular-20260925/sources/star-mizchi--actrun"
         ],
-        "seconds": 4.091,
+        "seconds": 4.104,
         "exit_code": 2,
         "stderr": "",
         "status": "incomplete",
@@ -238,7 +238,7 @@
     "No findings is not a safety conclusion. Parse and compilation failures remain incomplete.",
     "Optional compiler checks use one explicitly selected toolchain; failure is not evidence the project itself is invalid."
   ],
-  "finished_at": "2026-09-25T09:45:21.179339+00:00",
+  "finished_at": "2026-09-25T10:02:11.194011+00:00",
   "analyzer_unchanged": true,
   "harness_complete": true
 }

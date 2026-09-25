@@ -323,6 +323,23 @@ class NativeDelivery(unittest.TestCase):
         self.assert_base_finding(report)
         self.assertFalse(any(p.endswith("/js_only.mbt") for p in verification["compiler_files"]))
 
+    def test_literate_only_plan_does_not_scan_other_backend_sources(self):
+        (self.project / "danger.mbt").unlink()
+        (self.project / "moon.pkg").unlink()
+        (self.project / "moon.pkg.json").write_text(
+            json.dumps({"targets": {"js_only.mbt": ["js"]}}), encoding="utf-8")
+        (self.project / "js_only.mbt").write_text(SOURCE, encoding="utf-8")
+        (self.project / "README.mbt.md").write_text(
+            "```mbt check\ntest { assert_eq(1, 1) }\n```\n", encoding="utf-8")
+        report = self.json_report("--verify-project", *self.compiler_arguments(),
+                                 code=2, isolated=False, timeout=90)
+        verification = self.assert_verification(report, "scope_incomplete")
+        self.assertEqual(verification["compiler_files"], [])
+        self.assertTrue(verification["unsupported_files"])
+        self.assertEqual(report["files_selected"], 0)
+        self.assertEqual(report["files_parsed"], 0)
+        self.assertEqual(report["findings"], [])
+
     def test_real_document_named_directory_keeps_source_in_snapshot(self):
         directory = self.project / "README.md"
         directory.mkdir()
