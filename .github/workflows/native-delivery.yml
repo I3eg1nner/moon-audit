@@ -60,6 +60,7 @@ jobs:
           python scripts/native_semantic_test.py --corpus "${{ runner.temp }}/moon-audit-models/mocket" --output dist/semantic-acceptance.json
           python experiments/cmark_chain/validate_production.py --mocket "${{ runner.temp }}/moon-audit-models/mocket" --cmark "${{ runner.temp }}/moon-audit-models/cmark" --toolchain "$PROJECT_TOOLCHAIN" --analyzer "$ANALYZER" --output dist/cmark-acceptance.json
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: moon-audit-${{ matrix.artifact }}
           path: |

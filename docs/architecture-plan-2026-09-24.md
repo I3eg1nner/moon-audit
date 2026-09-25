@@ -95,7 +95,7 @@ mocket `0.9.1` 的真实 dispatch 8 项对照、唯一绑定和 13 项源码到 
 
 每进程上限不是整棵进程树 RSS 总上限；GNU time 的峰值也不是并发进程内存求和。60 秒 worker 预算不等于整个 CLI 总时限，worker 前的验证与语法扫描另有边界。
 
-[Linux 生产入口 15 项验收](metrics/semantic-production-acceptance-2026-09-25.json)记录冷/热输出一致、baseline、模型失配、递归/展开、子进程故障、地址空间分配失败及超时子孙进程清理。固定小项目的冷/热运行约 6.67 / 5.93 秒；这个样本不能外推到任意规模项目。Windows/macOS 资源行为须由各自真实 runner 验收。
+[Linux 生产入口 15 项验收](metrics/semantic-production-acceptance-2026-09-25.json)记录冷/热输出一致、baseline、模型失配、递归/展开、子进程故障、地址空间分配失败及超时子孙进程清理。固定小项目的冷/热运行约 6.01 / 5.11 秒；这个样本不能外推到任意规模项目。Windows/macOS 资源行为须由各自真实 runner 验收。
 
 ## 7. 报告与生产接入
 

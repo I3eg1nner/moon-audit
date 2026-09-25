@@ -25,7 +25,9 @@
     "semantic_production_groups_linux": 15,
     "historical_project_selected": 30,
     "historical_project_parsed": 16,
-    "historical_project_parse_errors": 14
+    "historical_project_parse_errors": 14,
+    "harness_tests": 33,
+    "independent_core_specification": 14
   },
   "evidence": [
     "native-version-matrix-2026-09-25.json",
@@ -46,5 +48,18 @@
     "Per-process 2048 MiB address/commit cap; not aggregate process-tree RSS.",
     "Unsafe Markdown retains partial dataflow and exits 2 for unknown HTML context.",
     "No universal historical parser compatibility or complete MoonBit/Tai-e analysis."
-  ]
+  ],
+  "linux_artifact": {
+    "path": "dist/moon-audit-0.5.0-dev-linux-x86_64.zip",
+    "sha256": "eac37649218a638bcd6b14dedd45f6b7fffd29debda2dce28923473463c3f593",
+    "binary_sha256": "eff77a653eb7e116d1bc693a71a5a1661a8c624be40a1411e48247a31c70bc78",
+    "independent_delivery_tests": {
+      "passed": 22,
+      "failed": 0
+    },
+    "process_supervision_tests": {
+      "passed": 4,
+      "failed": 0
+    }
+  }
 }
