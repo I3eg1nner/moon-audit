@@ -310,6 +310,28 @@ os.execv(home+'/bin/moon',[home+'/bin/moon',*sys.argv[1:]])
             require(any(f['ruleId']==HINT_ID for f in r['runs'][0]['results']),'SARIF failure lost syntax finding')
             self.source_file.write_text(POSITIVE)
         self.case('baseline_never_clears_incomplete_or_replaces_file',failure_baseline)
+        def legacy_syntax_is_not_semantic_support():
+            for name, expression in [
+                ('loop', 'loop value { x => x }'),
+                ('try_question', 'try? might_fail(value)'),
+            ]:
+                source = 'fn might_fail(value : String) -> String raise { value }\n'
+                source += 'pub fn install(app : @mocket.Mocket) -> Unit {\n'
+                source += '  app.get("/legacy", event => {\n'
+                source += '    let value = event.req.query().get("q").unwrap_or("")\n'
+                source += '    let _unsupported = ' + expression + '\n'
+                source += '    @mocket.html("constant")\n  })\n}\n'
+                self.source_file.write_text(source)
+                code, report, _ = self.cli('legacy_' + name)
+                semantic = self.incomplete(code, report)
+                require(report['project_verification']['status'] == 'compiler_verified',
+                        'legacy test did not pass compiler and parser verification')
+                require('unsupported_legacy_' + name in json.dumps(semantic),
+                        'legacy syntax was not explicitly rejected by semantic lowering')
+                require(not any(f['rule_id'] == SEMANTIC_ID for f in report['findings']),
+                        'unmodeled legacy syntax produced verified dataflow')
+            self.source_file.write_text(POSITIVE)
+        self.case('legacy_syntax_is_not_semantic_support', legacy_syntax_is_not_semantic_support)
         def budgets():
             self.source_file.write_text(BUDGET)
             c,r,_=self.cli('ir_budgets',measure=True)

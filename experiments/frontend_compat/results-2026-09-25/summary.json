@@ -1,0 +1,503 @@
+{
+  "scope": "Fixed source snapshots; syntax support is not semantic support",
+  "before_sha256": "2210d8ba98ac905727f1b31de0e43b8a552944e5d731a319089faf77d168d7cd",
+  "after_sha256": "9415076ef4abcae66eba07cff0c7e8bac5fdd13d92e2a4cbe065e35feb860719",
+  "projects": [
+    {
+      "project": "moonbitlang/quickcheck",
+      "id": "download-moonbitlang--quickcheck",
+      "version": "0.14.0",
+      "archive_url": "https://download.mooncakes.io/user/moonbitlang/quickcheck/0.14.0.zip",
+      "archive_sha256": "a8d598e79afafc537c0af06707eadffdbf5832982bb7879fc1fc5c53f4799edb",
+      "before": {
+        "command": [
+          "/tmp/moon-audit-before-legacy-20260925",
+          "--format",
+          "json",
+          "--rule",
+          "CWE-116/replace-escaping",
+          "--rule",
+          "CWE-79/cmark-unsafe",
+          "--rule",
+          "CWE-79/inner-html",
+          "--rule",
+          "CWE-79/template-injection",
+          "--rule",
+          "CWE-94/eval-extern",
+          "--rule",
+          "CWE-113/crlf-injection",
+          "--rule",
+          "CWE-942/cors-credentials",
+          "--rule",
+          "CWE-614/cookie-attrs",
+          "--rule",
+          "CWE-770/no-body-limit",
+          "--rule",
+          "CWE-346/ws-origin",
+          "--rule",
+          "CWE-22/path-concat",
+          "--rule",
+          "CWE-676/unsafe-call",
+          "--rule",
+          "CWE-248/panic-reachable",
+          "--rule",
+          "CWE-704/unsafe-cast",
+          "/tmp/moon-audit-popular-20260925/sources/download-moonbitlang--quickcheck"
+        ],
+        "seconds": 0.039,
+        "exit_code": 2,
+        "stderr": "",
+        "status": "incomplete",
+        "report": "download-moonbitlang--quickcheck-before.json.gz",
+        "files_selected": 34,
+        "files_parsed": 30,
+        "findings": 1,
+        "errors": 20,
+        "rules": {
+          "CWE-248/panic-reachable": 1
+        }
+      },
+      "after": {
+        "command": [
+          "/data/my/moon-audit/_build/native/release/build/src/main/main.exe",
+          "--format",
+          "json",
+          "--rule",
+          "CWE-116/replace-escaping",
+          "--rule",
+          "CWE-79/cmark-unsafe",
+          "--rule",
+          "CWE-79/inner-html",
+          "--rule",
+          "CWE-79/template-injection",
+          "--rule",
+          "CWE-94/eval-extern",
+          "--rule",
+          "CWE-113/crlf-injection",
+          "--rule",
+          "CWE-942/cors-credentials",
+          "--rule",
+          "CWE-614/cookie-attrs",
+          "--rule",
+          "CWE-770/no-body-limit",
+          "--rule",
+          "CWE-346/ws-origin",
+          "--rule",
+          "CWE-22/path-concat",
+          "--rule",
+          "CWE-676/unsafe-call",
+          "--rule",
+          "CWE-248/panic-reachable",
+          "--rule",
+          "CWE-704/unsafe-cast",
+          "/tmp/moon-audit-popular-20260925/sources/download-moonbitlang--quickcheck"
+        ],
+        "seconds": 0.037,
+        "exit_code": 0,
+        "stderr": "",
+        "status": "completed_requested_syntax_scope",
+        "report": "download-moonbitlang--quickcheck-after.json.gz",
+        "files_selected": 34,
+        "files_parsed": 34,
+        "findings": 1,
+        "errors": 0,
+        "rules": {
+          "CWE-248/panic-reachable": 1
+        }
+      },
+      "newly_parsed": [
+        "src/feat/small_check.mbt",
+        "src/internal/benchmark/bm-curry-forall-tuple.mbt",
+        "src/property/testable.mbt",
+        "src/runner.mbt"
+      ],
+      "unchanged_findings_on_previously_parsed_files": true,
+      "ast_checks": [
+        {
+          "file": "src/driver.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/feat/enumerable.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/feat/enumerate.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/feat/finite.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/feat/sampling.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/feat/small_check.mbt",
+          "official_exit": 3,
+          "compat_exit": 0,
+          "same_ast_and_positions": null
+        },
+        {
+          "file": "src/feat/utils.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/gen/core.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/internal/benchmark/bm-curry-forall-tuple.mbt",
+          "official_exit": 3,
+          "compat_exit": 0,
+          "same_ast_and_positions": null
+        },
+        {
+          "file": "src/internal/benchmark/feat.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/internal/lazy/lazy.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/internal/lazy/lazy_list.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/internal/report/report.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/internal/rose/exports.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/internal/rose/rose.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/internal/state/coverage.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/internal/state/state.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/internal/testing/axiom.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/internal/testing/driver.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/internal/testing/feat.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/internal/testing/gen.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/internal/testing/gen_subpackage.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/internal/utils/common.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/laws/axiom.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/laws/invariant.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/modifiers/collection.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/modifiers/control.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/modifiers/numeric.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/modifiers/string.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/property/testable.mbt",
+          "official_exit": 3,
+          "compat_exit": 0,
+          "same_ast_and_positions": null
+        },
+        {
+          "file": "src/property/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/runner.mbt",
+          "official_exit": 3,
+          "compat_exit": 0,
+          "same_ast_and_positions": null
+        },
+        {
+          "file": "src/shrink/shrink.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        }
+      ],
+      "source_unchanged": true
+    },
+    {
+      "project": "mizchi/bitflow",
+      "id": "download-mizchi--bitflow",
+      "version": "0.4.1",
+      "archive_url": "https://download.mooncakes.io/user/mizchi/bitflow/0.4.1.zip",
+      "archive_sha256": "95cc48c35de8e729896da0b04906fef51a156a09334e18862d6e07e6d78c9c71",
+      "before": {
+        "command": [
+          "/tmp/moon-audit-before-legacy-20260925",
+          "--format",
+          "json",
+          "--rule",
+          "CWE-116/replace-escaping",
+          "--rule",
+          "CWE-79/cmark-unsafe",
+          "--rule",
+          "CWE-79/inner-html",
+          "--rule",
+          "CWE-79/template-injection",
+          "--rule",
+          "CWE-94/eval-extern",
+          "--rule",
+          "CWE-113/crlf-injection",
+          "--rule",
+          "CWE-942/cors-credentials",
+          "--rule",
+          "CWE-614/cookie-attrs",
+          "--rule",
+          "CWE-770/no-body-limit",
+          "--rule",
+          "CWE-346/ws-origin",
+          "--rule",
+          "CWE-22/path-concat",
+          "--rule",
+          "CWE-676/unsafe-call",
+          "--rule",
+          "CWE-248/panic-reachable",
+          "--rule",
+          "CWE-704/unsafe-cast",
+          "/tmp/moon-audit-popular-20260925/sources/download-mizchi--bitflow"
+        ],
+        "seconds": 0.049,
+        "exit_code": 2,
+        "stderr": "",
+        "status": "incomplete",
+        "report": "download-mizchi--bitflow-before.json.gz",
+        "files_selected": 12,
+        "files_parsed": 11,
+        "findings": 0,
+        "errors": 3,
+        "rules": {}
+      },
+      "after": {
+        "command": [
+          "/data/my/moon-audit/_build/native/release/build/src/main/main.exe",
+          "--format",
+          "json",
+          "--rule",
+          "CWE-116/replace-escaping",
+          "--rule",
+          "CWE-79/cmark-unsafe",
+          "--rule",
+          "CWE-79/inner-html",
+          "--rule",
+          "CWE-79/template-injection",
+          "--rule",
+          "CWE-94/eval-extern",
+          "--rule",
+          "CWE-113/crlf-injection",
+          "--rule",
+          "CWE-942/cors-credentials",
+          "--rule",
+          "CWE-614/cookie-attrs",
+          "--rule",
+          "CWE-770/no-body-limit",
+          "--rule",
+          "CWE-346/ws-origin",
+          "--rule",
+          "CWE-22/path-concat",
+          "--rule",
+          "CWE-676/unsafe-call",
+          "--rule",
+          "CWE-248/panic-reachable",
+          "--rule",
+          "CWE-704/unsafe-cast",
+          "/tmp/moon-audit-popular-20260925/sources/download-mizchi--bitflow"
+        ],
+        "seconds": 0.049,
+        "exit_code": 0,
+        "stderr": "",
+        "status": "completed_requested_syntax_scope",
+        "report": "download-mizchi--bitflow-after.json.gz",
+        "files_selected": 12,
+        "files_parsed": 12,
+        "findings": 0,
+        "errors": 0,
+        "rules": {}
+      },
+      "newly_parsed": [
+        "src/lib.mbt"
+      ],
+      "unchanged_findings_on_previously_parsed_files": true,
+      "ast_checks": [
+        {
+          "file": "src/lib.mbt",
+          "official_exit": 3,
+          "compat_exit": 0,
+          "same_ast_and_positions": null
+        },
+        {
+          "file": "src/lib_bench.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/main/main.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/starlark/builtins.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/starlark/lang_core.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/starlark/loader.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/starlark/parser.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/starlark/semantics.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/workflow/adapter.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/workflow/cache.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/workflow/core.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/workflow/engine.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        }
+      ],
+      "source_unchanged": true
+    }
+  ],
+  "status": "passed"
+}

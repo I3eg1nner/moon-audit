@@ -1,0 +1,30 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "minie135/moon-audit/src/vendor/parser_compat/syntax/util"
+
+import {
+  "minie135/moon-audit/src/vendor/parser_compat/syntax",
+  "moonbitlang/core/list",
+  "moonbitlang/lexer/basic",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) enum Statement {
+  StmtExpr(@syntax.Expr)
+  StmtLet(pat~ : @syntax.Pattern, expr~ : @syntax.Expr, loc~ : @basic.Location)
+  StmtGuard(cond~ : @syntax.Expr, otherwise~ : @syntax.Expr?, exclamation~ : Bool, guard_loc~ : @basic.Location, loc~ : @basic.Location)
+  StmtLetmut(binder~ : @syntax.Binder, ty_opt~ : @syntax.Type?, expr~ : @syntax.Expr, loc~ : @basic.Location)
+  StmtFunc(binder~ : @syntax.Binder, func~ : @syntax.Func, loc~ : @basic.Location)
+  StmtLetand(bindings~ : @list.List[(@syntax.Binder, @syntax.Type?, @syntax.Func)], loc~ : @basic.Location)
+  StmtDefer(expr~ : @syntax.Expr, loc~ : @basic.Location)
+  StmtErrdefer(expr~ : @syntax.Expr, loc~ : @basic.Location)
+}
+pub fn Statement::collect_rev(@list.List[Self], @syntax.Expr) -> @syntax.Expr
+pub fn Statement::compact_rev(@list.List[Self], loc~ : @basic.Location) -> @syntax.Expr
+
+// Type aliases
+
+// Traits

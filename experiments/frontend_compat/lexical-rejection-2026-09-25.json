@@ -1,0 +1,68 @@
+{
+  "scope": "Syntax-only negative oracle, not type or dataflow validation",
+  "before_sha256": "e087848610055ad35aad96620650c35d33aa502b40337ab8234c9aa0499b9dbb",
+  "after_sha256": "9415076ef4abcae66eba07cff0c7e8bac5fdd13d92e2a4cbe065e35feb860719",
+  "compiler": "moonc v0.10.14+7d59c7ec9",
+  "cases": [
+    {
+      "source": "fn f() { loop 1 { x => x } ` }\n",
+      "compiler_syntax_exit": 2,
+      "compiler_diagnostics": "<case>/x.mbt:1:10-1:18 [E0027] Warning (deprecated_syntax): The syntax loop ... { ... } for functional loop is deprecated. Use rewrite this as a `for` loop with explicit loop binders (for example, `for state = init { ... }`), destructure composite state explicitly inside the loop body, and use an explicit `break` to return the final result. instead.\n<case>/x.mbt:1:28-1:29 [E3001] Lexing error: unrecognized character \"`\" (U+0060)\n",
+      "before_lexical_guard": {
+        "exit_code": 0,
+        "errors": [],
+        "files_parsed": 1
+      },
+      "after_lexical_guard": {
+        "exit_code": 2,
+        "errors": [
+          "Parse error in <case>/x.mbt: error (<case>/x.mbt-1:28-1:29: Lexer: unrecognized character u32: `"
+        ],
+        "files_parsed": 0
+      }
+    },
+    {
+      "source": "fn f() { try? g() $ }\n",
+      "compiler_syntax_exit": 2,
+      "compiler_diagnostics": "<case>/x.mbt:1:10-1:14 [E0020] Warning (deprecated): `try?` is deprecated.\n\n  Do not mechanically replace this with `try expr |> Ok catch { e => Err(e) }`; that still creates a local `Result` wrapper and usually misses theintended migration.\n  Only create `Ok`/`Err` when the `Result` value must escape this local expression: stored, returned, passed to a Result-taking API, or kept for later comparison as data.\n\n  Migration in inspect-based tests:\n  1. If the expected behavior is success, remove `try?` and run the raising expression directly:\n\n    inspect(expr, content=...)\n\n  2. If the expected behavior is an error, replace `try?` with `try ... catch ... noraise`:\n\n    try expr catch {\n      e => inspect(e, content=...)\n    } noraise {\n      _ => fail(\"expected expr to raise\")\n    }\n\n<case>/x.mbt:1:19-1:20 [E3001] Lexing error: unrecognized character \"$\" (U+0024)\n",
+      "before_lexical_guard": {
+        "exit_code": 0,
+        "errors": [],
+        "files_parsed": 1
+      },
+      "after_lexical_guard": {
+        "exit_code": 2,
+        "errors": [
+          "Parse error in <case>/x.mbt: error (<case>/x.mbt-1:19-1:20: Lexer: unrecognized character u32: $"
+        ],
+        "files_parsed": 0
+      }
+    },
+    {
+      "source": "fn f() { 1 ` }\n",
+      "compiler_syntax_exit": 2,
+      "compiler_diagnostics": "<case>/x.mbt:1:12-1:13 [E3001] Lexing error: unrecognized character \"`\" (U+0060)\n",
+      "before_lexical_guard": {
+        "exit_code": 0,
+        "errors": [],
+        "files_parsed": 1
+      },
+      "after_lexical_guard": {
+        "exit_code": 2,
+        "errors": [
+          "Parse error in <case>/x.mbt: error (<case>/x.mbt-1:12-1:13: Lexer: unrecognized character u32: `"
+        ],
+        "files_parsed": 0
+      }
+    }
+  ],
+  "status": "passed",
+  "interpolation_location_regression": {
+    "source": "fn text() {\n  \"\\{loop 1 { x => x } $}\"\n}\n",
+    "exit_code": 2,
+    "errors": [
+      "Parse error in <case>/x.mbt: error (<case>/x.mbt-2:24-2:25: Interpolation: unrecognized character u32: $"
+    ],
+    "original_filename_and_line_preserved": true
+  }
+}

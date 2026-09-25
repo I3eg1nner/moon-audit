@@ -177,7 +177,7 @@ pub fn rule_capabilities() -> Json {
         "selected by project compiler when verification requested; otherwise not verified",
       ),
       "version_policy": Json::string(
-        "parser 0.4.0; no arbitrary library version claim",
+        "parser 0.4.0 + legacy.1 syntax backport; no arbitrary library version claim",
       ),
       "validation": Json::string("experiments/rule_audit/README.md"),
       "model_fingerprint": Json::null(),

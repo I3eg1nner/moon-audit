@@ -1,0 +1,3462 @@
+{
+  "scope": "Fixed source snapshots; syntax support is not semantic support",
+  "before_sha256": "2210d8ba98ac905727f1b31de0e43b8a552944e5d731a319089faf77d168d7cd",
+  "after_sha256": "9415076ef4abcae66eba07cff0c7e8bac5fdd13d92e2a4cbe065e35feb860719",
+  "projects": [
+    {
+      "project": "moonbitlang/core",
+      "id": "star-moonbitlang--core",
+      "version": null,
+      "archive_url": "https://codeload.github.com/moonbitlang/core/tar.gz/5992620068c0f4729bc0f8ab0f64e9fb4f145843",
+      "archive_sha256": "b1273e9bdf3221b62be4ec95dab328a4f507e1df87e2997396fed7467c5f959b",
+      "before": {
+        "command": [
+          "/tmp/moon-audit-before-legacy-20260925",
+          "--format",
+          "json",
+          "--rule",
+          "CWE-116/replace-escaping",
+          "--rule",
+          "CWE-79/cmark-unsafe",
+          "--rule",
+          "CWE-79/inner-html",
+          "--rule",
+          "CWE-79/template-injection",
+          "--rule",
+          "CWE-94/eval-extern",
+          "--rule",
+          "CWE-113/crlf-injection",
+          "--rule",
+          "CWE-942/cors-credentials",
+          "--rule",
+          "CWE-614/cookie-attrs",
+          "--rule",
+          "CWE-770/no-body-limit",
+          "--rule",
+          "CWE-346/ws-origin",
+          "--rule",
+          "CWE-22/path-concat",
+          "--rule",
+          "CWE-676/unsafe-call",
+          "--rule",
+          "CWE-248/panic-reachable",
+          "--rule",
+          "CWE-704/unsafe-cast",
+          "/tmp/moon-audit-popular-20260925/sources/star-moonbitlang--core"
+        ],
+        "seconds": 0.517,
+        "exit_code": 0,
+        "stderr": "",
+        "status": "completed_requested_syntax_scope",
+        "report": "star-moonbitlang--core-before.json.gz",
+        "files_selected": 478,
+        "files_parsed": 478,
+        "findings": 0,
+        "errors": 0,
+        "rules": {}
+      },
+      "after": {
+        "command": [
+          "/data/my/moon-audit/_build/native/release/build/src/main/main.exe",
+          "--format",
+          "json",
+          "--rule",
+          "CWE-116/replace-escaping",
+          "--rule",
+          "CWE-79/cmark-unsafe",
+          "--rule",
+          "CWE-79/inner-html",
+          "--rule",
+          "CWE-79/template-injection",
+          "--rule",
+          "CWE-94/eval-extern",
+          "--rule",
+          "CWE-113/crlf-injection",
+          "--rule",
+          "CWE-942/cors-credentials",
+          "--rule",
+          "CWE-614/cookie-attrs",
+          "--rule",
+          "CWE-770/no-body-limit",
+          "--rule",
+          "CWE-346/ws-origin",
+          "--rule",
+          "CWE-22/path-concat",
+          "--rule",
+          "CWE-676/unsafe-call",
+          "--rule",
+          "CWE-248/panic-reachable",
+          "--rule",
+          "CWE-704/unsafe-cast",
+          "/tmp/moon-audit-popular-20260925/sources/star-moonbitlang--core"
+        ],
+        "seconds": 0.506,
+        "exit_code": 0,
+        "stderr": "",
+        "status": "completed_requested_syntax_scope",
+        "report": "star-moonbitlang--core-after.json.gz",
+        "files_selected": 478,
+        "files_parsed": 478,
+        "findings": 0,
+        "errors": 0,
+        "rules": {}
+      },
+      "newly_parsed": [],
+      "unchanged_findings_on_previously_parsed_files": true,
+      "ast_checks": [
+        {
+          "file": "abort/abort.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/arg_action.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/arg_group.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/arg_spec.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/command.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/error.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/help_render.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/matches.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/parser.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/parser_globals_merge.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/parser_lookup.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/parser_positionals.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/parser_suggest.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/parser_validate.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/parser_values.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/runtime_exit.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/runtime_exit_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/runtime_exit_native.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/runtime_exit_wasm.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "argparse/value_range.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "array/array.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "array/view.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "bench/bench.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "bench/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "bench/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "bench/monotonic_clock_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "bench/monotonic_clock_native.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "bench/monotonic_clock_wasm.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "bench/stats.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "bench/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "bigint/arith_wide.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "bigint/bigint.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "bigint/bigint_default.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "bigint/bigint_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "bigint/bigint_wide.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "bigint/decimal_wide.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "bigint/division_wide.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "bigint/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "bigint/strconv_errors.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "buffer/buffer.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "buffer/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "buffer/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "buffer/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "buffer/sleb128.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "buffer/uleb128.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/array.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/array_block.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/array_sort.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/array_sort_by_impl.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/array_sort_impl.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/arraycore_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/arraycore_nonjs.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/arrayview.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/assert.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/assert_debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/assert_release.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/autoloc.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/bitstring.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/bitstring_v128.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/bool.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/bounds.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/byte.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/bytes.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/bytes_find.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/bytes_unsafe.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/bytesview.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/char.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/compare_fn.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/console.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/double.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/double_limits.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/double_mod_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/double_mod_nonjs.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/double_pow_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/double_pow_nonjs.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/double_round.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/double_round_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/double_round_wasm.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/double_ryu_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/double_ryu_nonjs.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/double_scalbn.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/double_to_int.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/double_to_int64_js_wasm.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/double_to_int64_native.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/double_to_int_wasm.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/double_to_uint.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/double_to_uint_wasm.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/failure.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/fixedarray.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/fixedarray_block.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/hash_fn.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/hasher.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/int.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/int64.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/intrinsics.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/iter.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/iterator.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/json.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/linked_hash_map.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/mutarrayview.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/op.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/operators.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/option.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/range.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/readonlyarray.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/result.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/show.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/simd.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/string.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/string_find_code_unit.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/string_like.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/string_methods.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/stringbuilder.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/stringbuilder_buffer.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/stringbuilder_concat.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/stringview.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/to_string.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/traits.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/tuple_compare.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/tuple_eq.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/tuple_hash.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/tuple_show.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/tuple_to_json.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/uint.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/uint16_char.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/uint64.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/uninitialized_array.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "builtin/unit.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "byte/byte.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "bytes/alias.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "char/char_util.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "cmp/cmp.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "cmp/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "coverage/coverage.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "coverage/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "debug/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "debug/delta.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "debug/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "debug/pretty_print.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "debug/printer.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "debug/repr.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "debug/tuple_debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "deque/bounds.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "deque/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "deque/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "deque/deque.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "deque/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "deque/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "diff/backpointer.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "diff/compact.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "diff/diff.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "diff/edit.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "diff/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "diff/hunk.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "diff/levenshtein.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "diff/pile.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "diff/piles.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "diff/unique.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "diff/unique_lcs.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "double/alias.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "double/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "double/limits.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/ascii/decode.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/ascii/encode.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/ascii/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/base64/decode.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/base64/decode_v128.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/base64/encode.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/base64/encode_v128.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/base64/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/hex/decode.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/hex/decode_v128.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/hex/encode.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/hex/encode_v128.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/hex/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/percent/decode.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/percent/encode.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/percent/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/utf16/decode.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/utf16/encode.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/utf16/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/utf16/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/utf8/decode.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/utf8/decode_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/utf8/decode_nonjs.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/utf8/encode_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/utf8/encode_nonjs.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "encoding/utf8/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "env/env.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "env/env_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "env/env_native.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "env/env_wasm.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "error/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "error/error.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "error/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "float/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "float/float.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "float/methods.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "float/pow.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "float/round.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "float/round_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "float/round_wasm.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "float/to_int.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "float/to_int_wasm.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "hashmap/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "hashmap/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "hashmap/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "hashmap/hashmap.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "hashmap/json.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "hashmap/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "hashmap/utils.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "hashset/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "hashset/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "hashset/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "hashset/hashset.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "hashset/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/hashmap/HAMT.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/hashmap/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/hashmap/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/hashmap/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/hashmap/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/hashset/HAMT.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/hashset/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/hashset/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/hashset/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/hashset/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/internal/path/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/internal/path/path.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/internal/sparse_array/bitset.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/internal/sparse_array/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/internal/sparse_array/sparse_array.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/priority_queue/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/priority_queue/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/priority_queue/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/priority_queue/priority_queue.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/priority_queue/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/sorted_map/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/sorted_map/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/sorted_map/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/sorted_map/map.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/sorted_map/traits_impl.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/sorted_map/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/sorted_map/utils.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/sorted_set/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/sorted_set/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/sorted_set/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/sorted_set/generic.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/sorted_set/immutable_set.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/sorted_set/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/vector/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/vector/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/vector/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/vector/tree.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/vector/tree_append.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/vector/tree_pop.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/vector/tree_slice.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/vector/tree_utils.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/vector/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/vector/utils.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/vector/utils_wbtest2.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/vector/vector.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/vector_map/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/vector_map/iter.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/vector_map/traits_impl.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/vector_map/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "immut/vector_map/vector_map.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "int/int.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "int16/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "int16/int16.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "int64/int64.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/edit_distance/edit_distance.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/os_string/os_string.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/automata/context.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/automata/delta.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/automata/expr.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/automata/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/automata/mark.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/automata/mark_slot_map.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/automata/slot.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/automata/slot_book.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/automata/state.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/automata/thread.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/automata/thread_set.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/automata/using.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/shared_types/category.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/shared_types/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/shared_types/preference.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/shared_types/profile.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/shared_types/quantifier_mode.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/shared_types/rechar.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/shared_types/rechar_set.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/shared_types/rechar_set/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/shared_types/rechar_set/rechar.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/shared_types/rechar_set/rechar_set.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/shared_types/rechar_set/tree.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/regex_engine/shared_types/using.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/strconv/strconv_bool.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/strconv/strconv_decimal.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/strconv/strconv_double.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/strconv/strconv_eisel_lemire.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/strconv/strconv_eisel_lemire_table.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/strconv/strconv_errors.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/strconv/strconv_int.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/strconv/strconv_number.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/strconv/strconv_string_view.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "internal/strconv/strconv_uint.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "json/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "json/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "json/from_json.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "json/internal_types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "json/json.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "json/json_path.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "json/lex_main.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "json/lex_misc.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "json/lex_number.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "json/lex_string.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "json/parse.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "json/to_json.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "json/tuple_fromjson.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "json/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "json/utils.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "lazy/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "lazy/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "lazy/lazy.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "lazy_list/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "lazy_list/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "lazy_list/lazy_list.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "lazy_list/tail.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "lazy_list/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "lexbuf/async_lexbuf.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "lexbuf/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "lexbuf/lexbuf.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "lexbuf/storage.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "lexbuf/string_scanner.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "list/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "list/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "list/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "list/list.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "list/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/algebraic.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/algebraic_double_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/algebraic_double_nonjs.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/exp.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/exp_double_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/exp_double_nonjs.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/hyperbolic.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/hyperbolic_double_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/hyperbolic_double_nonjs.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/log.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/log_double_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/log_double_nonjs.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/pow.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/pow_double_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/pow_double_nonjs.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/prime.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/round.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/scalbn.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/trig.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/trig_double_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/trig_double_nonjs.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/trig_double_sincos_native.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/trig_double_sincos_non_native_or_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "math/utils.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "option/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "option/methods.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "option/option.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "prelude/prelude.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "priority_queue/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "priority_queue/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "priority_queue/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "priority_queue/priority_queue.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "priority_queue/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "queue/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "queue/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "queue/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "queue/queue.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "queue/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "quickcheck/arbitrary.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "quickcheck/arbitrary_bigint.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "quickcheck/arbitrary_collections.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "quickcheck/arbitrary_integer.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "quickcheck/driver.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "quickcheck/facade.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "quickcheck/generator.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "quickcheck/observation.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "quickcheck/shrink/collection.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "quickcheck/shrink/composite.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "quickcheck/shrink/shrink.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "quickcheck/shrink/utils.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "quickcheck/splitmix/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "quickcheck/splitmix/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "quickcheck/splitmix/random.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "quickcheck/utils.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "random/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "random/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "random/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "random/internal/random_source/random_source_chacha.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "random/random.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "range/range.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "ref/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "ref/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "ref/ref.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "result/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "set/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "set/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "set/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "set/grow_heuristic.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "set/linked_hash_set.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "sorted_map/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "sorted_map/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "sorted_map/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "sorted_map/map.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "sorted_map/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "sorted_map/utils.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "sorted_set/debug.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "sorted_set/deprecated.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "sorted_set/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "sorted_set/set.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "sorted_set/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "sorted_set/utils.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_engine/ast/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_engine/ast/pattern.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_engine/ast/using.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_engine/compile.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_engine/execute.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_engine/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_engine/positions.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_engine/regex.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_engine/state_id.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_engine/states.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_engine/symbol_map/symbol_map.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_engine/symbol_map/table.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_engine/symbol_map/using.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_engine/symbolize.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_engine/translate.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_engine/using.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_parser/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_parser/parser.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_parser/parser_context.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_parser/parser_error.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_parser/parser_util.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/internal/regex_parser/using.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/parse_bigint.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/regex.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/regex_methods.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/regex_pattern.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/regex_profile.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/regex_utf16.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/strconv.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/strconv_traits.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/string.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/utils.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "string/view.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "test/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "test/test.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "test/types.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "tuple/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "tuple/tuple_default.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "uint/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "uint/uint.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "uint16/uint16.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "uint64/uint64.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "unit/unit.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "v128/extends.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "v128/lanes.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "v128/simd_basic.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "v128/simd_float.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "v128/simd_int_arith.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "v128/simd_int_compare.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "v128/simd_int_extend.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "v128/simd_int_shift.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "v128/simd_memory.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "v128/v128.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        }
+      ],
+      "source_unchanged": true
+    },
+    {
+      "project": "mizchi/actrun",
+      "id": "star-mizchi--actrun",
+      "version": null,
+      "archive_url": "https://codeload.github.com/mizchi/actrun/tar.gz/1db9aff5b364de6eacda68e3f2ce2238f9992272",
+      "archive_sha256": "92d88ed3518e1ba85d342cea7fbcf5e0169cdebe6be2d01ce3cfc7c3336c5e6c",
+      "before": {
+        "command": [
+          "/tmp/moon-audit-before-legacy-20260925",
+          "--format",
+          "json",
+          "--rule",
+          "CWE-116/replace-escaping",
+          "--rule",
+          "CWE-79/cmark-unsafe",
+          "--rule",
+          "CWE-79/inner-html",
+          "--rule",
+          "CWE-79/template-injection",
+          "--rule",
+          "CWE-94/eval-extern",
+          "--rule",
+          "CWE-113/crlf-injection",
+          "--rule",
+          "CWE-942/cors-credentials",
+          "--rule",
+          "CWE-614/cookie-attrs",
+          "--rule",
+          "CWE-770/no-body-limit",
+          "--rule",
+          "CWE-346/ws-origin",
+          "--rule",
+          "CWE-22/path-concat",
+          "--rule",
+          "CWE-676/unsafe-call",
+          "--rule",
+          "CWE-248/panic-reachable",
+          "--rule",
+          "CWE-704/unsafe-cast",
+          "/tmp/moon-audit-popular-20260925/sources/star-mizchi--actrun"
+        ],
+        "seconds": 0.202,
+        "exit_code": 0,
+        "stderr": "",
+        "status": "completed_requested_syntax_scope",
+        "report": "star-mizchi--actrun-before.json.gz",
+        "files_selected": 62,
+        "files_parsed": 62,
+        "findings": 33,
+        "errors": 0,
+        "rules": {
+          "CWE-22/path-concat": 15,
+          "CWE-248/panic-reachable": 18
+        }
+      },
+      "after": {
+        "command": [
+          "/data/my/moon-audit/_build/native/release/build/src/main/main.exe",
+          "--format",
+          "json",
+          "--rule",
+          "CWE-116/replace-escaping",
+          "--rule",
+          "CWE-79/cmark-unsafe",
+          "--rule",
+          "CWE-79/inner-html",
+          "--rule",
+          "CWE-79/template-injection",
+          "--rule",
+          "CWE-94/eval-extern",
+          "--rule",
+          "CWE-113/crlf-injection",
+          "--rule",
+          "CWE-942/cors-credentials",
+          "--rule",
+          "CWE-614/cookie-attrs",
+          "--rule",
+          "CWE-770/no-body-limit",
+          "--rule",
+          "CWE-346/ws-origin",
+          "--rule",
+          "CWE-22/path-concat",
+          "--rule",
+          "CWE-676/unsafe-call",
+          "--rule",
+          "CWE-248/panic-reachable",
+          "--rule",
+          "CWE-704/unsafe-cast",
+          "/tmp/moon-audit-popular-20260925/sources/star-mizchi--actrun"
+        ],
+        "seconds": 0.208,
+        "exit_code": 0,
+        "stderr": "",
+        "status": "completed_requested_syntax_scope",
+        "report": "star-mizchi--actrun-after.json.gz",
+        "files_selected": 62,
+        "files_parsed": 62,
+        "findings": 33,
+        "errors": 0,
+        "rules": {
+          "CWE-22/path-concat": 15,
+          "CWE-248/panic-reachable": 18
+        }
+      },
+      "newly_parsed": [],
+      "unchanged_findings_on_previously_parsed_files": true,
+      "ast_checks": [
+        {
+          "file": "src/action_artifact.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/action_cache.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/action_checkout.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/action_ref.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/action_setup_node.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/cmd/actrun/main.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/cmd/actrun/process_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/cmd/actrun/process_native.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/cmd/wasi_runner/main.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/cmd/wasi_runner/run_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/cmd/wasi_runner/run_native.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/cmd/wasi_worker/main.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/cmd/wasi_worker/server_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/cmd/wasi_worker/server_native.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/e2e/main/main.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/event_json.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/executor.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/github_action_prefetch.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/hash_files_expression.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/if_condition.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/js_plan_exports.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/lib.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/lib_bench.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/lint/codegen.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/lint/context.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/lint/dead_code.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/lint/diagnostic.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/lint/expr_ast.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/lint/expr_checker.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/lint/expr_parser.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/lint/expr_token.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/lint/expr_type.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/lint/lint.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/lint/online.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/lint/security.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/lint/semantics.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/lint/structure.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/lint/viz.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/lowering.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/parser.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/plan_api.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/process_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/process_native.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/runtime.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/sandbox/api_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/sandbox/fs.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/sandbox/fs_shell_bridge.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/sandbox/memfs.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/sandbox/step_executor.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/sh/ast.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/sh/lexer.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/sh/parser.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/sh/token.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/sh/word.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/shell_exec.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/store_protocol.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/trigger.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/wasi_runner/context.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/wasi_runner/vfs.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/wasi_runner/wasi_host_js.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/wasm_module.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        },
+        {
+          "file": "src/wasm_sandbox.mbt",
+          "official_exit": 0,
+          "compat_exit": 0,
+          "same_ast_and_positions": true
+        }
+      ],
+      "source_unchanged": true
+    }
+  ],
+  "status": "passed"
+}

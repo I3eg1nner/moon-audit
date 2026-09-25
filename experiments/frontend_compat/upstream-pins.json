@@ -1,0 +1,17 @@
+{
+  "upstream": [
+    {
+      "module": "moonbitlang/parser",
+      "version": "0.4.0",
+      "archive_url": "https://download.mooncakes.io/user/moonbitlang/parser/0.4.0.zip",
+      "archive_sha256": "74f05542d62541ee53303157a65b5fc499dd527f7b4f297ff57076ae0cd08527"
+    },
+    {
+      "module": "moonbitlang/parser",
+      "version": "0.3.0",
+      "archive_url": "https://download.mooncakes.io/user/moonbitlang/parser/0.3.0.zip",
+      "archive_sha256": "9c73e90315a99474ddd43fcc5de7df94197f3cc97483cc94941c16398d601987"
+    }
+  ],
+  "purpose": "0.4.0 frontend plus only the official 0.3.0 legacy loop and try-question syntax productions"
+}

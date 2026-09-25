@@ -1,0 +1,3 @@
+
+# Preserve the exact audited upstream bytes, including on Windows checkouts.
+src/vendor/parser_compat/** -text -whitespace linguist-vendored

@@ -1,0 +1,160 @@
+{
+  "compatibility_id": "0.4.0+moon-audit-legacy.1",
+  "upstream": [
+    {
+      "module": "moonbitlang/parser",
+      "version": "0.4.0",
+      "archive_url": "https://download.mooncakes.io/user/moonbitlang/parser/0.4.0.zip",
+      "archive_sha256": "74f05542d62541ee53303157a65b5fc499dd527f7b4f297ff57076ae0cd08527"
+    },
+    {
+      "module": "moonbitlang/parser",
+      "version": "0.3.0",
+      "archive_url": "https://download.mooncakes.io/user/moonbitlang/parser/0.3.0.zip",
+      "archive_sha256": "9c73e90315a99474ddd43fcc5de7df94197f3cc97483cc94941c16398d601987"
+    }
+  ],
+  "files": [
+    {
+      "path": "LICENSE",
+      "upstream_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "handrolled_parser/core.mbt",
+      "upstream_sha256": "b61190b50867898d9f4927ddc674aa3150c9f41150c36f27e15702f732306cff",
+      "sha256": "b61190b50867898d9f4927ddc674aa3150c9f41150c36f27e15702f732306cff"
+    },
+    {
+      "path": "handrolled_parser/first_set.mbt",
+      "upstream_sha256": "5c014a581720d75f581342994772eee5d4bf9f3926dab82d0f53bd759fc5ae5c",
+      "sha256": "4629c151f7e988d5cc65717d24758445b9375722d1aa582e49ae8acee85679b4"
+    },
+    {
+      "path": "handrolled_parser/imports.mbt",
+      "upstream_sha256": "ab7e308c040f842900e494931c915d4300bc20f01f203e3e1f25cad2f36f09a0",
+      "sha256": "ab7e308c040f842900e494931c915d4300bc20f01f203e3e1f25cad2f36f09a0"
+    },
+    {
+      "path": "handrolled_parser/moon.pkg",
+      "upstream_sha256": "66a848568082efbfeec01947e5bc6f509bf986d61576b1da042b66ff2408ca11",
+      "sha256": "63d60448d76c0fdf7066637ef09575c67e6aed96224513e0b0bade2fadccc3b1"
+    },
+    {
+      "path": "handrolled_parser/parser.mbt",
+      "upstream_sha256": "eaf499bf5578e338b73ffead83ff8f5561bb71bd7c162d0afa2a991a5b0c631e",
+      "sha256": "c5f097ad47c9c3bb9147b8a265963c4a5f35c332539d09cfbc689b72b65e8a81"
+    },
+    {
+      "path": "moon.pkg",
+      "upstream_sha256": "273f8ee1b5e9e1ac27e490f58f00d8b595f997f729a1bba2dc2d64a21e704dac",
+      "sha256": "fef0cbf6726af5d22d23f76d3050024f19c6f0664f8975dad5e03f9749e9099f"
+    },
+    {
+      "path": "syntax/ast.mbt",
+      "upstream_sha256": "2329ddda454374bb20390f5a01d56e6510a9bcbd119545e69f6bfb9b22c9e17c",
+      "sha256": "9a3cfa096c32da600de182dfae007ce4850ed5d1eb87d19e40a12a85d81a4d10"
+    },
+    {
+      "path": "syntax/ast_json_repr.mbt",
+      "upstream_sha256": "e98d6a92fcffea208d4b0dac0fdde62bcd71a1681a70913eba14d52780b33061",
+      "sha256": "a4584f963c0ab1439495a7bc9d3cdb9d78c6aa189e2d46f7a8539eb36e59bac9"
+    },
+    {
+      "path": "syntax/ast_to_json.mbt",
+      "upstream_sha256": "502d4e399c27a8198cd9a4e0f73ba54f48c727b2f4b211752ea7c8eeabed03d4",
+      "sha256": "502d4e399c27a8198cd9a4e0f73ba54f48c727b2f4b211752ea7c8eeabed03d4"
+    },
+    {
+      "path": "syntax/docstring.mbt",
+      "upstream_sha256": "e5746e639bab418b963458495d21bee042d8e0150b73beca27f9f958af3dc2bc",
+      "sha256": "e5746e639bab418b963458495d21bee042d8e0150b73beca27f9f958af3dc2bc"
+    },
+    {
+      "path": "syntax/imports.mbt",
+      "upstream_sha256": "7b0e647e5f39ede11c00f55a2ef7e52db7d934ecf006041e1d2aaf04d5b7f7e7",
+      "sha256": "7b0e647e5f39ede11c00f55a2ef7e52db7d934ecf006041e1d2aaf04d5b7f7e7"
+    },
+    {
+      "path": "syntax/iter_visitor.mbt",
+      "upstream_sha256": "2f8cb23a162ea35598ac7667bee62392484c1933aa46cad706c562bf2b2ca305",
+      "sha256": "933f4b2a17d4f2fde070e304b0927e36a18f406e097520877c260e82cdd2b79f"
+    },
+    {
+      "path": "syntax/map_visitor.mbt",
+      "upstream_sha256": "d04ddd891f4c2481f8e7de6038173b1a9e707c91d9c9162295a275b5741fa559",
+      "sha256": "49e3a67387ba1195fa56bde543d078b42f71b4a02b7771f84cec3e45c6c8c3f6"
+    },
+    {
+      "path": "syntax/moon.pkg",
+      "upstream_sha256": "74cc387b1088ac8c3e9308bfc24edbd83e55e25ddb4badc8603e24c5421ad4cc",
+      "sha256": "f251457eeb816e3382e8b879f45632284e5815a80cd1c636e0fb253f609c8402"
+    },
+    {
+      "path": "syntax/no_location.mbt",
+      "upstream_sha256": "43d10ceb6bd9f4c888da25e7730303a6f1beb4145b5d9ca2c7038c1594fe093b",
+      "sha256": "43d10ceb6bd9f4c888da25e7730303a6f1beb4145b5d9ca2c7038c1594fe093b"
+    },
+    {
+      "path": "syntax/oprators.mbt",
+      "upstream_sha256": "774f4c7407cafbc4efc55614fafc17d15a55dc398f5c205b61ef1db0799e08eb",
+      "sha256": "774f4c7407cafbc4efc55614fafc17d15a55dc398f5c205b61ef1db0799e08eb"
+    },
+    {
+      "path": "syntax/util/compact.mbt",
+      "upstream_sha256": "b10e209a9baff0c08afafdf5dca9980efb6330f21646011df2184b7af4854811",
+      "sha256": "b10e209a9baff0c08afafdf5dca9980efb6330f21646011df2184b7af4854811"
+    },
+    {
+      "path": "syntax/util/imports.mbt",
+      "upstream_sha256": "9ecf220df4483804936c0870ada00223da794258d69e007996aeab648101476e",
+      "sha256": "9ecf220df4483804936c0870ada00223da794258d69e007996aeab648101476e"
+    },
+    {
+      "path": "syntax/util/moon.pkg",
+      "upstream_sha256": "de091aad58aceadbc4a614ca9d71e16f922fb47a639272a86b4c4a82b9370953",
+      "sha256": "71eaa8b5791c05a2e5ef98feaddfc76770e1252b229fbbd89d0a635279d07814"
+    },
+    {
+      "path": "syntax/util/util.mbti",
+      "upstream_sha256": "98dbd6767042fd149511a43425e5a27a5b88f76e3430a00b814f89663fec2e31",
+      "sha256": "98dbd6767042fd149511a43425e5a27a5b88f76e3430a00b814f89663fec2e31"
+    },
+    {
+      "path": "syntax/utils.mbt",
+      "upstream_sha256": "5d7c1c6a2587223498b1b3d6742331cbfeaf64555fe2d51073dd19caa9c29b40",
+      "sha256": "718ff02efae8615eae31863ccc4bfda08f2de3875b931194f35989e055bcc69e"
+    },
+    {
+      "path": "top.mbt",
+      "upstream_sha256": "c86f585e68d862e6fa97cc46f90b8a7fd8ff36a8e9a7f9e0cd47084edbbc1c0d",
+      "sha256": "259e05828b95b0c06cb4f44978718ef74f6c53f595b3743fa56253a6935fc58c"
+    },
+    {
+      "path": "yacc_parser/helpers.mbt",
+      "upstream_sha256": "349ca65bcb635d1729af279d40c0c95aca3141dfec4bd3116aa78aa8049b9f81",
+      "sha256": "349ca65bcb635d1729af279d40c0c95aca3141dfec4bd3116aa78aa8049b9f81"
+    },
+    {
+      "path": "yacc_parser/imports.mbt",
+      "upstream_sha256": "9c4f12023590f6fb9893cffc50ae7b5aba210260de6fef80e908b8fa401f51a2",
+      "sha256": "9c4f12023590f6fb9893cffc50ae7b5aba210260de6fef80e908b8fa401f51a2"
+    },
+    {
+      "path": "yacc_parser/moon.pkg",
+      "upstream_sha256": "a792218bcaa3272190af4680c912a056b84459e1b4667ef6ecab5b1aee1da94f",
+      "sha256": "193e94738a0e9de9d5a9ba25fc3ac434ae87b8663ca9eab847f5d95ab3a61a6e"
+    },
+    {
+      "path": "yacc_parser/parser.mbt",
+      "upstream_sha256": "9f3183117529104d8fb37bf758921b65fa9858f804ef2f7e3e7af091a7979b85",
+      "sha256": "9f3183117529104d8fb37bf758921b65fa9858f804ef2f7e3e7af091a7979b85"
+    },
+    {
+      "path": "yacc_parser/parser.mbty",
+      "upstream_sha256": "afe79d7940f8c97e9c14e0c7474c9c214ecd5c0bc665a2d1af4241109670192b",
+      "sha256": "afe79d7940f8c97e9c14e0c7474c9c214ecd5c0bc665a2d1af4241109670192b"
+    }
+  ],
+  "patch_sha256": "bc1ce2dfeb67284854d63090cb0daf92d27dfd757aee46c9e824c2d9cad39179"
+}

@@ -1,5 +1,6 @@
 import {
   "moonbitlang/parser",
+  "minie135/moon-audit/src/vendor/parser_compat" @compat_parser,
   "moonbitlang/x/fs",
   "moonbitlang/core/builtin",
   "moonbitlang/x/sys",
