@@ -1,0 +1,2 @@
+fn may_raise() -> Int raise String { 1 }
+fn use_tryq() -> Result[Int, String] { try? may_raise() }

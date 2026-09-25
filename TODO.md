@@ -8,8 +8,10 @@
 - [x] 独立 LLM prepare/validate、自定义 OpenAI 兼容 API、配置别名、分页、精确引用、源码变更拒绝和原始报告保护。
 - [x] 用户 `.env` 的真实 API 联调；两条意见为 needs_review，全部 llm_unverified；补充纯函数重复字符复现。
 - [x] 原生包附带可选 Python 助手，离线 HTTP 测试进入打包验收；原生扫描仍无 Python 运行依赖。
-- [ ] P0：QuickCheck/bitflow 历史语法小样本分类与解析适配，不把文档负例列为版本支持失败。
-- [ ] P0：重新界定快照输入范围，解决无关文档符号链接阻断 core/actrun 的问题，保留源码/依赖链接防护。
+- [x] P0 诊断：QuickCheck/bitflow 的 `try?`/旧 `loop` 为固定编译器接受、parser 0.4.0 拒绝；最小正反例已保存。
+- [ ] P0 适配：确定旧语法表示与位置契约，再比较独立前端/上游语法回移；尚未实现解析支持。
+- [x] P0：修复无关文档文件链接阻断快照，保留源码/依赖/目录链接防护；不完整编译计划仍准确选择受支持文件。[固定项目重测](experiments/popular_projects/optimization-2026-09-25/README.md)
+- [ ] P0：定义 `.mbt.md` 编译代码块和位置映射；core/actrun 仍保持 scope_incomplete。
 - [ ] P1：复核包增加已核实的调用身份、标准库行为和直接调用点附件；不能凭模型判断补绑定。
 - [ ] P1：按项目/规则抽样标注 447 条 opt-in 线索后再评价噪声；不据数量扩大默认规则。
 
@@ -19,7 +21,7 @@
 
 ## 当前状态
 
-**A–D 的有限功能及三平台交付验收已完成，审查分支和 draft PR 已就绪；尚未合并或正式发布。** 默认语法扫描保留 14 条规则，仅默认启用 replace-escaping、cmark-unsafe。可选生产 `semantic` 已接入，须同时选择 `--verify-project --semantic-scope mocket-get-callbacks`，仅限 native 和核实的模型。
+**A–D 的有限功能、三平台交付及 LLM 复核已通过验收并合并 main（PR #1/#2）；尚未正式发布。** 默认语法扫描保留 14 条规则，仅默认启用 replace-escaping、cmark-unsafe。可选生产 `semantic` 已接入，须同时选择 `--verify-project --semantic-scope mocket-get-callbacks`，仅限 native 和核实的模型。
 
 | 里程碑 | 当前裁决 | 可核实证据 |
 | --- | --- | --- |
@@ -28,7 +30,7 @@
 | B：真实 API 裁决 | 固定 mocket / cmark 的运行、身份与模型契约通过 | [mocket](experiments/security_chain/README.md)、[cmark](experiments/cmark_chain/README.md) |
 | C：受限源码语义链 | 源码→官方绑定→顺序 IR→独立原生核心通过 | [mocket 13 项](experiments/security_chain/native-ir-2026-09-25.json)、[cmark 生产 14 项](experiments/cmark_chain/production-ir-2026-09-25.json) |
 | D：可选生产接入 | 显式回调范围下本地验收通过；不宣称全项目安全分析 | [生产入口 15 项](docs/metrics/semantic-production-acceptance-2026-09-25.json) |
-| 交付审查 | **三平台验收通过**，已推送 draft PR；尚未正式发布 | [草稿 PR #1](https://github.com/I3eg1nner/moon-audit/pull/1)、[原生 CI](.github/workflows/native-delivery.yml) |
+| 交付审查 | **三平台验收通过**，PR #1/#2 已合并；尚未正式发布 | [草稿 PR #1](https://github.com/I3eg1nner/moon-audit/pull/1)、[原生 CI](.github/workflows/native-delivery.yml) |
 
 完成的是上述范围内的交付，不是把旧引擎的字段、别名、异常、trait 或全项目覆盖承诺全部恢复。Crescent API 编译失配和旧语法解析缺口允许继续存在，前提是状态、退出码和默认规则裁决明确。
 
@@ -64,7 +66,7 @@
 
 - [x] Linux x86_64、macOS arm64、Windows x86_64 的真实构建、解包搬迁、项目验证、mocket/cmark 语义验收通过；Windows 文件身份和 macOS 内存监督缺陷已修复并复验。[CI](https://github.com/I3eg1nner/moon-audit/actions/runs/36105436648)
 - [x] 核验平台归档 SHA-256、二进制指纹与 build-info，保存对应实现提交和日志；补充依赖模块元数据、标准许可证及第三方说明。[平台记录](docs/metrics/three-platform-acceptance-2026-09-25.json)
-- [x] 子代理已独立复核规则、语义和交付；实现及证据已上传 [draft PR #1](https://github.com/I3eg1nner/moon-audit/pull/1)。本轮授权范围在审查交付处结束；合并主分支和正式发行是维护者后续决定。
+- [x] 子代理已独立复核规则、语义和交付；实现及证据已上传 [draft PR #1](https://github.com/I3eg1nner/moon-audit/pull/1)。用户随后授权合并，PR #1/#2 已合并 main；正式发行尚未执行。
 
 ## 后续工作：不属于本阶段的已完成承诺
 

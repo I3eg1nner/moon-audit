@@ -449,15 +449,23 @@ async fn scan(matches : @argparse.Matches, baseline : Bool) -> Unit {
     None
   }
   let selected = match verification {
-    Some(v) if v.status == "compiler_verified" => Some(v.files)
-    _ => None
+    Some(v) =>
+      if v.status == "compiler_verified" ||
+        (v.status == "scope_incomplete" && !v.files.is_empty()) {
+        Some(v.files)
+      } else {
+        None
+      }
+    None => None
   }
   let mut result = @audit.scan_project(root, config, compiler_files=selected)
   match verification {
     Some(v) => {
       let mut status = v.status
+      let mut detail = v.detail
       if status == "compiler_verified" && !@project.unchanged(v.snapshot, root) {
         status = "project_changed"
+        detail = "Source, dependency or configuration inputs changed during scanning"
       }
       let policy_excluded : Array[String] = []
       let missing : Array[String] = []
@@ -482,14 +490,17 @@ async fn scan(matches : @argparse.Matches, baseline : Bool) -> Unit {
       }
       if status == "compiler_verified" && !missing.is_empty() {
         status = "scope_incomplete"
+        detail = missing.length().to_string() +
+          " compiler-selected files were not parsed; see compiler_files_not_parsed"
       }
       if status == "compiler_verified" && !result.errors.is_empty() {
         status = "scanner_incomplete"
+        detail = "Compiler check passed but the scanner reported errors; see errors"
       }
       if status != "compiler_verified" {
-        result.errors.push("project verification: " + status + ": " + v.detail)
+        result.errors.push("project verification: " + status + ": " + detail)
       }
-      let metadata = { ..v, status, }.to_json()
+      let metadata = { ..v, status, detail, }.to_json()
       if metadata is Object(fields) {
         fields["policy_excluded_files"] = Json::array(
           policy_excluded.map(Json::string),

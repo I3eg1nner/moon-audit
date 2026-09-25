@@ -258,6 +258,81 @@ class NativeDelivery(unittest.TestCase):
         self.assert_base_finding(report)
         self.assert_verification(report, "snapshot_unavailable")
 
+    def make_link(self, path, target, directory=False):
+        try:
+            path.symlink_to(target, target_is_directory=directory)
+        except OSError as exc:
+            self.skipTest(f"symlink creation unavailable: {exc}")
+
+    def test_document_file_alias_does_not_block_real_verification(self):
+        note = self.project / "NOTES.md"
+        note.write_text("Documentation only", encoding="utf-8")
+        self.make_link(self.project / "README.md", note)
+        report = self.json_report("--verify-project", *self.compiler_arguments(),
+                                 isolated=False, timeout=90)
+        self.assert_base_finding(report)
+        verification = self.assert_verification(report, "compiler_verified")
+        self.assertFalse(any(p.endswith("/README.md") for p in verification["snapshot_sha256"]))
+        self.assertTrue(any(p.endswith("/danger.mbt") for p in verification["snapshot_sha256"]))
+
+    def test_directory_alias_named_as_document_still_rejected(self):
+        outside = self.work / "other-source"
+        outside.mkdir()
+        (outside / "hidden.mbt").write_text(SOURCE, encoding="utf-8")
+        self.make_link(self.project / "README.md", outside, directory=True)
+        report = self.json_report("--verify-project", "--project-moon",
+                                 self.work / "missing compiler", code=2)
+        self.assert_verification(report, "snapshot_unavailable")
+
+    def test_source_metadata_and_dependency_aliases_still_rejected(self):
+        cases = ("linked.mbt", "docs.mbt.md", "draft.mbtx", "moon.lock",
+                 "moon.work", "moon.work.json", "moon.pkg", ".mooncakes/lib/source.mbt")
+        target = self.work / "linked-input"
+        target.write_text(SOURCE, encoding="utf-8")
+        for name in cases:
+            path = self.project / name
+            old = path.read_bytes() if path.exists() else None
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.unlink(missing_ok=True)
+            self.make_link(path, target)
+            try:
+                with self.subTest(name=name):
+                    report = self.json_report("--verify-project", "--project-moon",
+                                             self.work / "missing compiler", code=2)
+                    self.assert_verification(report, "snapshot_unavailable")
+            finally:
+                path.unlink()
+                if old is not None:
+                    path.write_bytes(old)
+
+    def test_unsupported_literate_input_keeps_target_file_plan_and_explanation(self):
+        (self.project / "moon.pkg").unlink()
+        (self.project / "moon.pkg.json").write_text(
+            json.dumps({"targets": {"js_only.mbt": ["js"]}}), encoding="utf-8")
+        (self.project / "js_only.mbt").write_text(SOURCE.replace("escape", "js_escape"), encoding="utf-8")
+        (self.project / "README.mbt.md").write_text(
+            "# Documentation\n\n```mbt check\ntest { assert_eq(1, 1) }\n```\n", encoding="utf-8")
+        report = self.json_report("--verify-project", *self.compiler_arguments(),
+                                 code=2, isolated=False, timeout=90)
+        verification = self.assert_verification(report, "scope_incomplete")
+        self.assertIn("unsupported", verification["detail"])
+        self.assertTrue(any(p.endswith("/README.mbt.md") for p in verification["unsupported_files"]))
+        self.assertTrue(any("unsupported" in e for e in report["errors"]))
+        self.assertEqual(report["files_selected"], 1)
+        self.assertEqual(report["files_parsed"], 1)
+        self.assert_base_finding(report)
+        self.assertFalse(any(p.endswith("/js_only.mbt") for p in verification["compiler_files"]))
+
+    def test_real_document_named_directory_keeps_source_in_snapshot(self):
+        directory = self.project / "README.md"
+        directory.mkdir()
+        source = directory / "extra.mbt"
+        source.write_text(SOURCE, encoding="utf-8")
+        report = self.json_report("--verify-project", *self.compiler_arguments(),
+                                 isolated=False, timeout=90)
+        verification = self.assert_verification(report, "compiler_verified")
+        self.assertTrue(any(p.endswith("/README.md/extra.mbt") for p in verification["snapshot_sha256"]))
+
     @unittest.skipUnless(os.name == "posix", "POSIX parent-directory alias acceptance")
     def test_existing_parent_directory_alias_keeps_project_identity(self):
         alias = self.work / "parent-alias"

@@ -1,0 +1,42 @@
+{
+  "schema": "moon-audit.popular-projects.v1",
+  "retrieved_at": "2026-09-25T07:44:55.668502+00:00",
+  "sources": {
+    "downloads": {
+      "url": "https://mooncakes.io",
+      "section": "Most downloaded",
+      "html_sha256": "71d6ca4835ee0545e444e46b12ca01a8538c85dba6e3d18d2b1fd5a86b77cf79",
+      "metric": "official homepage order; counts and time window not exposed, not inferred"
+    },
+    "stars": {
+      "url": "https://api.github.com/search/repositories?q=language%3AMoonBit+archived%3Afalse+fork%3Afalse&sort=stars&order=desc",
+      "total_count": 2790,
+      "metric": "GitHub stargazers_count at retrieval"
+    }
+  },
+  "entries": [
+    {
+      "id": "star-moonbitlang--core",
+      "cohort": "github_stars",
+      "rank": 2,
+      "project": "moonbitlang/core",
+      "stars": 1218,
+      "repository": "https://github.com/moonbitlang/core",
+      "commit": "5992620068c0f4729bc0f8ab0f64e9fb4f145843",
+      "archive_url": "https://codeload.github.com/moonbitlang/core/tar.gz/5992620068c0f4729bc0f8ab0f64e9fb4f145843",
+      "archive_type": "tar"
+    },
+    {
+      "id": "star-mizchi--actrun",
+      "cohort": "github_stars",
+      "rank": 3,
+      "project": "mizchi/actrun",
+      "stars": 668,
+      "repository": "https://github.com/mizchi/actrun",
+      "commit": "1db9aff5b364de6eacda68e3f2ce2238f9992272",
+      "archive_url": "https://codeload.github.com/mizchi/actrun/tar.gz/1db9aff5b364de6eacda68e3f2ce2238f9992272",
+      "archive_type": "tar"
+    }
+  ],
+  "scope_note": "Focused snapshot-boundary recheck from the original immutable popularity cohort."
+}

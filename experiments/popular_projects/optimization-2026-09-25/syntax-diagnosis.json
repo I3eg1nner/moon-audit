@@ -1,0 +1,55 @@
+{
+  "compiler_version": "v0.10.14+7d59c7ec9 (2026-09-18)",
+  "analyzer_sha256": "e932ae33a70c17ba3b11c9019a84b7d555380bcc4728358514329e7f91cadf0c",
+  "scope": "Minimal syntax acceptance only; not type checking or historical compiler support",
+  "cases": [
+    {
+      "file": "syntax-repros/case_forbreak.mbt.txt",
+      "sha256": "4fc82d923d5da4be19c7b059ffb5dfd4971f14bc0bf8838fc754199a08d34507",
+      "compiler_syntax_exit": 0,
+      "compiler_syntax_stdout": "{\"toplevel\":{\"fn\":1},\"max-toplevel-span\":\"1-1\"}\n",
+      "compiler_syntax_stderr": "",
+      "scanner_exit": 0,
+      "scanner_errors": [],
+      "scanner_findings": []
+    },
+    {
+      "file": "syntax-repros/case_loop.mbt.txt",
+      "sha256": "9a88dd0717d0aa1e84efd92607a5a62c46b979f32abaa62b665df66dfce1f769",
+      "compiler_syntax_exit": 0,
+      "compiler_syntax_stdout": "{\"toplevel\":{\"fn\":1},\"max-toplevel-span\":\"1-6\"}\n",
+      "compiler_syntax_stderr": "<case>/lib.mbt:2:3-2:21 [E0027] Warning (deprecated_syntax): The syntax loop (x, y) { ... } for functional loop is deprecated. Use rewrite this as `for i = x, j = y { ... }`, destructure values explicitly inside the loop body, and use an explicit `break` to return the final result. instead.\n",
+      "scanner_exit": 2,
+      "scanner_errors": [
+        "Parse error in <case>/lib.mbt: error (<case>/lib.mbt-2:3-2:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in <case>/lib.mbt: error (<case>/lib.mbt-4:18-4:26: Unexpected token `continue`, you may expect simple expression.",
+        "Parse error in <case>/lib.mbt: error (<case>/lib.mbt-7:1-7:1: Unexpected token here."
+      ],
+      "scanner_findings": []
+    },
+    {
+      "file": "syntax-repros/case_tryq.mbt.txt",
+      "sha256": "e17722f9c2214a6a43262538f589a67141f5e21b7e5483acecd363b7363efa53",
+      "compiler_syntax_exit": 0,
+      "compiler_syntax_stdout": "{\"toplevel\":{\"fn\":2},\"max-toplevel-span\":\"1-1\"}\n",
+      "compiler_syntax_stderr": "<case>/lib.mbt:2:40-2:44 [E0020] Warning (deprecated): `try?` is deprecated.\n\n  Do not mechanically replace this with `try expr |> Ok catch { e => Err(e) }`; that still creates a local `Result` wrapper and usually misses theintended migration.\n  Only create `Ok`/`Err` when the `Result` value must escape this local expression: stored, returned, passed to a Result-taking API, or kept for later comparison as data.\n\n  Migration in inspect-based tests:\n  1. If the expected behavior is success, remove `try?` and run the raising expression directly:\n\n    inspect(expr, content=...)\n\n  2. If the expected behavior is an error, replace `try?` with `try ... catch ... noraise`:\n\n    try expr catch {\n      e => inspect(e, content=...)\n    } noraise {\n      _ => fail(\"expected expr to raise\")\n    }\n\n",
+      "scanner_exit": 2,
+      "scanner_errors": [
+        "Parse error in <case>/lib.mbt: error (<case>/lib.mbt-2:40-2:44: Unexpected token `try?`, you may expect simple expression."
+      ],
+      "scanner_findings": []
+    },
+    {
+      "file": "syntax-repros/invalid.mbt.txt",
+      "sha256": "cdfb6929e7c395b73c03414e1e440cdd98a1dad4b6d9da55d069594ab6048847",
+      "compiler_syntax_exit": 2,
+      "compiler_syntax_stdout": "",
+      "compiler_syntax_stderr": "<case>/lib.mbt:1:12-1:13 [E3002] Parse error, unexpected token `{`, you may expect parameter name or label.\n",
+      "scanner_exit": 2,
+      "scanner_errors": [
+        "Parse error in <case>/lib.mbt: error (<case>/lib.mbt-1:12-1:13: Unexpected token `{`, you may expect parameter name or label."
+      ],
+      "scanner_findings": []
+    }
+  ]
+}

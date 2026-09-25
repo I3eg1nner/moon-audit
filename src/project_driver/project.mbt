@@ -170,19 +170,28 @@ fn snapshot_dir(
       continue
     }
     let path = join(root, name)
-    let size = file_size(@utf8.encode(path) + b"\x00")
-    if size < 0 {
-      fail("snapshot cannot verify symlink or unreadable path: " + path)
-    }
-    if @fs.is_dir(path) {
-      snapshot_dir(path, result, depth + 1, started, bytes)
-    } else if name.has_suffix(".mbt") ||
+    // Classify before applying the no-link read guard. Ordinary documentation
+    // files are not compiler/model inputs; their file aliases need not block
+    // verification. Directories are always checked (even README.md directories),
+    // so a directory link cannot hide source or dependency inputs from the ledger.
+    let directory = @fs.is_dir(path)
+    let input = name.has_suffix(".mbt") ||
       name.has_suffix(".mbt.md") ||
       name.has_suffix(".mbtx") ||
       [
         "moon.mod", "moon.mod.json", "moon.pkg", "moon.pkg.json", "moon.lock", "moon.work",
         "moon.work.json", ".moon-audit.json",
-      ].contains(name) {
+      ].contains(name)
+    if !directory && !input {
+      continue
+    }
+    let size = file_size(@utf8.encode(path) + b"\x00")
+    if size < 0 {
+      fail("snapshot cannot verify symlink or unreadable path: " + path)
+    }
+    if directory {
+      snapshot_dir(path, result, depth + 1, started, bytes)
+    } else {
       if result.length() >= 100000 {
         fail("snapshot file limit exceeded")
       }
@@ -393,9 +402,20 @@ pub async fn verify(
   } else {
     "compiler_verified"
   }
+  let detail = if status == "project_changed" {
+    "Source, dependency or configuration inputs changed during compiler verification"
+  } else if !unsupported.is_empty() {
+    "Compiler check passed, but " +
+    unsupported.length().to_string() +
+    " compiler inputs use unsupported .mbt.md/.mbtx formats; see unsupported_files. Known .mbt inputs still follow the compiler plan"
+  } else if files.is_empty() {
+    "Compiler plan contains no supported project .mbt input files"
+  } else {
+    ""
+  }
   {
     status,
-    detail: "",
+    detail,
     toolchain: identity,
     target,
     files,

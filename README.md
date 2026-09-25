@@ -44,6 +44,8 @@ Linux x86_64、macOS arm64、Windows x86_64 的构建、解包搬迁、项目验
 
 已固定 Mooncakes 下载榜和 GitHub stars 榜各 12 个版本进行检查：23 个样本导入成功，15 个完成所请求的语法范围、8 个不完整，另 1 个归档因外部符号链接未导入。默认发现 2 条，全部规则发现 447 条语法线索；这些数量不是漏洞数。[完整结果、LLM 联调及后续优先级](experiments/popular_projects/README.md)
 
+后续已修复 core/actrun 的文档链接验证阻断，并使不完整报告继续遵守编译器文件计划；两者的 `.mbt.md` 缺口仍明确报不完整。[优化实测](experiments/popular_projects/optimization-2026-09-25/README.md)
+
 ## 可选语义检测
 
 ```bash
