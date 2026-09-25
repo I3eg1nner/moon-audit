@@ -429,6 +429,9 @@ async fn lower(
       operations.push(Return(id))
       id
     }
+    Loop(..) => fail("unsupported_legacy_loop: " + site(file, expr.loc()))
+    TryOperator(kind=Question, ..) =>
+      fail("unsupported_legacy_try_question: " + site(file, expr.loc()))
     _ => fail("unsupported_semantics: " + site(file, expr.loc()))
   }
 }

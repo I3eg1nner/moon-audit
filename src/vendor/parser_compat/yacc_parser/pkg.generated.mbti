@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "minie135/moon-audit/src/vendor/parser_compat/yacc_parser"
+
+import {
+  "minie135/moon-audit/src/vendor/parser_compat/syntax",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/list",
+  "moonbitlang/lexer/basic",
+  "moonbitlang/lexer/tokens",
+}
+
+// Values
+pub fn expression(Array[(@tokens.Token, @basic.Position, @basic.Position)], initial_pos? : @basic.Position) -> @syntax.Expr raise ParseError
+
+pub fn structure(Array[(@tokens.Token, @basic.Position, @basic.Position)], initial_pos? : @basic.Position) -> @list.List[@syntax.Impl] raise ParseError
+
+// Errors
+pub suberror ParseError {
+  UnexpectedToken(@tokens.Token, (@basic.Position, @basic.Position), Array[@tokens.TokenKind])
+  UnexpectedEndOfInput(@basic.Position, Array[@tokens.TokenKind])
+} derive(@debug.Debug)
+
+// Types and methods
+
+// Type aliases
+
+// Traits

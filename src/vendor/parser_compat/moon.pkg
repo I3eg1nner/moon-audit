@@ -1,0 +1,13 @@
+import {
+  "minie135/moon-audit/src/vendor/parser_compat/syntax",
+  "minie135/moon-audit/src/vendor/parser_compat/handrolled_parser",
+  "moonbitlang/lexer",
+  "moonbitlang/lexer/tokens",
+  "moonbitlang/x/fs",
+  "moonbitlang/lexer/basic",
+  "minie135/moon-audit/src/vendor/parser_compat/yacc_parser",
+  "moonbitlang/core/list",
+  "moonbitlang/core/debug",
+}
+
+formatter(ignore: [ "top.mbt" ])

@@ -2,10 +2,10 @@
 package "minie135/moon-audit/src"
 
 import {
+  "minie135/moon-audit/src/vendor/parser_compat/syntax",
   "moonbitlang/core/debug",
   "moonbitlang/core/list",
   "moonbitlang/lexer/basic",
-  "moonbitlang/parser/syntax",
 }
 
 // Values
@@ -13,7 +13,7 @@ pub const ANALYZER_VERSION : String = "0.5.0-dev"
 
 pub const PARSER_POLICY_VERSION : String = "handrolled-moonyacc-interpolation-v2"
 
-pub const PARSER_SPEC_VERSION : String = "0.4.0"
+pub const PARSER_SPEC_VERSION : String = "0.4.0+moon-audit-legacy.1"
 
 pub fn analyze_imports(String) -> ImportContext
 

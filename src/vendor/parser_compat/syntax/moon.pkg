@@ -1,0 +1,24 @@
+import {
+  "moonbitlang/lexer/tokens",
+  "moonbitlang/lexer/basic",
+  "moonbitlang/parser/attribute",
+  "moonbitlang/core/list",
+  "moonbitlang/core/hashmap",
+}
+
+warnings = "-28"
+
+formatter(
+  ignore: [
+    "ast.mbt",
+    "ast_json_repr.mbt",
+    "ast_to_json.mbt",
+    "docstring.mbt",
+    "imports.mbt",
+    "iter_visitor.mbt",
+    "map_visitor.mbt",
+    "no_location.mbt",
+    "oprators.mbt",
+    "utils.mbt",
+  ],
+)

@@ -132,6 +132,16 @@ class CliRegression(unittest.TestCase):
         self.assertIn('parse-failures=1', report['analysis_scope'])
         self.assertGreater(len(report['findings']), 0)
 
+    def test_lexical_errors_in_legacy_source_remain_incomplete(self):
+        for body in ['loop 1 { x => x } `', 'try? g() $']:
+            with self.subTest(body=body):
+                (self.root / 'invalid.mbt').write_text('fn broken() { ' + body + ' }\n', encoding='utf-8')
+                report = json.loads(self.run_cli('--format', 'json', code=2).stdout)
+                self.assertTrue(any('Lexer:' in error for error in report['errors']))
+                self.assertEqual(report['files_parsed'], 2)
+                self.assertEqual(report['files_selected'], 3)
+                self.assertEqual(len(report['findings']), 2)
+
     def test_incomplete_scan_cannot_replace_baseline(self):
         baseline = self.root / "baseline.json"
         baseline.write_text("existing baseline", encoding="utf-8")
@@ -169,7 +179,7 @@ class CliRegression(unittest.TestCase):
             report = json.loads(self.run_cli('--format', fmt).stdout)
             scope = report['analysis_scope'] if fmt == 'json' else report['runs'][0]['properties']['analysis_scope']
             self.assertIn('engine=syntax-pattern', scope)
-            self.assertIn('(moonbitlang/parser 0.4.0)', scope)
+            self.assertIn('(moonbitlang/parser 0.4.0+moon-audit-legacy.1)', scope)
             self.assertIn('interprocedural=false', scope)
             self.assertIn('unanalyzed-is-not-safe', scope)
 

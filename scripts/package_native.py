@@ -48,6 +48,12 @@ def main():
             'dependency_manifest_sha256': dependencies,
             'runtime': 'native; target MoonBit required only for project verification',
             'acceptance': 'pending extracted-artifact tests'}
+    frontend = ROOT / 'src/vendor/parser_compat'
+    frontend_lock = frontend / 'vendor.lock.json'
+    info['frontend'] = {
+        'compatibility_id': json.loads(frontend_lock.read_text(encoding='utf-8'))['compatibility_id'],
+        'manifest_sha256': hashlib.sha256(frontend_lock.read_bytes()).hexdigest(),
+    }
     metadata = output / 'build-info.json'
     metadata.write_text(json.dumps(info, indent=2) + '\n', encoding='utf-8')
     archive = output / f'moon-audit-0.5.0-dev-{args.platform}.zip'
@@ -55,12 +61,14 @@ def main():
         package.write(binary, name)
         package.write(ROOT / 'LICENSE', 'LICENSE')
         package.write(core_license, 'licenses/core/LICENSE')
+        for notice_file in ('LICENSE', 'NOTICE', 'vendor.lock.json', 'compat.patch'):
+            package.write(frontend / notice_file, 'licenses/parser-compat/' + notice_file)
         package.write(ROOT / 'README.md', 'README.md')
         package.write(ROOT / 'docs/llm-review.md', 'docs/llm-review.md')
         for helper in ('llm_review.py', 'llm_api_review.py'):
             package.write(ROOT / 'scripts' / helper, 'extras/' + helper)
         package.write(metadata, 'build-info.json')
-        notices = []
+        notices = ['moon-audit parser compatibility frontend: modified Apache-2.0 sources; see licenses/parser-compat/NOTICE and compat.patch']
         apache_text = ROOT / '.mooncakes/moonbitlang/parser/LICENSE'
         for dependency in ('parser', 'lexer', 'x', 'async'):
             module = ROOT / '.mooncakes/moonbitlang' / dependency

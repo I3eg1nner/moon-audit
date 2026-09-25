@@ -1,5 +1,7 @@
 # 热门 MoonBit 项目检查（2026-09-25）
 
+后续已完成旧 `try?`/`loop` 的有限前端适配，见[最新对照](../frontend_compat/README.md)。下文保留原始实验结果，不改写历史统计。
+
 后续[可用性优化与固定快照重测](optimization-2026-09-25/README.md)已解除 core/actrun 文档链接阻断，并校正 native 选源；仍保留 literate 格式不完整状态。下文统计保留原始实验口径。
 
 ## 结果与范围

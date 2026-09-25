@@ -1,0 +1,13 @@
+MoonBit parser compatibility frontend for moon-audit
+
+Based on moonbitlang/parser 0.4.0 (Apache-2.0).
+Legacy Loop and TryOperatorKind::Question nodes and Handrolled productions
+are restored from moonbitlang/parser 0.3.0, with original source positions.
+MoonYacc remains the unmodified current-syntax fallback; no legacy yacc
+grammar/table regeneration is claimed. Package imports/format configuration
+are adjusted for the vendored package location.
+
+See vendor.lock.json for exact sources and hashes, and compat.patch for all
+changes from 0.4.0. Lexical errors are additionally retained by both parser
+entry paths so recovered ASTs cannot be reported as successful input. This is a modified frontend, not an official parser release.
+Legacy syntax support is not legacy security-semantics support.

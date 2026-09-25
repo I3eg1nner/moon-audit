@@ -38,6 +38,7 @@ impl @syntax.MapVisitor for InterpolationExpander with fn visit_InterpElem_Sourc
   let lex = @lexer.tokens_from_string(
     source.source,
     start_pos=source.loc.start,
+    name=source.loc.start.fname,
     is_interpolation=true,
     comment=true,
   )

@@ -39,6 +39,8 @@ jobs:
         run: moon update
       - name: Check
         run: moon check --target all --deny-warn
+      - name: Verify pinned frontend patch
+        run: python scripts/check_frontend_vendor.py --upstream .mooncakes/moonbitlang/parser
       - name: Test
         run: moon test --target all --deny-warn
       - name: Build native release

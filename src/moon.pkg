@@ -1,7 +1,7 @@
 import {
   "moonbitlang/core/string",
   "minie135/moon-audit/src/source_parser",
-  "moonbitlang/parser/syntax",
+  "minie135/moon-audit/src/vendor/parser_compat/syntax",
   "moonbitlang/lexer/basic",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
@@ -10,5 +10,6 @@ import {
 }
 
 import {
-  "moonbitlang/parser",
+  "minie135/moon-audit/src/vendor/parser_compat" @parser,
+  "moonbitlang/parser" @official_parser,
 } for "test"

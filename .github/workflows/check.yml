@@ -44,6 +44,8 @@ jobs:
       - name: moon check
         run: moon check --target all --deny-warn
 
+      - name: Verify pinned frontend patch
+        run: python scripts/check_frontend_vendor.py --upstream .mooncakes/moonbitlang/parser
       - name: moon build
         run: moon build --target all
 

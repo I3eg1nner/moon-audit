@@ -12,6 +12,8 @@
 
 规则默认策略、分发和报告能力由同一登记生成。`--rule` 可选择其余规则，但不会把名称匹配升级为真实绑定。逐条依据见 [14 条规则审计](experiments/rule_audit/README.md)。旧 CFG/污点 DSL/LLM/pipeline 入口已移除；旧选项和配置会被拒绝。
 
+前端使用固定官方 parser 0.4.0 加窄范围兼容补丁，已支持旧 `try?`、`loop` 的语法扫描；报告显示 `0.4.0+moon-audit-legacy.1`。未建模的旧构造在语义模式仍报不完整。[真实新版/2025 项目对照与边界](experiments/frontend_compat/README.md)
+
 ## 本地使用与构建
 
 用户运行原生二进制无需 Python。默认源码扫描也无需目标项目工具链；项目验证和语义模式需要项目工具链及已准备的依赖。
@@ -36,7 +38,7 @@ moon build --target native --release
 moon run src/main -- --format json /path/to/project
 ```
 
-Linux x86_64、macOS arm64、Windows x86_64 的构建、解包搬迁、项目验证和受限语义入口均已通过[真实 CI](https://github.com/I3eg1nner/moon-audit/actions/runs/36105436648)。平台测试数、提交与归档指纹见[验收记录](docs/metrics/three-platform-acceptance-2026-09-25.json)。开发包可从 CI 的 Artifacts 下载；[PR #1](https://github.com/I3eg1nner/moon-audit/pull/1) 已合并到 main（`075b0f3`）；尚未发布正式版本。
+Linux x86_64、macOS arm64、Windows x86_64 的原生开发包可从[原生交付 CI](https://github.com/I3eg1nner/moon-audit/actions/workflows/native-delivery.yml)的 Artifacts 下载，请选择对应提交已通过的构建。归档包含 build-info、依赖许可证及兼容前端修改说明。[初始三平台验收记录](docs/metrics/three-platform-acceptance-2026-09-25.json)保留历史证据；当前仍为开发版，尚未正式发布。
 
 ## 可选 LLM 复核与热门项目检查
 

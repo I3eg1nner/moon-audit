@@ -1,0 +1,486 @@
+--- upstream/handrolled_parser/first_set.mbt
++++ compat/handrolled_parser/first_set.mbt
+@@ -81,6 +81,7 @@
+   TK_TRY,
+   TK_DEFER,
+   TK_ERRDEFER,
++  TK_TRY_QUESTION,
+   TK_TRY_EXCLAMATION,
+   TK_FORALL,
+   TK_EXISTS,
+--- upstream/handrolled_parser/moon.pkg
++++ compat/handrolled_parser/moon.pkg
+@@ -1,13 +1,11 @@
+ import {
+-  "moonbitlang/parser/syntax",
++  "minie135/moon-audit/src/vendor/parser_compat/syntax",
+   "moonbitlang/lexer/tokens",
+-  "moonbitlang/parser/syntax/util",
++  "minie135/moon-audit/src/vendor/parser_compat/syntax/util",
+   "moonbitlang/lexer/basic",
+   "moonbitlang/parser/attribute",
+   "moonbitlang/core/list",
+   "moonbitlang/core/debug",
+ }
+ 
+-import {
+-  "moonbitlang/lexer",
+-} for "test"
++formatter(ignore: [ "core.mbt", "first_set.mbt", "imports.mbt", "parser.mbt" ])
+--- upstream/handrolled_parser/parser.mbt
++++ compat/handrolled_parser/parser.mbt
+@@ -2498,6 +2498,31 @@
+ }
+ 
+ ///|
++fn State::parse_loop_expr(self : Self, label~ : @syntax.Label?) -> @syntax.Expr {
++  if self.mode is Panic(loc~, ..) {
++    return Hole(loc~, kind=Synthesized)
++  }
++  let spos = self.peek_spos()
++  self.skip() // skip LOOP token
++  let arg = self.with_follow(follow_set=[TK_LBRACE], fn(_) { self.parse_expr() })
++  let loop_loc = self.loc_start_with(spos)
++  let body = match self.mode {
++    Normal =>
++      self.surround_series(
++        invalid_delims=[TK_COMMA],
++        left=TK_LBRACE,
++        right=TK_RBRACE,
++        delim=TK_SEMI,
++        fn(_) { self.parse_case() },
++      )
++      |> @list.List
++    Panic(_) => @list.new()
++  }
++  let loc = self.loc_start_with(spos)
++  Loop(arg~, body~, label~, loop_loc~, loc~)
++}
++
++///|
+ fn State::parse_where_clause(self : State) -> @syntax.WhereClause? {
+   if self.peek_token() is WHERE {
+     let spos = self.peek_spos()
+@@ -2748,7 +2773,17 @@
+   }
+   match self.peek_token() {
+     // an error production to handle `try invalid-pipe-expr`
+-    IF | MATCH | WHILE | FOR | TRY | LET | GUARD | BREAK | RETURN | CONTINUE =>
++    IF
++    | MATCH
++    | LOOP
++    | WHILE
++    | FOR
++    | TRY
++    | LET
++    | GUARD
++    | BREAK
++    | RETURN
++    | CONTINUE =>
+       self.handle_unexpected_expr_or_statement(context="the try body")
+     _ => self.parse_pipe_expr(parsed=None)
+   }
+@@ -2808,6 +2843,19 @@
+ }
+ 
+ ///|
++fn State::parse_try_question(self : Self) -> @syntax.Expr {
++  if self.mode is Panic(loc~, ..) {
++    return Hole(loc~, kind=Synthesized)
++  }
++  let spos = self.peek_spos()
++  let try_loc = self.peek_location()
++  self.skip()
++  let body = self.parse_pipe_expr(parsed=None)
++  let loc = self.loc_start_with(spos)
++  TryOperator(body~, kind=Question, try_loc~, loc~)
++}
++
++///|
+ fn State::parse_try_exclamation(self : Self) -> @syntax.Expr {
+   if self.mode is Panic(loc~, ..) {
+     return Hole(loc~, kind=Synthesized)
+@@ -2894,6 +2942,7 @@
+         // an error production to handle `pattern if invalid-infix-expr => action`
+         IF
+         | MATCH
++        | LOOP
+         | WHILE
+         | FOR
+         | TRY
+@@ -3277,11 +3326,12 @@
+           let body = self.parse_block_expr()
+           LabelledBlock(label~, body~, loc=self.loc_start_with(spos))
+         }
++        LOOP => self.parse_loop_expr(label=Some(label))
+         FOR => self.parse_for_expr(label=Some(label))
+         WHILE => self.parse_while_loop(label=Some(label))
+         other => {
+           let loc = self.peek_location()
+-          self.report_unexpected(other, [TK_LBRACE, TK_FOR, TK_WHILE], loc)
++          self.report_unexpected(other, [TK_LBRACE, TK_LOOP, TK_FOR, TK_WHILE], loc)
+           self.panic() |> ignore
+           Hole(loc~, kind=Synthesized)
+         }
+@@ -3310,9 +3360,11 @@
+     }
+     LEXMATCH => self.parse_lexmatch_expr()
+     LEXSCAN => self.parse_lexscan_expr()
++    LOOP => self.parse_loop_expr(label=None)
+     FOR => self.parse_for_expr(label=None)
+     WHILE => self.parse_while_loop(label=None)
+     TRY => self.parse_try_expr()
++    TRY_QUESTION => self.parse_try_question()
+     TRY_EXCLAMATION => self.parse_try_exclamation()
+     IF => self.parse_if_expr()
+     MATCH => self.parse_match_expr()
+@@ -5301,10 +5353,12 @@
+   let (actual, expr) = match token {
+     IF => ("if expression", self.parse_if_expr())
+     MATCH => ("match expression", self.parse_match_expr())
++    LOOP => ("loop expression", self.parse_loop_expr(label=None))
+     WHILE => ("while expression", self.parse_while_loop(label=None))
+     FOR => ("for expression", self.parse_for_expr(label=None))
+     TRY => ("try expression", self.parse_try_expr())
+     TRY_EXCLAMATION => ("`try!` expression", self.parse_try_exclamation())
++    TRY_QUESTION => ("`try?` expression", self.parse_try_question())
+     LET | LETREC => ("let statement", handle_stmt(self))
+     GUARD => ("guard statement", handle_stmt(self))
+     DEFER | ERRDEFER => ("defer statement", handle_stmt(self))
+@@ -5325,9 +5379,11 @@
+   match self.peek_token() {
+     IF
+     | MATCH
++    | LOOP
+     | WHILE
+     | FOR
+     | TRY
++    | TRY_QUESTION
+     | TRY_EXCLAMATION
+     | LET
+     | LETREC
+--- upstream/moon.pkg
++++ compat/moon.pkg
+@@ -1,11 +1,13 @@
+ import {
+-  "moonbitlang/parser/syntax",
+-  "moonbitlang/parser/handrolled_parser",
++  "minie135/moon-audit/src/vendor/parser_compat/syntax",
++  "minie135/moon-audit/src/vendor/parser_compat/handrolled_parser",
+   "moonbitlang/lexer",
+   "moonbitlang/lexer/tokens",
+   "moonbitlang/x/fs",
+   "moonbitlang/lexer/basic",
+-  "moonbitlang/parser/yacc_parser",
++  "minie135/moon-audit/src/vendor/parser_compat/yacc_parser",
+   "moonbitlang/core/list",
+   "moonbitlang/core/debug",
+ }
++
++formatter(ignore: [ "top.mbt" ])
+--- upstream/syntax/ast.mbt
++++ compat/syntax/ast.mbt
+@@ -593,6 +593,14 @@
+   Break(arg~ : Expr?, label~ : Label?, loc~ : Location)
+   /// `continue e1, e2, e3`
+   Continue(args~ : @list.List[Expr], label~ : Label?, loc~ : Location)
++  /// `loop args { ps1 => e1; ps2 => e2 }`
++  Loop(
++    arg~ : Expr,
++    body~ : @list.List[Case],
++    label~ : Label?,
++    loop_loc~ : Location,
++    loc~ : Location
++  )
+   /// `for binders; condition; continue_block { body } else { expr }`
+   For(
+     binders~ : @list.List[(Binder, Expr)],
+@@ -627,7 +635,7 @@
+     else_loc~ : Location,
+     loc~ : Location
+   )
+-  /// `try! expr`
++  /// `try! expr` or `try? expr`
+   TryOperator(
+     body~ : Expr,
+     kind~ : TryOperatorKind,
+@@ -651,6 +659,7 @@
+ 
+ ///|
+ pub(all) enum TryOperatorKind {
++  Question
+   Exclamation
+ } derive(Debug)
+ 
+--- upstream/syntax/ast_json_repr.mbt
++++ compat/syntax/ast_json_repr.mbt
+@@ -724,6 +724,19 @@
+         ),
+         "label": option_json_repr(label, Label::json_repr),
+       })
++    Loop(arg~, body~, label~, loop_loc~, loc~) => {
++      ignore(loop_loc)
++      tagged_node("Expr::Loop", loc, {
++        "arg": arg.json_repr(),
++        "body": list_json_repr(
++          "Expr::Loop::CaseList",
++          loc,
++          body,
++          Case::json_repr,
++        ),
++        "label": option_json_repr(label, Label::json_repr),
++      })
++    }
+     For(
+       binders~,
+       condition~,
+@@ -1734,6 +1747,7 @@
+ ///|
+ fn TryOperatorKind::json_repr(self : TryOperatorKind, loc : Location) -> Json {
+   match self {
++    Question => tagged_node0("TryOperatorKind::Question", loc)
+     Exclamation => tagged_node0("TryOperatorKind::Exclamation", loc)
+   }
+ }
+--- upstream/syntax/iter_visitor.mbt
++++ compat/syntax/iter_visitor.mbt
+@@ -672,6 +672,14 @@
+     Self,
+     args~ : @list.List[Expr],
+     label~ : Label?,
++    loc~ : Location,
++  ) -> Unit = _
++  fn visit_Expr_Loop(
++    Self,
++    arg~ : Expr,
++    body~ : @list.List[Case],
++    label~ : Label?,
++    loop_loc~ : Location,
+     loc~ : Location,
+   ) -> Unit = _
+   fn visit_Expr_For(
+@@ -1334,6 +1342,11 @@
+ ///|
+ impl IterVisitor with fn visit_Expr_Continue(env, args~, label~, loc~) {
+   IterVisitor::visit_Expr_Continue(env.base(), args~, label~, loc~)
++}
++
++///|
++impl IterVisitor with fn visit_Expr_Loop(env, arg~, body~, label~, loop_loc~, loc~) {
++  IterVisitor::visit_Expr_Loop(env.base(), arg~, body~, label~, loop_loc~, loc~)
+ }
+ 
+ ///|
+@@ -4489,6 +4502,22 @@
+ ) {
+   ignore(loc)
+   args.each(arg => env.0.visit_Expr(arg))
++  label.each(x => env.0.visit_Label(x))
++}
++
++///|
++pub impl[T : IterVisitor] IterVisitor for IterVisitorBase[T] with fn visit_Expr_Loop(
++  env,
++  arg~,
++  body~,
++  label~,
++  loop_loc~,
++  loc~,
++) {
++  ignore(loop_loc)
++  ignore(loc)
++  env.0.visit_Expr(arg)
++  body.each(x => env.0.visit_Case(x))
+   label.each(x => env.0.visit_Label(x))
+ }
+ 
+@@ -4824,6 +4853,8 @@
+     Break(arg~, label~, loc~) => env.0.visit_Expr_Break(arg~, label~, loc~)
+     Continue(args~, label~, loc~) =>
+       env.0.visit_Expr_Continue(args~, label~, loc~)
++    Loop(arg~, body~, label~, loop_loc~, loc~) =>
++      env.0.visit_Expr_Loop(arg~, body~, label~, loop_loc~, loc~)
+     For(
+       binders~,
+       condition~,
+@@ -5151,6 +5182,7 @@
+   visit_MultilineStringElem_String,
+   visit_TypeDeclBinder,
+   visit_Expr_Continue,
++  visit_Expr_Loop,
+   visit_Expr_Unary,
+   visit_Expr_ArrayAugmentedSet,
+   visit_Parameter_Optional,
+--- upstream/syntax/map_visitor.mbt
++++ compat/syntax/map_visitor.mbt
+@@ -672,6 +672,14 @@
+     Self,
+     args~ : @list.List[Expr],
+     label~ : Label?,
++    loc~ : Location,
++  ) -> Expr = _
++  fn visit_Expr_Loop(
++    Self,
++    arg~ : Expr,
++    body~ : @list.List[Case],
++    label~ : Label?,
++    loop_loc~ : Location,
+     loc~ : Location,
+   ) -> Expr = _
+   fn visit_Expr_For(
+@@ -1327,6 +1335,11 @@
+ ///|
+ impl MapVisitor with fn visit_Expr_Continue(env, args~, label~, loc~) {
+   MapVisitor::visit_Expr_Continue(env.base(), args~, label~, loc~)
++}
++
++///|
++impl MapVisitor with fn visit_Expr_Loop(env, arg~, body~, label~, loop_loc~, loc~) {
++  MapVisitor::visit_Expr_Loop(env.base(), arg~, body~, label~, loop_loc~, loc~)
+ }
+ 
+ ///|
+@@ -4619,6 +4632,21 @@
+   let args = args.map(arg => env.0.visit_Expr(arg))
+   let label = label.map(x => env.0.visit_Label(x))
+   Continue(args~, label~, loc~)
++}
++
++///|
++pub impl[T : MapVisitor] MapVisitor for MapVisitorBase[T] with fn visit_Expr_Loop(
++  env,
++  arg~,
++  body~,
++  label~,
++  loop_loc~,
++  loc~,
++) {
++  let arg = env.0.visit_Expr(arg)
++  let body = body.map(x => env.0.visit_Case(x))
++  let label = label.map(x => env.0.visit_Label(x))
++  Loop(arg~, body~, label~, loop_loc~, loc~)
+ }
+ 
+ ///|
+@@ -4964,6 +4992,8 @@
+     Break(arg~, label~, loc~) => env.0.visit_Expr_Break(arg~, label~, loc~)
+     Continue(args~, label~, loc~) =>
+       env.0.visit_Expr_Continue(args~, label~, loc~)
++    Loop(arg~, body~, label~, loop_loc~, loc~) =>
++      env.0.visit_Expr_Loop(arg~, body~, label~, loop_loc~, loc~)
+     For(
+       binders~,
+       condition~,
+@@ -5293,6 +5323,7 @@
+   visit_MultilineStringElem_String,
+   visit_TypeDeclBinder,
+   visit_Expr_Continue,
++  visit_Expr_Loop,
+   visit_Expr_Unary,
+   visit_Expr_ArrayAugmentedSet,
+   visit_Parameter_Optional,
+--- upstream/syntax/moon.pkg
++++ compat/syntax/moon.pkg
+@@ -6,8 +6,19 @@
+   "moonbitlang/core/hashmap",
+ }
+ 
+-import {
+-  "moonbitlang/core/test",
+-} for "wbtest"
++warnings = "-28"
+ 
+-warnings = "-28"
++formatter(
++  ignore: [
++    "ast.mbt",
++    "ast_json_repr.mbt",
++    "ast_to_json.mbt",
++    "docstring.mbt",
++    "imports.mbt",
++    "iter_visitor.mbt",
++    "map_visitor.mbt",
++    "no_location.mbt",
++    "oprators.mbt",
++    "utils.mbt",
++  ],
++)
+--- upstream/syntax/util/moon.pkg
++++ compat/syntax/util/moon.pkg
+@@ -1,13 +1,12 @@
+ import {
+-  "moonbitlang/parser/syntax",
++  "minie135/moon-audit/src/vendor/parser_compat/syntax",
+   "moonbitlang/lexer/basic",
+   "moonbitlang/core/list",
+ }
+ 
+-import {
+-} for "test"
++warnings = "-1-6"
+ 
+-warnings = "-1-6"
++formatter(ignore: [ "compact.mbt", "imports.mbt" ])
+ 
+ options(
+   "pre-build": [ ],
+--- upstream/syntax/utils.mbt
++++ compat/syntax/utils.mbt
+@@ -516,6 +516,7 @@
+     Unit(loc~, faked=_) => loc
+     Break(arg=_, label=_, loc~) => loc
+     Continue(args=_, label=_, loc~) => loc
++    Loop(arg=_, body=_, label=_, loop_loc=_, loc~) => loc
+     For(
+       binders=_,
+       condition=_,
+--- upstream/top.mbt
++++ compat/top.mbt
+@@ -122,7 +122,7 @@
+   name? : String = "",
+   parser? : Parser = Handrolled,
+ ) -> (@syntax.Impls, Array[Report]) {
+-  let { tokens, docstrings, .. } = @lexer.tokens_from_string(
++  let { tokens, docstrings, errors } = @lexer.tokens_from_string(
+     source,
+     comment=true,
+     name~,
+@@ -159,6 +159,14 @@
+     MoonYacc => parse_by_moonyacc(tokens)
+     Handrolled => @handrolled_parser.parse(tokens)
+   }
++  // Do not accept a recovered AST when the lexer discarded invalid source.
++  // Both Handrolled and MoonYacc must retain the same lexical failures.
++  for error in errors {
++    diagnostics.push({
++      loc: { start: error.0, end: error.1, },
++      msg: "Lexer: " + Show::to_string(error.2),
++    })
++  }
+   attach_docstrings(docstrings, impls)
+   (impls, diagnostics)
+ }
+--- upstream/yacc_parser/moon.pkg
++++ compat/yacc_parser/moon.pkg
+@@ -1,6 +1,6 @@
+ import {
+-  "moonbitlang/parser/syntax",
+-  "moonbitlang/parser/syntax/util",
++  "minie135/moon-audit/src/vendor/parser_compat/syntax",
++  "minie135/moon-audit/src/vendor/parser_compat/syntax/util",
+   "moonbitlang/lexer/tokens",
+   "moonbitlang/lexer/basic",
+   "moonbitlang/parser/attribute",
+@@ -9,11 +9,4 @@
+ 
+ warnings = "-6"
+ 
+-formatter(ignore: [ "parser.mbt" ])
+-
+-rule(
+-  name: "moonyacc",
+-  command: "moonx moonbitlang/yacc@0.7.22 --no-comments --external-tokens $input -o $output",
+-)
+-
+-dev_build(rule: "moonyacc", input: "parser.mbty", output: "parser.mbt")
++formatter(ignore: [ "helpers.mbt", "imports.mbt", "parser.mbt" ])

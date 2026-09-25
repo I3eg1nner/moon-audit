@@ -1,0 +1,12 @@
+import {
+  "minie135/moon-audit/src/vendor/parser_compat/syntax",
+  "minie135/moon-audit/src/vendor/parser_compat/syntax/util",
+  "moonbitlang/lexer/tokens",
+  "moonbitlang/lexer/basic",
+  "moonbitlang/parser/attribute",
+  "moonbitlang/core/list",
+}
+
+warnings = "-6"
+
+formatter(ignore: [ "helpers.mbt", "imports.mbt", "parser.mbt" ])

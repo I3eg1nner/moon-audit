@@ -27,7 +27,7 @@ test "frontend preserves byte return value and source location" {
 ///|
 test "frontend keeps original diagnostics when both parsers reject input" {
   let source = "pub fn broken() -> Bytes { return b\"\" + }"
-  let (_, primary) = @parser.parse_string(source, name="broken.mbt")
+  let (_, primary) = @official_parser.parse_string(source, name="broken.mbt")
   let (_, actual) = @src.parse_source(source, name="broken.mbt")
   inspect(actual.length() > 0, content="true")
   inspect(actual.length() == primary.length(), content="true")
@@ -40,7 +40,10 @@ test "frontend keeps original diagnostics when both parsers reject input" {
 ///|
 test "frontend retains primary AST for accepted current syntax" {
   let source = "pub fn cleanup() -> Unit { errdefer (); () }"
-  let (primary, reports) = @parser.parse_string(source, name="cleanup.mbt")
+  let (primary, reports) = @official_parser.parse_string(
+    source,
+    name="cleanup.mbt",
+  )
   let (actual, errors) = @src.parse_source(source, name="cleanup.mbt")
   inspect(reports.length(), content="0")
   inspect(errors.length(), content="0")

@@ -79,7 +79,7 @@ pub const ANALYZER_VERSION = "0.5.0-dev"
 
 ///|
 /// Frontend spec pinned in moon.mod (moonbitlang/parser).
-pub const PARSER_SPEC_VERSION = "0.4.0"
+pub const PARSER_SPEC_VERSION = "0.4.0+moon-audit-legacy.1"
 
 ///|
 pub(all) struct ImportContext {
