@@ -1,0 +1,35 @@
+///|
+fn relay(input : String) -> String {
+  input
+}
+
+///|
+pub fn install(app : @mocket.Mocket) -> Unit {
+  app.get("/raw", event => {
+    let params = event.req.query()
+    let input : String = params.get("q").unwrap_or("")
+    let rendered : String = relay(input)
+    @mocket.html(rendered)
+  })
+  app.get("/safe", event => {
+    let input : String = event.req.query().get("q").unwrap_or("")
+    let rendered : String = @mocket.escape_html(relay(input))
+    @mocket.html(rendered)
+  })
+  app.get("/discarded", event => {
+    let input : String = event.req.query().get("q").unwrap_or("")
+    let _discarded = @mocket.html(relay(input))
+    @mocket.html("constant")
+  })
+  app.get("/overwritten", event => {
+    let input : String = event.req.query().get("q").unwrap_or("")
+    let mut result = @mocket.html(relay(input))
+    result = @mocket.html("replacement")
+    result
+  })
+}
+
+///|
+pub fn unknown_show(value : &Show) -> &@mocket.Responder {
+  @mocket.html(value)
+}

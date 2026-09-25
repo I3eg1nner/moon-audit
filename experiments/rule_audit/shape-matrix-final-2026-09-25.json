@@ -1,0 +1,807 @@
+{
+  "schema": "moon-audit.rule-shape-audit.v1",
+  "toolchain": {
+    "exit_code": 0,
+    "stdout": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg\n",
+    "stderr": ""
+  },
+  "analyzer_sha256": "23ece129f22c2232da4a43535a1d47a56ed5975efd913d089eab00c8622cb031",
+  "purpose": "Compiler-checked syntax shapes and counterexamples; synthetic APIs do not validate real libraries or exploitability.",
+  "gating": "Intentionally misleading local import name demonstrates import substring is not API identity.",
+  "cases": [
+    {
+      "rule": "CWE-116/replace-escaping",
+      "kind": "dangerous_shape",
+      "expected_findings": 1,
+      "evidence": "real_builtin",
+      "target": "native",
+      "fixture": "fixtures/00_CWE-116_replace-escaping_dangerous_shape.mbt.txt",
+      "sha256": "b7fc5a36f7c182cd5e6b852f57535ae59b93f21bfc8473df184ea108e5d8478a",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 4 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-116/replace-escaping",
+      "kind": "control_shape",
+      "expected_findings": 0,
+      "evidence": "real_builtin",
+      "target": "native",
+      "fixture": "fixtures/01_CWE-116_replace-escaping_control_shape.mbt.txt",
+      "sha256": "5b62dd2ea5c9fdfd31b67233d4b3994c6f99fd7b58c7b832a767e4e138712693",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 0,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-116/replace-escaping",
+      "kind": "same_name_or_semantic_counterexample",
+      "expected_findings": 1,
+      "evidence": "counterexample",
+      "target": "native",
+      "fixture": "fixtures/02_CWE-116_replace-escaping_same_name_or_semantic_counterexample.mbt.txt",
+      "sha256": "92b9303c696f3953be739c684b771d41e1ab816b7073755a8d3e502df624e7ae",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nWarning: [0009]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/probe.mbt:1:12 ]\n   \u2502\n 1 \u2502 pub struct Dummy {}\n   \u2502            \u2500\u2500\u252c\u2500\u2500  \n   \u2502              \u2570\u2500\u2500\u2500\u2500 Warning (struct_never_constructed): The struct Dummy is never constructed\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (2 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-79/cmark-unsafe",
+      "kind": "dangerous_shape",
+      "expected_findings": 1,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/03_CWE-79_cmark-unsafe_dangerous_shape.mbt.txt",
+      "sha256": "899d0c925e8de14673775fbc3c3d369f5c97089831fb10d84be485edf6da6f71",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-79/cmark-unsafe",
+      "kind": "control_shape",
+      "expected_findings": 0,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/04_CWE-79_cmark-unsafe_control_shape.mbt.txt",
+      "sha256": "59fa75b777ce1da076c82199f99d5f9f94502956481314241289909461583b94",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 0,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-79/cmark-unsafe",
+      "kind": "same_name_or_semantic_counterexample",
+      "expected_findings": 1,
+      "evidence": "counterexample",
+      "target": "native",
+      "fixture": "fixtures/05_CWE-79_cmark-unsafe_same_name_or_semantic_counterexample.mbt.txt",
+      "sha256": "89ae54029ee3089a6a3ebb23c5e2f2fa26c56c3f948f8f6059a54161d5ad3514",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-79/inner-html",
+      "kind": "dangerous_shape",
+      "expected_findings": 1,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/06_CWE-79_inner-html_dangerous_shape.mbt.txt",
+      "sha256": "ce2bff2e99ec0d568b30548bd070f689550c6f1dbdd7ebb78e6a273b3c3eeb73",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nWarning: [0009]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/probe.mbt:1:12 ]\n   \u2502\n 1 \u2502 pub struct Dummy {}\n   \u2502            \u2500\u2500\u252c\u2500\u2500  \n   \u2502              \u2570\u2500\u2500\u2500\u2500 Warning (struct_never_constructed): The struct Dummy is never constructed\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (2 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-79/inner-html",
+      "kind": "control_shape",
+      "expected_findings": 0,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/07_CWE-79_inner-html_control_shape.mbt.txt",
+      "sha256": "373b6025d865705b082f637d70647589208950f1d8a8bba8752059cea14686f9",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nWarning: [0009]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/probe.mbt:1:12 ]\n   \u2502\n 1 \u2502 pub struct Dummy {}\n   \u2502            \u2500\u2500\u252c\u2500\u2500  \n   \u2502              \u2570\u2500\u2500\u2500\u2500 Warning (struct_never_constructed): The struct Dummy is never constructed\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (2 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 0,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-79/inner-html",
+      "kind": "same_name_or_semantic_counterexample",
+      "expected_findings": 1,
+      "evidence": "counterexample",
+      "target": "native",
+      "fixture": "fixtures/08_CWE-79_inner-html_same_name_or_semantic_counterexample.mbt.txt",
+      "sha256": "aa70de9cba85ca8ee3e78c9a8ca2796fba1f2dbc51398f8ace3d42aee77e8631",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nWarning: [0009]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/probe.mbt:1:12 ]\n   \u2502\n 1 \u2502 pub struct Dummy {}\n   \u2502            \u2500\u2500\u252c\u2500\u2500  \n   \u2502              \u2570\u2500\u2500\u2500\u2500 Warning (struct_never_constructed): The struct Dummy is never constructed\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (2 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-79/template-injection",
+      "kind": "dangerous_shape",
+      "expected_findings": 1,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/09_CWE-79_template-injection_dangerous_shape.mbt.txt",
+      "sha256": "6d32e342afec9b075fb7ac79d758af0ed2a6d3068177f63e33fce77121830029",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-79/template-injection",
+      "kind": "control_shape",
+      "expected_findings": 0,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/10_CWE-79_template-injection_control_shape.mbt.txt",
+      "sha256": "43fc221eb8fadbdc298d80b648b4fede56e5c123aec114fa86a0cb6f14dea048",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 0,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-79/template-injection",
+      "kind": "same_name_or_semantic_counterexample",
+      "expected_findings": 1,
+      "evidence": "counterexample",
+      "target": "native",
+      "fixture": "fixtures/11_CWE-79_template-injection_same_name_or_semantic_counterexample.mbt.txt",
+      "sha256": "2dd450b736ec927a6be59cf7321f4ac50935b35b1b8fb6de6285413137d24d41",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-94/eval-extern",
+      "kind": "dangerous_shape",
+      "expected_findings": 1,
+      "evidence": "real_js_ffi",
+      "target": "js",
+      "fixture": "fixtures/12_CWE-94_eval-extern_dangerous_shape.mbt.txt",
+      "sha256": "2f44123acca4aa85e028c6dee4f4e85e76deb992b35ac2fa74db2ecea20efa5c",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 4 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-94/eval-extern",
+      "kind": "control_shape",
+      "expected_findings": 0,
+      "evidence": "real_js_ffi",
+      "target": "js",
+      "fixture": "fixtures/13_CWE-94_eval-extern_control_shape.mbt.txt",
+      "sha256": "f56a3a269787e608643a2b9631b9cd33cefa8ec2306835ec61d39f9c1d93c3a6",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 0,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-94/eval-extern",
+      "kind": "same_name_or_semantic_counterexample",
+      "expected_findings": 1,
+      "evidence": "counterexample",
+      "target": "js",
+      "fixture": "fixtures/14_CWE-94_eval-extern_same_name_or_semantic_counterexample.mbt.txt",
+      "sha256": "88ae4e368136d028c673bb99ebaf4ba8268901f9df27b0c0fb77e6289b00e1f0",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-113/crlf-injection",
+      "kind": "dangerous_shape",
+      "expected_findings": 1,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/15_CWE-113_crlf-injection_dangerous_shape.mbt.txt",
+      "sha256": "654332e2ef15ad5d3feaf808be7dd2a8b1ceda7bdb9e8af4f906d36efcc0bb54",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nWarning: [0009]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/probe.mbt:1:12 ]\n   \u2502\n 1 \u2502 pub struct Dummy {}\n   \u2502            \u2500\u2500\u252c\u2500\u2500  \n   \u2502              \u2570\u2500\u2500\u2500\u2500 Warning (struct_never_constructed): The struct Dummy is never constructed\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (2 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-113/crlf-injection",
+      "kind": "control_shape",
+      "expected_findings": 0,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/16_CWE-113_crlf-injection_control_shape.mbt.txt",
+      "sha256": "08822cf4b1cb8761cb897a3ebf331901401ccdf1a3fe8e8d02e7dd16b9ff8ec1",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nWarning: [0009]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/probe.mbt:1:12 ]\n   \u2502\n 1 \u2502 pub struct Dummy {}\n   \u2502            \u2500\u2500\u252c\u2500\u2500  \n   \u2502              \u2570\u2500\u2500\u2500\u2500 Warning (struct_never_constructed): The struct Dummy is never constructed\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (2 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 0,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-113/crlf-injection",
+      "kind": "same_name_or_semantic_counterexample",
+      "expected_findings": 1,
+      "evidence": "counterexample",
+      "target": "native",
+      "fixture": "fixtures/17_CWE-113_crlf-injection_same_name_or_semantic_counterexample.mbt.txt",
+      "sha256": "ed748dd8e9884a6104921138c2c201e4672fcb600c8898e0f6cdb8fc20ab5347",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nWarning: [0009]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/probe.mbt:1:12 ]\n   \u2502\n 1 \u2502 pub struct Dummy {}\n   \u2502            \u2500\u2500\u252c\u2500\u2500  \n   \u2502              \u2570\u2500\u2500\u2500\u2500 Warning (struct_never_constructed): The struct Dummy is never constructed\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (2 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-942/cors-credentials",
+      "kind": "dangerous_shape",
+      "expected_findings": 1,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/18_CWE-942_cors-credentials_dangerous_shape.mbt.txt",
+      "sha256": "f557454af88b45c1a4770479b3c887e229dd1f034b0b375f62abc466a90b390a",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-942/cors-credentials",
+      "kind": "control_shape",
+      "expected_findings": 0,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/19_CWE-942_cors-credentials_control_shape.mbt.txt",
+      "sha256": "c699d69f116fe87980865cf2a574d0c4cb562d642fcd656d8f17cf9b9029f379",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 0,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-942/cors-credentials",
+      "kind": "same_name_or_semantic_counterexample",
+      "expected_findings": 1,
+      "evidence": "counterexample",
+      "target": "native",
+      "fixture": "fixtures/20_CWE-942_cors-credentials_same_name_or_semantic_counterexample.mbt.txt",
+      "sha256": "a9dd4538e9fb16d46925895b995205afc3b3f3740601319ed1b7580af837eb3a",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-614/cookie-attrs",
+      "kind": "dangerous_shape",
+      "expected_findings": 1,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/21_CWE-614_cookie-attrs_dangerous_shape.mbt.txt",
+      "sha256": "76f26c9357ae3c990561570590b5c11a9d57e373772ce061411f937f6111b6e3",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nWarning: [0009]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/probe.mbt:1:12 ]\n   \u2502\n 1 \u2502 pub struct Dummy {}\n   \u2502            \u2500\u2500\u252c\u2500\u2500  \n   \u2502              \u2570\u2500\u2500\u2500\u2500 Warning (struct_never_constructed): The struct Dummy is never constructed\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (2 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-614/cookie-attrs",
+      "kind": "control_shape",
+      "expected_findings": 0,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/22_CWE-614_cookie-attrs_control_shape.mbt.txt",
+      "sha256": "0724a83a2379ff2a12e3c96f28788175b062efe8187a8a4f2147a424c4478517",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nWarning: [0009]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/probe.mbt:1:12 ]\n   \u2502\n 1 \u2502 pub struct Dummy {}\n   \u2502            \u2500\u2500\u252c\u2500\u2500  \n   \u2502              \u2570\u2500\u2500\u2500\u2500 Warning (struct_never_constructed): The struct Dummy is never constructed\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (2 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 0,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-614/cookie-attrs",
+      "kind": "same_name_or_semantic_counterexample",
+      "expected_findings": 1,
+      "evidence": "counterexample",
+      "target": "native",
+      "fixture": "fixtures/23_CWE-614_cookie-attrs_same_name_or_semantic_counterexample.mbt.txt",
+      "sha256": "76f26c9357ae3c990561570590b5c11a9d57e373772ce061411f937f6111b6e3",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nWarning: [0009]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/probe.mbt:1:12 ]\n   \u2502\n 1 \u2502 pub struct Dummy {}\n   \u2502            \u2500\u2500\u252c\u2500\u2500  \n   \u2502              \u2570\u2500\u2500\u2500\u2500 Warning (struct_never_constructed): The struct Dummy is never constructed\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (2 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-614/cookie-attrs",
+      "kind": "false_attributes_counterexample",
+      "expected_findings": 0,
+      "evidence": "counterexample",
+      "target": "native",
+      "fixture": "fixtures/24_CWE-614_cookie-attrs_false_attributes_counterexample.mbt.txt",
+      "sha256": "17bf4d7882b302cff1c47c1662eb358211a50b611c59e3ec0326ba461daa6662",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nWarning: [0009]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/probe.mbt:1:12 ]\n   \u2502\n 1 \u2502 pub struct Dummy {}\n   \u2502            \u2500\u2500\u252c\u2500\u2500  \n   \u2502              \u2570\u2500\u2500\u2500\u2500 Warning (struct_never_constructed): The struct Dummy is never constructed\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (2 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 0,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-770/no-body-limit",
+      "kind": "dangerous_shape",
+      "expected_findings": 1,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/25_CWE-770_no-body-limit_dangerous_shape.mbt.txt",
+      "sha256": "7bca2c4cae290a3d71f7c2db33370f27a5601aba031d16d1f457021979694f85",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nWarning: [0009]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/probe.mbt:1:12 ]\n   \u2502\n 1 \u2502 pub struct Dummy {}\n   \u2502            \u2500\u2500\u252c\u2500\u2500  \n   \u2502              \u2570\u2500\u2500\u2500\u2500 Warning (struct_never_constructed): The struct Dummy is never constructed\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (2 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-770/no-body-limit",
+      "kind": "control_shape",
+      "expected_findings": 0,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/26_CWE-770_no-body-limit_control_shape.mbt.txt",
+      "sha256": "7a21fc0a13104a16a213b2359848c4b6d34a8ae6bf5a6b415aa6d783afc7372b",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nWarning: [0009]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/probe.mbt:1:12 ]\n   \u2502\n 1 \u2502 pub struct Dummy {}\n   \u2502            \u2500\u2500\u252c\u2500\u2500  \n   \u2502              \u2570\u2500\u2500\u2500\u2500 Warning (struct_never_constructed): The struct Dummy is never constructed\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (2 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 0,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-770/no-body-limit",
+      "kind": "same_name_or_semantic_counterexample",
+      "expected_findings": 1,
+      "evidence": "counterexample",
+      "target": "native",
+      "fixture": "fixtures/27_CWE-770_no-body-limit_same_name_or_semantic_counterexample.mbt.txt",
+      "sha256": "7bca2c4cae290a3d71f7c2db33370f27a5601aba031d16d1f457021979694f85",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nWarning: [0009]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/probe.mbt:1:12 ]\n   \u2502\n 1 \u2502 pub struct Dummy {}\n   \u2502            \u2500\u2500\u252c\u2500\u2500  \n   \u2502              \u2570\u2500\u2500\u2500\u2500 Warning (struct_never_constructed): The struct Dummy is never constructed\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (2 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-346/ws-origin",
+      "kind": "dangerous_shape",
+      "expected_findings": 1,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/28_CWE-346_ws-origin_dangerous_shape.mbt.txt",
+      "sha256": "6b116e1314895e362afb0d34e4b4af2ddf19b7f6b1cc4765a3aa17093d7e28a3",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-346/ws-origin",
+      "kind": "control_shape",
+      "expected_findings": 0,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/29_CWE-346_ws-origin_control_shape.mbt.txt",
+      "sha256": "8af2ba338614790342820d7f5837f4fb655756fd97fc4ae6851e45981af8f31d",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 0,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-346/ws-origin",
+      "kind": "same_name_or_semantic_counterexample",
+      "expected_findings": 1,
+      "evidence": "counterexample",
+      "target": "native",
+      "fixture": "fixtures/30_CWE-346_ws-origin_same_name_or_semantic_counterexample.mbt.txt",
+      "sha256": "6b116e1314895e362afb0d34e4b4af2ddf19b7f6b1cc4765a3aa17093d7e28a3",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-22/path-concat",
+      "kind": "dangerous_shape",
+      "expected_findings": 1,
+      "evidence": "real_builtin_operator",
+      "target": "native",
+      "fixture": "fixtures/31_CWE-22_path-concat_dangerous_shape.mbt.txt",
+      "sha256": "e54fc85ed0932289039b53313179e5b2ef1f8d4afa367b880590f101424fb3b9",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-22/path-concat",
+      "kind": "control_shape",
+      "expected_findings": 0,
+      "evidence": "real_builtin_operator",
+      "target": "native",
+      "fixture": "fixtures/32_CWE-22_path-concat_control_shape.mbt.txt",
+      "sha256": "6cb871585328fe1b69fc0dfb095ddf4cb653e5fb2997ed4b684bf361891f74cc",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 0,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-22/path-concat",
+      "kind": "same_name_or_semantic_counterexample",
+      "expected_findings": 1,
+      "evidence": "counterexample",
+      "target": "native",
+      "fixture": "fixtures/33_CWE-22_path-concat_same_name_or_semantic_counterexample.mbt.txt",
+      "sha256": "8ec3c658be2332d3901cdbc7214b119652eaaa94c3eb0a4ae3f6ee0ed8f087b3",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-676/unsafe-call",
+      "kind": "dangerous_shape",
+      "expected_findings": 1,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/34_CWE-676_unsafe-call_dangerous_shape.mbt.txt",
+      "sha256": "8a1c9744e1dbc4238be08f2fe1580a327806b6af3e427e06a1f2d9cacb7f38b3",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-676/unsafe-call",
+      "kind": "control_shape",
+      "expected_findings": 0,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/35_CWE-676_unsafe-call_control_shape.mbt.txt",
+      "sha256": "33e68efa469176ef8b3e76c3c9c60db9e002b0259432068558254d3c330ba510",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 0,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-676/unsafe-call",
+      "kind": "same_name_or_semantic_counterexample",
+      "expected_findings": 1,
+      "evidence": "counterexample",
+      "target": "native",
+      "fixture": "fixtures/36_CWE-676_unsafe-call_same_name_or_semantic_counterexample.mbt.txt",
+      "sha256": "39e9527bc17edd4bd97508fe4bb784007f7ae2f5b86f30d611cc5638ef8b8f5c",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-248/panic-reachable",
+      "kind": "dangerous_shape",
+      "expected_findings": 1,
+      "evidence": "real_builtin",
+      "target": "native",
+      "fixture": "fixtures/37_CWE-248_panic-reachable_dangerous_shape.mbt.txt",
+      "sha256": "a4027e097f5e3dc4394ecba41cacb1dd17b17abd46a67ab268130f680eedbb86",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-248/panic-reachable",
+      "kind": "control_shape",
+      "expected_findings": 0,
+      "evidence": "real_builtin",
+      "target": "native",
+      "fixture": "fixtures/38_CWE-248_panic-reachable_control_shape.mbt.txt",
+      "sha256": "e76c91f568b67216acbe634e06cf685bc23b8ea64940c5b580101f94347e0edf",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 0,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-248/panic-reachable",
+      "kind": "same_name_or_semantic_counterexample",
+      "expected_findings": 1,
+      "evidence": "counterexample",
+      "target": "native",
+      "fixture": "fixtures/39_CWE-248_panic-reachable_same_name_or_semantic_counterexample.mbt.txt",
+      "sha256": "7bd13de7cbb059e1af35dcd4dccae06d4e1f8f56a2bf164541a270a37351af1d",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-248/panic-reachable",
+      "kind": "reachable_guard_counterexample",
+      "expected_findings": 0,
+      "evidence": "real_builtin_counterexample",
+      "target": "native",
+      "fixture": "fixtures/40_CWE-248_panic-reachable_reachable_guard_counterexample.mbt.txt",
+      "sha256": "d1a353bac91329e58197b4fa76f00fa884c142812b230279b133f60feb7407f9",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 0,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-704/unsafe-cast",
+      "kind": "dangerous_shape",
+      "expected_findings": 1,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/41_CWE-704_unsafe-cast_dangerous_shape.mbt.txt",
+      "sha256": "255e4172cdcbdb77affed46891ab291b43b3ed82fe186fc6750f7268e967c2a9",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nWarning: [0009]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/probe.mbt:1:12 ]\n   \u2502\n 1 \u2502 pub struct Dummy {}\n   \u2502            \u2500\u2500\u252c\u2500\u2500  \n   \u2502              \u2570\u2500\u2500\u2500\u2500 Warning (struct_never_constructed): The struct Dummy is never constructed\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (2 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-704/unsafe-cast",
+      "kind": "control_shape",
+      "expected_findings": 0,
+      "evidence": "synthetic_shape",
+      "target": "native",
+      "fixture": "fixtures/42_CWE-704_unsafe-cast_control_shape.mbt.txt",
+      "sha256": "a084b38eaca23e1913814135dedd9045457f105921d5742a617c5dd1df0a345f",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nWarning: [0009]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/probe.mbt:1:12 ]\n   \u2502\n 1 \u2502 pub struct Dummy {}\n   \u2502            \u2500\u2500\u252c\u2500\u2500  \n   \u2502              \u2570\u2500\u2500\u2500\u2500 Warning (struct_never_constructed): The struct Dummy is never constructed\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (2 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 0,
+      "scanner_errors": [],
+      "passed": true
+    },
+    {
+      "rule": "CWE-704/unsafe-cast",
+      "kind": "same_name_or_semantic_counterexample",
+      "expected_findings": 1,
+      "evidence": "counterexample",
+      "target": "native",
+      "fixture": "fixtures/43_CWE-704_unsafe-cast_same_name_or_semantic_counterexample.mbt.txt",
+      "sha256": "605de69abb2db35a621d30db4a7d81be81caac589ddcc90ffef2d873f9eb540a",
+      "compiler": {
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Warning: [0029]\n   \u256d\u2500[ /tmp/moon-rule-audit-na6241fr/probe/moon.pkg:1:10 ]\n   \u2502\n 1 \u2502 import { \"audit/rules/mocket_cmark_rabbita_crescent\" }\n   \u2502          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  \n   \u2502                               \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Warning (unused_package): Unused package 'audit/rules/mocket_cmark_rabbita_crescent'\n\u2500\u2500\u2500\u256f\nFinished. moon: ran 2 tasks, now up to date (1 warnings, 0 errors)\n"
+      },
+      "scanner_exit": 0,
+      "findings": 1,
+      "scanner_errors": [],
+      "passed": true
+    }
+  ],
+  "passed": 44,
+  "total": 44
+}

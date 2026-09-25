@@ -1,0 +1,79 @@
+{
+  "schema": "moon-audit.project-version-compat.v2",
+  "purpose": "One analyzer binary/parser checks source compiled by three distinct project toolchains",
+  "module_version_is_not_compiler_version": true,
+  "analyzer_parser": "moonbitlang/parser@0.4.0",
+  "verified_portable_subset_versions": [
+    "0.1.20260904",
+    "0.1.20260915",
+    "0.1.20260920"
+  ],
+  "rows": [
+    {
+      "project_moon_release": "0.1.20260904",
+      "project_moonc": "v0.10.12+1634b282e",
+      "analyzer_moon_release": "0.1.20260920",
+      "adapter_witnesses_passed": 5,
+      "adapter_ast_baseline_differences": [],
+      "scanner_status": "verified_limited",
+      "scanner_portable_findings": [
+        [
+          "danger.mbt",
+          2,
+          "CWE-116/replace-escaping"
+        ]
+      ],
+      "scanner_portable_parse_errors": [],
+      "compiler_accepted_syntax_parser_status": "compiler_accepted_parser_rejected",
+      "compiler_accepted_syntax_parser_errors": [
+        "Parse error in <PROJECT>/new_syntax.mbt: error (<PROJECT>/new_syntax.mbt-2:7-2:8: Unexpected token `(`, you may expect id (lowercase start), `extend`, `;`, `{`."
+      ]
+    },
+    {
+      "project_moon_release": "0.1.20260915",
+      "project_moonc": "v0.10.13+cbb11c36f",
+      "analyzer_moon_release": "0.1.20260920",
+      "adapter_witnesses_passed": 5,
+      "adapter_ast_baseline_differences": [],
+      "scanner_status": "verified_limited",
+      "scanner_portable_findings": [
+        [
+          "danger.mbt",
+          2,
+          "CWE-116/replace-escaping"
+        ]
+      ],
+      "scanner_portable_parse_errors": [],
+      "compiler_accepted_syntax_parser_status": "compiler_accepted_parser_rejected",
+      "compiler_accepted_syntax_parser_errors": [
+        "Parse error in <PROJECT>/new_syntax.mbt: error (<PROJECT>/new_syntax.mbt-2:7-2:8: Unexpected token `(`, you may expect id (lowercase start), `extend`, `;`, `{`."
+      ]
+    },
+    {
+      "project_moon_release": "0.1.20260920",
+      "project_moonc": "v0.10.14+7d59c7ec9",
+      "analyzer_moon_release": "0.1.20260920",
+      "adapter_witnesses_passed": 5,
+      "adapter_ast_baseline_differences": [],
+      "scanner_status": "verified_limited",
+      "scanner_portable_findings": [
+        [
+          "danger.mbt",
+          2,
+          "CWE-116/replace-escaping"
+        ]
+      ],
+      "scanner_portable_parse_errors": [],
+      "compiler_accepted_syntax_parser_status": "compiler_accepted_parser_rejected",
+      "compiler_accepted_syntax_parser_errors": [
+        "Parse error in <PROJECT>/new_syntax.mbt: error (<PROJECT>/new_syntax.mbt-2:7-2:8: Unexpected token `(`, you may expect id (lowercase start), `extend`, `;`, `{`."
+      ]
+    }
+  ],
+  "limits": [
+    "Same scanner has a known parser gap for compiler-accepted tuple patterns in for-in, on all three project toolchains.",
+    "Production scanner witness exercises only CWE-116 of 14 rules.",
+    "Adapter witnesses cover only the Box/direct-call subset.",
+    "No claim of support for every MoonBit release or grammar construct."
+  ]
+}

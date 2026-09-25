@@ -1,0 +1,40 @@
+{
+  "schema": "moon-audit.rule-runtime-oracle.v1",
+  "purpose": "Language semantics only; no user-data exploitability claim.",
+  "cases": [
+    {
+      "target": "native",
+      "fixture": "real_fixtures/runtime_native.mbt.txt",
+      "fixture_sha256": "b120b9494088fd17beb040366a2cc100775254ec840a427763d1c3be1a383655",
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "test",
+        "--target",
+        "native"
+      ],
+      "exit_code": 0,
+      "stdout": "Total tests: 2, passed: 2, failed: 0.\n",
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "target": "js",
+      "fixture": "real_fixtures/runtime_js.mbt.txt",
+      "fixture_sha256": "1d1f485197345a59b4eac1284bcff5cf5b3546acb5bc426c6b1c3a91b41961cd",
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "test",
+        "--target",
+        "js"
+      ],
+      "exit_code": 0,
+      "stdout": "Total tests: 2, passed: 2, failed: 0.\n",
+      "stderr": "",
+      "passed": true
+    }
+  ],
+  "passed": 2,
+  "total": 2
+}

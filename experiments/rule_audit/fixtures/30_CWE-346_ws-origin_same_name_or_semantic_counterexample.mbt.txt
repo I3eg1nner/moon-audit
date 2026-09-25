@@ -1,0 +1,2 @@
+pub fn upgrade_websocket(origin? : String = "") -> String { origin }
+pub fn probe() -> String { upgrade_websocket() }

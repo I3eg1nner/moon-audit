@@ -1,237 +1,207 @@
-///|
-pub fn scan_project(root : String, config : Config) -> ScanResult {
-  // E3: thin compatibility shell — the single world build happens here;
-  // registry callers pass an already-built world via scan_project_with_world
-  // P1-UNIFY: with_symbols=true — the taint path now consumes the same
-  // symbol table (fn_sigs, impl_methods) as the call-graph path
-  let world = load_program_world(root, config, with_symbols=true)
-  scan_project_with_world(world, config)
-}
+// Finite syntax-pattern scanner. No type reconstruction or interprocedural solver.
 
 ///|
-/// E3: world-parameterized scan entry. The registry adapter and any
-/// multi-analysis pipeline pass ONE ProgramWorld in; no internal reload.
-/// (The world may carry symbols — scan ignores them; behavior parity is
-/// guarded by the dual-binary acceptance.)
-pub fn scan_project_with_world(
-  world : ProgramWorld,
+pub fn scan_project(
+  root : String,
   config : Config,
+  compiler_files? : Array[String]? = None,
 ) -> ScanResult {
-  cfg_exec_reset() // D1b hybrid counters: per-scan
-
-  // T3.3: loop-fixpoint budget is per-project (scope disclosure)
-  loop_budget.exhausted = 0
-  loop_budget.last_iters = 0
-
-  let root = world.root
-
-  // F2 + P6.1: per-fn cache backed by cross-process disk cache
-  // P2-CACHE: wire disk_cache_load/save into the production scan path
-  let world_fp = symbols_fingerprint(world.symbols)
-  let fn_cache = disk_cache_load(root, world_fp)
-
   let findings : Array[Finding] = []
   let errors : Array[String] = []
+  let file_coverage : Array[FileCoverage] = []
   let mut files_scanned = 0
+  let mut files_selected = 0
+  let mut files_parsed = 0
+  let incremental = config.incremental || !config.changed_files.is_empty()
+  let changed : Map[String, Bool] = Map([])
+  for file in config.changed_files {
+    let p = @path.Path(canonical_dir(file))
+    let absolute = if p.is_absolute() {
+      p.resolve()
+    } else {
+      @path.Path(root).join(p).resolve()
+    }
+    changed[canonical_dir(absolute.0)] = true
+  }
+  for name in ["moon.mod", "moon.mod.json"] {
+    let file = @path.Path(root).join(@path.Path(name)).0
+    if @fs.path_exists(file) && !(@fs.is_file(file) catch { _ => false }) {
+      errors.push("Not a readable regular module file: " + file)
+    }
+  }
   let mod_imports = analyze_mod_imports(root)
-  // Taint rule DSL: project-root taint-rules.json (or .moon-audit.json
-  // "taint" section) ADDs sources/sinks/sanitizers to the built-in tables
-  let (taint_rules, _taint_source, model_warnings) = load_taint_rules(root)
-  let interproc_ctx = InterProceduralContext::new()
-  // P1-UNIFY: bridge world symbols into the taint interprocedural context
-  // so summary_lookup resolves against qualified identity (fn_sigs)
-  interproc_ctx.world_symbols = Some(world.symbols)
-  // P1-UNIFY: populate dispatch hints from impl_methods — for each
-  // method name, record the impl self-types. Taint's DotApply for
-  // trait-object receivers consults this to narrow summary lookup
-  world.symbols.impl_methods.each(fn(k, _) {
-    let idx = find_last(k, "::")
-    if idx > 0 {
-      let mn = Show::to_string(k[idx + 2:])
-      let self_ty = Show::to_string(k[:idx])
-      match interproc_ctx.dispatch_hints.get(mn) {
-        Some(arr) => if !arr.contains(self_ty) { arr.push(self_ty) }
-        None => interproc_ctx.dispatch_hints[mn] = [self_ty]
-      }
+  let package_imports : Map[String, ImportContext] = Map([])
+  let mut parse_failures = 0
+  walk_pattern_files(root, config, errors, 0, fn(dir, file) {
+    if compiler_files is Some(files) &&
+      !files.contains(canonical_dir(@path.Path(file).resolve().0)) {
+      file_coverage.push({
+        path: file,
+        status: "skipped",
+        reason: "not_in_compiler_plan",
+        rules: [],
+      })
+      return
     }
-  })
-  let mut has_web = false
-  let incremental = config.incremental || config.changed_files.length() > 0
-  let changed_set : Map[String, Bool] = Map([])
-  if incremental {
-    for f in config.changed_files {
-      let path = @path.Path(canonical_dir(f))
-      let resolved = if path.is_absolute() {
-        path.resolve()
-      } else {
-        @path.Path(root).join(path).resolve()
-      }
-      changed_set[canonical_dir(resolved.0)] = true
+    if incremental &&
+      !changed.contains(canonical_dir(@path.Path(file).resolve().0)) {
+      file_coverage.push({
+        path: file,
+        status: "skipped",
+        reason: "not_in_changed_files",
+        rules: [],
+      })
+      return
     }
-  }
-  // E3: world arrives pre-built (symbols may be present; unused here).
-  // T4.2 pre-pass: SCC-ordered iterative summary collection (replaces the
-  // fixed two-pass). Collection CONSUMES callee summaries (ret_from +
-  // param_sinks transitivity), so order matters: Tarjan SCC emits
-  // callee-first; cyclic SCCs (recursion) iterate to the union-lattice
-  // fixpoint under a |SCC|+2 sweep budget — exhaustion counted in
-  // interproc_ctx.not_converged and disclosed in analysis-scope.
-  let mod_is_web = mod_imports.has_mocket ||
-    mod_imports.has_crescent ||
-    mod_imports.has_rabbita
-  // T7.5: deep mode forces the interprocedural paths on non-web projects
-  // too (existing capabilities combined; no new analysis)
-  let deep_mode = config.analysis_mode == "deep"
-  if mod_is_web || deep_mode {
-    let scc_units : Array[SummaryUnit] = []
-    for pkgf in world.packages {
-      let pkg_web = mod_is_web ||
-        ({
-          let pi = analyze_imports(pkgf.dir)
-          pi.has_mocket || pi.has_crescent || pi.has_rabbita
+    files_selected += 1
+    if !(@fs.is_file(file) catch { _ => false }) {
+      errors.push("Not a readable regular source file: " + file)
+      file_coverage.push({
+        path: file,
+        status: "read_failed",
+        reason: "not_regular_file",
+        rules: [],
+      })
+      return
+    }
+    let source = read_regular_text(file) catch {
+      _ => {
+        errors.push("Failed to read " + file)
+        file_coverage.push({
+          path: file,
+          status: "read_failed",
+          reason: "read_error",
+          rules: [],
         })
-      if pkg_web || deep_mode {
-        for file in pkgf.files {
-          let source = @fs.read_file_to_string(file) catch { _ => continue }
-          let (impls, _) = @parser.parse_string(source, name=file)
-          for u in extract_summary_units(impls, file, pkg_root=world.root) {
-            scc_units.push(u)
-          }
-        }
+        return
       }
     }
-    collect_summaries_scc(
-      scc_units,
-      interproc_ctx,
-      pkg_root=root,
-      strategy=config.context_strategy,
-      warn_unimplemented=false,
-    )
-  }
-  // Phase 1: Regular rules + collect function summaries
-  for pkgf in world.packages {
-    let pkg_dir = pkgf.dir
-    let pkg_imports = analyze_imports(pkg_dir)
-    let imports = merge_imports(mod_imports, pkg_imports)
-    if imports.has_mocket || imports.has_crescent || imports.has_rabbita {
-      has_web = true
-    }
-    for file in pkgf.files {
-      // Summary collection already visits dependencies separately. Only
-      // selected files contribute diagnostics and rule findings here.
-      if incremental && !is_changed_file(file, changed_set) {
-        continue
-      }
-      let source = @fs.read_file_to_string(file) catch {
-        _ => {
-          errors.push("Failed to read " + file)
-          continue
-        }
-      }
-      let (impls, reports) = @parser.parse_string(source, name=file)
+    files_scanned += 1
+    let (impls, reports) = parse_source(source, name=file)
+    if !reports.is_empty() {
+      parse_failures += 1
+      file_coverage.push({
+        path: file,
+        status: "parse_failed",
+        reason: "parser_rejected",
+        rules: [],
+      })
       for report in reports {
-        errors.push("Parse error in " + file + ": " + report.to_string())
+        errors.push("Parse error in " + file + ": " + Show::to_string(report))
       }
-      // T4.2: summaries are solved once, globally, in the SCC pre-pass
-      // (this in-walk re-collection was pass 2 of the fixed two-pass)
-      files_scanned += 1
-      run_all_rules(
-        impls, file, source, findings, imports, config, interproc_ctx, taint_rules,
-        fn_cache, world_fp, root,
-      )
+      return
     }
-  }
-  // Phase 2: Cross-function taint analysis (web projects; deep mode
-  // forces it for all projects — T7.5)
-  if (has_web || deep_mode) &&
-    interproc_ctx.summaries.length() > 0 &&
-    config.is_enabled("CWE-113/crlf-injection") {
-    for pkgf in world.packages {
-      let pkg_dir = pkgf.dir
-      let pkg_imports = analyze_imports(pkg_dir)
-      let imports = merge_imports(mod_imports, pkg_imports)
-      if imports.has_mocket ||
-        imports.has_crescent ||
-        imports.has_rabbita ||
-        deep_mode {
-        for file in pkgf.files {
-          if incremental && !is_changed_file(file, changed_set) {
-            continue
-          }
-          let source = @fs.read_file_to_string(file) catch { _ => continue }
-          let (impls, _) = @parser.parse_string(source, name=file)
-          run_cross_func_taint(
-            impls, file, source, findings, interproc_ctx, imports, root,
-          )
+    files_parsed += 1
+    let pkg_imports = match package_imports.get(dir) {
+      Some(imports) => imports
+      None => {
+        let (imports, import_error) = analyze_imports_checked(dir)
+        package_imports[dir] = imports
+        match import_error {
+          Some(message) => errors.push(message)
+          None => ()
         }
+        imports
       }
     }
-  }
-  // P2-CACHE: persist fn-level findings to .moon-audit-cache for
-  // cross-process incremental scanning (second run skips cached fns)
-  disk_cache_save(fn_cache, root, world_fp)
+    // Module dependencies only make packages available. Rule gates require
+    // imports declared by this package; the module name still marks stdlib.
+    let imports = {
+      ..pkg_imports,
+      is_stdlib: mod_imports.is_stdlib || pkg_imports.is_stdlib,
+    }
+    let rules = rule_coverage_for_file(config, imports)
+    file_coverage.push({ path: file, status: "parsed", reason: "", rules, })
+    run_all_rules(impls, file, source, findings, imports, config)
+  })
   {
     findings: dedup_findings(findings),
+    project_verification: None,
+    semantic_analysis: None,
     files_scanned,
+    files_selected,
+    files_parsed,
     errors,
-    analysis_scope: build_analysis_scope(
-      config,
-      errors,
-      incremental,
-      entry_stats_line(world),
-      interproc_ctx.not_converged,
-      model_warnings.length(),
-    ) +
-    cfg_exec_scope_suffix(),
+    file_coverage,
+    configured_excludes: config.exclude,
+    incremental,
+    analysis_scope: "analyzer=moon-audit " +
+    ANALYZER_VERSION +
+    " (moonbitlang/parser " +
+    PARSER_SPEC_VERSION +
+    "); engine=syntax-pattern; interprocedural=false; type-resolution=false; sanitizer-resolution=false; cache=none; excludes=[" +
+    config.exclude.join(",") +
+    "]; implicit-excludes=[dotdirs,_build,*_test.mbt,*_wbtest.mbt]; selected=" +
+    files_selected.to_string() +
+    "; parsed=" +
+    files_parsed.to_string() +
+    "; parse-failures=" +
+    parse_failures.to_string() +
+    "; incremental=" +
+    incremental.to_string() +
+    "; unanalyzed-is-not-safe",
   }
 }
 
 ///|
-fn build_analysis_scope(
+fn walk_pattern_files(
+  dir : String,
   config : Config,
   errors : Array[String],
-  incremental : Bool,
-  entries : String, // T1.5 entry stats line (pkg-level; fn-level if symbols)
-  summary_not_converged : Int, // T4.2: cyclic SCCs that exhausted the budget
-  model_warnings : Int, // T5.1: parse/merge warnings from the rule pipeline
-) -> String {
-  // T0.4: scan-scope disclosure. Minimal fields implemented: analyzer/
-  // frontend version, excludes, parse-failure count. Reserved fields
-  // (unsupported-semantics, timeouts, backend, entry policy) must be
-  // reported non-zero once measurable; unanalyzed != safe.
-  let mut parse_failures = 0
-  for e in errors {
-    if e.has_prefix("Parse error") {
-      parse_failures += 1
+  depth : Int,
+  visit : (String, String) -> Unit,
+) -> Unit {
+  if depth > 64 {
+    errors.push("Directory traversal limit: " + dir)
+    return
+  }
+  let entries = @fs.read_dir(dir) catch {
+    _ => {
+      errors.push("Failed to read directory " + dir)
+      return
     }
   }
-  "analyzer=moon-audit " +
-  ANALYZER_VERSION +
-  " (moonbitlang/parser " +
-  PARSER_SPEC_VERSION +
-  "); excludes=[" +
-  config.exclude.join(", ") +
-  "]; parse-failures=" +
-  parse_failures.to_string() +
-  "; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=" +
-  loop_budget.exhausted.to_string() +
-  "(measured); widening-applied=" +
-  loop_budget.widened.to_string() +
-  "(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=" +
-  summary_not_converged.to_string() +
-  "(measured); model-warnings=" +
-  model_warnings.to_string() +
-  "(measured, T5.1 pipeline); mode=" +
-  config.analysis_mode +
-  "; context-strategy=" +
-  config.context_strategy.name() +
-  "; context-implemented=" +
-  config.context_strategy.is_implemented().to_string() +
-  "; incremental=" +
-  (if incremental { "true" } else { "false" }) +
-  "; " +
-  entries +
-  "; note=unanalyzed-is-not-safe"
+  for name in entries {
+    if name.has_prefix(".") || name == "_build" || config.exclude.contains(name) {
+      continue
+    }
+    let full = @path.Path(dir).join(@path.Path(name)).0
+    let is_dir = @fs.is_dir(full) catch {
+      _ => {
+        errors.push("Failed to inspect " + full)
+        continue
+      }
+    }
+    if is_dir {
+      walk_pattern_files(full, config, errors, depth + 1, visit)
+    } else if name.has_suffix(".mbt") &&
+      !name.has_suffix("_test.mbt") &&
+      !name.has_suffix("_wbtest.mbt") {
+      let excluded = config.exclude.any(fn(pattern) {
+        pattern.has_prefix("*") && name.has_suffix(pattern[1:].to_owned())
+      })
+      if !excluded {
+        visit(dir, full)
+      }
+    }
+  }
+}
+
+///|
+pub fn canonical_dir(dir : String) -> String {
+  dir.replace(old="\\", new="/")
+}
+
+///|
+pub fn parse_changed_files(content : String) -> Array[String] {
+  let files : Array[String] = []
+  for line in content.split("\n") {
+    let file = line.to_owned().trim().to_owned()
+    if file.has_suffix(".mbt") {
+      files.push(file)
+    }
+  }
+  files
 }
 
 ///|
@@ -250,13 +220,59 @@ fn dedup_findings(findings : Array[Finding]) -> Array[Finding] {
       ":" +
       rule_id_str(f.rule_id) +
       ":" +
-      f.line.to_string()
+      f.line.to_string() +
+      ":" +
+      f.column.to_string()
     if !seen.contains(key) {
       seen[key] = true
       result.push(f)
     }
   }
   result
+}
+
+///|
+fn rule_status(config : Config, imports : ImportContext, id : String) -> String {
+  if !config.is_enabled(id) {
+    return "disabled"
+  }
+  let applicable = match rule_requirement(id) {
+    "cmark_import" => imports.has_cmark
+    "rabbita_import" => imports.has_rabbita
+    "mocket_or_crescent_import" => imports.has_mocket || imports.has_crescent
+    "crescent_import" => imports.has_crescent
+    "non_stdlib_module" => !imports.is_stdlib
+    _ => true
+  }
+  if applicable {
+    "evaluated"
+  } else {
+    "gated_out"
+  }
+}
+
+///|
+fn rule_coverage_for_file(
+  config : Config,
+  imports : ImportContext,
+) -> Array[RuleCoverage] {
+  let coverage : Array[RuleCoverage] = []
+  for rule in list_all_rules() {
+    let id = rule_id_str(rule.id)
+    let status = rule_status(config, imports, id)
+    let reason = match status {
+      "disabled" => "rule_disabled"
+      "gated_out" =>
+        if rule_requirement(id) == "non_stdlib_module" {
+          "stdlib_module_name_hint"
+        } else {
+          rule_requirement(id) + "_hint_absent"
+        }
+      _ => ""
+    }
+    coverage.push({ id, status, reason, })
+  }
+  coverage
 }
 
 ///|
@@ -267,301 +283,48 @@ fn run_all_rules(
   findings : Array[Finding],
   imports : ImportContext,
   config : Config,
-  ictx : InterProceduralContext,
-  taint_rules : TaintRuleset,
-  f_cache : FnCache,
-  f_fp : String,
-  pkg_root : String,
 ) -> Unit {
-  let cwe116_id = "CWE-116/replace-escaping"
-  if config.is_enabled(cwe116_id) {
-    run_cwe116(
-      impls,
-      file,
-      source,
-      findings,
-      config.get_severity(cwe116_id, cwe116_info().default_severity),
-    )
-  }
-  let cwe094_id = "CWE-94/eval-extern"
-  if config.is_enabled(cwe094_id) {
-    run_cwe094(
-      impls,
-      file,
-      source,
-      findings,
-      config.get_severity(cwe094_id, cwe094_info().default_severity),
-    )
-  }
-  if imports.has_cmark {
-    let cwe079c_id = "CWE-79/cmark-unsafe"
-    if config.is_enabled(cwe079c_id) {
-      run_cwe079_cmark(
+  for entry in rule_registry() {
+    let id = rule_id_str(entry.info.id)
+    if rule_status(config, imports, id) == "evaluated" {
+      (entry.run)(
         impls,
         file,
         source,
         findings,
-        config.get_severity(cwe079c_id, cwe079_cmark_info().default_severity),
+        config.get_severity(id, entry.info.default_severity),
       )
     }
   }
-  if imports.has_rabbita {
-    let cwe079i_id = "CWE-79/inner-html"
-    if config.is_enabled(cwe079i_id) {
-      run_cwe079_inner_html(
-        impls,
-        file,
-        source,
-        findings,
-        config.get_severity(
-          cwe079i_id,
-          cwe079_inner_html_info().default_severity,
-        ),
-      )
-    }
-  }
-  if imports.has_mocket || imports.has_crescent {
-    let cwe942_id = "CWE-942/cors-credentials"
-    if config.is_enabled(cwe942_id) {
-      run_cwe942(
-        impls,
-        file,
-        source,
-        findings,
-        config.get_severity(cwe942_id, cwe942_info().default_severity),
-      )
-    }
-    let cwe614_id = "CWE-614/cookie-attrs"
-    if config.is_enabled(cwe614_id) {
-      run_cwe614(
-        impls,
-        file,
-        source,
-        findings,
-        config.get_severity(cwe614_id, cwe614_info().default_severity),
-      )
-    }
-    let cwe346_id = "CWE-346/ws-origin"
-    if config.is_enabled(cwe346_id) {
-      run_cwe346(
-        impls,
-        file,
-        source,
-        findings,
-        config.get_severity(cwe346_id, cwe346_info().default_severity),
-      )
-    }
-  }
-  // CWE-770 only for crescent (has max_request_body_bytes); mocket has no body limit API
-  if imports.has_crescent {
-    let cwe770_id = "CWE-770/no-body-limit"
-    if config.is_enabled(cwe770_id) {
-      run_cwe770(
-        impls,
-        file,
-        source,
-        findings,
-        config.get_severity(cwe770_id, cwe770_info().default_severity),
-      )
-    }
-  }
-  let cwe022_id = "CWE-22/path-concat"
-  if config.is_enabled(cwe022_id) {
-    run_cwe022(
-      impls,
-      file,
-      source,
-      findings,
-      config.get_severity(cwe022_id, cwe022_info().default_severity),
-    )
-  }
-  let cwe113_id = "CWE-113/crlf-injection"
-  let output_id = "CWE-116/tainted-output"
-  if config.is_enabled(cwe113_id) || config.is_enabled(output_id) {
-    let taint_findings : Array[Finding] = []
-    run_cwe113(
-      impls,
-      file,
-      source,
-      taint_findings,
-      config.get_severity(cwe113_id, cwe113_info().default_severity),
-      ictx~,
-      rules=taint_rules,
-      pkg_root~,
-      cfg_engine=config.cfg_engine,
-      output_sinks_enabled=config.is_enabled(output_id),
-      cache=f_cache,
-      symbols_fp=f_fp,
-    )
-    for finding in taint_findings {
-      let id = rule_id_str(finding.rule_id)
-      if config.is_enabled(id) {
-        findings.push({
-          ..finding,
-          severity: config.get_severity(id, finding.severity),
-        })
-      }
-    }
-  }
-  if imports.has_mocket || imports.has_crescent {
-    let cwe079t_id = "CWE-79/template-injection"
-    if config.is_enabled(cwe079t_id) {
-      run_cwe079_template(
-        impls,
-        file,
-        source,
-        findings,
-        config.get_severity(cwe079t_id, cwe079_template_info().default_severity),
-      )
-    }
-  }
-  // General-purpose rules — skip for standard library modules (core/x/parser/lexer)
-  // where unsafe calls and abort are intentional implementation details
-  if !imports.is_stdlib {
-    let cwe676_id = "CWE-676/unsafe-call"
-    if config.is_enabled(cwe676_id) {
-      run_cwe676(
-        impls,
-        file,
-        source,
-        findings,
-        config.get_severity(cwe676_id, cwe676_info().default_severity),
-      )
-    }
-    let cwe248_id = "CWE-248/panic-reachable"
-    if config.is_enabled(cwe248_id) {
-      run_cwe248(
-        impls,
-        file,
-        source,
-        findings,
-        config.get_severity(cwe248_id, cwe248_info().default_severity),
-      )
-    }
-    let cwe704_id = "CWE-704/unsafe-cast"
-    if config.is_enabled(cwe704_id) {
-      run_cwe704(
-        impls,
-        file,
-        source,
-        findings,
-        config.get_severity(cwe704_id, cwe704_info().default_severity),
-      )
-    }
-  }
-}
-
-///|
-fn walk_packages(
-  root : String,
-  config : Config,
-  callback : (String, Array[String]) -> Unit,
-) -> Unit {
-  walk_dir(root, config, callback)
-}
-
-///|
-fn walk_dir(
-  dir : String,
-  config : Config,
-  callback : (String, Array[String]) -> Unit,
-) -> Unit {
-  let entries = @fs.read_dir(dir) catch { _ => return }
-  let mbt_files : Array[String] = []
-  let subdirs : Array[String] = []
-  for entry in entries {
-    let full = @path.Path(dir).join(@path.Path(entry)).0
-    if should_exclude(entry, config) {
-      continue
-    }
-    let is_dir = @fs.is_dir(full) catch { _ => false }
-    if is_dir {
-      subdirs.push(full)
-    } else if entry.has_suffix(".mbt") &&
-      !entry.has_suffix("_test.mbt") &&
-      !entry.has_suffix("_wbtest.mbt") {
-      if !should_exclude_file(entry, config) {
-        mbt_files.push(full)
-      }
-    }
-  }
-  if mbt_files.length() > 0 {
-    callback(dir, mbt_files)
-  }
-  for subdir in subdirs {
-    walk_dir(subdir, config, callback)
-  }
-}
-
-///|
-fn should_exclude(name : String, config : Config) -> Bool {
-  if name.has_prefix(".") {
-    return true
-  }
-  for pat in config.exclude {
-    if name == pat {
-      return true
-    }
-  }
-  false
-}
-
-///|
-fn should_exclude_file(name : String, config : Config) -> Bool {
-  for pat in config.exclude {
-    if pat.has_prefix("*") {
-      let suffix = pat[1:].to_owned()
-      if name.has_suffix(suffix) {
-        return true
-      }
-    }
-    if name == pat {
-      return true
-    }
-  }
-  false
-}
-
-///|
-fn is_changed_file(file : String, changed_set : Map[String, Bool]) -> Bool {
-  changed_set.contains(canonical_dir(@path.Path(file).resolve().0))
-}
-
-///|
-pub fn load_changed_files(path : String) -> Array[String] {
-  let content = @fs.read_file_to_string(path) catch { _ => return [] }
-  parse_changed_files(content)
-}
-
-///|
-pub fn parse_changed_files(content : String) -> Array[String] {
-  let files : Array[String] = []
-  for line in content.split("\n") {
-    let trimmed = line.to_owned().trim().to_owned()
-    if trimmed.length() > 0 && trimmed.has_suffix(".mbt") {
-      files.push(trimmed)
-    }
-  }
-  files
 }
 
 ///|
 pub fn list_all_rules() -> Array[RuleInfo] {
-  [
-    cwe116_info(),
-    cwe116_output_info(),
-    cwe079_cmark_info(),
-    cwe079_inner_html_info(),
-    cwe079_template_info(),
-    cwe094_info(),
-    cwe113_info(),
-    cwe942_info(),
-    cwe614_info(),
-    cwe770_info(),
-    cwe346_info(),
-    cwe022_info(),
-    cwe676_info(),
-    cwe248_info(),
-    cwe704_info(),
-  ]
+  rule_registry().map(entry => entry.info)
+}
+
+///|
+pub fn excluded_by_policy(
+  file : String,
+  root : String,
+  config : Config,
+) -> Bool {
+  let relative = @path.Path(file).relative(base=@path.Path(root)).0.replace(
+    old="\\",
+    new="/",
+  )
+  let parts = relative.split("/").to_array()
+  if parts.any(fn(part) {
+      part.has_prefix(".") ||
+      part == "_build" ||
+      config.exclude.contains(part.to_owned())
+    }) {
+    return true
+  }
+  let name = parts.last().unwrap_or("").to_owned()
+  name.has_suffix("_test.mbt") ||
+  name.has_suffix("_wbtest.mbt") ||
+  config.exclude.any(fn(pattern) {
+    pattern.has_prefix("*") && name.has_suffix(pattern[1:].to_owned())
+  })
 }

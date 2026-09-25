@@ -14,8 +14,8 @@ priv struct Cwe079TemplateVisitor {
 pub fn cwe079_template_info() -> RuleInfo {
   {
     id: { cwe: 79, variant: "template-injection", },
-    name: "XSS via String Interpolation in HTML Response",
-    description: "Route handler returns HTML with string interpolation containing user input. Without HTML encoding, this enables reflected XSS.",
+    name: "HTML Interpolation Review",
+    description: "HTML-shaped call contains string interpolation. Review API identity, input origin, output context and whether this response is returned.",
     default_severity: Error,
   }
 }
@@ -71,7 +71,7 @@ impl @syntax.IterVisitor for Cwe079TemplateVisitor with fn visit_Expr_Apply(
           { cwe: 79, variant: "template-injection", },
           env.severity,
           Medium,
-          "HTML response contains string interpolation with potentially user-controlled values. Apply HTML encoding to prevent reflected XSS.",
+          "HTML-shaped call contains string interpolation. Review API identity, input origin, output context and whether this response is returned.",
           env.file,
           env.source,
           loc,
@@ -79,7 +79,12 @@ impl @syntax.IterVisitor for Cwe079TemplateVisitor with fn visit_Expr_Apply(
       )
     }
   }
-  @syntax.IterVisitor::base(env).visit_Expr_Apply(func~, args~, loc~)
+  @syntax.IterVisitor::visit_Expr_Apply(
+    @syntax.IterVisitor::base(env),
+    func~,
+    args~,
+    loc~,
+  )
 }
 
 ///|
@@ -99,7 +104,7 @@ impl @syntax.IterVisitor for Cwe079TemplateVisitor with fn visit_Expr_DotApply(
           { cwe: 79, variant: "template-injection", },
           env.severity,
           Medium,
-          "HTML response contains string interpolation with potentially user-controlled values. Apply HTML encoding to prevent reflected XSS.",
+          "HTML-shaped call contains string interpolation. Review API identity, input origin, output context and whether this response is returned.",
           env.file,
           env.source,
           loc,
@@ -107,7 +112,8 @@ impl @syntax.IterVisitor for Cwe079TemplateVisitor with fn visit_Expr_DotApply(
       )
     }
   }
-  @syntax.IterVisitor::base(env).visit_Expr_DotApply(
+  @syntax.IterVisitor::visit_Expr_DotApply(
+    @syntax.IterVisitor::base(env),
     self~,
     method_name~,
     args~,

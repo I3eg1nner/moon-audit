@@ -1,0 +1,60 @@
+name: Native delivery acceptance
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  MOONBIT_INSTALL_VERSION: "0.10.14+7d59c7ec9"
+jobs:
+  native:
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            artifact: linux-x86_64
+          - os: macos-14
+            artifact: macos-arm64
+          - os: windows-2022
+            artifact: windows-x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install reviewed compiler and core archives
+        run: python scripts/install_fixed_toolchain.py --destination "${{ runner.temp }}/moon-audit-toolchain"
+      - name: Record toolchain
+        run: moon version --all
+      - name: Resolve pinned dependencies
+        run: moon update
+      - name: Check
+        run: moon check --target all --deny-warn
+      - name: Test
+        run: moon test --target all --deny-warn
+      - name: Build native release
+        run: moon build --target native --release
+      - name: Package and extract release
+        run: python scripts/package_native.py --platform ${{ matrix.artifact }} --output dist
+      - name: Accept extracted release
+        shell: bash
+        run: |
+          export ANALYZER="$PWD/dist/extracted/moon-audit"
+          if [ "${{ runner.os }}" = Windows ]; then export ANALYZER="$ANALYZER.exe"; fi
+          python scripts/native_delivery_test.py
+          python scripts/process_supervision_test.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: moon-audit-${{ matrix.artifact }}
+          path: |
+            dist/*.zip
+            dist/*.sha256
+            dist/build-info.json
+          if-no-files-found: error

@@ -1,0 +1,4 @@
+extern "js" fn evaluate(input : String) -> Int = "(input) => eval(input)"
+extern "js" fn identity(input : String) -> String = "(input) => { /* eval(input) */ return input; }"
+test "actual eval executes harmless arithmetic" { inspect(evaluate("1 + 1"), content="2") }
+test "comment containing eval does not execute input" { inspect(identity("1 + 1"), content="1 + 1") }

@@ -1,0 +1,3 @@
+pub struct Dummy {}
+pub fn Dummy::inner_html(_self : Dummy, _value : String) -> Unit {}
+pub fn probe(view : Dummy, input : String) -> Unit { view.inner_html(input) }

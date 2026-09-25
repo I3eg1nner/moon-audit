@@ -1,0 +1,2 @@
+pub fn html(value : String) -> String { value }
+pub fn probe(input : String) -> String { html("<p>\{input}</p>") }

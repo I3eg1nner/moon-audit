@@ -1,5 +1,5 @@
 name: 'MoonBit Security Audit'
-description: 'AST-level static security scanner for MoonBit projects — detects XSS, CORS misconfiguration, path traversal, CRLF injection, and more'
+description: 'AST-level static security scanner for MoonBit projects — reports syntax hints for XSS, CORS misconfiguration, path traversal, CRLF injection, and more'
 branding:
   icon: 'shield'
   color: 'purple'

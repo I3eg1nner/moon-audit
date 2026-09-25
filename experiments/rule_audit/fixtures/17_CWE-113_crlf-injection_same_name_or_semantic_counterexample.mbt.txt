@@ -1,0 +1,3 @@
+pub struct Dummy {}
+pub fn Dummy::set_header(_self : Dummy, _name : String, _value : String) -> Unit {}
+pub fn probe(res : Dummy) -> Unit { let input = "constant"; res.set_header("X", input) }

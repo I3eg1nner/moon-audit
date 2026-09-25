@@ -30,7 +30,7 @@ pub fn generate_baseline(
 pub fn load_baseline(path : String) -> Map[String, Bool] {
   let keys : Map[String, Bool] = Map([])
   let occurrences : Map[String, Int] = Map([])
-  let content = @fs.read_file_to_string(path) catch { _ => return keys }
+  let content = read_regular_text(path) catch { _ => return keys }
   let json = @json.parse(content) catch { _ => return keys }
   match json {
     Array(arr) =>

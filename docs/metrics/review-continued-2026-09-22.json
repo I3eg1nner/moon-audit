@@ -1,0 +1,220 @@
+{
+  "date": "2026-09-22",
+  "baseline_head": "41f76dc5b0b6a796d4c7bb21fab3496111f3f9ae",
+  "scope": "Uncommitted working tree; not a released revision",
+  "toolchain": "moon 0.1.20260915 (2e1a46d 2026-09-15) ~/.moon/bin/moon\nmoonc v0.10.13+cbb11c36f (2026-09-15) ~/.moon/bin/moonc\nmoonrun 0.1.20260915 (2e1a46d 2026-09-15) ~/.moon/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg\n",
+  "checks": {
+    "native_tests": {
+      "total": 428,
+      "passed": 428
+    },
+    "cli_tests": {
+      "total": 37,
+      "passed": 37
+    },
+    "harness_tests": {
+      "total": 33,
+      "passed": 33
+    },
+    "cases_gate": "passed",
+    "check_all_deny_warn": "passed",
+    "fmt_check": "failed (exit 255)",
+    "joint_core_tests": {
+      "total": 2,
+      "passed": 2
+    }
+  },
+  "unverified": [
+    "all-target runtime tests",
+    "fresh fixed real-world corpus acceptance",
+    "full cache lifecycle on new boundaries",
+    "generated interface regeneration"
+  ],
+  "boundary_results": {
+    "method_field": {
+      "compile": 0,
+      "expected": [
+        8
+      ],
+      "ast": {
+        "rc": 0,
+        "lines": [],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=5); note=unanalyzed-is-not-safe; cfg-independent-unsupported=0; cfg-fallback-reasons=[]; cfg-executed=3; ast-fallback=0; cfg-divergent=1; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))"
+      },
+      "cfg": {
+        "rc": 0,
+        "lines": [],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=5); note=unanalyzed-is-not-safe; cfg-independent-unsupported=3; cfg-fallback-reasons=[expression outside supported CFG values, unresolved call: put]; cfg-executed=3; ast-fallback=1; cfg-divergent=1; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))"
+      },
+      "strict": {
+        "rc": 2,
+        "lines": [],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=5); note=unanalyzed-is-not-safe; cfg-independent-unsupported=3; cfg-fallback-reasons=[expression outside supported CFG values, unresolved call: put]; cfg-executed=3; ast-fallback=1; cfg-divergent=1; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-verify(strict comparison; any unconfirmed candidate fails the scan, exit 2))"
+      }
+    },
+    "static_field": {
+      "compile": 0,
+      "expected": [
+        8
+      ],
+      "ast": {
+        "rc": 0,
+        "lines": [
+          8
+        ],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=5); note=unanalyzed-is-not-safe; cfg-independent-unsupported=0; cfg-fallback-reasons=[]; cfg-executed=4; ast-fallback=0; cfg-divergent=0; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))"
+      },
+      "cfg": {
+        "rc": 0,
+        "lines": [
+          8
+        ],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=5); note=unanalyzed-is-not-safe; cfg-independent-unsupported=3; cfg-fallback-reasons=[expression outside supported CFG values, call effects: Box::put]; cfg-executed=4; ast-fallback=1; cfg-divergent=0; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))"
+      },
+      "strict": {
+        "rc": 2,
+        "lines": [
+          8
+        ],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=5); note=unanalyzed-is-not-safe; cfg-independent-unsupported=3; cfg-fallback-reasons=[expression outside supported CFG values, call effects: Box::put]; cfg-executed=3; ast-fallback=1; cfg-divergent=1; cfg-unconfirmed=1; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-verify(strict comparison; any unconfirmed candidate fails the scan, exit 2))"
+      }
+    },
+    "source_return": {
+      "compile": 0,
+      "expected": [
+        4
+      ],
+      "ast": {
+        "rc": 0,
+        "lines": [],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=4); note=unanalyzed-is-not-safe; cfg-independent-unsupported=0; cfg-fallback-reasons=[]; cfg-executed=3; ast-fallback=0; cfg-divergent=1; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))"
+      },
+      "cfg": {
+        "rc": 0,
+        "lines": [],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=4); note=unanalyzed-is-not-safe; cfg-independent-unsupported=2; cfg-fallback-reasons=[unresolved call: wrapper, return value: wrapper]; cfg-executed=3; ast-fallback=1; cfg-divergent=1; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))"
+      },
+      "strict": {
+        "rc": 2,
+        "lines": [],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=4); note=unanalyzed-is-not-safe; cfg-independent-unsupported=2; cfg-fallback-reasons=[unresolved call: wrapper, return value: wrapper]; cfg-executed=3; ast-fallback=1; cfg-divergent=1; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-verify(strict comparison; any unconfirmed candidate fails the scan, exit 2))"
+      }
+    },
+    "function_param_shadow": {
+      "compile": 0,
+      "expected": [
+        5
+      ],
+      "ast": {
+        "rc": 0,
+        "lines": [],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=4); note=unanalyzed-is-not-safe; cfg-independent-unsupported=0; cfg-fallback-reasons=[]; cfg-executed=3; ast-fallback=0; cfg-divergent=1; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))"
+      },
+      "cfg": {
+        "rc": 0,
+        "lines": [],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=4); note=unanalyzed-is-not-safe; cfg-independent-unsupported=0; cfg-fallback-reasons=[]; cfg-executed=4; ast-fallback=0; cfg-divergent=0; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))"
+      },
+      "strict": {
+        "rc": 0,
+        "lines": [],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=4); note=unanalyzed-is-not-safe; cfg-independent-unsupported=0; cfg-fallback-reasons=[]; cfg-executed=4; ast-fallback=0; cfg-divergent=0; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-verify(strict comparison; any unconfirmed candidate fails the scan, exit 2))"
+      }
+    },
+    "constant_branch": {
+      "compile": 0,
+      "expected": [],
+      "ast": {
+        "rc": 0,
+        "lines": [
+          4
+        ],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=3); note=unanalyzed-is-not-safe; cfg-independent-unsupported=0; cfg-fallback-reasons=[]; cfg-executed=3; ast-fallback=0; cfg-divergent=0; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))"
+      },
+      "cfg": {
+        "rc": 0,
+        "lines": [
+          4
+        ],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=3); note=unanalyzed-is-not-safe; cfg-independent-unsupported=0; cfg-fallback-reasons=[]; cfg-executed=3; ast-fallback=0; cfg-divergent=0; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))"
+      },
+      "strict": {
+        "rc": 0,
+        "lines": [
+          4
+        ],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=3); note=unanalyzed-is-not-safe; cfg-independent-unsupported=0; cfg-fallback-reasons=[]; cfg-executed=3; ast-fallback=0; cfg-divergent=0; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-verify(strict comparison; any unconfirmed candidate fails the scan, exit 2))"
+      }
+    },
+    "constant_loop": {
+      "compile": 0,
+      "expected": [],
+      "ast": {
+        "rc": 0,
+        "lines": [
+          4
+        ],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=3); note=unanalyzed-is-not-safe; cfg-independent-unsupported=0; cfg-fallback-reasons=[]; cfg-executed=3; ast-fallback=0; cfg-divergent=0; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))"
+      },
+      "cfg": {
+        "rc": 0,
+        "lines": [
+          4
+        ],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=3); note=unanalyzed-is-not-safe; cfg-independent-unsupported=0; cfg-fallback-reasons=[]; cfg-executed=3; ast-fallback=0; cfg-divergent=0; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))"
+      },
+      "strict": {
+        "rc": 0,
+        "lines": [
+          4
+        ],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=3); note=unanalyzed-is-not-safe; cfg-independent-unsupported=0; cfg-fallback-reasons=[]; cfg-executed=3; ast-fallback=0; cfg-divergent=0; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-verify(strict comparison; any unconfirmed candidate fails the scan, exit 2))"
+      }
+    },
+    "labelled_safe": {
+      "compile": 0,
+      "expected": [],
+      "ast": {
+        "rc": 0,
+        "lines": [],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=4); note=unanalyzed-is-not-safe; cfg-independent-unsupported=0; cfg-fallback-reasons=[]; cfg-executed=3; ast-fallback=0; cfg-divergent=1; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))"
+      },
+      "cfg": {
+        "rc": 0,
+        "lines": [
+          4
+        ],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=4); note=unanalyzed-is-not-safe; cfg-independent-unsupported=0; cfg-fallback-reasons=[]; cfg-executed=4; ast-fallback=0; cfg-divergent=0; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))"
+      },
+      "strict": {
+        "rc": 2,
+        "lines": [],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=4); note=unanalyzed-is-not-safe; cfg-independent-unsupported=0; cfg-fallback-reasons=[]; cfg-executed=3; ast-fallback=0; cfg-divergent=1; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-verify(strict comparison; any unconfirmed candidate fails the scan, exit 2))"
+      }
+    },
+    "labelled_first": {
+      "compile": 0,
+      "expected": [
+        4
+      ],
+      "ast": {
+        "rc": 0,
+        "lines": [],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=4); note=unanalyzed-is-not-safe; cfg-independent-unsupported=0; cfg-fallback-reasons=[]; cfg-executed=3; ast-fallback=0; cfg-divergent=1; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))"
+      },
+      "cfg": {
+        "rc": 0,
+        "lines": [
+          4
+        ],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=4); note=unanalyzed-is-not-safe; cfg-independent-unsupported=0; cfg-fallback-reasons=[]; cfg-executed=4; ast-fallback=0; cfg-divergent=0; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-authoritative(executor confirms/refutes walk candidates))"
+      },
+      "strict": {
+        "rc": 2,
+        "lines": [],
+        "scope": "analyzer=moon-audit 0.4.0 (moonbitlang/parser 0.3.18); excludes=[_build, .mooncakes, examples, benchmarks]; parse-failures=0; unsupported-semantics=unknown(not-measured); timeouts=unknown(not-measured); loop-fixpoint-exhausted=0(measured); widening-applied=0(E1b conservative top at budget exhaustion, measured); summary-scc-not-converged=0(measured); model-warnings=0(measured, T5.1 pipeline); mode=deep; context-strategy=insensitive; context-implemented=true; incremental=false; entries: pkgs(app-main=0,test=0,library=1) fns(library-pub=1,ffi-extern=0,internal=4); note=unanalyzed-is-not-safe; cfg-independent-unsupported=0; cfg-fallback-reasons=[]; cfg-executed=3; ast-fallback=0; cfg-divergent=1; cfg-unconfirmed=0; cfg-widenings=0; cfg-visits-capped=0(measured, E1b: cfg-verify(strict comparison; any unconfirmed candidate fails the scan, exit 2))"
+      }
+    }
+  },
+  "conclusion": "Requirements not met: semantic counterexamples and shared-result consumption gaps remain."
+}

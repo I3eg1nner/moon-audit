@@ -54,6 +54,7 @@ else:
         "c7_defer_order.mbt": 0, "c8_default_param_call.mbt": 0,
         "c9_orig_same_name_destructure.mbt": 2, "c10_c12_scope_cases.mbt": 3,
         "c13_c14_error_and_dispatch.mbt": 1,
+        "deep_c15_summary_collision.mbt": 2,
     }
     if mode == "isolated":
         count = counts[path.name] + int(bool(os.environ.get("FAKE_MISMATCH")))

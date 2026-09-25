@@ -19,7 +19,7 @@ pub fn cwe676_info() -> RuleInfo {
   {
     id: { cwe: 676, variant: "unsafe-call", },
     name: "Use of Potentially Dangerous unsafe_ Function",
-    description: "Calls to unsafe_* functions (unsafe_to_char, unsafe_to_byte, etc.) bypass runtime safety checks and may cause undefined behavior on invalid input.",
+    description: "Call name suggests an unchecked operation. Confirm the declaration and its preconditions; current guard filtering does not prove safety.",
     default_severity: Warning,
   }
 }
@@ -68,14 +68,15 @@ impl @syntax.IterVisitor for Cwe676Visitor with fn visit_Expr_Guard(
   loc~,
 ) {
   let _ = (loc, exclamation, guard_loc)
-  @syntax.IterVisitor::base(env).visit_Expr(cond)
+  @syntax.IterVisitor::visit_Expr(@syntax.IterVisitor::base(env), cond)
   match otherwise {
-    Some(else_expr) => @syntax.IterVisitor::base(env).visit_Expr(else_expr)
+    Some(else_expr) =>
+      @syntax.IterVisitor::visit_Expr(@syntax.IterVisitor::base(env), else_expr)
     None => ()
   }
   let prev = env.in_guard_body
   env.in_guard_body = true
-  @syntax.IterVisitor::base(env).visit_Expr(body)
+  @syntax.IterVisitor::visit_Expr(@syntax.IterVisitor::base(env), body)
   env.in_guard_body = prev
 }
 
@@ -94,14 +95,15 @@ impl @syntax.IterVisitor for Cwe676Visitor with fn visit_Expr_DotApply(
         { cwe: 676, variant: "unsafe-call", },
         env.severity,
         High,
-        "unsafe_* function bypasses runtime safety checks. Ensure input is validated before this call, or use a safe alternative.",
+        "Call name suggests an unchecked operation. Confirm the declaration and its preconditions; current guard filtering does not prove safety.",
         env.file,
         env.source,
         loc,
       ),
     )
   }
-  @syntax.IterVisitor::base(env).visit_Expr_DotApply(
+  @syntax.IterVisitor::visit_Expr_DotApply(
+    @syntax.IterVisitor::base(env),
     self~,
     method_name~,
     args~,
@@ -132,12 +134,17 @@ impl @syntax.IterVisitor for Cwe676Visitor with fn visit_Expr_Apply(
         { cwe: 676, variant: "unsafe-call", },
         env.severity,
         High,
-        "unsafe_* function bypasses runtime safety checks. Ensure input is validated before this call, or use a safe alternative.",
+        "Call name suggests an unchecked operation. Confirm the declaration and its preconditions; current guard filtering does not prove safety.",
         env.file,
         env.source,
         loc,
       ),
     )
   }
-  @syntax.IterVisitor::base(env).visit_Expr_Apply(func~, args~, loc~)
+  @syntax.IterVisitor::visit_Expr_Apply(
+    @syntax.IterVisitor::base(env),
+    func~,
+    args~,
+    loc~,
+  )
 }

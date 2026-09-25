@@ -39,24 +39,47 @@ pub(all) struct Finding {
   end_column : Int
   snippet : String
   fingerprint : String
+  evidence : String
+  dataflow : Array[String]
 } derive(Debug)
 
 ///|
 pub(all) struct ScanResult {
   findings : Array[Finding]
-  files_scanned : Int
+  project_verification : Json?
+  semantic_analysis : Json?
+  files_scanned : Int // Legacy count: readable files with parse attempted.
+  files_selected : Int // Files selected after excludes/incremental filtering.
+  files_parsed : Int // Files parsed successfully and sent through enabled rules.
   errors : Array[String]
   analysis_scope : String // T0.4 disclosure: analyzer/excludes/parse-failures (+reserved)
+  file_coverage : Array[FileCoverage]
+  configured_excludes : Array[String]
+  incremental : Bool
 }
 
 ///|
-/// Analyzer identity for scope disclosure; keep in sync with moon.mod
-/// (manual sync documented in ROADMAP-T.md T0.4).
-pub const ANALYZER_VERSION = "0.4.0"
+pub(all) struct RuleCoverage {
+  id : String
+  status : String // evaluated, disabled, or gated_out
+  reason : String
+}
+
+///|
+pub(all) struct FileCoverage {
+  path : String
+  status : String // parsed, parse_failed, read_failed, or skipped
+  reason : String
+  rules : Array[RuleCoverage]
+}
+
+///|
+/// Development version for the reduced pattern scanner.
+pub const ANALYZER_VERSION = "0.5.0-dev"
 
 ///|
 /// Frontend spec pinned in moon.mod (moonbitlang/parser).
-pub const PARSER_SPEC_VERSION = "0.3.18"
+pub const PARSER_SPEC_VERSION = "0.4.0"
 
 ///|
 pub(all) struct ImportContext {
@@ -70,36 +93,6 @@ pub(all) struct ImportContext {
 }
 
 ///|
-pub(all) enum ContextStrategy {
-  Insensitive // baseline: current behavior — no context distinction
-  CallSite(Int) // call-site sensitivity with depth k
-  ObjectSensitive(Int) // allocation-site heap context with depth k
-  ClosureEnv // closure-environment sensitivity for higher-order calls
-} derive(Eq, Debug)
-
-///|
-pub fn ContextStrategy::name(self : ContextStrategy) -> String {
-  match self {
-    Insensitive => "insensitive"
-    CallSite(_) => "call-site"
-    ObjectSensitive(_) => "object-sensitive"
-    ClosureEnv => "closure-env"
-  }
-}
-
-///|
-pub fn ContextStrategy::is_implemented(self : ContextStrategy) -> Bool {
-  match self {
-    Insensitive => true
-    // R2-fix5: honest downgrade — call-site keys are generated but the
-    // production solver does not yet create per-context summaries
-    // (review #11 §3: strategy only controls warnings, no ctx-keyed facts)
-    CallSite(1) => false
-    _ => false // deeper strategies announced but not yet wired
-  }
-}
-
-///|
 pub(all) struct Config {
   rules : Map[String, RuleConfig]
   exclude : Array[String]
@@ -108,9 +101,6 @@ pub(all) struct Config {
   min_severity : Severity
   changed_files : Array[String]
   incremental : Bool // Explicit empty change lists must scan zero files.
-  analysis_mode : String // T7.5: "quick" (default) | "deep" (force interproc)
-  context_strategy : ContextStrategy // T7.1: pluggable context sensitivity
-  mut cfg_engine : Bool // PROD-1: true = independent CFG executor (exec_independent)
 }
 
 ///|
@@ -135,12 +125,12 @@ pub fn ImportContext::empty() -> ImportContext {
 ///|
 pub fn Config::default() -> Config {
   let rules : Map[String, RuleConfig] = Map([])
-  rules["CWE-94/eval-extern"] = { enabled: false, severity: None, }
-  rules["CWE-79/inner-html"] = { enabled: false, severity: None, }
-  rules["CWE-22/path-concat"] = { enabled: false, severity: None, }
-  rules["CWE-676/unsafe-call"] = { enabled: false, severity: None, }
-  rules["CWE-248/panic-reachable"] = { enabled: false, severity: None, }
-  rules["CWE-704/unsafe-cast"] = { enabled: false, severity: None, }
+  for entry in rule_registry() {
+    rules[rule_id_str(entry.info.id)] = {
+      enabled: entry.default_enabled,
+      severity: None,
+    }
+  }
   {
     rules,
     exclude: ["_build", ".mooncakes", "examples", "benchmarks"],
@@ -149,9 +139,6 @@ pub fn Config::default() -> Config {
     min_severity: Warning,
     changed_files: [],
     incremental: false,
-    analysis_mode: "quick",
-    context_strategy: Insensitive,
-    cfg_engine: false,
   }
 }
 
@@ -232,3 +219,25 @@ pub fn confidence_from_str(s : String) -> Confidence {
     Medium
   }
 }
+
+///|
+pub extend Severity with Eq::{not_equal, equal}
+
+///|
+pub extend Severity with Debug::{to_repr}
+
+///|
+pub extend Confidence with Eq::{not_equal, equal}
+
+///|
+pub extend Confidence with Debug::{to_repr}
+
+///|
+pub extend RuleId with Debug::{to_repr}
+
+///|
+pub extend Finding with Debug::{to_repr}
+
+///|
+/// Changes when AST selection semantics change, independently of package version.
+pub const PARSER_POLICY_VERSION = "handrolled-moonyacc-interpolation-v2"

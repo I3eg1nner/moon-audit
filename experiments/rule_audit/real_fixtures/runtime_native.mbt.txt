@@ -1,0 +1,6 @@
+test "builtin replaces first occurrence" {
+  inspect("<<".replace(old="<", new="&lt;"), content="&lt;<")
+}
+test "builtin replaces all occurrences" {
+  inspect("<<".replace_all(old="<", new="&lt;"), content="&lt;&lt;")
+}

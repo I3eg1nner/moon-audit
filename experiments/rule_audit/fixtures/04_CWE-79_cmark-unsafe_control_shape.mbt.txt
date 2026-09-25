@@ -1,0 +1,2 @@
+pub fn render(_value : String, safe? : Bool = true) -> String { if safe { "constant" } else { "constant" } }
+pub fn probe(input : String) -> String { render(input, safe=true) }

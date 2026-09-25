@@ -1,0 +1,82 @@
+fn relay(input : String) -> String { input }
+fn escape_html(input : String) -> String { input }
+fn unsupported(input : String) -> String { if input == "x" { "" } else { input } }
+fn spin(input : String) -> String { spin(input) }
+fn twice(input : String) -> String { "\{input}\{input}" }
+
+pub fn install(app : @mocket.Mocket) -> Unit {
+  app.get("/raw", event => {
+    let input = event.req.query().get("q").unwrap_or("")
+    @mocket.html(relay(input))
+  })
+  app.get("/safe", event => {
+    let input = event.req.query().get("q").unwrap_or("")
+    @mocket.html(@mocket.escape_html(relay(input)))
+  })
+  app.get("/discarded", event => {
+    let input = event.req.query().get("q").unwrap_or("")
+    let _discarded = @mocket.html(relay(input))
+    @mocket.html("constant")
+  })
+  app.get("/overwritten", event => {
+    let input = event.req.query().get("q").unwrap_or("")
+    let mut result = @mocket.html(relay(input))
+    result = @mocket.html("replacement")
+    result
+  })
+  app.get("/plain", event => {
+    let input = event.req.query().get("q").unwrap_or("")
+    @mocket.text(relay(input))
+  })
+  app.get("/script", event => {
+    let input = event.req.query().get("q").unwrap_or("")
+    let escaped = @mocket.escape_html(input)
+    @mocket.html("<script>\{escaped}</script>")
+  })
+  app.get("/homonym", event => {
+    let input = event.req.query().get("q").unwrap_or("")
+    @mocket.html(escape_html(input))
+  })
+  app.get("/unknown", event => {
+    let input = event.req.query().get("q").unwrap_or("")
+    @mocket.html(unsupported(input))
+  })
+  app.get("/recursive", event => {
+    let input = event.req.query().get("q").unwrap_or("")
+    @mocket.html(spin(input))
+  })
+  app.get("/doubling", event => {
+    let input = event.req.query().get("q").unwrap_or("")
+    let v0 = twice(input)
+    let v1 = twice(v0)
+    let v2 = twice(v1)
+    let v3 = twice(v2)
+    let v4 = twice(v3)
+    let v5 = twice(v4)
+    let v6 = twice(v5)
+    let v7 = twice(v6)
+    let v8 = twice(v7)
+    let v9 = twice(v8)
+    let v10 = twice(v9)
+    let v11 = twice(v10)
+    let v12 = twice(v11)
+    let v13 = twice(v12)
+    let v14 = twice(v13)
+    let v15 = twice(v14)
+    let v16 = twice(v15)
+    let v17 = twice(v16)
+    let v18 = twice(v17)
+    let v19 = twice(v18)
+    let v20 = twice(v19)
+    let v21 = twice(v20)
+    let v22 = twice(v21)
+    let v23 = twice(v22)
+    let v24 = twice(v23)
+    let v25 = twice(v24)
+    let v26 = twice(v25)
+    let v27 = twice(v26)
+    let v28 = twice(v27)
+    let v29 = twice(v28)
+    @mocket.html(v29)
+  })
+}

@@ -14,8 +14,8 @@ priv struct Cwe079CmarkVisitor {
 pub fn cwe079_cmark_info() -> RuleInfo {
   {
     id: { cwe: 79, variant: "cmark-unsafe", },
-    name: "Explicit Unsafe HTML Rendering in cmark",
-    description: "cmark render()/from_doc()/renderer() called with safe=false, allowing raw HTML and javascript: URLs in output.",
+    name: "Explicit safe=false Rendering Call",
+    description: "Rendering-shaped call sets safe=false. For the reviewed cmark API this allows raw HTML; confirm API identity and trust boundary.",
     default_severity: Error,
   }
 }
@@ -66,7 +66,7 @@ impl @syntax.IterVisitor for Cwe079CmarkVisitor with fn visit_Expr_Apply(
           { cwe: 79, variant: "cmark-unsafe", },
           env.severity,
           High,
-          "cmark called with safe=false. Raw HTML and javascript: URLs pass through to output. Remove safe=false or set safe=true.",
+          "Rendering-shaped call sets safe=false. For the reviewed cmark API this allows raw HTML; confirm API identity and trust boundary.",
           env.file,
           env.source,
           loc,
@@ -74,5 +74,10 @@ impl @syntax.IterVisitor for Cwe079CmarkVisitor with fn visit_Expr_Apply(
       )
     }
   }
-  @syntax.IterVisitor::base(env).visit_Expr_Apply(func~, args~, loc~)
+  @syntax.IterVisitor::visit_Expr_Apply(
+    @syntax.IterVisitor::base(env),
+    func~,
+    args~,
+    loc~,
+  )
 }

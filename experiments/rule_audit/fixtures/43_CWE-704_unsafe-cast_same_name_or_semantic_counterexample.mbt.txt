@@ -1,0 +1,3 @@
+pub struct Dummy {}
+pub fn Dummy::cast(_self : Dummy) -> Int { 0 }
+pub fn probe() -> Int { Dummy::{}.cast() }

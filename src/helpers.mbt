@@ -290,6 +290,8 @@ fn make_finding(
     end_column: end_col,
     snippet,
     fingerprint: compute_fingerprint(rule_id, snippet),
+    evidence: "syntax_hint",
+    dataflow: [],
   }
 }
 

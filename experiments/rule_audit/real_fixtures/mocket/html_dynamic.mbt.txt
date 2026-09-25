@@ -1,0 +1,1 @@
+pub fn probe(input : String) -> &@mocket.Responder { @mocket.html("<p>\{input}</p>") }

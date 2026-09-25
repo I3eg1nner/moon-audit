@@ -1,12 +1,18 @@
 import {
+  "minie135/moon-audit/src/security_frontend" @semantic,
+  "minie135/moon-audit/src/project_driver" @project,
+  "moonbitlang/async",
   "minie135/moon-audit/src" @audit,
-  "moonbitlang/parser",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
   "moonbitlang/x/sys",
   "moonbitlang/core/argparse",
   "moonbitlang/core/builtin",
   "moonbitlang/core/json",
+  "moonbitlang/core/string",
+  "moonbitlang/core/env",
 }
 
 pkgtype(kind: "executable")
+
+supported_targets = "+native"

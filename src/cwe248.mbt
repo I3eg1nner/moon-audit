@@ -21,8 +21,8 @@ priv struct Cwe248Visitor {
 pub fn cwe248_info() -> RuleInfo {
   {
     id: { cwe: 248, variant: "panic-reachable", },
-    name: "Reachable panic/abort in Library Code",
-    description: "panic() or abort() in library code terminates the program. Callers cannot recover. Use Result/Option or raise an error instead.",
+    name: "Panic/Abort Syntax in Library Code",
+    description: "Call named panic/abort may terminate execution if it resolves to the builtin. Review reachability and input conditions; filtered locations are not proven safe.",
     default_severity: Warning,
   }
 }
@@ -134,7 +134,8 @@ impl @syntax.IterVisitor for Cwe248Visitor with fn visit_Impl_TopFuncDef(
 ) {
   let prev = env.in_unwrap_fn
   env.in_unwrap_fn = is_unwrap_function(fun_decl.name.name)
-  @syntax.IterVisitor::base(env).visit_Impl_TopFuncDef(
+  @syntax.IterVisitor::visit_Impl_TopFuncDef(
+    @syntax.IterVisitor::base(env),
     fun_decl~,
     decl_body~,
     where_clause~,
@@ -154,17 +155,17 @@ impl @syntax.IterVisitor for Cwe248Visitor with fn visit_Expr_Guard(
   loc~,
 ) {
   let _ = (loc, exclamation, guard_loc)
-  @syntax.IterVisitor::base(env).visit_Expr(cond)
+  @syntax.IterVisitor::visit_Expr(@syntax.IterVisitor::base(env), cond)
   match otherwise {
     Some(else_expr) => {
       let prev = env.in_guard_else
       env.in_guard_else = true
-      @syntax.IterVisitor::base(env).visit_Expr(else_expr)
+      @syntax.IterVisitor::visit_Expr(@syntax.IterVisitor::base(env), else_expr)
       env.in_guard_else = prev
     }
     None => ()
   }
-  @syntax.IterVisitor::base(env).visit_Expr(body)
+  @syntax.IterVisitor::visit_Expr(@syntax.IterVisitor::base(env), body)
 }
 
 ///|
@@ -186,12 +187,17 @@ impl @syntax.IterVisitor for Cwe248Visitor with fn visit_Expr_Apply(
         { cwe: 248, variant: "panic-reachable", },
         env.severity,
         Medium,
-        "panic()/abort() terminates the program. In library code, prefer returning Result or raising an error so callers can handle the failure.",
+        "Call named panic/abort may terminate execution if it resolves to the builtin. Review reachability and input conditions; filtered locations are not proven safe.",
         env.file,
         env.source,
         loc,
       ),
     )
   }
-  @syntax.IterVisitor::base(env).visit_Expr_Apply(func~, args~, loc~)
+  @syntax.IterVisitor::visit_Expr_Apply(
+    @syntax.IterVisitor::base(env),
+    func~,
+    args~,
+    loc~,
+  )
 }

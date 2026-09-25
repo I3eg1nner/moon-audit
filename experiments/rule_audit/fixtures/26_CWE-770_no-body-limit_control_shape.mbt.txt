@@ -1,0 +1,4 @@
+pub struct Dummy {}
+pub fn Dummy::post(_self : Dummy, _path : String) -> Unit {}
+pub fn Dummy::serve(_self : Dummy, body_limit? : Int = 0) -> Unit { ignore(body_limit) }
+pub fn probe(app : Dummy) -> Unit { app.post("/"); app.serve(body_limit=1024) }

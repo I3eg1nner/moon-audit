@@ -1,5 +1,7 @@
 # 上游 PR 准备：`moonc build-package --dump-core-sexp`
 
+> 2026-09-22 路线复核：本文件为旧公开 compiler 提交上的未编译补丁草稿，未提交上游，未证明兼容当前 v0.10.14；不能按现成或低成本入口排期。当前决策见 [基础设施与组件取舍](../../moonbit-infrastructure-research-2026-09-22.md)。
+
 ## 动机（事实见 ../RESEARCH.md）
 
 - moonbit-compiler 已开源（MoonBit Public Source License v1），MCore IR 定义于 `src/core.ml`

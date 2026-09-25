@@ -1,0 +1,2220 @@
+{
+  "schema": "moon-audit.production-semantic-acceptance.v1",
+  "scope": "mocket-get-callbacks",
+  "platform": "linux",
+  "analyzer": "/data/my/moon-audit/_build/native/debug/build/src/main/main.exe",
+  "analyzer_sha256": "23ece129f22c2232da4a43535a1d47a56ed5975efd913d089eab00c8622cb031",
+  "project_toolchain": "/tmp/moon-audit-upgrade-20260922/toolchain",
+  "cases": [
+    {
+      "name": "cold_hot_json_consistency_and_default_rules",
+      "passed": false,
+      "error": "cold/hot reports differ"
+    }
+  ],
+  "runs": [
+    {
+      "name": "cold_positive",
+      "command": [
+        "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/moon-audit",
+        "--analysis",
+        "semantic",
+        "--verify-project",
+        "--semantic-scope",
+        "mocket-get-callbacks",
+        "--project-toolchain",
+        "/tmp/moon-audit-upgrade-20260922/toolchain",
+        "--format",
+        "json",
+        "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer"
+      ],
+      "seconds": 6.677,
+      "exit_code": 0,
+      "stdout_sha256": "78a71d283c75b8b73a0c95a3a18b860d5ce45f41d4d1392915c953ba8bfc436b",
+      "stderr": "",
+      "peak_rss_kib": 66656,
+      "gnu_time": "\tCommand being timed: \"/tmp/moon-audit-semantic-acceptance-3rmmx1dz/moon-audit --analysis semantic --verify-project --semantic-scope mocket-get-callbacks --project-toolchain /tmp/moon-audit-upgrade-20260922/toolchain --format json /tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer\"\n\tUser time (seconds): 6.39\n\tSystem time (seconds): 5.00\n\tPercent of CPU this job got: 170%\n\tElapsed (wall clock) time (h:mm:ss or m:ss): 0:06.67\n\tAverage shared text size (kbytes): 0\n\tAverage unshared data size (kbytes): 0\n\tAverage stack size (kbytes): 0\n\tAverage total size (kbytes): 0\n\tMaximum resident set size (kbytes): 66656\n\tAverage resident set size (kbytes): 0\n\tMajor (requiring I/O) page faults: 36\n\tMinor (reclaiming a frame) page faults: 542720\n\tVoluntary context switches: 1937\n\tInvoluntary context switches: 70\n\tSwaps: 0\n\tFile system inputs: 0\n\tFile system outputs: 12624\n\tSocket messages sent: 0\n\tSocket messages received: 0\n\tSignals delivered: 0\n\tPage size (bytes): 4096\n\tExit status: 0\n",
+      "report": {
+        "findings": [
+          {
+            "rule_id": "CWE-116/replace-escaping",
+            "severity": "error",
+            "confidence": "high",
+            "message": "Call named replace with an escaping-shaped replacement. If this resolves to builtin String::replace, only the first occurrence is replaced; review receiver identity and output context.",
+            "file": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/hint.mbt",
+            "line": 1,
+            "column": 48,
+            "end_line": 1,
+            "end_column": 82,
+            "snippet": "pub fn weak_escape(value : String) -> String { value.replace(old=\"<\", new=\"&lt;\") }",
+            "fingerprint": "1052635991",
+            "evidence": "syntax_hint",
+            "dataflow": []
+          },
+          {
+            "rule_id": "CWE-79/mocket-query-html",
+            "severity": "error",
+            "confidence": "medium",
+            "message": "Query-derived value reaches a returned HTML responder under the declared callback/model assumptions. Review output context; this does not establish browser exploitability.",
+            "file": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt",
+            "line": 5,
+            "column": 5,
+            "end_line": 5,
+            "end_column": 5,
+            "snippet": "    @mocket.html(relay(value))",
+            "fingerprint": "1253651480",
+            "evidence": "verified_dataflow",
+            "dataflow": [
+              "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:4:17",
+              "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:5:18",
+              "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:5:5",
+              "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:3:7:route_response"
+            ]
+          }
+        ],
+        "project_verification": {
+          "status": "compiler_verified",
+          "detail": "",
+          "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+          "target": "native",
+          "compiler_files": [
+            "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/hint.mbt",
+            "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt"
+          ],
+          "unsupported_files": [],
+          "policy_excluded_files": [],
+          "compiler_files_not_parsed": [],
+          "snapshot_file_count": 605,
+          "snapshot_ledger_sha256": "3e3f69ea62466052c002e2f15cefd377e994831499f9b6d65a2d1afaa7814480"
+        },
+        "semantic_analysis": {
+          "models": [
+            {
+              "declaration_file": "html.mbt",
+              "range": "1032:8-1032:14",
+              "sha256": "0af18ff6ff3e4c14eab41f85127389ef598086020035dfe59e61713b4d0950dd",
+              "operation": "markdown"
+            },
+            {
+              "declaration_file": "index.mbt",
+              "range": "152:16-152:19",
+              "sha256": "9109bffdc75e47e5793c9fcd6c89cb19a71a9ac25d64fafa1c7ac7c7853ad973",
+              "operation": "route"
+            },
+            {
+              "declaration_file": "event.mbt",
+              "range": "3:3-3:6",
+              "sha256": "1146bde3891781984d0c98e84386a4b423d753d2cadc5f9095e51e2c258a76db",
+              "operation": "request"
+            },
+            {
+              "declaration_file": "request.mbt",
+              "range": "33:21-33:26",
+              "sha256": "b8a10625f022328175f087b4ebdd8eb4e838763bf2d6c45ee414304803f3ff43",
+              "operation": "query"
+            },
+            {
+              "declaration_file": "linked_hash_map.mbt",
+              "range": "269:31-269:34",
+              "sha256": "fe413a7ffa2e4148abf2f37b01decef05e544e998b3cd730a73817830a63bfd6",
+              "operation": "lookup"
+            },
+            {
+              "declaration_file": "option.mbt",
+              "range": "48:19-48:28",
+              "sha256": "059fcefd01f0393fc0ded6456e28d3dc0699dd6c32fdd0ac80aadbb35473184a",
+              "operation": "default"
+            },
+            {
+              "declaration_file": "responder.mbt",
+              "range": "92:8-92:12",
+              "sha256": "4b273a040c4ce219b9c2f0a7c810be90c873d3aad3062a9076e0d3e9f5e2e6b9",
+              "operation": "html"
+            },
+            {
+              "declaration_file": "utils.mbt",
+              "range": "128:8-128:19",
+              "sha256": "66c99f7c77a01765262e89a96148624440048fd856e79486cf4ddfb200a3e0c3",
+              "operation": "escape"
+            },
+            {
+              "declaration_file": "responder.mbt",
+              "range": "97:8-97:12",
+              "sha256": "4b273a040c4ce219b9c2f0a7c810be90c873d3aad3062a9076e0d3e9f5e2e6b9",
+              "operation": "text"
+            }
+          ],
+          "coverage_status": "explicit_callback_scope",
+          "schema": "moon-audit.experimental-security-ir.v1",
+          "production_ready": false,
+          "entry_scope": "only two-positional-argument .get literal-route inline-callback declarations; registration invocation and unchanged responder middleware/content-type behavior are preconditions; other registration forms are not covered",
+          "functions": [
+            {
+              "id": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:1:4",
+              "parameters": [
+                11
+              ],
+              "operations": [
+                [
+                  "Copy",
+                  12,
+                  11
+                ],
+                [
+                  "Return",
+                  12
+                ]
+              ]
+            },
+            {
+              "id": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:3:7",
+              "parameters": [
+                1
+              ],
+              "operations": [
+                [
+                  "Copy",
+                  2,
+                  1
+                ],
+                [
+                  "Request",
+                  3,
+                  2
+                ],
+                [
+                  "Query",
+                  4,
+                  3,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:4:17"
+                ],
+                [
+                  "Literal",
+                  5,
+                  "q"
+                ],
+                [
+                  "Lookup",
+                  6,
+                  4,
+                  5
+                ],
+                [
+                  "Literal",
+                  7,
+                  ""
+                ],
+                [
+                  "Default",
+                  8,
+                  6,
+                  7
+                ],
+                [
+                  "Copy",
+                  9,
+                  8
+                ],
+                [
+                  "Call",
+                  10,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:1:4",
+                  [
+                    9
+                  ],
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:5:18"
+                ],
+                [
+                  "Response",
+                  13,
+                  10,
+                  true,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:5:5"
+                ],
+                [
+                  "Return",
+                  13
+                ]
+              ]
+            },
+            {
+              "id": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:7:7",
+              "parameters": [
+                14
+              ],
+              "operations": [
+                [
+                  "Copy",
+                  15,
+                  14
+                ],
+                [
+                  "Request",
+                  16,
+                  15
+                ],
+                [
+                  "Query",
+                  17,
+                  16,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:8:17"
+                ],
+                [
+                  "Literal",
+                  18,
+                  "q"
+                ],
+                [
+                  "Lookup",
+                  19,
+                  17,
+                  18
+                ],
+                [
+                  "Literal",
+                  20,
+                  ""
+                ],
+                [
+                  "Default",
+                  21,
+                  19,
+                  20
+                ],
+                [
+                  "Copy",
+                  22,
+                  21
+                ],
+                [
+                  "Call",
+                  23,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:1:4",
+                  [
+                    22
+                  ],
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:9:38"
+                ],
+                [
+                  "EscapeHtmlText",
+                  24,
+                  23
+                ],
+                [
+                  "Response",
+                  25,
+                  24,
+                  true,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:9:5"
+                ],
+                [
+                  "Return",
+                  25
+                ]
+              ]
+            },
+            {
+              "id": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:11:7",
+              "parameters": [
+                26
+              ],
+              "operations": [
+                [
+                  "Copy",
+                  27,
+                  26
+                ],
+                [
+                  "Request",
+                  28,
+                  27
+                ],
+                [
+                  "Query",
+                  29,
+                  28,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:12:17"
+                ],
+                [
+                  "Literal",
+                  30,
+                  "q"
+                ],
+                [
+                  "Lookup",
+                  31,
+                  29,
+                  30
+                ],
+                [
+                  "Literal",
+                  32,
+                  ""
+                ],
+                [
+                  "Default",
+                  33,
+                  31,
+                  32
+                ],
+                [
+                  "Copy",
+                  34,
+                  33
+                ],
+                [
+                  "Call",
+                  35,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:1:4",
+                  [
+                    34
+                  ],
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:13:35"
+                ],
+                [
+                  "Response",
+                  36,
+                  35,
+                  true,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:13:22"
+                ],
+                [
+                  "Literal",
+                  37,
+                  "constant"
+                ],
+                [
+                  "Response",
+                  38,
+                  37,
+                  true,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:14:5"
+                ],
+                [
+                  "Return",
+                  38
+                ]
+              ]
+            },
+            {
+              "id": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:16:7",
+              "parameters": [
+                39
+              ],
+              "operations": [
+                [
+                  "Copy",
+                  40,
+                  39
+                ],
+                [
+                  "Request",
+                  41,
+                  40
+                ],
+                [
+                  "Query",
+                  42,
+                  41,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:17:17"
+                ],
+                [
+                  "Literal",
+                  43,
+                  "q"
+                ],
+                [
+                  "Lookup",
+                  44,
+                  42,
+                  43
+                ],
+                [
+                  "Literal",
+                  45,
+                  ""
+                ],
+                [
+                  "Default",
+                  46,
+                  44,
+                  45
+                ],
+                [
+                  "Copy",
+                  47,
+                  46
+                ],
+                [
+                  "Call",
+                  48,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:1:4",
+                  [
+                    47
+                  ],
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:18:37"
+                ],
+                [
+                  "Response",
+                  49,
+                  48,
+                  true,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:18:24"
+                ],
+                [
+                  "Literal",
+                  50,
+                  "replacement"
+                ],
+                [
+                  "Response",
+                  51,
+                  50,
+                  true,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:19:16"
+                ],
+                [
+                  "Copy",
+                  49,
+                  51
+                ],
+                [
+                  "Copy",
+                  52,
+                  49
+                ],
+                [
+                  "Return",
+                  52
+                ]
+              ]
+            }
+          ],
+          "binding_queries": 32,
+          "routes": [
+            {
+              "entry": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:3:7",
+              "result": {
+                "status": "complete",
+                "reason": "",
+                "source_paths": [
+                  [
+                    "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:4:17",
+                    "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:5:18",
+                    "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:5:5",
+                    "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:3:7:route_response"
+                  ]
+                ],
+                "steps": 24
+              },
+              "route": "/raw"
+            },
+            {
+              "entry": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:7:7",
+              "result": {
+                "status": "complete",
+                "reason": "",
+                "source_paths": [],
+                "steps": 23
+              },
+              "route": "/safe"
+            },
+            {
+              "entry": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:11:7",
+              "result": {
+                "status": "complete",
+                "reason": "",
+                "source_paths": [],
+                "steps": 22
+              },
+              "route": "/discarded"
+            },
+            {
+              "entry": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:16:7",
+              "result": {
+                "status": "complete",
+                "reason": "",
+                "source_paths": [],
+                "steps": 24
+              },
+              "route": "/overwritten"
+            }
+          ],
+          "errors": [],
+          "bindings": [
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:3:7",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/index.mbt",
+              "range": "152:16-152:19"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/hint.mbt:1:54",
+              "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/string_methods.mbt",
+              "range": "2035:16-2035:23"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:4:44",
+              "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+              "range": "48:19-48:28"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:4:35",
+              "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+              "range": "269:31-269:34"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:4:27",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/request.mbt",
+              "range": "33:21-33:26"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:4:23",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/event.mbt",
+              "range": "3:3-3:6"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:5:18",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt",
+              "range": "1:4-1:9"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:5:5",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/responder.mbt",
+              "range": "92:8-92:12"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:8:27",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/request.mbt",
+              "range": "33:21-33:26"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:8:35",
+              "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+              "range": "269:31-269:34"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:8:44",
+              "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+              "range": "48:19-48:28"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:7:7",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/index.mbt",
+              "range": "152:16-152:19"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:9:18",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/utils.mbt",
+              "range": "128:8-128:19"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:9:38",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt",
+              "range": "1:4-1:9"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:8:23",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/event.mbt",
+              "range": "3:3-3:6"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:9:5",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/responder.mbt",
+              "range": "92:8-92:12"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:12:35",
+              "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+              "range": "269:31-269:34"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:11:7",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/index.mbt",
+              "range": "152:16-152:19"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:12:44",
+              "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+              "range": "48:19-48:28"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:12:27",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/request.mbt",
+              "range": "33:21-33:26"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:13:35",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt",
+              "range": "1:4-1:9"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:14:5",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/responder.mbt",
+              "range": "92:8-92:12"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:12:23",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/event.mbt",
+              "range": "3:3-3:6"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:13:22",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/responder.mbt",
+              "range": "92:8-92:12"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:16:7",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/index.mbt",
+              "range": "152:16-152:19"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:17:44",
+              "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+              "range": "48:19-48:28"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:17:35",
+              "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+              "range": "269:31-269:34"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:17:27",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/request.mbt",
+              "range": "33:21-33:26"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:19:16",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/responder.mbt",
+              "range": "92:8-92:12"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:17:23",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/event.mbt",
+              "range": "3:3-3:6"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:18:24",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/responder.mbt",
+              "range": "92:8-92:12"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:18:37",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt",
+              "range": "1:4-1:9"
+            }
+          ],
+          "status": "complete_within_declared_scope",
+          "budget": {
+            "wall_seconds": 60,
+            "worker_address_space_or_commit_mib": 2048,
+            "query_limit": 256,
+            "parallel_queries": 4,
+            "ir_units": 10000
+          }
+        },
+        "files_scanned": 2,
+        "files_selected": 2,
+        "files_parsed": 2,
+        "errors": [],
+        "analysis_scope": "analyzer=moon-audit 0.5.0-dev (moonbitlang/parser 0.4.0); engine=syntax-pattern; interprocedural=false; type-resolution=false; sanitizer-resolution=false; cache=none; excludes=[_build,.mooncakes,examples,benchmarks]; implicit-excludes=[dotdirs,_build,*_test.mbt,*_wbtest.mbt]; selected=2; parsed=2; parse-failures=0; incremental=false; unanalyzed-is-not-safe",
+        "analysis_manifest": {
+          "schema": "moon-audit.analysis-manifest.v1",
+          "verification": "compiler_verified_syntax",
+          "selection": {
+            "enumerated_scope": "eligible_mbt_files_after_directory_exclusions",
+            "implicit_excludes": [
+              "dot_directories_and_files",
+              "_build",
+              "*_test.mbt",
+              "*_wbtest.mbt"
+            ],
+            "configured_excludes": [
+              "_build",
+              ".mooncakes",
+              "examples",
+              "benchmarks"
+            ],
+            "incremental": false
+          },
+          "files": [
+            {
+              "path": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt",
+              "status": "parsed",
+              "reason": "",
+              "rules": [
+                {
+                  "id": "CWE-116/replace-escaping",
+                  "status": "evaluated",
+                  "reason": ""
+                },
+                {
+                  "id": "CWE-79/cmark-unsafe",
+                  "status": "gated_out",
+                  "reason": "cmark_import_hint_absent"
+                },
+                {
+                  "id": "CWE-79/inner-html",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-79/template-injection",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-94/eval-extern",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-113/crlf-injection",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-942/cors-credentials",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-614/cookie-attrs",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-770/no-body-limit",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-346/ws-origin",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-22/path-concat",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-676/unsafe-call",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-248/panic-reachable",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-704/unsafe-cast",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                }
+              ]
+            },
+            {
+              "path": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/hint.mbt",
+              "status": "parsed",
+              "reason": "",
+              "rules": [
+                {
+                  "id": "CWE-116/replace-escaping",
+                  "status": "evaluated",
+                  "reason": ""
+                },
+                {
+                  "id": "CWE-79/cmark-unsafe",
+                  "status": "gated_out",
+                  "reason": "cmark_import_hint_absent"
+                },
+                {
+                  "id": "CWE-79/inner-html",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-79/template-injection",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-94/eval-extern",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-113/crlf-injection",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-942/cors-credentials",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-614/cookie-attrs",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-770/no-body-limit",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-346/ws-origin",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-22/path-concat",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-676/unsafe-call",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-248/panic-reachable",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-704/unsafe-cast",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                }
+              ]
+            }
+          ],
+          "rule_capabilities": [
+            {
+              "id": "CWE-116/replace-escaping",
+              "evidence": "syntax_hint",
+              "requirement": "none",
+              "default_enabled": true,
+              "disposition": "review_hint",
+              "api_scope": "String::replace",
+              "call_forms": "receiver.replace; String::replace",
+              "limitations": "Dot receiver type is unresolved; User type named String or Dummy.replace can be safe and still match; No proof that output reaches HTML or input is untrusted",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-79/cmark-unsafe",
+              "evidence": "syntax_hint",
+              "requirement": "cmark_import",
+              "default_enabled": true,
+              "disposition": "review_hint",
+              "api_scope": "cmark render/from_doc/renderer/xhtml_renderer",
+              "call_forms": "unqualified function; package-qualified function",
+              "limitations": "Import substring does not establish declaration identity; A local render function can match; Disabling safe mode does not establish untrusted HTML reaching a browser",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-79/inner-html",
+              "evidence": "syntax_hint",
+              "requirement": "rabbita_import",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "rabbita inner_html",
+              "call_forms": "receiver.inner_html",
+              "limitations": "Receiver declaration unresolved; Variables holding safe constants still match; Uppercase variable name is not a safety proof; No DOM insertion reachability",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-79/template-injection",
+              "evidence": "syntax_hint",
+              "requirement": "mocket_or_crescent_import",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "mocket/crescent template APIs",
+              "call_forms": "unqualified html; package-qualified html; receiver.html",
+              "limitations": "No response-return proof; No source provenance; No encoding semantics; No declaration binding",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-94/eval-extern",
+              "evidence": "syntax_hint",
+              "requirement": "none",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "JavaScript extern",
+              "call_forms": "embedded FFI string; embedded FFI multiline string",
+              "limitations": "Comment containing eval(input) triggers; No JavaScript parser; Whitespace and aliases can evade matching; No user-control evidence",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-113/crlf-injection",
+              "evidence": "syntax_hint",
+              "requirement": "none",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "HTTP header-like APIs",
+              "call_forms": "receiver method only",
+              "limitations": "No validated current-library matched sink; Safe values in locals trigger; No knowledge of library rejection/normalization; Does not match current crescent header API",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-942/cors-credentials",
+              "evidence": "syntax_hint",
+              "requirement": "mocket_or_crescent_import",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "CORS-like configuration",
+              "call_forms": "unqualified function; package-qualified function",
+              "limitations": "Original credential theft claim is false for wildcard+credentials alone; Dynamic trusted origin can match; No browser behavioral or reflected-origin proof; No declaration binding",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-614/cookie-attrs",
+              "evidence": "syntax_hint",
+              "requirement": "mocket_or_crescent_import",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "cookie-like API",
+              "call_forms": "receiver.set_cookie",
+              "limitations": "False attributes are treated as present/safe; Cookie role and deployment are unknown; No serialization inspection; Same-name harmless APIs trigger",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-770/no-body-limit",
+              "evidence": "syntax_hint",
+              "requirement": "crescent_import",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "crescent serve",
+              "call_forms": "receiver method only",
+              "limitations": "Current API nested options cause false positive; File text does not bind routes to server; No default or reverse-proxy configuration knowledge",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-346/ws-origin",
+              "evidence": "syntax_hint",
+              "requirement": "mocket_or_crescent_import",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "websocket-like API",
+              "call_forms": "receiver method; unqualified function; package-qualified function",
+              "limitations": "No real current-library API validation; Prior middleware validation invisible; Label presence is not validation proof",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-22/path-concat",
+              "evidence": "syntax_hint",
+              "requirement": "none",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "file/path-like API",
+              "call_forms": "infix +",
+              "limitations": "Variable names do not prove user control; No filesystem sink or normalization semantics; Path joining alone is not path traversal",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-676/unsafe-call",
+              "evidence": "syntax_hint",
+              "requirement": "non_stdlib_module",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "unsafe-like API",
+              "call_forms": "receiver method; unqualified function; qualified function; type method",
+              "limitations": "Arbitrary guard suppresses without proving precondition; Function name does not establish unsafe semantics; Many genuine unsafe APIs are excluded",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-248/panic-reachable",
+              "evidence": "syntax_hint",
+              "requirement": "non_stdlib_module",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "panic/abort-like API",
+              "call_forms": "unqualified function only",
+              "limitations": "No reachability analysis; String contents and function names are not safety proofs; Platform file exclusion hides compiled target behavior; Local binding unresolved",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-704/unsafe-cast",
+              "evidence": "syntax_hint",
+              "requirement": "non_stdlib_module",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "cast-like API",
+              "call_forms": "receiver.cast; receiver.reinterpret_cast",
+              "limitations": "No receiver or declaration identity; File-wide extern substring suppresses unrelated calls; Custom safe conversions match",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            }
+          ],
+          "incomplete_reasons": []
+        }
+      }
+    },
+    {
+      "name": "hot_positive",
+      "command": [
+        "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/moon-audit",
+        "--analysis",
+        "semantic",
+        "--verify-project",
+        "--semantic-scope",
+        "mocket-get-callbacks",
+        "--project-toolchain",
+        "/tmp/moon-audit-upgrade-20260922/toolchain",
+        "--format",
+        "json",
+        "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer"
+      ],
+      "seconds": 5.875,
+      "exit_code": 0,
+      "stdout_sha256": "3544b4f365f28f412aea11f680ebf31ff1dd06d19461b38efd58685bfab12f1d",
+      "stderr": "",
+      "peak_rss_kib": 31844,
+      "gnu_time": "\tCommand being timed: \"/tmp/moon-audit-semantic-acceptance-3rmmx1dz/moon-audit --analysis semantic --verify-project --semantic-scope mocket-get-callbacks --project-toolchain /tmp/moon-audit-upgrade-20260922/toolchain --format json /tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer\"\n\tUser time (seconds): 5.12\n\tSystem time (seconds): 4.03\n\tPercent of CPU this job got: 156%\n\tElapsed (wall clock) time (h:mm:ss or m:ss): 0:05.87\n\tAverage shared text size (kbytes): 0\n\tAverage unshared data size (kbytes): 0\n\tAverage stack size (kbytes): 0\n\tAverage total size (kbytes): 0\n\tMaximum resident set size (kbytes): 31844\n\tAverage resident set size (kbytes): 0\n\tMajor (requiring I/O) page faults: 53\n\tMinor (reclaiming a frame) page faults: 348010\n\tVoluntary context switches: 1543\n\tInvoluntary context switches: 58\n\tSwaps: 0\n\tFile system inputs: 0\n\tFile system outputs: 0\n\tSocket messages sent: 0\n\tSocket messages received: 0\n\tSignals delivered: 0\n\tPage size (bytes): 4096\n\tExit status: 0\n",
+      "report": {
+        "findings": [
+          {
+            "rule_id": "CWE-116/replace-escaping",
+            "severity": "error",
+            "confidence": "high",
+            "message": "Call named replace with an escaping-shaped replacement. If this resolves to builtin String::replace, only the first occurrence is replaced; review receiver identity and output context.",
+            "file": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/hint.mbt",
+            "line": 1,
+            "column": 48,
+            "end_line": 1,
+            "end_column": 82,
+            "snippet": "pub fn weak_escape(value : String) -> String { value.replace(old=\"<\", new=\"&lt;\") }",
+            "fingerprint": "1052635991",
+            "evidence": "syntax_hint",
+            "dataflow": []
+          },
+          {
+            "rule_id": "CWE-79/mocket-query-html",
+            "severity": "error",
+            "confidence": "medium",
+            "message": "Query-derived value reaches a returned HTML responder under the declared callback/model assumptions. Review output context; this does not establish browser exploitability.",
+            "file": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt",
+            "line": 5,
+            "column": 5,
+            "end_line": 5,
+            "end_column": 5,
+            "snippet": "    @mocket.html(relay(value))",
+            "fingerprint": "1253651480",
+            "evidence": "verified_dataflow",
+            "dataflow": [
+              "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:4:17",
+              "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:5:18",
+              "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:5:5",
+              "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:3:7:route_response"
+            ]
+          }
+        ],
+        "project_verification": {
+          "status": "compiler_verified",
+          "detail": "",
+          "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+          "target": "native",
+          "compiler_files": [
+            "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/hint.mbt",
+            "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt"
+          ],
+          "unsupported_files": [],
+          "policy_excluded_files": [],
+          "compiler_files_not_parsed": [],
+          "snapshot_file_count": 605,
+          "snapshot_ledger_sha256": "3e3f69ea62466052c002e2f15cefd377e994831499f9b6d65a2d1afaa7814480"
+        },
+        "semantic_analysis": {
+          "models": [
+            {
+              "declaration_file": "html.mbt",
+              "range": "1032:8-1032:14",
+              "sha256": "0af18ff6ff3e4c14eab41f85127389ef598086020035dfe59e61713b4d0950dd",
+              "operation": "markdown"
+            },
+            {
+              "declaration_file": "index.mbt",
+              "range": "152:16-152:19",
+              "sha256": "9109bffdc75e47e5793c9fcd6c89cb19a71a9ac25d64fafa1c7ac7c7853ad973",
+              "operation": "route"
+            },
+            {
+              "declaration_file": "event.mbt",
+              "range": "3:3-3:6",
+              "sha256": "1146bde3891781984d0c98e84386a4b423d753d2cadc5f9095e51e2c258a76db",
+              "operation": "request"
+            },
+            {
+              "declaration_file": "request.mbt",
+              "range": "33:21-33:26",
+              "sha256": "b8a10625f022328175f087b4ebdd8eb4e838763bf2d6c45ee414304803f3ff43",
+              "operation": "query"
+            },
+            {
+              "declaration_file": "linked_hash_map.mbt",
+              "range": "269:31-269:34",
+              "sha256": "fe413a7ffa2e4148abf2f37b01decef05e544e998b3cd730a73817830a63bfd6",
+              "operation": "lookup"
+            },
+            {
+              "declaration_file": "option.mbt",
+              "range": "48:19-48:28",
+              "sha256": "059fcefd01f0393fc0ded6456e28d3dc0699dd6c32fdd0ac80aadbb35473184a",
+              "operation": "default"
+            },
+            {
+              "declaration_file": "responder.mbt",
+              "range": "92:8-92:12",
+              "sha256": "4b273a040c4ce219b9c2f0a7c810be90c873d3aad3062a9076e0d3e9f5e2e6b9",
+              "operation": "html"
+            },
+            {
+              "declaration_file": "utils.mbt",
+              "range": "128:8-128:19",
+              "sha256": "66c99f7c77a01765262e89a96148624440048fd856e79486cf4ddfb200a3e0c3",
+              "operation": "escape"
+            },
+            {
+              "declaration_file": "responder.mbt",
+              "range": "97:8-97:12",
+              "sha256": "4b273a040c4ce219b9c2f0a7c810be90c873d3aad3062a9076e0d3e9f5e2e6b9",
+              "operation": "text"
+            }
+          ],
+          "coverage_status": "explicit_callback_scope",
+          "schema": "moon-audit.experimental-security-ir.v1",
+          "production_ready": false,
+          "entry_scope": "only two-positional-argument .get literal-route inline-callback declarations; registration invocation and unchanged responder middleware/content-type behavior are preconditions; other registration forms are not covered",
+          "functions": [
+            {
+              "id": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:1:4",
+              "parameters": [
+                11
+              ],
+              "operations": [
+                [
+                  "Copy",
+                  12,
+                  11
+                ],
+                [
+                  "Return",
+                  12
+                ]
+              ]
+            },
+            {
+              "id": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:3:7",
+              "parameters": [
+                1
+              ],
+              "operations": [
+                [
+                  "Copy",
+                  2,
+                  1
+                ],
+                [
+                  "Request",
+                  3,
+                  2
+                ],
+                [
+                  "Query",
+                  4,
+                  3,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:4:17"
+                ],
+                [
+                  "Literal",
+                  5,
+                  "q"
+                ],
+                [
+                  "Lookup",
+                  6,
+                  4,
+                  5
+                ],
+                [
+                  "Literal",
+                  7,
+                  ""
+                ],
+                [
+                  "Default",
+                  8,
+                  6,
+                  7
+                ],
+                [
+                  "Copy",
+                  9,
+                  8
+                ],
+                [
+                  "Call",
+                  10,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:1:4",
+                  [
+                    9
+                  ],
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:5:18"
+                ],
+                [
+                  "Response",
+                  13,
+                  10,
+                  true,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:5:5"
+                ],
+                [
+                  "Return",
+                  13
+                ]
+              ]
+            },
+            {
+              "id": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:7:7",
+              "parameters": [
+                14
+              ],
+              "operations": [
+                [
+                  "Copy",
+                  15,
+                  14
+                ],
+                [
+                  "Request",
+                  16,
+                  15
+                ],
+                [
+                  "Query",
+                  17,
+                  16,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:8:17"
+                ],
+                [
+                  "Literal",
+                  18,
+                  "q"
+                ],
+                [
+                  "Lookup",
+                  19,
+                  17,
+                  18
+                ],
+                [
+                  "Literal",
+                  20,
+                  ""
+                ],
+                [
+                  "Default",
+                  21,
+                  19,
+                  20
+                ],
+                [
+                  "Copy",
+                  22,
+                  21
+                ],
+                [
+                  "Call",
+                  23,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:1:4",
+                  [
+                    22
+                  ],
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:9:38"
+                ],
+                [
+                  "EscapeHtmlText",
+                  24,
+                  23
+                ],
+                [
+                  "Response",
+                  25,
+                  24,
+                  true,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:9:5"
+                ],
+                [
+                  "Return",
+                  25
+                ]
+              ]
+            },
+            {
+              "id": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:11:7",
+              "parameters": [
+                26
+              ],
+              "operations": [
+                [
+                  "Copy",
+                  27,
+                  26
+                ],
+                [
+                  "Request",
+                  28,
+                  27
+                ],
+                [
+                  "Query",
+                  29,
+                  28,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:12:17"
+                ],
+                [
+                  "Literal",
+                  30,
+                  "q"
+                ],
+                [
+                  "Lookup",
+                  31,
+                  29,
+                  30
+                ],
+                [
+                  "Literal",
+                  32,
+                  ""
+                ],
+                [
+                  "Default",
+                  33,
+                  31,
+                  32
+                ],
+                [
+                  "Copy",
+                  34,
+                  33
+                ],
+                [
+                  "Call",
+                  35,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:1:4",
+                  [
+                    34
+                  ],
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:13:35"
+                ],
+                [
+                  "Response",
+                  36,
+                  35,
+                  true,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:13:22"
+                ],
+                [
+                  "Literal",
+                  37,
+                  "constant"
+                ],
+                [
+                  "Response",
+                  38,
+                  37,
+                  true,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:14:5"
+                ],
+                [
+                  "Return",
+                  38
+                ]
+              ]
+            },
+            {
+              "id": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:16:7",
+              "parameters": [
+                39
+              ],
+              "operations": [
+                [
+                  "Copy",
+                  40,
+                  39
+                ],
+                [
+                  "Request",
+                  41,
+                  40
+                ],
+                [
+                  "Query",
+                  42,
+                  41,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:17:17"
+                ],
+                [
+                  "Literal",
+                  43,
+                  "q"
+                ],
+                [
+                  "Lookup",
+                  44,
+                  42,
+                  43
+                ],
+                [
+                  "Literal",
+                  45,
+                  ""
+                ],
+                [
+                  "Default",
+                  46,
+                  44,
+                  45
+                ],
+                [
+                  "Copy",
+                  47,
+                  46
+                ],
+                [
+                  "Call",
+                  48,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:1:4",
+                  [
+                    47
+                  ],
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:18:37"
+                ],
+                [
+                  "Response",
+                  49,
+                  48,
+                  true,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:18:24"
+                ],
+                [
+                  "Literal",
+                  50,
+                  "replacement"
+                ],
+                [
+                  "Response",
+                  51,
+                  50,
+                  true,
+                  "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:19:16"
+                ],
+                [
+                  "Copy",
+                  49,
+                  51
+                ],
+                [
+                  "Copy",
+                  52,
+                  49
+                ],
+                [
+                  "Return",
+                  52
+                ]
+              ]
+            }
+          ],
+          "binding_queries": 32,
+          "routes": [
+            {
+              "entry": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:3:7",
+              "result": {
+                "status": "complete",
+                "reason": "",
+                "source_paths": [
+                  [
+                    "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:4:17",
+                    "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:5:18",
+                    "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:5:5",
+                    "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:3:7:route_response"
+                  ]
+                ],
+                "steps": 24
+              },
+              "route": "/raw"
+            },
+            {
+              "entry": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:7:7",
+              "result": {
+                "status": "complete",
+                "reason": "",
+                "source_paths": [],
+                "steps": 23
+              },
+              "route": "/safe"
+            },
+            {
+              "entry": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:11:7",
+              "result": {
+                "status": "complete",
+                "reason": "",
+                "source_paths": [],
+                "steps": 22
+              },
+              "route": "/discarded"
+            },
+            {
+              "entry": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:16:7",
+              "result": {
+                "status": "complete",
+                "reason": "",
+                "source_paths": [],
+                "steps": 24
+              },
+              "route": "/overwritten"
+            }
+          ],
+          "errors": [],
+          "bindings": [
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:3:7",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/index.mbt",
+              "range": "152:16-152:19"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:4:44",
+              "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+              "range": "48:19-48:28"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:4:35",
+              "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+              "range": "269:31-269:34"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/hint.mbt:1:54",
+              "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/string_methods.mbt",
+              "range": "2035:16-2035:23"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:4:27",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/request.mbt",
+              "range": "33:21-33:26"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:5:5",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/responder.mbt",
+              "range": "92:8-92:12"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:5:18",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt",
+              "range": "1:4-1:9"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:4:23",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/event.mbt",
+              "range": "3:3-3:6"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:7:7",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/index.mbt",
+              "range": "152:16-152:19"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:8:35",
+              "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+              "range": "269:31-269:34"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:8:27",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/request.mbt",
+              "range": "33:21-33:26"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:8:44",
+              "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+              "range": "48:19-48:28"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:8:23",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/event.mbt",
+              "range": "3:3-3:6"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:9:5",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/responder.mbt",
+              "range": "92:8-92:12"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:9:38",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt",
+              "range": "1:4-1:9"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:9:18",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/utils.mbt",
+              "range": "128:8-128:19"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:12:44",
+              "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+              "range": "48:19-48:28"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:12:35",
+              "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+              "range": "269:31-269:34"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:11:7",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/index.mbt",
+              "range": "152:16-152:19"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:12:27",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/request.mbt",
+              "range": "33:21-33:26"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:13:35",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt",
+              "range": "1:4-1:9"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:12:23",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/event.mbt",
+              "range": "3:3-3:6"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:13:22",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/responder.mbt",
+              "range": "92:8-92:12"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:14:5",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/responder.mbt",
+              "range": "92:8-92:12"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:17:35",
+              "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+              "range": "269:31-269:34"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:16:7",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/index.mbt",
+              "range": "152:16-152:19"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:17:27",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/request.mbt",
+              "range": "33:21-33:26"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:17:44",
+              "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+              "range": "48:19-48:28"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:18:24",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/responder.mbt",
+              "range": "92:8-92:12"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:18:37",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt",
+              "range": "1:4-1:9"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:19:16",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/responder.mbt",
+              "range": "92:8-92:12"
+            },
+            {
+              "query": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt:17:23",
+              "definition": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/.mooncakes/oboard/mocket/event.mbt",
+              "range": "3:3-3:6"
+            }
+          ],
+          "status": "complete_within_declared_scope",
+          "budget": {
+            "wall_seconds": 60,
+            "worker_address_space_or_commit_mib": 2048,
+            "query_limit": 256,
+            "parallel_queries": 4,
+            "ir_units": 10000
+          }
+        },
+        "files_scanned": 2,
+        "files_selected": 2,
+        "files_parsed": 2,
+        "errors": [],
+        "analysis_scope": "analyzer=moon-audit 0.5.0-dev (moonbitlang/parser 0.4.0); engine=syntax-pattern; interprocedural=false; type-resolution=false; sanitizer-resolution=false; cache=none; excludes=[_build,.mooncakes,examples,benchmarks]; implicit-excludes=[dotdirs,_build,*_test.mbt,*_wbtest.mbt]; selected=2; parsed=2; parse-failures=0; incremental=false; unanalyzed-is-not-safe",
+        "analysis_manifest": {
+          "schema": "moon-audit.analysis-manifest.v1",
+          "verification": "compiler_verified_syntax",
+          "selection": {
+            "enumerated_scope": "eligible_mbt_files_after_directory_exclusions",
+            "implicit_excludes": [
+              "dot_directories_and_files",
+              "_build",
+              "*_test.mbt",
+              "*_wbtest.mbt"
+            ],
+            "configured_excludes": [
+              "_build",
+              ".mooncakes",
+              "examples",
+              "benchmarks"
+            ],
+            "incremental": false
+          },
+          "files": [
+            {
+              "path": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/probe.mbt",
+              "status": "parsed",
+              "reason": "",
+              "rules": [
+                {
+                  "id": "CWE-116/replace-escaping",
+                  "status": "evaluated",
+                  "reason": ""
+                },
+                {
+                  "id": "CWE-79/cmark-unsafe",
+                  "status": "gated_out",
+                  "reason": "cmark_import_hint_absent"
+                },
+                {
+                  "id": "CWE-79/inner-html",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-79/template-injection",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-94/eval-extern",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-113/crlf-injection",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-942/cors-credentials",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-614/cookie-attrs",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-770/no-body-limit",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-346/ws-origin",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-22/path-concat",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-676/unsafe-call",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-248/panic-reachable",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-704/unsafe-cast",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                }
+              ]
+            },
+            {
+              "path": "/tmp/moon-audit-semantic-acceptance-3rmmx1dz/consumer/hint.mbt",
+              "status": "parsed",
+              "reason": "",
+              "rules": [
+                {
+                  "id": "CWE-116/replace-escaping",
+                  "status": "evaluated",
+                  "reason": ""
+                },
+                {
+                  "id": "CWE-79/cmark-unsafe",
+                  "status": "gated_out",
+                  "reason": "cmark_import_hint_absent"
+                },
+                {
+                  "id": "CWE-79/inner-html",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-79/template-injection",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-94/eval-extern",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-113/crlf-injection",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-942/cors-credentials",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-614/cookie-attrs",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-770/no-body-limit",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-346/ws-origin",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-22/path-concat",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-676/unsafe-call",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-248/panic-reachable",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                },
+                {
+                  "id": "CWE-704/unsafe-cast",
+                  "status": "disabled",
+                  "reason": "rule_disabled"
+                }
+              ]
+            }
+          ],
+          "rule_capabilities": [
+            {
+              "id": "CWE-116/replace-escaping",
+              "evidence": "syntax_hint",
+              "requirement": "none",
+              "default_enabled": true,
+              "disposition": "review_hint",
+              "api_scope": "String::replace",
+              "call_forms": "receiver.replace; String::replace",
+              "limitations": "Dot receiver type is unresolved; User type named String or Dummy.replace can be safe and still match; No proof that output reaches HTML or input is untrusted",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-79/cmark-unsafe",
+              "evidence": "syntax_hint",
+              "requirement": "cmark_import",
+              "default_enabled": true,
+              "disposition": "review_hint",
+              "api_scope": "cmark render/from_doc/renderer/xhtml_renderer",
+              "call_forms": "unqualified function; package-qualified function",
+              "limitations": "Import substring does not establish declaration identity; A local render function can match; Disabling safe mode does not establish untrusted HTML reaching a browser",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-79/inner-html",
+              "evidence": "syntax_hint",
+              "requirement": "rabbita_import",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "rabbita inner_html",
+              "call_forms": "receiver.inner_html",
+              "limitations": "Receiver declaration unresolved; Variables holding safe constants still match; Uppercase variable name is not a safety proof; No DOM insertion reachability",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-79/template-injection",
+              "evidence": "syntax_hint",
+              "requirement": "mocket_or_crescent_import",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "mocket/crescent template APIs",
+              "call_forms": "unqualified html; package-qualified html; receiver.html",
+              "limitations": "No response-return proof; No source provenance; No encoding semantics; No declaration binding",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-94/eval-extern",
+              "evidence": "syntax_hint",
+              "requirement": "none",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "JavaScript extern",
+              "call_forms": "embedded FFI string; embedded FFI multiline string",
+              "limitations": "Comment containing eval(input) triggers; No JavaScript parser; Whitespace and aliases can evade matching; No user-control evidence",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-113/crlf-injection",
+              "evidence": "syntax_hint",
+              "requirement": "none",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "HTTP header-like APIs",
+              "call_forms": "receiver method only",
+              "limitations": "No validated current-library matched sink; Safe values in locals trigger; No knowledge of library rejection/normalization; Does not match current crescent header API",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-942/cors-credentials",
+              "evidence": "syntax_hint",
+              "requirement": "mocket_or_crescent_import",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "CORS-like configuration",
+              "call_forms": "unqualified function; package-qualified function",
+              "limitations": "Original credential theft claim is false for wildcard+credentials alone; Dynamic trusted origin can match; No browser behavioral or reflected-origin proof; No declaration binding",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-614/cookie-attrs",
+              "evidence": "syntax_hint",
+              "requirement": "mocket_or_crescent_import",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "cookie-like API",
+              "call_forms": "receiver.set_cookie",
+              "limitations": "False attributes are treated as present/safe; Cookie role and deployment are unknown; No serialization inspection; Same-name harmless APIs trigger",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-770/no-body-limit",
+              "evidence": "syntax_hint",
+              "requirement": "crescent_import",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "crescent serve",
+              "call_forms": "receiver method only",
+              "limitations": "Current API nested options cause false positive; File text does not bind routes to server; No default or reverse-proxy configuration knowledge",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-346/ws-origin",
+              "evidence": "syntax_hint",
+              "requirement": "mocket_or_crescent_import",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "websocket-like API",
+              "call_forms": "receiver method; unqualified function; package-qualified function",
+              "limitations": "No real current-library API validation; Prior middleware validation invisible; Label presence is not validation proof",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-22/path-concat",
+              "evidence": "syntax_hint",
+              "requirement": "none",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "file/path-like API",
+              "call_forms": "infix +",
+              "limitations": "Variable names do not prove user control; No filesystem sink or normalization semantics; Path joining alone is not path traversal",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-676/unsafe-call",
+              "evidence": "syntax_hint",
+              "requirement": "non_stdlib_module",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "unsafe-like API",
+              "call_forms": "receiver method; unqualified function; qualified function; type method",
+              "limitations": "Arbitrary guard suppresses without proving precondition; Function name does not establish unsafe semantics; Many genuine unsafe APIs are excluded",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-248/panic-reachable",
+              "evidence": "syntax_hint",
+              "requirement": "non_stdlib_module",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "panic/abort-like API",
+              "call_forms": "unqualified function only",
+              "limitations": "No reachability analysis; String contents and function names are not safety proofs; Platform file exclusion hides compiled target behavior; Local binding unresolved",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            },
+            {
+              "id": "CWE-704/unsafe-cast",
+              "evidence": "syntax_hint",
+              "requirement": "non_stdlib_module",
+              "default_enabled": false,
+              "disposition": "opt_in_unverified",
+              "api_scope": "cast-like API",
+              "call_forms": "receiver.cast; receiver.reinterpret_cast",
+              "limitations": "No receiver or declaration identity; File-wide extern substring suppresses unrelated calls; Custom safe conversions match",
+              "binding": "unverified; names and imports are hints",
+              "backend_policy": "selected by project compiler when verification requested; otherwise not verified",
+              "version_policy": "parser 0.4.0; no arbitrary library version claim",
+              "validation": "experiments/rule_audit/README.md",
+              "model_fingerprint": null
+            }
+          ],
+          "incomplete_reasons": []
+        }
+      }
+    }
+  ],
+  "limits": [
+    "Acceptance is for the declared callback scope, not project-wide security or browser exploitability.",
+    "GNU time peak RSS is the reported peak for the invocation and waited-for descendants, not a sum of concurrent processes.",
+    "Linux resource-failure injections do not replace actual Windows/macOS platform testing."
+  ],
+  "model_source_fingerprint": "e36c3a0d905f1d4f967bf46fd552a206980332917dacc9da2b99f45032326e0a",
+  "dependency_fingerprints": {
+    "moonbitlang/async": "a1c17674a7ae69c7433b5cfddbfbed7a519bcad93a055bcb760d5a10ec2dc10a",
+    "moonbitlang/x": "c8af6344a3508a5c76627a528281a348eb503fafc67b9cb8f5296eaf555e7a2b",
+    "oboard/mimetype": "d8f2673c2adb7ad26e3e9fd64982a16b958efacd6056aa8b12aafc02b2d76d58"
+  },
+  "status": "failed",
+  "error": "cold/hot reports differ"
+}

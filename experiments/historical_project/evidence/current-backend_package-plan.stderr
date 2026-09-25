@@ -1,0 +1,2 @@
+Warning: `moon.mod.json` at '$HISTORICAL_WORK/scope-fixtures/current/backend_package' is deprecated. Run `moon fmt` to migrate to `moon.mod`.
+Warning: Package `fixture/backend_package/other` uses legacy array syntax for `supported_targets`; use expression syntax like `<backend>` instead

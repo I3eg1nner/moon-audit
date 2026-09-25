@@ -13,8 +13,8 @@ priv struct Cwe346Visitor {
 pub fn cwe346_info() -> RuleInfo {
   {
     id: { cwe: 346, variant: "ws-origin", },
-    name: "WebSocket Without Origin Validation",
-    description: "WebSocket upgrade handler without Origin header validation allows cross-site WebSocket hijacking.",
+    name: "WebSocket Origin Configuration Review",
+    description: "WebSocket-upgrade-shaped call lacks origin labels. Confirm a real upgrade API and inspect origin validation across middleware.",
     default_severity: Warning,
   }
 }
@@ -61,7 +61,7 @@ impl @syntax.IterVisitor for Cwe346Visitor with fn visit_Expr_DotApply(
           { cwe: 346, variant: "ws-origin", },
           env.severity,
           Low,
-          "WebSocket upgrade without Origin validation. Any website can connect via cross-site WebSocket hijacking.",
+          "WebSocket-upgrade-shaped call lacks origin labels. Confirm a real upgrade API and inspect origin validation across middleware.",
           env.file,
           env.source,
           loc,
@@ -69,7 +69,8 @@ impl @syntax.IterVisitor for Cwe346Visitor with fn visit_Expr_DotApply(
       )
     }
   }
-  @syntax.IterVisitor::base(env).visit_Expr_DotApply(
+  @syntax.IterVisitor::visit_Expr_DotApply(
+    @syntax.IterVisitor::base(env),
     self~,
     method_name~,
     args~,
@@ -93,7 +94,7 @@ impl @syntax.IterVisitor for Cwe346Visitor with fn visit_Expr_Apply(
           { cwe: 346, variant: "ws-origin", },
           env.severity,
           Low,
-          "WebSocket upgrade without Origin validation. Any website can connect via cross-site WebSocket hijacking.",
+          "WebSocket-upgrade-shaped call lacks origin labels. Confirm a real upgrade API and inspect origin validation across middleware.",
           env.file,
           env.source,
           loc,
@@ -101,5 +102,10 @@ impl @syntax.IterVisitor for Cwe346Visitor with fn visit_Expr_Apply(
       )
     }
   }
-  @syntax.IterVisitor::base(env).visit_Expr_Apply(func~, args~, loc~)
+  @syntax.IterVisitor::visit_Expr_Apply(
+    @syntax.IterVisitor::base(env),
+    func~,
+    args~,
+    loc~,
+  )
 }

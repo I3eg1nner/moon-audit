@@ -1,0 +1,34 @@
+{
+  "install_version": "0.10.14+7d59c7ec9",
+  "moon_version": "0.1.20260920",
+  "moonc_version": "v0.10.14+7d59c7ec9",
+  "artifacts": {
+    "linux-x86_64": {
+      "url": "https://cli.moonbitlang.com/binaries/0.10.14%2B7d59c7ec9/moonbit-linux-x86_64.tar.gz",
+      "sha256": "9226694de9ff978db1ecf820b7710c4224e84ec7a76b19a222d96f0cd4e31b6a",
+      "checksum_url": "https://cli.moonbitlang.com/binaries/0.10.14%2B7d59c7ec9/moonbit-linux-x86_64.tar.gz.sha256",
+      "checksum_http_status": 200,
+      "verification": "official checksum fetched; installer must verify full downloaded archive"
+    },
+    "macos-arm64": {
+      "url": "https://cli.moonbitlang.com/binaries/0.10.14%2B7d59c7ec9/moonbit-darwin-aarch64.tar.gz",
+      "sha256": "20967f9389ac54508899ee2fc051a3470d051452bac5818a9696ed4c144f3ec3",
+      "checksum_url": "https://cli.moonbitlang.com/binaries/0.10.14%2B7d59c7ec9/moonbit-darwin-aarch64.tar.gz.sha256",
+      "checksum_http_status": 200,
+      "verification": "official checksum fetched; installer must verify full downloaded archive"
+    },
+    "windows-x86_64": {
+      "url": "https://cli.moonbitlang.com/binaries/0.10.14%2B7d59c7ec9/moonbit-windows-x86_64.zip",
+      "sha256": "faae225a8287d0ce69e44b5b3f754af988e97f4446056d8f32ceb3ddb998fce7",
+      "checksum_url": "https://cli.moonbitlang.com/binaries/0.10.14%2B7d59c7ec9/moonbit-windows-x86_64.zip.sha256",
+      "checksum_http_status": 200,
+      "verification": "official checksum fetched; installer must verify full downloaded archive"
+    }
+  },
+  "core": {
+    "url": "https://cli.moonbitlang.com/cores/core-0.10.14%2B7d59c7ec9.tar.gz",
+    "sha256": "6f18b8fdea18f85e628a75e4a1bd3977c5a5c9c6a836fd8824192b0e6bd91b14",
+    "verification": "entire official archive fetched and hashed",
+    "http_status": 200
+  }
+}

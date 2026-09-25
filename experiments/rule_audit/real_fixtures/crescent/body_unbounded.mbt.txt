@@ -1,0 +1,1 @@
+pub async fn probe(app : @crescent.App) -> Unit { app.post("/", _ => @core.html("constant")); app.serve(port=0) }

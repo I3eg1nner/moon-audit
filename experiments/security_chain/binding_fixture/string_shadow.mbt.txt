@@ -1,0 +1,7 @@
+///|
+pub(all) struct String(Int) derive(Show)
+
+///|
+pub fn render(input : String) -> &@mocket.Responder {
+  @mocket.html(input)
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "module": "moonbit-community/casefold",
+    "version": "0.1.5",
+    "url": "https://download.mooncakes.io/user/moonbit-community/casefold/0.1.5.zip",
+    "sha256": "2862848c66b34a9607ec2da20f040e37f8ad5c34d2afed06c35e353555d14eb8"
+  },
+  {
+    "module": "moonbit-community/charclass",
+    "version": "0.1.4",
+    "url": "https://download.mooncakes.io/user/moonbit-community/charclass/0.1.4.zip",
+    "sha256": "21f53ac03c6391c1bec4bc80ce2dc03ce1b2768a3cbdcecfd0fb89d3d050836f"
+  },
+  {
+    "module": "moonbitlang/async",
+    "version": "0.19.4",
+    "url": "https://download.mooncakes.io/user/moonbitlang/async/0.19.4.zip",
+    "sha256": "6e5aae2f7df034e76ba5f5ccb36c8d7ddaff33e7bb8031685462584bd498ab72"
+  },
+  {
+    "module": "moonbit-community/ucd",
+    "version": "0.5.0",
+    "url": "https://download.mooncakes.io/user/moonbit-community/ucd/0.5.0.zip",
+    "sha256": "bd4a90365ffb4234506f58ef776c2a9bdf562d8d225b95af36403a25cb048fc3"
+  }
+]

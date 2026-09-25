@@ -1,0 +1,7 @@
+test "try bang returns cmark normal result" {
+  assert_eq(try_bang("<script>alert(1)</script>"), "<script>alert(1)</script>\n")
+}
+
+test "nonraising callback returns cmark normal result" {
+  assert_eq(callback("<script>alert(1)</script>"), "<script>alert(1)</script>\n")
+}

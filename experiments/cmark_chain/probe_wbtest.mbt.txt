@@ -1,0 +1,49 @@
+///|
+test "cmark-chain raw HTML survives explicit safe false" {
+  let actual = raw("<script>alert(1)</script>")
+  assert_eq(actual, "<script>alert(1)</script>\n")
+  println("CMARK_CHAIN raw " + Json::string(actual).stringify())
+}
+
+///|
+test "cmark-chain safe true omits raw HTML" {
+  let actual = safe("<script>alert(1)</script>")
+  assert_eq(actual, "<!--CommonMark HTML block omitted-->\n")
+  println("CMARK_CHAIN safe " + Json::string(actual).stringify())
+}
+
+///|
+test "cmark-chain omitted safe equals safe true" {
+  let actual = default_safe("<script>alert(1)</script>")
+  assert_eq(actual, safe("<script>alert(1)</script>"))
+  println("CMARK_CHAIN default " + Json::string(actual).stringify())
+}
+
+///|
+test "cmark-chain raw mode retains javascript URL" {
+  let actual = raw("[link](javascript:alert(1))")
+  assert_eq(actual, "<p><a href=\"javascript:alert(1)\">link</a></p>\n")
+  println("CMARK_CHAIN raw_url " + Json::string(actual).stringify())
+}
+
+///|
+test "cmark-chain safe mode removes javascript URL" {
+  let actual = safe("[link](javascript:alert(1))")
+  assert_eq(actual, "<p><a href=\"\">link</a></p>\n")
+  println("CMARK_CHAIN safe_url " + Json::string(actual).stringify())
+}
+
+///|
+test "cmark-chain ordinary Markdown produces HTML fragment" {
+  let actual = safe("**hello**")
+  assert_eq(actual, "<p><strong>hello</strong></p>\n")
+  assert_eq(actual, raw("**hello**"))
+  println("CMARK_CHAIN ordinary " + Json::string(actual).stringify())
+}
+
+///|
+test "cmark-chain unrelated render has no library safety semantics" {
+  let actual = unrelated("<script>alert(1)</script>")
+  assert_eq(actual, "<script>alert(1)</script>")
+  println("CMARK_CHAIN unrelated " + Json::string(actual).stringify())
+}

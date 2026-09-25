@@ -1,0 +1,98 @@
+{
+  "schema": "moon-audit.legacy-backend-scope.v1",
+  "date": "2026-09-25",
+  "fixture": {
+    "moon.mod.json": "{\"name\":\"review/backend_probe\",\"preferred-target\":\"native\"}",
+    "moon.pkg.json": "{\"targets\":{\"js_only.mbt\":[\"js\"],\"native_only.mbt\":[\"native\"]}}",
+    "common.mbt": "pub fn common() -> Int { 1 }\n",
+    "js_only.mbt": "pub fn html(s : String) -> String { s.replace(old=\"<\", new=\"&lt;\") }\n",
+    "native_only.mbt": "pub fn native_only() -> Int { 3 }\n"
+  },
+  "fixture_sha256": {
+    "moon.mod.json": "d61d7d5d6aac3cdf6978ee317f8233958774bf0b12d4940ecf9e63500038f098",
+    "moon.pkg.json": "b51fde884748717ab6a7dde328ca4cf3104df8a2ea0026f4adefb657297cf4b7",
+    "common.mbt": "274f5d159f04b44c09d33c0f4e79707125a256997ec692fb31d58954e7193e9b",
+    "js_only.mbt": "ba7137e6d6290e8afc0b0a21e2a09c08baa9aefe6df05c82f8132304f4f5d2b4",
+    "native_only.mbt": "f43b98271d5ce78078bcc841d206bc691c50fdf79ce33eaacae814c1695eb059"
+  },
+  "cases": [
+    {
+      "case": "20260904-native",
+      "project_toolchain": "moon 0.1.20260904 (94521db 2026-09-04) /tmp/moon-audit-ci-toolchain/bin/moon\nmoonc v0.10.12+1634b282e (2026-09-07) /tmp/moon-audit-ci-toolchain/bin/moonc\nmoonrun 0.1.20260904 (94521db 2026-09-04) /tmp/moon-audit-ci-toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "target": "native",
+      "status": "compiled_and_parsed",
+      "compiler_files": [
+        "common.mbt",
+        "native_only.mbt"
+      ],
+      "scanner_parsed_files": [
+        "common.mbt",
+        "native_only.mbt"
+      ],
+      "scanner_skipped_files": [
+        "js_only.mbt"
+      ],
+      "findings": []
+    },
+    {
+      "case": "20260915-native",
+      "project_toolchain": "moon 0.1.20260915 (2e1a46d 2026-09-15) ~/.moon/bin/moon\nmoonc v0.10.13+cbb11c36f (2026-09-15) ~/.moon/bin/moonc\nmoonrun 0.1.20260915 (2e1a46d 2026-09-15) ~/.moon/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "target": "native",
+      "status": "compiled_and_parsed",
+      "compiler_files": [
+        "common.mbt",
+        "native_only.mbt"
+      ],
+      "scanner_parsed_files": [
+        "common.mbt",
+        "native_only.mbt"
+      ],
+      "scanner_skipped_files": [
+        "js_only.mbt"
+      ],
+      "findings": []
+    },
+    {
+      "case": "20260920-native",
+      "project_toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "target": "native",
+      "status": "compiled_and_parsed",
+      "compiler_files": [
+        "common.mbt",
+        "native_only.mbt"
+      ],
+      "scanner_parsed_files": [
+        "common.mbt",
+        "native_only.mbt"
+      ],
+      "scanner_skipped_files": [
+        "js_only.mbt"
+      ],
+      "findings": []
+    },
+    {
+      "case": "20260920-js",
+      "project_toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "target": "js",
+      "status": "compiled_and_parsed",
+      "compiler_files": [
+        "common.mbt",
+        "js_only.mbt"
+      ],
+      "scanner_parsed_files": [
+        "common.mbt",
+        "js_only.mbt"
+      ],
+      "scanner_skipped_files": [
+        "native_only.mbt"
+      ],
+      "findings": [
+        {
+          "file": "js_only.mbt",
+          "rule_id": "CWE-116/replace-escaping"
+        }
+      ]
+    }
+  ],
+  "note": "The target toolchain compiled each fixed legacy package snapshot before the strict scanner read its dry-run file plan. The analyzer binary was built with moon 0.1.20260920 and parser 0.4.0. This is a file-selection test, not a 14-rule compatibility claim."
+}

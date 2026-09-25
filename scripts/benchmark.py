@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Legacy full-framework gate: requires the pre-redesign analyzer.
+# Current syntax-pattern scans do not satisfy these semantic contracts.
+# See docs/redesign-2026-09-22.md for the recovery point and active gates.
 """Compare scan binaries with alternating runs and report-equivalence checks."""
 import argparse
 from datetime import datetime, timezone

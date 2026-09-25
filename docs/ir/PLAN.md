@@ -1,5 +1,7 @@
 # moon-audit IR 演进方案（v1，2026-09）
 
+> 历史方案（2026-09-25）：该 Tai-e 式整体引擎路线已被删减。当前里程碑见 [根目录 TODO](../../TODO.md)，设计依据见 [当前架构方案](../architecture-plan-2026-09-24.md)。
+
 ## 目标
 
 在官方 parser 之上自建分析 IR（HIR），把 moon-audit 从 "AST lint + 文本摘要污点" 演进为

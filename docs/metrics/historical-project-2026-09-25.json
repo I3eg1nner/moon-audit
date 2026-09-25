@@ -1,0 +1,708 @@
+{
+  "schema": "moon-audit.historical-project-evidence.v1",
+  "observed_date": "2026-09-25",
+  "platform": "linux-x86_64",
+  "analyzer_sha256": "97492505ca2865021b893791995f91432077336bc12165c2f82488e9f431cfcb",
+  "project": {
+    "repository": "https://github.com/moonbitlang/quickcheck",
+    "commit": "04e4d54c0b3cb5a53f2c2530f7eadf546a903f60",
+    "commit_date": "2025-10-31T08:55:27Z",
+    "external_dependencies": [],
+    "unchanged_archive_files": 55,
+    "source_hashes": {
+      ".github/workflows/check.yml": "83704dddd85593083bbd05c7bd0198b17b291dcc2a26b543f506b936c907375d",
+      ".github/workflows/publish.yml": "839c6f09957d4d1b2bfbb38998e367faed21e2a619042581204e80f70cddd1f3",
+      ".gitignore": "18dc5fe1dcfda323cf23a3abe23fc110d6f0b6ed5f0dbea59aac15b0a7b855ab",
+      "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "README.md": "389c225e28f95afeda7e7c5eb9132591387dee8da52d10464adcd91a3c046f81",
+      "moon.mod.json": "ad57568b6f0ebb7634901c6258a2e4a8841d7e50b2e8c78fd898d8310e0840ff",
+      "rm_deps.js": "58938e1f73d392232c8ac88013ea90be7e7dfa85268be5001bd3a57ea414f6c1",
+      "src/axiom.mbt": "5e0694b9907c0a4b09fe6198826baf3c2d9f7d8c2fce94da5bc9e58a9e37bfee",
+      "src/config.mbt": "f1087abfb9f3e319b65fc0c6fee0aa867825232a564f23b5078329da4c1dc9f2",
+      "src/driver.mbt": "17c3dd8391b8291ff02b226b109603ff8961f751fc5e2e6fac53c210562922fd",
+      "src/falsify/driver.mbt": "4836f2c44b2b4c0d302a172c9ad3beae2831c7d7cf562b89399bb931a0be7dd4",
+      "src/falsify/gen.mbt": "b8ee053e31b2c745dedaba372c673f5679f7490142618cc46e350827fc5f3e89",
+      "src/falsify/moon.pkg.json": "016c0302f668e5bfa23490c4109ab92de39506381fcd4ecbaaed5b22e30828a3",
+      "src/falsify/pkg.generated.mbti": "5bb79cca3b82f7d6469c82794ddcac106daa9d0aeafcc40a0e8f63e60c7093c2",
+      "src/falsify/property.mbt": "fababe8623ae34899d7cc936222ab4348dedf1dcb229c01a2c202d9988c71374",
+      "src/falsify/sample.mbt": "971c31e27f6061ccc8158075495a31107ad1ba59d81f889d03b380ff96b195dc",
+      "src/falsify/selective.mbt": "b88813cf63961e69c54c2caa0c2a1d4453a19295087a2204c997bbbf14c0b0d4",
+      "src/falsify/shrinking.mbt": "aca6777638a540530e39ce974411bcb3e29f25cae7a4f4c2ed0f039f82d836e5",
+      "src/falsify/utils.mbt": "e422e57c82aa7ba49875b78c22ddd943b5ba922a7bff9cf5505b66dda603270b",
+      "src/feat/enumerable.mbt": "95282414989d713f8bfae5185919620d6a02d6281e263c26fffc8f30ff1a91c5",
+      "src/feat/enumerate.mbt": "450675a2140ade2742c0aa9f41980c5332b7c5e3e97eae8a09db1778c8ae6d66",
+      "src/feat/finite.mbt": "fc71bf57b50071646bcb70b19aed5912ee5e9bd65152318314f846d6211758a2",
+      "src/feat/moon.pkg.json": "4ceb4f019518a4a5968909e978cc74a2a67d05e574d7773683c44cf6f1e65586",
+      "src/feat/pkg.generated.mbti": "32fbf76da8cd1c37079a99c1e0e57526c8e9c86afe16131cf0302feb7c167856",
+      "src/feat/utils.mbt": "5da27524deb1a26d0847e2c5015976062596b8716312a8fc446ca8ead659411f",
+      "src/gen.mbt": "ec52d8e6bd89f85fe4f0f9b4287dbb50842a204b0c624640d90e7e3d9a6e692c",
+      "src/internal_benchmark/bm-curry-forall-tuple.mbt": "e5a34d9e63a5ad602a4ab9f540f842450fd5493ede8e77b2632cb82855dfa2b3",
+      "src/internal_benchmark/feat.mbt": "cd4433327d30c0e27b55aba6b8d01a530ab4ab7b317380a4c0034c8a7ee6a28b",
+      "src/internal_benchmark/moon.pkg.json": "5c73e1a31ee7cd48bd685b36d446b33a2a06d6451f93dc3ada193a836b380422",
+      "src/internal_benchmark/pkg.generated.mbti": "ee3f9180c4ff9746fd13e2268997c469cc8520268a86dfbd3644ec693d9abb26",
+      "src/internal_shrinking/moon.pkg.json": "96177a4bc665a070a980df89f1e7c02084718250640554f898edc7a4b8a5fb37",
+      "src/internal_shrinking/pkg.generated.mbti": "c4ce147e4e6c274fee6bf04b44f4ecf900d186ab03261fce466ebc6f11c81c1b",
+      "src/internal_shrinking/shrink_tree.mbt": "c52dcf656a37762b3168dcbf4a512fc46ff2d470c287271ae0196e05cbe9b3d2",
+      "src/invariant.mbt": "77ece5abace07fb652857c8e148d5ef6c4292a513a5f0009f170d28be4c2ee2e",
+      "src/lazy/lazy.mbt": "abef285511e5ae7d682a13adcfad06ca4b41cd39dee732418a8899577b2585f1",
+      "src/lazy/lazy_list.mbt": "cd02c4c8ce282030c52e6f5428de974a08e66a46a9fa0f309355080e3dc3cee7",
+      "src/lazy/moon.pkg.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "src/lazy/pkg.generated.mbti": "65971780b569ce40a434c5c489c5eb7d8223a28649251b9b3aa2b85908e3a171",
+      "src/moon.pkg.json": "74256bfe1ae3b5040409c222c9792666a66d71c4e39dc633b65da394bf90b2e0",
+      "src/pkg.generated.mbti": "76e9d9d7f30f28f006e08728bc8d8dd67463ad0678c586e544228fc7d31e1271",
+      "src/result.mbt": "70e88c25dc212ab3a71a8bb55504b06ec0d6bd801690a427d76783b365cc5c56",
+      "src/rose/moon.pkg.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "src/rose/pkg.generated.mbti": "c85480967b82616d5422276384c3e627a62ba4563e795022462c41270f583e3b",
+      "src/rose/rose.mbt": "e4f5141b0831cceed28135585feb95a0da17d959c184de836faa78f470151486",
+      "src/shrink.mbt": "bd4b0569aed7f21c04cda7e1df9f942ec92d2123b1893b94c50b2ece8e58d235",
+      "src/state.mbt": "6914e6defdbd45b01b54e561085dad8aef10b5bb0c49bf921f85ac4700581e68",
+      "src/testable.mbt": "5732573760a491c9aff813c5bf43cc26462e96fff49ed98cecacb8a9efe620ca",
+      "src/testing/axiom.mbt": "8b27aa959233371f0e46e9505f2f538be4310d62fae4a1e2ff0ab525193bd40b",
+      "src/testing/driver.mbt": "ba44ecd1ede4d919f878392d35022979fbdddc85ef2e94c71885a3ba227e3f3e",
+      "src/testing/gen.mbt": "018bcda570f93618d9025486c38664aaa94bb410be5997250815c8cc4c18080e",
+      "src/testing/moon.pkg.json": "5fd45d2cf7628ac5d48235c1803adc6b01b48b250524ded23b86e02876b27403",
+      "src/testing/pkg.generated.mbti": "c6a4b082d446cb8052df1e1d4283c55010398267607a134dc29d8fe4effe113f",
+      "src/utils/common.mbt": "c8753b0d28da28cde06e6510c06abbb202232052a3ad9a3cf4e85025c6338c54",
+      "src/utils/moon.pkg.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "src/utils/pkg.generated.mbti": "35d6f99abe6c66c39b8eb36529627541fbbb1baef624af64789c9ed4c50a39f9"
+    }
+  },
+  "archives": [
+    {
+      "name": "toolchain.tar.gz",
+      "url": "https://github.com/chawyehsu/moonbit-binaries/releases/download/v0.6.30%2B07d9d2445/moonbit-v0.6.30%2B07d9d2445-x86_64-unknown-linux.tar.gz",
+      "sha256": "c8b1b39daedb64d3fa55364aeafc2d7e74d01564468b1a7145c3369742e6471b",
+      "bytes": 49421341
+    },
+    {
+      "name": "core.zip",
+      "url": "https://github.com/chawyehsu/moonbit-binaries/releases/download/v0.6.30%2B07d9d2445/moonbit-core-v0.6.30%2B07d9d2445-universal.zip",
+      "sha256": "30b1a2302ce4cb2e3c264bcdce56b41e89f048a0df5594919d37d76ef3913ff9",
+      "bytes": 1313923
+    },
+    {
+      "name": "project.tar.gz",
+      "url": "https://codeload.github.com/moonbitlang/quickcheck/tar.gz/04e4d54c0b3cb5a53f2c2530f7eadf546a903f60",
+      "sha256": "31d630383cd7b535b5f26c0a6f8e68eaea16b1f5b836a742363858745a212016",
+      "bytes": 42248
+    }
+  ],
+  "historical_check_exit_code": 0,
+  "historical_plan_exit_code": 0,
+  "scans": {
+    "syntax": {
+      "exit_code": 2,
+      "verification_status": null,
+      "toolchain_identity": null,
+      "files_selected": 30,
+      "files_parsed": 16,
+      "file_status_counts": {
+        "parsed": 16,
+        "parse_failed": 14
+      },
+      "rule_status_counts": {
+        "evaluated": 16,
+        "gated_out": 16,
+        "disabled": 192
+      },
+      "findings": [],
+      "parse_failed": [
+        "src/driver.mbt",
+        "src/falsify/property.mbt",
+        "src/falsify/sample.mbt",
+        "src/falsify/shrinking.mbt",
+        "src/feat/enumerate.mbt",
+        "src/feat/finite.mbt",
+        "src/feat/utils.mbt",
+        "src/gen.mbt",
+        "src/internal_benchmark/bm-curry-forall-tuple.mbt",
+        "src/lazy/lazy_list.mbt",
+        "src/state.mbt",
+        "src/testable.mbt",
+        "src/testing/driver.mbt",
+        "src/utils/common.mbt"
+      ],
+      "compiler_files": [],
+      "policy_excluded_files": [],
+      "compiler_files_not_parsed": [],
+      "errors": [
+        "Parse error in $PROJECT/src/driver.mbt: error ($PROJECT/src/driver.mbt-116:3-116:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/driver.mbt: error ($PROJECT/src/driver.mbt-118:13-118:15: Unexpected token `=>`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/driver.mbt: error ($PROJECT/src/driver.mbt-130:1-130:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/falsify/property.mbt: error ($PROJECT/src/falsify/property.mbt-2:5-2:14: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/falsify/sample.mbt: error ($PROJECT/src/falsify/sample.mbt-32:5-32:14: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/falsify/shrinking.mbt: error ($PROJECT/src/falsify/shrinking.mbt-37:3-37:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/falsify/shrinking.mbt: error ($PROJECT/src/falsify/shrinking.mbt-42:5-42:6: Unexpected token `_`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/falsify/shrinking.mbt: error ($PROJECT/src/falsify/shrinking.mbt-49:3-49:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/falsify/shrinking.mbt: error ($PROJECT/src/falsify/shrinking.mbt-51:9-51:23: Unexpected expression. You may expect parameter here.",
+        "Parse error in $PROJECT/src/falsify/shrinking.mbt: error ($PROJECT/src/falsify/shrinking.mbt-52:9-52:22: Unexpected expression. You may expect parameter here.",
+        "Parse error in $PROJECT/src/falsify/shrinking.mbt: error ($PROJECT/src/falsify/shrinking.mbt-59:1-59:5: Unexpected token here.",
+        "Parse error in $PROJECT/src/feat/enumerate.mbt: error ($PROJECT/src/feat/enumerate.mbt-28:3-28:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/feat/enumerate.mbt: error ($PROJECT/src/feat/enumerate.mbt-30:6-30:19: Unexpected expression. You may expect parameter here.",
+        "Parse error in $PROJECT/src/feat/enumerate.mbt: error ($PROJECT/src/feat/enumerate.mbt-40:1-40:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/feat/finite.mbt: error ($PROJECT/src/feat/finite.mbt-90:7-90:11: Unexpected token `else`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/feat/finite.mbt: error ($PROJECT/src/feat/finite.mbt-97:1-97:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/feat/finite.mbt: error ($PROJECT/src/feat/finite.mbt-113:5-113:9: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/feat/finite.mbt: error ($PROJECT/src/feat/finite.mbt-113:38-113:39: Unexpected token `{`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/feat/finite.mbt: error ($PROJECT/src/feat/finite.mbt-115:19-115:27: Unexpected token `continue`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/feat/finite.mbt: error ($PROJECT/src/feat/finite.mbt-121:1-121:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/feat/utils.mbt: error ($PROJECT/src/feat/utils.mbt-2:5-2:14: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-2:5-2:14: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-60:3-60:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-75:1-75:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-287:11-287:15: Unexpected token `else`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-290:8-290:9: Unexpected token `)`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-298:1-298:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-446:3-446:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-457:1-457:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-32:40-32:44: Unexpected token `try?`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-32:73-32:74: Unexpected token `)`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-36:1-36:5: Unexpected token here.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-37:39-37:43: Unexpected token `try?`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-37:71-37:72: Unexpected token `)`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-41:1-41:5: Unexpected token here.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-42:39-42:43: Unexpected token `try?`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-42:71-42:72: Unexpected token `)`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-44:1-44:1: Unexpected token here.",
+        "Parse error in $PROJECT/src/lazy/lazy_list.mbt: error ($PROJECT/src/lazy/lazy_list.mbt-15:3-15:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/lazy/lazy_list.mbt: error ($PROJECT/src/lazy/lazy_list.mbt-17:17-17:19: Unexpected token `=>`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/lazy/lazy_list.mbt: error ($PROJECT/src/lazy/lazy_list.mbt-19:7-19:13: Unexpected token id (lowercase start), you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/state.mbt: error ($PROJECT/src/state.mbt-2:1-2:10: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/testable.mbt: error ($PROJECT/src/testable.mbt-5:1-5:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/testable.mbt: error ($PROJECT/src/testable.mbt-8:1-8:10: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/testing/driver.mbt: error ($PROJECT/src/testing/driver.mbt-2:1-2:10: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/utils/common.mbt: error ($PROJECT/src/utils/common.mbt-54:3-54:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/utils/common.mbt: error ($PROJECT/src/utils/common.mbt-57:7-57:9: Unexpected token `if`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/utils/common.mbt: error ($PROJECT/src/utils/common.mbt-72:3-72:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/utils/common.mbt: error ($PROJECT/src/utils/common.mbt-75:7-75:9: Unexpected token `if`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`."
+      ]
+    },
+    "verified": {
+      "exit_code": 2,
+      "verification_status": "scope_incomplete",
+      "toolchain_identity": "moon 0.1.20251030 (cf54fca 2025-10-30) /tmp/moon-audit-historical-2025/toolchain/bin/moon\nmoonc v0.6.30+07d9d2445 (2025-10-30) /tmp/moon-audit-historical-2025/toolchain/bin/moonc\nmoonrun 0.1.20251030 (cf54fca 2025-10-30) /tmp/moon-audit-historical-2025/toolchain/bin/moonrun\nmoon-pilot 0.0.1-df92511 (2025-10-31) /tmp/moon-audit-historical-2025/toolchain/bin/moon-pilot",
+      "files_selected": 30,
+      "files_parsed": 16,
+      "file_status_counts": {
+        "parsed": 16,
+        "parse_failed": 14
+      },
+      "rule_status_counts": {
+        "evaluated": 16,
+        "gated_out": 16,
+        "disabled": 192
+      },
+      "findings": [],
+      "parse_failed": [
+        "src/driver.mbt",
+        "src/falsify/property.mbt",
+        "src/falsify/sample.mbt",
+        "src/falsify/shrinking.mbt",
+        "src/feat/enumerate.mbt",
+        "src/feat/finite.mbt",
+        "src/feat/utils.mbt",
+        "src/gen.mbt",
+        "src/internal_benchmark/bm-curry-forall-tuple.mbt",
+        "src/lazy/lazy_list.mbt",
+        "src/state.mbt",
+        "src/testable.mbt",
+        "src/testing/driver.mbt",
+        "src/utils/common.mbt"
+      ],
+      "compiler_files": [
+        "src/gen.mbt",
+        "src/axiom.mbt",
+        "src/state.mbt",
+        "src/config.mbt",
+        "src/driver.mbt",
+        "src/result.mbt",
+        "src/shrink.mbt",
+        "src/testable.mbt",
+        "src/invariant.mbt",
+        "src/lazy/lazy.mbt",
+        "src/rose/rose.mbt",
+        "src/feat/utils.mbt",
+        "src/falsify/gen.mbt",
+        "src/feat/finite.mbt",
+        "src/testing/gen.mbt",
+        "src/utils/common.mbt",
+        "src/falsify/utils.mbt",
+        "src/testing/axiom.mbt",
+        "src/falsify/driver.mbt",
+        "src/falsify/sample.mbt",
+        "src/feat/enumerate.mbt",
+        "src/lazy/lazy_list.mbt",
+        "src/testing/driver.mbt",
+        "src/feat/enumerable.mbt",
+        "src/falsify/property.mbt",
+        "src/falsify/selective.mbt",
+        "src/falsify/shrinking.mbt",
+        "src/internal_benchmark/feat.mbt",
+        "src/internal_shrinking/shrink_tree.mbt",
+        "src/internal_benchmark/bm-curry-forall-tuple.mbt"
+      ],
+      "policy_excluded_files": [],
+      "compiler_files_not_parsed": [
+        "src/gen.mbt",
+        "src/state.mbt",
+        "src/driver.mbt",
+        "src/testable.mbt",
+        "src/feat/utils.mbt",
+        "src/feat/finite.mbt",
+        "src/utils/common.mbt",
+        "src/falsify/sample.mbt",
+        "src/feat/enumerate.mbt",
+        "src/lazy/lazy_list.mbt",
+        "src/testing/driver.mbt",
+        "src/falsify/property.mbt",
+        "src/falsify/shrinking.mbt",
+        "src/internal_benchmark/bm-curry-forall-tuple.mbt"
+      ],
+      "errors": [
+        "Parse error in $PROJECT/src/driver.mbt: error ($PROJECT/src/driver.mbt-116:3-116:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/driver.mbt: error ($PROJECT/src/driver.mbt-118:13-118:15: Unexpected token `=>`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/driver.mbt: error ($PROJECT/src/driver.mbt-130:1-130:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/falsify/property.mbt: error ($PROJECT/src/falsify/property.mbt-2:5-2:14: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/falsify/sample.mbt: error ($PROJECT/src/falsify/sample.mbt-32:5-32:14: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/falsify/shrinking.mbt: error ($PROJECT/src/falsify/shrinking.mbt-37:3-37:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/falsify/shrinking.mbt: error ($PROJECT/src/falsify/shrinking.mbt-42:5-42:6: Unexpected token `_`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/falsify/shrinking.mbt: error ($PROJECT/src/falsify/shrinking.mbt-49:3-49:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/falsify/shrinking.mbt: error ($PROJECT/src/falsify/shrinking.mbt-51:9-51:23: Unexpected expression. You may expect parameter here.",
+        "Parse error in $PROJECT/src/falsify/shrinking.mbt: error ($PROJECT/src/falsify/shrinking.mbt-52:9-52:22: Unexpected expression. You may expect parameter here.",
+        "Parse error in $PROJECT/src/falsify/shrinking.mbt: error ($PROJECT/src/falsify/shrinking.mbt-59:1-59:5: Unexpected token here.",
+        "Parse error in $PROJECT/src/feat/enumerate.mbt: error ($PROJECT/src/feat/enumerate.mbt-28:3-28:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/feat/enumerate.mbt: error ($PROJECT/src/feat/enumerate.mbt-30:6-30:19: Unexpected expression. You may expect parameter here.",
+        "Parse error in $PROJECT/src/feat/enumerate.mbt: error ($PROJECT/src/feat/enumerate.mbt-40:1-40:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/feat/finite.mbt: error ($PROJECT/src/feat/finite.mbt-90:7-90:11: Unexpected token `else`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/feat/finite.mbt: error ($PROJECT/src/feat/finite.mbt-97:1-97:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/feat/finite.mbt: error ($PROJECT/src/feat/finite.mbt-113:5-113:9: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/feat/finite.mbt: error ($PROJECT/src/feat/finite.mbt-113:38-113:39: Unexpected token `{`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/feat/finite.mbt: error ($PROJECT/src/feat/finite.mbt-115:19-115:27: Unexpected token `continue`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/feat/finite.mbt: error ($PROJECT/src/feat/finite.mbt-121:1-121:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/feat/utils.mbt: error ($PROJECT/src/feat/utils.mbt-2:5-2:14: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-2:5-2:14: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-60:3-60:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-75:1-75:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-287:11-287:15: Unexpected token `else`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-290:8-290:9: Unexpected token `)`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-298:1-298:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-446:3-446:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-457:1-457:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-32:40-32:44: Unexpected token `try?`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-32:73-32:74: Unexpected token `)`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-36:1-36:5: Unexpected token here.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-37:39-37:43: Unexpected token `try?`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-37:71-37:72: Unexpected token `)`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-41:1-41:5: Unexpected token here.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-42:39-42:43: Unexpected token `try?`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-42:71-42:72: Unexpected token `)`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-44:1-44:1: Unexpected token here.",
+        "Parse error in $PROJECT/src/lazy/lazy_list.mbt: error ($PROJECT/src/lazy/lazy_list.mbt-15:3-15:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/lazy/lazy_list.mbt: error ($PROJECT/src/lazy/lazy_list.mbt-17:17-17:19: Unexpected token `=>`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/lazy/lazy_list.mbt: error ($PROJECT/src/lazy/lazy_list.mbt-19:7-19:13: Unexpected token id (lowercase start), you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/state.mbt: error ($PROJECT/src/state.mbt-2:1-2:10: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/testable.mbt: error ($PROJECT/src/testable.mbt-5:1-5:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/testable.mbt: error ($PROJECT/src/testable.mbt-8:1-8:10: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/testing/driver.mbt: error ($PROJECT/src/testing/driver.mbt-2:1-2:10: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/utils/common.mbt: error ($PROJECT/src/utils/common.mbt-54:3-54:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/utils/common.mbt: error ($PROJECT/src/utils/common.mbt-57:7-57:9: Unexpected token `if`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/utils/common.mbt: error ($PROJECT/src/utils/common.mbt-72:3-72:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/utils/common.mbt: error ($PROJECT/src/utils/common.mbt-75:7-75:9: Unexpected token `if`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "project verification: scope_incomplete: "
+      ]
+    },
+    "verified-minimal-path": {
+      "exit_code": 2,
+      "verification_status": "scope_incomplete",
+      "toolchain_identity": "moon 0.1.20251030 (cf54fca 2025-10-30)\nv0.6.30+07d9d2445 (2025-10-30)",
+      "files_selected": 30,
+      "files_parsed": 16,
+      "file_status_counts": {
+        "parsed": 16,
+        "parse_failed": 14
+      },
+      "rule_status_counts": {
+        "evaluated": 16,
+        "gated_out": 16,
+        "disabled": 192
+      },
+      "findings": [],
+      "parse_failed": [
+        "src/driver.mbt",
+        "src/falsify/property.mbt",
+        "src/falsify/sample.mbt",
+        "src/falsify/shrinking.mbt",
+        "src/feat/enumerate.mbt",
+        "src/feat/finite.mbt",
+        "src/feat/utils.mbt",
+        "src/gen.mbt",
+        "src/internal_benchmark/bm-curry-forall-tuple.mbt",
+        "src/lazy/lazy_list.mbt",
+        "src/state.mbt",
+        "src/testable.mbt",
+        "src/testing/driver.mbt",
+        "src/utils/common.mbt"
+      ],
+      "compiler_files": [
+        "src/gen.mbt",
+        "src/axiom.mbt",
+        "src/state.mbt",
+        "src/config.mbt",
+        "src/driver.mbt",
+        "src/result.mbt",
+        "src/shrink.mbt",
+        "src/testable.mbt",
+        "src/invariant.mbt",
+        "src/lazy/lazy.mbt",
+        "src/rose/rose.mbt",
+        "src/feat/utils.mbt",
+        "src/falsify/gen.mbt",
+        "src/feat/finite.mbt",
+        "src/testing/gen.mbt",
+        "src/utils/common.mbt",
+        "src/falsify/utils.mbt",
+        "src/testing/axiom.mbt",
+        "src/falsify/driver.mbt",
+        "src/falsify/sample.mbt",
+        "src/feat/enumerate.mbt",
+        "src/lazy/lazy_list.mbt",
+        "src/testing/driver.mbt",
+        "src/feat/enumerable.mbt",
+        "src/falsify/property.mbt",
+        "src/falsify/selective.mbt",
+        "src/falsify/shrinking.mbt",
+        "src/internal_benchmark/feat.mbt",
+        "src/internal_shrinking/shrink_tree.mbt",
+        "src/internal_benchmark/bm-curry-forall-tuple.mbt"
+      ],
+      "policy_excluded_files": [],
+      "compiler_files_not_parsed": [
+        "src/gen.mbt",
+        "src/state.mbt",
+        "src/driver.mbt",
+        "src/testable.mbt",
+        "src/feat/utils.mbt",
+        "src/feat/finite.mbt",
+        "src/utils/common.mbt",
+        "src/falsify/sample.mbt",
+        "src/feat/enumerate.mbt",
+        "src/lazy/lazy_list.mbt",
+        "src/testing/driver.mbt",
+        "src/falsify/property.mbt",
+        "src/falsify/shrinking.mbt",
+        "src/internal_benchmark/bm-curry-forall-tuple.mbt"
+      ],
+      "errors": [
+        "Parse error in $PROJECT/src/driver.mbt: error ($PROJECT/src/driver.mbt-116:3-116:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/driver.mbt: error ($PROJECT/src/driver.mbt-118:13-118:15: Unexpected token `=>`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/driver.mbt: error ($PROJECT/src/driver.mbt-130:1-130:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/falsify/property.mbt: error ($PROJECT/src/falsify/property.mbt-2:5-2:14: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/falsify/sample.mbt: error ($PROJECT/src/falsify/sample.mbt-32:5-32:14: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/falsify/shrinking.mbt: error ($PROJECT/src/falsify/shrinking.mbt-37:3-37:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/falsify/shrinking.mbt: error ($PROJECT/src/falsify/shrinking.mbt-42:5-42:6: Unexpected token `_`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/falsify/shrinking.mbt: error ($PROJECT/src/falsify/shrinking.mbt-49:3-49:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/falsify/shrinking.mbt: error ($PROJECT/src/falsify/shrinking.mbt-51:9-51:23: Unexpected expression. You may expect parameter here.",
+        "Parse error in $PROJECT/src/falsify/shrinking.mbt: error ($PROJECT/src/falsify/shrinking.mbt-52:9-52:22: Unexpected expression. You may expect parameter here.",
+        "Parse error in $PROJECT/src/falsify/shrinking.mbt: error ($PROJECT/src/falsify/shrinking.mbt-59:1-59:5: Unexpected token here.",
+        "Parse error in $PROJECT/src/feat/enumerate.mbt: error ($PROJECT/src/feat/enumerate.mbt-28:3-28:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/feat/enumerate.mbt: error ($PROJECT/src/feat/enumerate.mbt-30:6-30:19: Unexpected expression. You may expect parameter here.",
+        "Parse error in $PROJECT/src/feat/enumerate.mbt: error ($PROJECT/src/feat/enumerate.mbt-40:1-40:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/feat/finite.mbt: error ($PROJECT/src/feat/finite.mbt-90:7-90:11: Unexpected token `else`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/feat/finite.mbt: error ($PROJECT/src/feat/finite.mbt-97:1-97:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/feat/finite.mbt: error ($PROJECT/src/feat/finite.mbt-113:5-113:9: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/feat/finite.mbt: error ($PROJECT/src/feat/finite.mbt-113:38-113:39: Unexpected token `{`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/feat/finite.mbt: error ($PROJECT/src/feat/finite.mbt-115:19-115:27: Unexpected token `continue`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/feat/finite.mbt: error ($PROJECT/src/feat/finite.mbt-121:1-121:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/feat/utils.mbt: error ($PROJECT/src/feat/utils.mbt-2:5-2:14: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-2:5-2:14: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-60:3-60:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-75:1-75:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-287:11-287:15: Unexpected token `else`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-290:8-290:9: Unexpected token `)`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-298:1-298:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-446:3-446:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/gen.mbt: error ($PROJECT/src/gen.mbt-457:1-457:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-32:40-32:44: Unexpected token `try?`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-32:73-32:74: Unexpected token `)`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-36:1-36:5: Unexpected token here.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-37:39-37:43: Unexpected token `try?`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-37:71-37:72: Unexpected token `)`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-41:1-41:5: Unexpected token here.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-42:39-42:43: Unexpected token `try?`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-42:71-42:72: Unexpected token `)`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt: error ($PROJECT/src/internal_benchmark/bm-curry-forall-tuple.mbt-44:1-44:1: Unexpected token here.",
+        "Parse error in $PROJECT/src/lazy/lazy_list.mbt: error ($PROJECT/src/lazy/lazy_list.mbt-15:3-15:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/lazy/lazy_list.mbt: error ($PROJECT/src/lazy/lazy_list.mbt-17:17-17:19: Unexpected token `=>`, you may expect `;`, `}`.",
+        "Parse error in $PROJECT/src/lazy/lazy_list.mbt: error ($PROJECT/src/lazy/lazy_list.mbt-19:7-19:13: Unexpected token id (lowercase start), you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/state.mbt: error ($PROJECT/src/state.mbt-2:1-2:10: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/testable.mbt: error ($PROJECT/src/testable.mbt-5:1-5:4: Unexpected token here.",
+        "Parse error in $PROJECT/src/testable.mbt: error ($PROJECT/src/testable.mbt-8:1-8:10: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/testing/driver.mbt: error ($PROJECT/src/testing/driver.mbt-2:1-2:10: Unexpected token `typealias`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/utils/common.mbt: error ($PROJECT/src/utils/common.mbt-54:3-54:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/utils/common.mbt: error ($PROJECT/src/utils/common.mbt-57:7-57:9: Unexpected token `if`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "Parse error in $PROJECT/src/utils/common.mbt: error ($PROJECT/src/utils/common.mbt-72:3-72:7: Unexpected token `loop`, you may expect simple expression.",
+        "Parse error in $PROJECT/src/utils/common.mbt: error ($PROJECT/src/utils/common.mbt-75:7-75:9: Unexpected token `if`, you may expect `import`, `pub`, `priv`, `type`, `suberror`, `async`, `fn`, `struct`, `enum`, extenum, `let`, `const`, `extern`, `test`, `impl`, `trait`, `enumview`, `#attribute`, `using`, `extend`.",
+        "project verification: scope_incomplete: "
+      ]
+    }
+  },
+  "scope_counterexamples": {
+    "historical": {
+      "backend_package": {
+        "exit_code": 0,
+        "verification_status": "compiler_verified",
+        "toolchain_identity": "moon 0.1.20251030 (cf54fca 2025-10-30) /tmp/moon-audit-historical-2025/toolchain/bin/moon\nmoonc v0.6.30+07d9d2445 (2025-10-30) /tmp/moon-audit-historical-2025/toolchain/bin/moonc\nmoonrun 0.1.20251030 (cf54fca 2025-10-30) /tmp/moon-audit-historical-2025/toolchain/bin/moonrun\nmoon-pilot 0.0.1-df92511 (2025-10-31) /tmp/moon-audit-historical-2025/toolchain/bin/moon-pilot",
+        "files_selected": 2,
+        "files_parsed": 2,
+        "file_status_counts": {
+          "parsed": 2
+        },
+        "rule_status_counts": {
+          "evaluated": 2,
+          "gated_out": 2,
+          "disabled": 24
+        },
+        "findings": [
+          {
+            "file": "src/main/danger.mbt",
+            "rule_id": "CWE-116/replace-escaping",
+            "line": 1
+          },
+          {
+            "file": "src/other/danger.mbt",
+            "rule_id": "CWE-116/replace-escaping",
+            "line": 1
+          }
+        ],
+        "parse_failed": [],
+        "compiler_files": [
+          "src/main/danger.mbt",
+          "src/other/danger.mbt"
+        ],
+        "policy_excluded_files": [],
+        "compiler_files_not_parsed": [],
+        "errors": [],
+        "check_exit_code": 0,
+        "plan_exit_code": 0
+      },
+      "test_files": {
+        "exit_code": 0,
+        "verification_status": "compiler_verified",
+        "toolchain_identity": "moon 0.1.20251030 (cf54fca 2025-10-30) /tmp/moon-audit-historical-2025/toolchain/bin/moon\nmoonc v0.6.30+07d9d2445 (2025-10-30) /tmp/moon-audit-historical-2025/toolchain/bin/moonc\nmoonrun 0.1.20251030 (cf54fca 2025-10-30) /tmp/moon-audit-historical-2025/toolchain/bin/moonrun\nmoon-pilot 0.0.1-df92511 (2025-10-31) /tmp/moon-audit-historical-2025/toolchain/bin/moon-pilot",
+        "files_selected": 1,
+        "files_parsed": 1,
+        "file_status_counts": {
+          "parsed": 1
+        },
+        "rule_status_counts": {
+          "evaluated": 1,
+          "gated_out": 1,
+          "disabled": 12
+        },
+        "findings": [
+          {
+            "file": "src/main/danger.mbt",
+            "rule_id": "CWE-116/replace-escaping",
+            "line": 1
+          }
+        ],
+        "parse_failed": [],
+        "compiler_files": [
+          "src/main/danger.mbt",
+          "src/main/black_test.mbt",
+          "src/main/white_wbtest.mbt"
+        ],
+        "policy_excluded_files": [
+          "src/main/black_test.mbt",
+          "src/main/white_wbtest.mbt"
+        ],
+        "compiler_files_not_parsed": [],
+        "errors": [],
+        "check_exit_code": 0,
+        "plan_exit_code": 0
+      },
+      "policy_excluded": {
+        "exit_code": 0,
+        "verification_status": "compiler_verified",
+        "toolchain_identity": "moon 0.1.20251030 (cf54fca 2025-10-30) /tmp/moon-audit-historical-2025/toolchain/bin/moon\nmoonc v0.6.30+07d9d2445 (2025-10-30) /tmp/moon-audit-historical-2025/toolchain/bin/moonc\nmoonrun 0.1.20251030 (cf54fca 2025-10-30) /tmp/moon-audit-historical-2025/toolchain/bin/moonrun\nmoon-pilot 0.0.1-df92511 (2025-10-31) /tmp/moon-audit-historical-2025/toolchain/bin/moon-pilot",
+        "files_selected": 1,
+        "files_parsed": 1,
+        "file_status_counts": {
+          "parsed": 1
+        },
+        "rule_status_counts": {
+          "evaluated": 1,
+          "gated_out": 1,
+          "disabled": 12
+        },
+        "findings": [
+          {
+            "file": "src/main/danger.mbt",
+            "rule_id": "CWE-116/replace-escaping",
+            "line": 1
+          }
+        ],
+        "parse_failed": [],
+        "compiler_files": [
+          "src/main/danger.mbt",
+          "src/other/danger.mbt"
+        ],
+        "policy_excluded_files": [
+          "src/other/danger.mbt"
+        ],
+        "compiler_files_not_parsed": [],
+        "errors": [],
+        "check_exit_code": 0,
+        "plan_exit_code": 0
+      },
+      "empty": {
+        "exit_code": 2,
+        "verification_status": "scope_incomplete",
+        "toolchain_identity": "moon 0.1.20251030 (cf54fca 2025-10-30) /tmp/moon-audit-historical-2025/toolchain/bin/moon\nmoonc v0.6.30+07d9d2445 (2025-10-30) /tmp/moon-audit-historical-2025/toolchain/bin/moonc\nmoonrun 0.1.20251030 (cf54fca 2025-10-30) /tmp/moon-audit-historical-2025/toolchain/bin/moonrun\nmoon-pilot 0.0.1-df92511 (2025-10-31) /tmp/moon-audit-historical-2025/toolchain/bin/moon-pilot",
+        "files_selected": 0,
+        "files_parsed": 0,
+        "file_status_counts": {},
+        "rule_status_counts": {},
+        "findings": [],
+        "parse_failed": [],
+        "compiler_files": [],
+        "policy_excluded_files": [],
+        "compiler_files_not_parsed": [],
+        "errors": [
+          "project verification: scope_incomplete: "
+        ],
+        "check_exit_code": 0,
+        "plan_exit_code": 0
+      }
+    },
+    "current": {
+      "backend_package": {
+        "exit_code": 0,
+        "verification_status": "compiler_verified",
+        "toolchain_identity": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+        "files_selected": 1,
+        "files_parsed": 1,
+        "file_status_counts": {
+          "parsed": 1,
+          "skipped": 1
+        },
+        "rule_status_counts": {
+          "evaluated": 1,
+          "gated_out": 1,
+          "disabled": 12
+        },
+        "findings": [
+          {
+            "file": "src/main/danger.mbt",
+            "rule_id": "CWE-116/replace-escaping",
+            "line": 1
+          }
+        ],
+        "parse_failed": [],
+        "compiler_files": [
+          "src/main/danger.mbt"
+        ],
+        "policy_excluded_files": [],
+        "compiler_files_not_parsed": [],
+        "errors": [],
+        "check_exit_code": 0,
+        "plan_exit_code": 0
+      },
+      "test_files": {
+        "exit_code": 0,
+        "verification_status": "compiler_verified",
+        "toolchain_identity": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+        "files_selected": 1,
+        "files_parsed": 1,
+        "file_status_counts": {
+          "parsed": 1
+        },
+        "rule_status_counts": {
+          "evaluated": 1,
+          "gated_out": 1,
+          "disabled": 12
+        },
+        "findings": [
+          {
+            "file": "src/main/danger.mbt",
+            "rule_id": "CWE-116/replace-escaping",
+            "line": 1
+          }
+        ],
+        "parse_failed": [],
+        "compiler_files": [
+          "src/main/danger.mbt",
+          "src/main/black_test.mbt",
+          "src/main/white_wbtest.mbt"
+        ],
+        "policy_excluded_files": [
+          "src/main/black_test.mbt",
+          "src/main/white_wbtest.mbt"
+        ],
+        "compiler_files_not_parsed": [],
+        "errors": [],
+        "check_exit_code": 0,
+        "plan_exit_code": 0
+      },
+      "policy_excluded": {
+        "exit_code": 0,
+        "verification_status": "compiler_verified",
+        "toolchain_identity": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+        "files_selected": 1,
+        "files_parsed": 1,
+        "file_status_counts": {
+          "parsed": 1
+        },
+        "rule_status_counts": {
+          "evaluated": 1,
+          "gated_out": 1,
+          "disabled": 12
+        },
+        "findings": [
+          {
+            "file": "src/main/danger.mbt",
+            "rule_id": "CWE-116/replace-escaping",
+            "line": 1
+          }
+        ],
+        "parse_failed": [],
+        "compiler_files": [
+          "src/main/danger.mbt",
+          "src/other/danger.mbt"
+        ],
+        "policy_excluded_files": [
+          "src/other/danger.mbt"
+        ],
+        "compiler_files_not_parsed": [],
+        "errors": [],
+        "check_exit_code": 0,
+        "plan_exit_code": 0
+      },
+      "empty": {
+        "exit_code": 2,
+        "verification_status": "scope_incomplete",
+        "toolchain_identity": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+        "files_selected": 0,
+        "files_parsed": 0,
+        "file_status_counts": {},
+        "rule_status_counts": {},
+        "findings": [],
+        "parse_failed": [],
+        "compiler_files": [],
+        "policy_excluded_files": [],
+        "compiler_files_not_parsed": [],
+        "errors": [
+          "project verification: scope_incomplete: "
+        ],
+        "check_exit_code": 0,
+        "plan_exit_code": 0
+      }
+    }
+  },
+  "limits": [
+    "One historical project and Linux only; not blanket backward compatibility",
+    "Compiler verification proves selected project compilation, not security semantics",
+    "Archived toolchain mirror used because original historical endpoint returned HTTP 403",
+    "Parser failures are explicit incomplete results, not successful historical syntax support"
+  ]
+}

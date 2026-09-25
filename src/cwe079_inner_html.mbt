@@ -13,8 +13,8 @@ priv struct Cwe079InnerHtmlVisitor {
 pub fn cwe079_inner_html_info() -> RuleInfo {
   {
     id: { cwe: 79, variant: "inner-html", },
-    name: "XSS via inner_html with Dynamic Content",
-    description: "inner_html() injects raw HTML. Non-constant arguments may contain user-controlled content enabling XSS.",
+    name: "Dynamic inner_html Call Review",
+    description: "Method named inner_html receives an expression. Confirm it is a raw HTML API and inspect where its input originates.",
     default_severity: Error,
   }
 }
@@ -52,7 +52,7 @@ impl @syntax.IterVisitor for Cwe079InnerHtmlVisitor with fn visit_Expr_DotApply(
           { cwe: 79, variant: "inner-html", },
           env.severity,
           Medium,
-          "inner_html() with non-constant argument is an XSS sink. User-controlled content will be injected as raw HTML.",
+          "Method named inner_html receives an expression. Confirm it is a raw HTML API and inspect where its input originates.",
           env.file,
           env.source,
           loc,
@@ -60,7 +60,8 @@ impl @syntax.IterVisitor for Cwe079InnerHtmlVisitor with fn visit_Expr_DotApply(
       )
     }
   }
-  @syntax.IterVisitor::base(env).visit_Expr_DotApply(
+  @syntax.IterVisitor::visit_Expr_DotApply(
+    @syntax.IterVisitor::base(env),
     self~,
     method_name~,
     args~,

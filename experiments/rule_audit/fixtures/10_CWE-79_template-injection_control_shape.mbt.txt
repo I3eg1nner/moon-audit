@@ -1,0 +1,2 @@
+pub fn html(value : String) -> String { value }
+pub fn probe() -> String { html("<p>constant</p>") }

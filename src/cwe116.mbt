@@ -14,8 +14,8 @@ priv struct Cwe116Visitor {
 pub fn cwe116_info() -> RuleInfo {
   {
     id: { cwe: 116, variant: "replace-escaping", },
-    name: "Incomplete HTML Escaping via String::replace",
-    description: "String::replace() only replaces the first occurrence in MoonBit. When used with HTML special characters (<, >, &, etc.), subsequent occurrences remain unescaped, enabling XSS bypass.",
+    name: "Possible Incomplete HTML Escaping",
+    description: "Call named replace with an escaping-shaped replacement. If this resolves to builtin String::replace, only the first occurrence is replaced; review receiver identity and output context.",
     default_severity: Error,
   }
 }
@@ -33,34 +33,32 @@ pub fn run_cwe116(
 }
 
 ///|
-impl @syntax.IterVisitor for Cwe116Visitor with fn visit_Expr_DotApply(
-  env,
-  self~,
-  method_name~,
-  args~,
-  return_self~,
-  loc~,
-) {
-  if method_name.name == "replace" && is_security_relevant_replace(args) {
-    env.findings.push(
-      make_finding(
-        { cwe: 116, variant: "replace-escaping", },
-        env.severity,
-        High,
-        "String::replace() only replaces the first occurrence. Use replace_all() for HTML escaping to prevent XSS bypass.",
-        env.file,
-        env.source,
-        loc,
-      ),
-    )
+impl @syntax.IterVisitor for Cwe116Visitor with fn visit_Expr(env, expr) {
+  match syntax_call(expr) {
+    Some(call) => {
+      let eligible = match call.form {
+        Dot => true // Existing syntax rule; receiver type is not proven.
+        Qualified => call.owner == Some("String")
+      }
+      if eligible &&
+        call.name == "replace" &&
+        is_security_relevant_replace(call.args) {
+        env.findings.push(
+          make_finding(
+            { cwe: 116, variant: "replace-escaping", },
+            env.severity,
+            High,
+            "Call named replace with an escaping-shaped replacement. If this resolves to builtin String::replace, only the first occurrence is replaced; review receiver identity and output context.",
+            env.file,
+            env.source,
+            call.loc,
+          ),
+        )
+      }
+    }
+    None => ()
   }
-  @syntax.IterVisitor::base(env).visit_Expr_DotApply(
-    self~,
-    method_name~,
-    args~,
-    return_self~,
-    loc~,
-  )
+  @syntax.IterVisitor::visit_Expr(@syntax.IterVisitor::base(env), expr)
 }
 
 ///|

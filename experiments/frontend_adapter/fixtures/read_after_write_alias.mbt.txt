@@ -1,0 +1,13 @@
+pub struct Box { mut value : String; mut safe : String }
+fn source() -> String { "dirty" }
+fn sink(value : String) -> Unit { ignore(value) }
+fn fill(first : Box, second : Box) -> Unit {
+  first.value = source()
+  second.safe = second.value
+}
+pub fn go() -> Unit {
+  let box = Box::{value: "clean", safe: "clean"}
+  fill(box, box)
+  sink(box.value)
+  sink(box.safe)
+}

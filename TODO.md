@@ -1,77 +1,88 @@
-# moon-audit 架构改进 TODO
+# moon-audit TODO 与里程碑（2026-09-25）
 
-基于 9 项架构审查，按可行性分阶段实施。
+**当前执行清单以本文为准。** [架构方案](docs/architecture-plan-2026-09-24.md)解释取舍和验收逻辑；[suggest.md](suggest.md)保留复核判断；[旧 TODO](docs/legacy/TODO-before-redesign.md)及 [旧 IR TODO](docs/ir/TODO.md)是历史记录，不能作为当前能力清单。
 
-## Phase 1: 不改架构的立即改进
+## 当前实施更新（2026-09-25：原生交付）
 
-### 1.1 Finding 增加 confidence 字段
-- [x] `Finding` 增加 `confidence: Confidence` 枚举 (High/Medium/Low)
-- [x] 每条规则根据分析方式设定 confidence
-  - High: CWE-116, CWE-94, CWE-79/cmark
-  - Medium: CWE-942, CWE-614, CWE-79/inner-html, CWE-79/template, CWE-113, CWE-770
-  - Low: CWE-22, CWE-346
-- [x] JSON/SARIF/text 输出包含 confidence
-- [x] 更新测试
+本节落实已确认的产品方案：源码自编译和二进制下载用户同等支持；自己项目与第三方源码同等优先；优先少量可信检测；首批目标 Linux x86_64、macOS arm64、Windows x86_64，用户运行不依赖 Python。
 
-### 1.2 SARIF 稳定 fingerprint
-- [x] `Finding` 增加 `fingerprint: String`
-- [x] 基于 rule_id + 代码片段 FNV-1a 哈希生成 (不依赖行号)
-- [x] SARIF 输出 `partialFingerprints`
-- [x] dedup_findings 改用 fingerprint
+- [x] 原生 `--verify-project`、目标工具链与后端选择、快照、统一 JSON/SARIF/text 和 0/1/2 退出码已实现；Python 严格脚本保留开发对照。
+- [x] 官方 async 进程接口与内部进程树监督、有界输出已实现；Linux 超时子孙进程、源码变化、未知计划和双流上限回归通过。
+- [x] Linux 单个二进制解包到中文/空格路径、清空 PATH 运行与真实工具链验收通过；三套目标工具链 × 四后端的原生矩阵通过。
+- [x] baseline 父子选项、源码/元数据/显式输入特殊文件反例均修复；最终 Linux 归档由 subagent 独立验收 22/22，监督回归 4/4。
+- [ ] macOS/Windows 原生 CI 和解包产物验收；工作流存在不等于平台已验证。
+- [x] 首条安全候选改为 mocket 查询参数→String helper→HTML响应。固定源码/依赖运行对照 8/8，通过真实 dispatch 验证危险输出与负例。
+- [x] 必需 API 和字段的唯一声明绑定已核实；复现自定义 `String` 与内建 String 的 hover 歧义，禁止通过 hover 或名称推定规范类型。
+- [x] 已核实 API/受支持构造→真实源码→顺序 IR→原生核心的受限实验通过 13 项验收；跟踪最终 responder，编码保留 HTML 上下文。生产成本、入口覆盖与接入仍未放行，继续拒绝 `--analysis semantic`。
+- [ ] cmark 第二场景复用验收、14 条规则完整裁决和更早历史项目验收。
 
-### 1.3 LLM/PoC 从默认 pipeline 拆出
-- [x] pipeline 只保留 scan + taint + summary (3 阶段)
-- [x] LLM/PoC/remediation 保留为独立子命令
-- [x] pipeline 输出提示用户可选运行 llm-analyze / generate-poc / remediate
+证据：[原生版本矩阵](docs/metrics/native-version-matrix-2026-09-25.json)、[真实安全链运行与绑定](experiments/security_chain/README.md)。下方 A/B/C/D 的完整放行条件继续有效，单项进展不能替代整阶段验收。
 
-### 1.4 退出码反映扫描结果
-- [x] 有 Error 级别 findings → exit 1
-- [x] 参数解析错误 → exit 2
-- [x] 无问题 → exit 0
+## 最终目标与当前边界
 
-### 1.5 工具定位更新
-- [x] README 改为 "MoonBit 安全 linter，提供框架级规则包"
-- [x] 工作原理图去掉 LLM/PoC，标注为可选辅助子命令
+交付一个能检测不同 MoonBit 工具链版本项目的安全工具：有限规则扫描器稳定报告**实际检查的文件、规则和证据等级**；只把经真实项目验证的安全数据流接入可选语义模式。当前生产入口是 `0.5.0-dev`、14 条语法模式规则；**没有**类型解析、跨函数污点、对象别名或净化证明。`syntax_hint` 和 `compiled_and_parsed` 都不表示漏洞已被证明，也不表示项目安全。
 
-## Phase 2: 验证与推送
+## 里程碑总览
 
-- [x] `moon check --target all`
-- [x] `moon test --target all` (38/38 x 4 targets)
-- [x] `moon fmt` 格式稳定
-- [x] 推送到 GitHub (origin) — CI 通过 (ubuntu/macos/windows)
-- [ ] 推送到 GitLink — SSH 服务端不可达，待恢复后重试
+| 里程碑 | 状态 | 可交付结果 | 放行条件 |
+| --- | --- | --- | --- |
+| M0：保留有限扫描器 | **工作区已验证** | 14 条语法规则、JSON/SARIF/text、baseline、增量文件列表 | 现有回归通过，历史语义入口明确拒绝；尚未据此宣称发布 |
+| A：范围与规则可信 | **进行中** | 多版本/后端文件选择、结构化覆盖、逐规则能力登记和正反例 | 每条宣称支持的规则有真实编译正例与安全负例；涉及 API 名称的规则还须有同名无关负例，否则降级或停用。未支持文件/语法有原因码 |
+| B：真实安全 API 裁决 | **mocket 运行/唯一绑定已验证，类型边界受限** | 固定库快照、工具链、声明身份及运行时危险/安全证据 | 至少一条真实 source→sink 链可编译、绑定唯一、危险效果可复现，并有安全负例；失败就换候选 |
+| C：受限语义链 | **受限 mocket 原生链已通过，完整门槛未放行** | 真实 `.mbt` 自动生成绑定和顺序 IR，独立核心给出路径与不完整状态 | 同一真实链的阳性、净化/常量、同名 API、未知构造、预算耗尽均按预期；不靠手写 IR 或旧规则判定 |
+| D：可选生产接入 | **未开始** | 仅对通过 C 的规则接入语义模式，统一证据与范围报告 | 固定语料的正确性、冷/热一致性、数值化时间/内存预算及退出码门禁全部通过 |
 
-## Phase 3: 规则精度改进
+**关键路径：A1 的文件范围可信 + 候选规则的必要正反例 → B 的真实 API → C 的核心链 → D 的生产接入。** A2 的其余规则审计继续推进，但不阻塞首条真实链；A 整体放行仍须完成全部规则裁决。有限扫描器可独立交付。B 未通过时不得因已有原型而启动生产语义接线。每次勾选任务必须附可复现的源码、命令、预期与实际结果；测试数上升不替代这些证据。
 
-### 3.1 修复 CWE-79/cmark 误报
-- [x] cmark `render()` 默认已改为 `safe=true`，当前规则前提过时
-- [x] 规则应仅在显式 `safe=false` 时报告
-- [x] 扩展检测 `renderer()`/`xhtml_renderer()`/`from_doc()` 的 `safe=false`
+## A：让扫描结果的范围可信（当前主线）
 
-### 3.2 扩展为通用安全 linter
-- [x] CWE-676/unsafe-call: 检测 `unsafe_*` 函数调用 (High confidence)
-- [x] CWE-248/panic-reachable: 检测库代码中的 `panic()`/`abort()` (Medium)
-- [x] CWE-704/unsafe-cast: 检测 `.cast()` 类型强转 (Medium)
-- [x] 支持 `Type::method` 静态调用模式 (`Method` AST 节点)
-- [x] 更新 README 定位为通用安全分析工具
-- [x] 49/49 测试通过 (all targets)
+### A1. 文件、历史版本与前端边界
 
-### 3.3 Web 规则精度改进
-- [x] CWE-770: 仅对 crescent 启用（有 `max_request_body_bytes`），mocket 无此 API 跳过
-- [x] CWE-942: 增强检测 `handle_cors()` 无显式 origin（默认 `*`），credentials=true 升级为 Error
-- [x] CWE-22: 保持现有检测。mocket `static_assets` 已内置 `..` 过滤，无需额外规则
+- [x] JSON/SARIF 增加 `analysis_manifest.v1`：逐文件解析/跳过状态、逐规则执行状态、`syntax_hint` 和不完整原因。证据：[CLI 回归](scripts/cli_regression_test.py)、[架构记录第 8 节](docs/architecture-plan-2026-09-24.md)。
+- [x] 严格入口用目标 `moon check` 编译并读取该工具链的文件计划，按后端选择 `.mbt`；计划失效、文件差异、未支持格式不报完整成功。旧 `moon.pkg.json` 导入三种形式与损坏配置已处理，模块依赖不再冒充包导入。证据：[固定旧格式/后端探针](docs/metrics/legacy-backend-scope-2026-09-25.json)；目标 moon `0.1.20260904`、`0.1.20260915`、`0.1.20260920` 的 native，及 `0.1.20260920` 的 JS 已测。
+- [ ] 固定 `moon check --dry-run --verbose` 计划解析契约：对三套已测工具链补 JS/wasm/wasm-gc 对照及包含包排除、测试文件和空源码的反例；格式改变时记录 `compiler_plan_unavailable`。若文本计划无法可靠覆盖旧版本，再选择官方结构化构建信息或保守退出。
+- [x] 已产出项目快照（原生版本矩阵和进程监督变更反例通过）：分别记录分析器和目标工具链、后端、模块/包配置与锁文件指纹、编译选中文件的内容哈希；扫描前后文件变化应使严格结果失效。
+- [ ] 固定至少一个**真实旧项目 + 对应可获取旧工具链**，在不改源码/依赖预期的前提下复核编译、文件集合、parser 和规则行为。`moon.mod` 的模块版本不充当编译器版本。
+- [x] 已知 `for (x, y) in ...` 编译器接受、parser 0.4.0 拒绝的样例已有显式回归，原生严格入口返回 `scope_incomplete`（旧 Python 对照为 `scanner_incomplete`）。证据：[跨版本矩阵](docs/metrics/project-version-compat-2026-09-24.json)。
+- [ ] 若要宣称支持该语法，须用官方前端或经位置/AST/规则对照的受控适配修复；修复前不把受影响文件计为已覆盖。
 
-### 3.4 LLM Triage 结果 (mocket)
-- 37 findings → 9 TP, 28 FP (FP rate 76%)
-- Web 规则: 9/10 TP (90% precision) — CWE-113, CWE-614, CWE-79, CWE-942
-- CWE-248 (panic): 5/5 FP — guard 模式和平台桩代码中的 panic 属于预期行为
-- CWE-704 (cast): 22/22 FP — JS FFI 中 .cast() 是唯一的类型转换手段
-- 结论: 通用规则在 FFI 重度项目上误报率高，需后续增加上下文感知过滤
+### A2. 14 条规则的能力登记与裁决
 
-### 3.5 上下文感知过滤 (通用规则降误报)
-- [x] CWE-704: 跳过含 `extern "js"` 或 `#external` 的 FFI 文件 (22 FP → 0)
-- [x] CWE-248: 跳过 guard...else、平台桩文件、abort("unreachable"/"unimplemented")（大小写不敏感）、裸 panic()、标准库契约断言（index out of bounds / division by zero / overflow 等）
-- [x] CWE-676: 仅报告危险类型转换 (to_*/from_*/new)，跳过性能操作 (get/set/blit/reinterpret)；guard body 内跳过
-- [x] 标准库白名单：检测 moon.mod 中 `moonbitlang/core`/`moonbitlang/x`/`moonbitlang/parser`/`moonbitlang/lexer` 时自动跳过通用规则
-- 最终扫描结果: mocket 37→12, rabbita 46→6, async 149→14, core 139→0
-- 扩展验证: 21 个项目 3,676 文件 491 findings（含 actrun/crater/openseek/mio/mooncakes.io/python.mbt）
+- [ ] 建立机器可读规则清单：规则 ID、适用包与声明、调用形式、后端、触发条件、证据等级、版本/库指纹、测试链接及“未绑定/未知”处理。报告中的规则能力应由同一登记生成，避免说明与实际分发漂移。
+- [ ] 逐条盘点 14 条规则；每条至少有目标工具链真实编译的危险形状和安全形状，涉及 API 名称的规则还须有**同名无关 API**负例。记录 AST 形状、实际执行/跳过状态、发现与误报；无法核实绑定的规则保持 `syntax_hint`，误导严重的规则关闭默认启用。
+- [ ] 优先复核外部 API 规则（CWE-113、CWE-79/cmark/inner-html/template、CWE-942/614/770/346），再复核通用语法规则。CWE-113 的动态头部值目前仅是人工复核提示；mocket 的 CR/LF 清除是安全负例，不能计为漏洞正例。
+- [ ] 把已验证的 `CWE-116` 点调用/`String::replace`、安全替换和同名方法负例扩为规则矩阵模板；三套工具链的这一个规则结果不能写作 14/14。
+
+**A 放行：** 规则清单逐项给出“已验证提示 / 降级 / 停用”裁决；严格入口对声明支持的工具链/后端文件集合无未披露差异；解析失败、包配置异常和规则门禁均可定位。剩余语法缺口可以存在，但必须导致明确的不完整状态。仅满足 A1 不算完成 A。
+
+## B：先证明一个真实安全模型
+
+- [ ] A1 文件范围和候选规则的编译正反例通过后，在最多两个候选库/API 上做裁决记录：固定源码与依赖哈希、目标工具链和后端、编译日志、源与 sink 的包/声明身份、官方绑定查询、运行时危险输出及安全负例。优先检查 CWE-113；若 Crescent 固定快照仍无法编译或传输层不产生危险输出，改选其他链。
+- [ ] 模型以 `(包身份、声明身份、库版本或指纹、后端)` 为键；净化效果必须由实现与运行对照证明。空绑定、多候选、trait 约束位置、同名方法均不得回退成“已绑定”。
+- [ ] 在 B 结束前写明首条链需要哪些 MoonBit 构造（直接调用、对象方法、`String?`、异常等），同时记录绑定查询数与耗时。不给核心预先扩张功能。
+
+**B 放行：** 真实项目编译成功；正例确有可观察危险效果，负例确实安全；声明身份唯一且可复核。任一条件失败，停止该候选，不把 `source()`/`sink()` 教具函数当作交付。
+
+## C：独立核心验证真实源码到安全路径
+
+- [ ] 只为 B 通过的链扩展受限前端：真实 `.mbt` → 可审查的绑定与顺序 IR；未知调用、默认参数、异常、闭包或动态派发无语义契约时明确 `unsupported_semantics`。
+- [ ] 先验 S0 无堆 `String` 直接调用；对象方法仅在确需时加 S1 不透明句柄；字段传播确需时才接 S2 单一堆。不得恢复旧最终值摘要或第二份别名状态。
+- [ ] 用同一 IR 对照具体执行器与独立核心：阳性、安全常量、有效净化、同名 API、写后读/覆盖（若涉及堆）、未知构造和预算耗尽。递归/循环须收敛；预算耗尽不能输出完整安全结论。
+- [ ] 在求解实现前记录固定项目的前端、绑定、求解时间及峰值内存基线，设数值预算；超预算返回不完整状态，不能静默截断。
+
+**C 放行：** 第一条真实安全链的正负例、路径和不完整状态均从源码自动得到；手写 IR 与独立 Python 规格只作对照，不充当生产能力。
+
+## D：有条件接入生产
+
+- [ ] 只为 C 通过的规则开放**可选**语义模式；JSON/SARIF 区分 `syntax_hint`、已绑定模式与已验证数据流，保留旧字段兼容和 baseline 稳定性。
+- [ ] 固定语料测冷/热一致、TP/FP/FN/未知调用/未分析文件、前端加求解时间和峰值内存；错误/预算/解析失败的退出状态与零告警场景一同验收。
+- [ ] 根据证据决定发布范围：若首条链无法稳定、绑定代价过高或只能靠大量 AST 特判成立，停止语义层扩张，继续交付范围准确的有限扫描器。
+
+## 下一个工作包（按序，不并行扩张语义能力）
+
+1. Linux 最终归档已独立验收；在 macOS/Windows 原生 runner 执行同一套解包验收，工作流配置不能替代通过记录。
+2. 针对已自动跑通的 mocket 子集补注册形状/入口覆盖与未知值反例，记录冷/热时间、峰值内存并降低 102 次外部绑定查询的开销。不能仅凭 13 项通过开启生产语义模式。
+3. 完成 A2 机器可读能力登记和逐规则裁决，以及真正更早的历史项目/对应工具链验收。
+4. 用 cmark 第二场景检验核心复用；通过 C/D 的范围、正确性与成本门槛后再接入可选生产语义模式。
+
+本轮新增验收证据见 [native IR](experiments/security_chain/native-ir-2026-09-25.json)。已有通用 heap/alias 原型只作历史/规格参考，本轮未恢复到生产引擎。
