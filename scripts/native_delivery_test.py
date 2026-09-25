@@ -248,6 +248,28 @@ class NativeDelivery(unittest.TestCase):
             with self.subTest(option=option):
                 self.run_cli(option, fifo, code=2, timeout=5)
 
+    @unittest.skipUnless(os.name == "posix", "POSIX selected-symlink acceptance")
+    def test_selected_symlink_is_rejected_before_canonicalization(self):
+        destination = self.work / "linked-target.mbt"
+        destination.write_text('pub fn linked() -> String { "value" }\n', encoding="utf-8")
+        (self.project / "linked.mbt").symlink_to(destination)
+        report = self.json_report("--verify-project", "--project-moon",
+                                  self.work / "missing compiler", code=2)
+        self.assert_base_finding(report)
+        self.assert_verification(report, "snapshot_unavailable")
+
+    @unittest.skipUnless(os.name == "posix", "POSIX parent-directory alias acceptance")
+    def test_existing_parent_directory_alias_keeps_project_identity(self):
+        alias = self.work / "parent-alias"
+        alias.symlink_to(self.project.parent, target_is_directory=True)
+        alias_project = alias / self.project.name
+        report = self.json_report("--verify-project", *self.compiler_arguments(),
+                                  target=alias_project, isolated=False, timeout=90)
+        self.assert_base_finding(report)
+        self.assert_verification(report, "compiler_verified")
+        self.assertEqual(Path(report["findings"][0]["file"]).resolve(),
+                         (self.project / "danger.mbt").resolve())
+
     def test_real_project_toolchain_and_findings_exit_policy(self):
         args = ["--verify-project", *self.compiler_arguments(), "--target", "native",
                 "--analysis", "syntax", "--timeout-seconds", "60"]

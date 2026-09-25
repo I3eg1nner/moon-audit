@@ -36,7 +36,7 @@ moon build --target native --release
 moon run src/main -- --format json /path/to/project
 ```
 
-Linux x86_64 已有本地解包和搬迁验收。macOS arm64、Windows x86_64 的真实 CI 尚在验收，Windows 路径问题正在修复；工作流存在不等于三平台通过。[草稿 PR #1](https://github.com/I3eg1nner/moon-audit/pull/1) 尚未合并或发布，开发归档不代表正式发行版。
+Linux x86_64 已有本地解包和搬迁验收。macOS arm64、Windows x86_64 的真实 CI 尚在验收，真实 CI 已发现 Windows 路径及 macOS worker 资源初始化问题，修复后的完整复验仍待完成；工作流存在不等于三平台通过。[草稿 PR #1](https://github.com/I3eg1nner/moon-audit/pull/1) 尚未合并或发布，开发归档不代表正式发行版。
 
 ## 可选语义检测
 
@@ -53,7 +53,15 @@ moon-audit --analysis semantic --verify-project \
 
 JSON 顶层与 SARIF run properties 的 `semantic_analysis` 保存声明范围、绑定、模型、路径和不完整原因。完整受限路径使用 `verified_dataflow`，部分路径使用 `partial_dataflow`；它们都不是已证实漏洞。生产报告 schema 为 `moon-audit.scoped-dataflow.v1`，`support=validated_callback_subset`；是否完成请求以 `status` 和显式 scope 为准。独立实验 probe 仍使用实验 schema。
 
-语义 worker 的墙钟上限为 **60 秒**（用户 `--timeout-seconds` 更小时取较小值），最多 **256 次绑定查询、4 个并发查询**，IR 预算 10000 单位。受监督 worker/子进程采用每进程 **2048 MiB** 地址空间上限（POSIX）或提交内存上限（Windows），不是整棵进程树的总 RSS 上限。超时、资源限制或子进程失败保留可获得的语法结果，标记不完整。Linux 生产入口 [15 项验收](docs/metrics/semantic-production-acceptance-2026-09-25.json)包含冷/热一致性、baseline、未知边界及资源故障；不替代 macOS/Windows 实测。
+语义 worker 的墙钟上限为 **60 秒**（用户 `--timeout-seconds` 更小时取较小值），最多 **256 次绑定查询、4 个并发查询**，每回调 IR 预算 10000 单位。内存监督按平台区分：
+
+| 平台 | 2048 MiB 的作用范围与机制 |
+| --- | --- |
+| Linux | 每进程地址空间硬上限，使用 `RLIMIT_AS`；不是进程树的总 RSS 上限 |
+| Windows | 每进程提交内存硬上限，使用 Job Object；不是进程树的总 RSS 上限 |
+| macOS | 每 50 ms 采样进程组各进程的 physical footprint 并求和；超过阈值或无法采样时终止整个组。属于采样阈值，可能短暂超额，不是硬地址空间上限 |
+
+报告的 `budget.memory` 包含 `mechanism`、`scope`、`hard_limit`，IR 字段为 `ir_units_per_callback`。超时、资源限制或子进程失败保留可获得的语法结果，标记不完整。Linux 生产入口 [15 项验收](docs/metrics/semantic-production-acceptance-2026-09-25.json)包含冷/热一致性、baseline、未知边界及资源故障。macOS 新采样机制及 Windows 修复后的真实复验仍待完成，不能用 Linux 结果替代。
 
 ## 报告、退出码和 baseline
 

@@ -39,13 +39,13 @@
     "../../experiments/cmark_chain/production-ir-2026-09-25.json"
   ],
   "pending": [
-    "Latest commit actual three-platform extracted-artifact and scoped semantic acceptance"
+    "Final three-platform extracted-artifact semantic acceptance after Windows path identity and macOS memory supervision repairs"
   ],
   "release_published": false,
   "draft_pull_request": "https://github.com/I3eg1nner/moon-audit/pull/1",
   "limits": [
     "Conditional callback normal-return paths; not registration reachability or browser exploitability.",
-    "Per-process 2048 MiB address/commit cap; not aggregate process-tree RSS.",
+    "Linux per-process RLIMIT_AS; Windows per-process commit; macOS sampled group physical footprint; budgets are reported with platform-specific mechanism and limitations.",
     "Unsafe Markdown retains partial dataflow and exits 2 for unknown HTML context.",
     "No universal historical parser compatibility or complete MoonBit/Tai-e analysis."
   ],
@@ -61,5 +61,14 @@
       "passed": 4,
       "failed": 0
     }
-  }
+  },
+  "ci_attempts": [
+    {
+      "commit": "5ae21a1088bc6ad17f95c3c5005516954d464be2",
+      "checks": "https://github.com/I3eg1nner/moon-audit/actions/runs/36104406615",
+      "checks_result": "all six jobs passed",
+      "delivery": "https://github.com/I3eg1nner/moon-audit/actions/runs/36104406618",
+      "delivery_result": "Linux passed; Windows helper binding identity mismatch, macOS worker initialization failure; repairs in progress"
+    }
+  ]
 }

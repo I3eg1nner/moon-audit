@@ -10,6 +10,8 @@ pub fn file_plan(String, String) -> (Array[String], Array[String])?
 
 pub fn limit_worker_memory(Int) -> Bool
 
+pub fn memory_budget() -> Json
+
 pub fn plan_words(String) -> Array[String]?
 
 pub async fn semantic_worker(String, String, String?, Int) -> Json

@@ -7,7 +7,16 @@ async fn main {
     return
   }
   if raw.length() > 1 && raw[1] == "--internal-semantic" {
-    if raw.length() != 5 || !@project.limit_worker_memory(2048) {
+    if raw.length() != 5 {
+      @sys.exit(2)
+      return
+    }
+    if !@project.limit_worker_memory(2048) {
+      let failure : Json = {
+        "status": "incomplete",
+        "reason": "semantic_memory_supervision_setup_failed",
+      }
+      println(failure.stringify())
       @sys.exit(2)
       return
     }
@@ -35,10 +44,10 @@ async fn main {
       fields["support"] = Json::string("validated_callback_subset")
       fields["budget"] = {
         "wall_seconds": 60,
-        "worker_address_space_or_commit_mib": 2048,
+        "memory": @project.memory_budget(),
         "query_limit": 256,
         "parallel_queries": 4,
-        "ir_units": 10000,
+        "ir_units_per_callback": 10000,
       }
     }
     println(report.stringify())

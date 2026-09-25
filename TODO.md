@@ -35,7 +35,7 @@
 
 - [x] 固定 mocket 0.9.1 的实际 dispatch 8 项正反例、唯一声明绑定及库/依赖指纹；拒绝把 hover 的 `String` 名称当规范类型。
 - [x] 真实源码自动降低到顺序 IR，核实 query/default/helper/HTML/text/编码等必要模型；最终 responder 返回、丢弃与覆盖用同一顺序语义计算。
-- [x] 未知构造、模型变化、非唯一绑定、未支持注册形式及零可支持候选不报完整成功。
+- [x] 声明范围内的未知构造、模型变化、非唯一绑定、已识别的未支持 `.get` 注册形状及零可支持候选不报完整成功；其他路由类型不在该 scope 内。
 - [x] cmark 0.4.8 模型复用同一 IR；`try!` 正常返回与异常终止边界核实。默认/true 的安全正文片段和 false 的未知 HTML 上下文分开建模。
 - [x] cmark 生产 14 项对照通过；unsafe / 编码后 unsafe / script 位置保留 `partial_dataflow` 且 exit 2，动态参数、非默认配置和模型失配保留不完整。
 
@@ -44,11 +44,12 @@
 - [x] 显式 `--analysis semantic --verify-project --semantic-scope mocket-get-callbacks`；其他后端、增量集合或缺少前提时拒绝，不暗中扩大覆盖。
 - [x] 统一语法提示、`verified_dataflow`、`partial_dataflow`、路径、模型与不完整原因；baseline 不会把不完整结果清零或覆盖已有文件。
 - [x] 冷/热结果一致，未知/模型失配/绑定子进程故障保留语法结果；固定 Linux 生产入口 15/15。
-- [x] worker 最长 60 秒、256 查询/4 并发、IR 10000 单位；每进程 2048 MiB 地址空间/提交上限。资源失败与超时子孙进程清理已做 Linux 注入验收；不是全进程树 RSS 总量承诺。
+- [x] worker 最长 60 秒、256 查询/4 并发、每回调 IR 10000 单位；Linux 每进程 2048 MiB `RLIMIT_AS` 地址空间硬上限。资源失败与超时子孙进程清理已做 Linux 注入验收，不是全进程树 RSS 总量承诺。
+- [ ] 平台资源策略复验：Windows 每进程 2048 MiB 提交内存硬上限；macOS 每 50 ms 采样进程组 physical footprint 求和，超过 2048 MiB 或无法采样则终止整个组。macOS 为采样阈值、可能短暂超额；新机制尚待真实 CI 验收。报告以 `memory.mechanism/scope/hard_limit` 和 `ir_units_per_callback` 明示机制。
 
 ## 当前剩余发布门
 
-- [ ] 完成 Linux x86_64、macOS arm64、Windows x86_64 最终提交的真实 CI 和解包产物验收；Windows 路径问题正在修复，不以工作流配置代替结果。
+- [ ] 完成 Linux x86_64、macOS arm64、Windows x86_64 最终提交的真实 CI 和解包产物验收；Windows 路径和 macOS worker 资源初始化问题修复后的完整复验仍待完成，不以工作流配置代替结果。
 - [ ] 对最终归档校验 SHA-256、许可证、build-info 和二进制搬迁结果，保存对应提交与平台日志。
 - [ ] 完成草稿 PR #1 的最终审查后才裁决合并和发布；当前未合并、未正式发布。
 

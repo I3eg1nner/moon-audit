@@ -52,6 +52,11 @@ jobs:
           python scripts/process_supervision_test.py
       - name: Prepare fingerprinted semantic corpora
         run: python scripts/prepare_semantic_corpus.py --destination "${{ runner.temp }}/moon-audit-models"
+      - name: Accept macOS process-group memory supervision
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          python scripts/macos_memory_test.py --analyzer dist/extracted/moon-audit --helper _build/native/release/build/tests/native_process_helper/native_process_helper.exe --toolchain "$PROJECT_TOOLCHAIN" --corpus "${{ runner.temp }}/moon-audit-models/mocket" --output dist/macos-memory-acceptance.json
       - name: Accept scoped dataflow from extracted release
         shell: bash
         run: |

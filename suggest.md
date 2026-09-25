@@ -4,13 +4,13 @@
 
 ## 2026-09-25：有限安全检测已形成生产闭环
 
-项目定位已经落实为面向源码自编译/二进制下载用户的本地 MoonBit 安全检测工具。A–D 的有限功能已实现并通过 Linux 本地验收：稳定的语法扫描、项目版本与文件范围验证、少量真实模型和显式限定范围的可选语义模式。**三平台发布仍未完成**：Windows 路径问题正在修复，macOS/Windows 及最终提交的真实 CI 待验收；草稿 PR #1 尚未合并或发布。
+项目定位已经落实为面向源码自编译/二进制下载用户的本地 MoonBit 安全检测工具。A–D 的有限功能已实现并通过 Linux 本地验收：稳定的语法扫描、项目版本与文件范围验证、少量真实模型和显式限定范围的可选语义模式。**三平台发布仍未完成**：Windows 路径及 macOS worker 资源初始化问题的修复复验尚未完成，最终提交的三平台真实 CI 待验收；草稿 PR #1 尚未合并或发布。
 
 ### 现在有证据支持的判断
 
 1. **扫描器可以保留，但应减少默认噪声。** 14 条规则已逐条裁决，只有 replace-escaping、cmark-unsafe 默认启用，全部语法发现仍为 `syntax_hint`。44 项编译形状和98项登记/选择/门控/严重度一致性验收通过，不等于安全准确率。真实 mocket/cmark API 有编译依据；Crescent 旧 lexscan 失败保持未核实。独立复核还修复了 CWE-942 忽略用户严重度的问题。[规则审计](experiments/rule_audit/README.md)
 2. **独立核心值得保留，已经复用于第二库。** mocket 查询经普通 String helper 到最终返回 HTML 的链由真实源码进入官方绑定和顺序 IR。cmark 渲染复用同一表示与求解规则；没有把同名调用或旧 AST 告警冒充数据流。[cmark 生产 14 项验收](experiments/cmark_chain/production-ir-2026-09-25.json)
-3. **生产接入已经完成受限验收。** `--analysis semantic --verify-project --semantic-scope mocket-get-callbacks` 在 native 下启用；15 项 Linux 生产入口验收涵盖冷/热一致、报告、baseline、未知范围和资源故障。语义 worker 60 秒、256查询/4并发、10000 IR单位和每进程2048 MiB地址空间/提交上限有实际失败对照，不是只有配置字段。[生产验收](docs/metrics/semantic-production-acceptance-2026-09-25.json)
+3. **生产接入已经完成受限验收。** `--analysis semantic --verify-project --semantic-scope mocket-get-callbacks` 在 native 下启用；15 项 Linux 生产入口验收涵盖冷/热一致、报告、baseline、未知范围和资源故障。语义 worker 60 秒、256查询/4并发、每回调10000 IR单位，以及 Linux 每进程2048 MiB `RLIMIT_AS` 地址空间硬上限已有实际失败对照；这些结果不替代其他平台验收。[生产验收](docs/metrics/semantic-production-acceptance-2026-09-25.json)
 4. **历史版本接入和语法兼容必须分开评价。** 2025 QuickCheck 原始源码在对应旧工具链下可检查，30文件选源一致；当前parser仅解析16个、14个失败并exit2。它证明可以接入真实老项目，也证明不能承诺完整分析任意老版本。[历史验收](experiments/historical_project/README.md)
 
 ### 对当前边界的意见
@@ -19,7 +19,7 @@
 
 cmark 的 `safe=true` 结果是限定正文位置的 HTML 片段，不是通用文本编码。`safe=false`、编码后再 unsafe 渲染、safe片段放进script位置等保留 `partial_dataflow` 并exit2；不能为追求“全部绿色”把这些边界改成安全结果。
 
-每进程2048 MiB不是整棵进程树的RSS总预算，60秒也不是整个CLI的总时限。冷/热测量只适用于固定语料；更大项目需要继续测量。三平台CI通过前也不能把Linux资源验收写成全平台保证。
+内存预算必须按平台读：Linux 是每进程2048 MiB `RLIMIT_AS` 地址空间硬上限，Windows 是每进程2048 MiB提交内存硬上限；两者都不是整棵进程树的RSS总预算。macOS 改为每50 ms采样进程组 physical footprint 并求和，超过2048 MiB或无法采样就终止整个组，允许短暂超额，不能称硬地址空间上限。macOS 新机制及 Windows 修复后的真实复验仍待完成。报告 `memory.mechanism/scope/hard_limit` 和 `ir_units_per_callback` 应清楚反映差异。60秒不是整个CLI的总时限；固定语料冷/热测量也不能外推到任意规模项目。
 
 ### 接下来如何推进
 

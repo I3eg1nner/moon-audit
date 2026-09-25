@@ -72,7 +72,7 @@ flowchart LR
 
 mocket `0.9.1` 的真实 dispatch 8 项对照、唯一绑定和 13 项源码到 IR 实验为模型提供依据。[运行与绑定记录](../experiments/security_chain/README.md)明确验证：响应构造不等于返回输出；覆盖后的旧 responder 不进入最终结果；HTML 文本编码不能替代脚本上下文处理；同名 String 的 hover 文本不提供规范类型身份。
 
-入口范围只声明“两位置参数、固定字符串路由、内联单形参 `.get` 回调”。注册代码实际执行、路由被请求、中间件不改变 responder/content-type 等仍是前提，当前核心不证明它们。其他注册形状、未支持构造、零候选、未知调用或模型失配使请求不完整；已有可审查路径保留。
+入口范围只声明“两位置参数、固定字符串路由、内联单形参 `.get` 回调”。注册代码实际执行、路由被请求、中间件不改变 responder/content-type 等仍是前提，当前核心不证明它们。已识别的未支持 `.get` 注册形状，以及声明范围内的未支持构造、零候选、未知调用或模型失配使请求不完整；已有可审查路径保留。`.post` 等其他路由类型在 scope 之外，不保证使这项受限检查返回不完整。
 
 ### 第二库复用
 
@@ -89,13 +89,15 @@ mocket `0.9.1` 的真实 dispatch 8 项对照、唯一绑定和 13 项源码到 
 | 外部命令 | 每次默认 300 秒，stdout/stderr 各 16 MiB | 终止受监督进程树，报告失败 |
 | 项目快照 | 100000 文件、单文件 16 MiB、累计 256 MiB、遍历检查 30 秒 | 不宣称快照完整 |
 | 语义 worker | 最长 60 秒，用户命令预算更小时取较小值 | 保留可获得语法结果，返回 2 |
-| worker/后代内存 | 每进程 2048 MiB 地址空间（POSIX）或提交上限（Windows） | 资源限制失败不转成安全结论 |
+| Linux worker/后代内存 | 每进程 2048 MiB `RLIMIT_AS` 地址空间硬上限 | 资源限制失败不转成安全结论 |
+| Windows worker/后代内存 | Job Object 每进程 2048 MiB 提交内存硬上限 | 同上；修复后真实复验待完成 |
+| macOS worker 进程组内存 | 每 50 ms 采样组内进程 physical footprint 求和，阈值 2048 MiB | 超阈值或无法采样则终止整个组；可能短暂超额，新机制尚待真实验收 |
 | 官方绑定 | 最多 256 次，最多 4 个并发查询 | `binding_budget_exhausted` 或子进程失败 |
-| IR | 10000 单位、调用深度保护 | `incomplete_budget`；不把截断解释为收敛证明 |
+| 每回调 IR | 10000 单位、调用深度保护 | `incomplete_budget`；不把截断解释为收敛证明 |
 
-每进程上限不是整棵进程树 RSS 总上限；GNU time 的峰值也不是并发进程内存求和。60 秒 worker 预算不等于整个 CLI 总时限，worker 前的验证与语法扫描另有边界。
+Linux/Windows 的每进程上限不是整棵进程树 RSS 总上限；macOS 使用进程组 physical footprint 采样总量，不能称为硬地址空间上限。报告 `budget.memory` 明示 `mechanism`、`scope`、`hard_limit`，`ir_units_per_callback` 明示 IR 预算作用于每个回调。GNU time 的峰值不是并发进程内存求和。60 秒 worker 预算不等于整个 CLI 总时限，worker 前的验证与语法扫描另有边界。
 
-[Linux 生产入口 15 项验收](metrics/semantic-production-acceptance-2026-09-25.json)记录冷/热输出一致、baseline、模型失配、递归/展开、子进程故障、地址空间分配失败及超时子孙进程清理。固定小项目的冷/热运行约 6.01 / 5.11 秒；这个样本不能外推到任意规模项目。Windows/macOS 资源行为须由各自真实 runner 验收。
+[Linux 生产入口 15 项验收](metrics/semantic-production-acceptance-2026-09-25.json)记录冷/热输出一致、baseline、模型失配、递归/展开、子进程故障、地址空间分配失败及超时子孙进程清理。固定小项目的冷/热运行约 6.01 / 5.11 秒；这个样本不能外推到任意规模项目。真实 macOS CI 已发现 worker 资源初始化失败；采用上述采样机制后的复验仍待进行，Windows 也须完成修复后的真实 runner 验收。
 
 ## 7. 报告与生产接入
 
@@ -114,7 +116,7 @@ mocket `0.9.1` 的真实 dispatch 8 项对照、唯一绑定和 13 项源码到 
 | C | 真实源码生成顺序 IR，独立核心复用两个库模型 | 完成受限链；未恢复通用堆/控制流 |
 | D | 可选生产入口、统一证据/范围、预算与失败保留 | Linux 本地验收完成；跨平台发布仍待通过 |
 
-当前发布门是三平台最终提交的真实构建/解包/运行证据、归档 SHA-256/许可证/build-info 和 PR 审查。Linux 本地归档通过不能代替另外两个平台；Windows 路径修复及真实 CI 尚在进行，不提前勾选发布。
+当前发布门是三平台最终提交的真实构建/解包/运行证据、归档 SHA-256/许可证/build-info 和 PR 审查。Linux 本地归档通过不能代替另外两个平台；Windows 路径及 macOS worker 资源机制修复后的真实 CI 尚待完成，不提前勾选发布。
 
 ## 9. 后续工作与停止条件
 

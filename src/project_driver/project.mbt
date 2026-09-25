@@ -24,15 +24,23 @@ fn failed(status : String, detail : String, target : String) -> Verification {
 
 ///|
 pub fn absolute(path : String) -> String {
-  @path.Path(path).resolve().0.replace_all(old="\\", new="/")
-}
-
-///|
-fn join(root : String, path : String) -> String {
-  @path.Path(root).join(@path.Path(path)).resolve().0.replace_all(
+  let lexical = @path.Path(path).resolve().0
+  let existing = @utf8.decode(path_identity(@utf8.encode(lexical) + b"\x00")) catch {
+    _ => ""
+  }
+  (if existing.is_empty() { lexical } else { existing }).replace_all(
     old="\\",
     new="/",
   )
+}
+
+///|
+#borrow(path)
+extern "C" fn path_identity(path : Bytes) -> Bytes = "audit_path_identity"
+
+///|
+fn join(root : String, path : String) -> String {
+  absolute(@path.Path(root).join(@path.Path(path)).0)
 }
 
 ///|
@@ -481,6 +489,38 @@ pub fn limit_worker_memory(mebibytes : Int) -> Bool {
 }
 
 ///|
+extern "C" fn memory_policy() -> Int = "audit_memory_policy"
+
+///|
+pub fn memory_budget() -> Json {
+  match memory_policy() {
+    3 =>
+      {
+        "mechanism": "sampled_process_group_physical_footprint",
+        "limit_mib": 2048,
+        "sample_interval_ms": 50,
+        "hard_limit": false,
+        "scope": "semantic_process_group",
+        "limitation": "physical footprint is sampled; transient overshoot is possible",
+      }
+    2 =>
+      {
+        "mechanism": "windows_job_process_commit",
+        "limit_mib": 2048,
+        "hard_limit": true,
+        "scope": "per_process",
+      }
+    _ =>
+      {
+        "mechanism": "posix_rlimit_as",
+        "limit_mib": 2048,
+        "hard_limit": true,
+        "scope": "per_process",
+      }
+  }
+}
+
+///|
 pub async fn semantic_worker(
   root : String,
   executable : String,
@@ -496,7 +536,10 @@ pub async fn semantic_worker(
     timeout,
   )
   if result.0 != 0 && result.0 != 2 {
-    fail("semantic_worker_failed: " + result.0.to_string())
+    fail("semantic_worker_failed: " + result.0.to_string() + "; " + result.2)
   }
-  @json.parse(result.1)
+  @json.parse(result.1) catch {
+    e =>
+      fail("semantic_worker_invalid_report: " + e.to_string() + "; " + result.2)
+  }
 }

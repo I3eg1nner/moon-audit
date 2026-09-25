@@ -230,6 +230,32 @@ os.execv(home+'/bin/moon',[home+'/bin/moon',*sys.argv[1:]])
             require(canonical(cold,[self.project])==canonical(hot,[self.project]),'cold/hot reports differ')
             self.positive=cold
         self.case('cold_hot_json_consistency_and_default_rules',cold_hot)
+        if os.name == 'nt':
+            def windows_aliases():
+                import ctypes
+                from ctypes import wintypes
+                kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+                def spelling(name,path):
+                    api=getattr(kernel,name)
+                    api.argtypes=[wintypes.LPCWSTR,wintypes.LPWSTR,wintypes.DWORD]
+                    api.restype=wintypes.DWORD
+                    buffer=ctypes.create_unicode_buffer(32768)
+                    length=api(str(path),buffer,len(buffer))
+                    require(0<length<len(buffer),name+' failed: '+str(ctypes.get_last_error()))
+                    return buffer.value
+                long_name=spelling('GetLongPathNameW',self.project)
+                short_name=spelling('GetShortPathNameW',self.project)
+                variants={'long':long_name,'short':short_name,'different_case':long_name.swapcase()}
+                self.record['windows_path_aliases']=variants
+                expected=sorted((f['rule_id'],f['fingerprint'],f['evidence']) for f in self.positive['findings'])
+                for name,path in variants.items():
+                    require(Path(path).is_dir(),'path alias must refer to the existing project')
+                    c,r,_=self.cli('windows_'+name,project=Path(path))
+                    self.complete(c,r)
+                    actual=sorted((f['rule_id'],f['fingerprint'],f['evidence']) for f in r['findings'])
+                    require(actual==expected,'Windows alias changed findings or local helper identity')
+                    require(len(r['semantic_analysis']['routes'])==4,'Windows alias changed callback coverage')
+            self.case('windows_long_short_and_case_paths_share_binding_identity',windows_aliases)
         def fail_one():
             self.hint_file.unlink()
             try:

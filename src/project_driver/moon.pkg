@@ -13,5 +13,5 @@ import {
 supported_targets = "+native"
 
 options(
-  "native-stub": [ "supervisor.c" ],
+  "native-stub": [ "supervisor.c", "path_identity.c" ],
 )

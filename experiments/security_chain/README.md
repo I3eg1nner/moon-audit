@@ -108,6 +108,6 @@ python3 experiments/security_chain/validate_native.py \
 
 上述实验结论保留其原始时间和范围。当前 `--analysis semantic --verify-project --semantic-scope mocket-get-callbacks` 已接入独立 worker，生产报告使用 `moon-audit.scoped-dataflow.v1`。其结论以明确的回调执行、返回值和固定模型为前提，不声称证明注册可达性。开发 probe 仍输出实验 schema。
 
-Linux 独立生产验收通过 15 组，覆盖冷/热确定性、文本/JSON/SARIF、0/1/2 退出码、基线、模型/依赖变化、递归/展开预算，以及真实内存失败和超时后子进程清理。绑定查询先初始化元数据，再最多 4 路并发，总上限 256；完整 worker 最长 60 秒，每进程地址空间（POSIX）或提交内存（Windows）上限 2048 MiB，非整个进程树 RSS 合计上限。四路由样本冷/热约 6.7/5.9 秒，不代表任意项目规模。
+Linux 独立生产验收通过 15 组，覆盖冷/热确定性、文本/JSON/SARIF、0/1/2 退出码、基线、模型/依赖变化、递归/展开预算，以及真实内存失败和超时后子进程清理。绑定查询先初始化元数据，再最多 4 路并发，总上限 256；完整 worker 最长 60 秒，Linux 每进程地址空间或 Windows 每进程提交内存上限 2048 MiB；macOS 使用进程组 physical footprint 的 50ms 采样阈值 2048 MiB，允许短暂超额，采样失败也终止组。三者机制在预算报告中分别披露，不混称总 RSS 硬上限。四路由样本冷/热约 6.7/5.9 秒，不代表任意项目规模。
 
 cmark 在同一 IR 内复用，见 [第二库生产验收](../cmark_chain/production-ir-2026-09-25.json)。unsafe Markdown 保留来源路径，但未知 HTML 上下文返回 partial_dataflow 和退出 2；不能作为完整已验证漏洞。跨平台最终交付以 PR 三平台实际 CI 记录为准。
