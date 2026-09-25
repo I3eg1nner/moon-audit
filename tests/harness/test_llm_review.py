@@ -748,6 +748,29 @@ class LlmReviewContractTests(unittest.TestCase):
         proc = self.validate(expect=2)
         self.assertIn("report_path", proc.stderr)
 
+    def test_project_ancestor_alias_accepts_source_but_not_internal_symlink(self):
+        alias = self.root / "parent-alias"
+        try:
+            alias.symlink_to(self.root, target_is_directory=True)
+        except OSError as exc:
+            self.skipTest(f"directory symlink unavailable: {exc}")
+        alias_source = alias / "proj/src/hello.mbt"
+        self.prepare(findings=[self.make_finding(file=str(alias_source))])
+        self.assertEqual(self.load_bundle()["findings"][0]["status"], "context_ready")
+        self.assertEqual(self.load_bundle()["findings"][0]["source_sha256"], sha_of_file(self.source))
+        # Nested link back to the root must not become a new trusted root.
+        (self.project / "loop").symlink_to(self.project, target_is_directory=True)
+        linked = alias / "proj/loop/src/hello.mbt"
+        self.prepare(findings=[self.make_finding(file=str(linked))])
+        self.assertEqual(self.load_bundle()["findings"][0]["status_reason"], "symlink_in_path")
+
+    def test_source_digest_uses_raw_crlf_bytes(self):
+        self.source.write_bytes(("\r\n".join(SOURCE_LINES) + "\r\n").encode())
+        self.prepare()
+        finding = self.load_bundle()["findings"][0]
+        self.assertEqual(finding["status"], "context_ready")
+        self.assertEqual(finding["source_sha256"], sha_of_file(self.source))
+
     def test_non_moonbit_source_is_never_copied_to_context(self):
         other = self.project / "notes.txt"
         private_marker = "DO_NOT_UPLOAD_INTERNAL_MARKER"

@@ -136,7 +136,7 @@ def open_regular_file(path: str, label: str, max_bytes: int) -> bytes:
         raise ReviewError(f"{label} is a symlink, refusing to read: {path}")
     if not stat.S_ISREG(st.st_mode):
         raise ReviewError(f"{label} is not a regular file, refusing to read: {path}")
-    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
     try:
         fd = os.open(path, flags)
     except OSError as exc:
@@ -279,9 +279,27 @@ def resolve_finding_source(root: str, file_value: str):
     """
     normalized, kind = normalize_reported_path(file_value)
     if kind == "absolute":
-        rel = os.path.relpath(normalized, root)
-        if rel == ".." or rel.startswith(".." + os.sep):
+        # Match directory identity rather than spelling: macOS /var aliases and
+        # Windows short/case aliases can differ from the canonical project root.
+        # Find the OUTERMOST matching root ancestor, then walk every component
+        # below it using lstat. Resolving the whole source path would silently
+        # accept symlinks inside the project, which must remain rejected.
+        candidate = os.path.abspath(normalized)
+        ancestor = os.path.dirname(candidate)
+        matched_root = None
+        while True:
+            try:
+                if os.path.samefile(ancestor, root):
+                    matched_root = ancestor
+            except OSError:
+                pass
+            parent = os.path.dirname(ancestor)
+            if parent == ancestor:
+                break
+            ancestor = parent
+        if matched_root is None:
             return normalized, None, "file_outside_project"
+        rel = os.path.relpath(candidate, matched_root)
     else:
         if normalized in ("", "."):
             return normalized, None, "invalid_path"
@@ -321,7 +339,7 @@ def read_source_file(path: str, max_bytes: int):
     ``reason`` is set instead of raising for per-finding degradation
     (too large / unreadable), so the finding can be marked accordingly.
     """
-    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
     try:
         fd = os.open(path, flags)
     except OSError:

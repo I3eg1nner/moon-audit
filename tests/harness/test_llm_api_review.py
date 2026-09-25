@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Local HTTP integration tests; never invoke an external model."""
 import contextlib
+import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
@@ -54,6 +55,7 @@ class ApiTests(unittest.TestCase):
         self.addCleanup(self.fixture.doCleanups)
         self.fixture.prepare()
         self.bundle = self.fixture.load_bundle()
+        self.assertEqual(self.bundle['findings'][0]['status'], 'context_ready', self.bundle['findings'][0]['status_reason'])
         self.secret = 'local-test-key-never-output'
         self.env = self.fixture.root / '.env'
         self.env.write_text('API_KEY="' + self.secret + '"\nModel="local-fixture"\n')
@@ -90,6 +92,15 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(result['origin'], 'llm_unverified')
         self.assertNotIn(self.secret, self.fixture.result.read_text())
         self.assertEqual(result['provider']['usage']['total_tokens'], 63)
+
+    def test_crlf_source_uses_raw_byte_digest(self):
+        raw = ("\r\n".join(fixtures.SOURCE_LINES) + "\r\n").encode()
+        self.fixture.source.write_bytes(raw)
+        self.fixture.prepare()
+        self.bundle = self.fixture.load_bundle()
+        self.assertEqual(self.bundle['findings'][0]['source_sha256'], hashlib.sha256(raw).hexdigest())
+        with server(lambda *_: (200, {}, self.envelope())) as (url, _):
+            self.invoke(url)
 
     def test_retry_429_then_success(self):
         with server(lambda _, n: (429, {}, b'busy') if n == 1 else (200, {}, self.envelope())) as (url, calls):
