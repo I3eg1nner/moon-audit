@@ -1,0 +1,15 @@
+import {
+  "moonbitlang/async",
+  "minie135/moon-audit/src/security_ir" @ir,
+  "minie135/moon-audit/src/project_driver" @project,
+  "minie135/moon-audit/src/source_parser",
+  "moonbitlang/parser/syntax",
+  "moonbitlang/lexer/basic",
+  "moonbitlang/core/list",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/x/fs",
+  "moonbitlang/x/path",
+  "moonbitlang/x/crypto",
+}
+
+supported_targets = "+native"

@@ -1,0 +1,9 @@
+fn explode() -> String raise {
+  fail("controlled callmode failure")
+}
+
+fn main {
+  println("BEFORE_TRY")
+  let _value = try! explode()
+  println("AFTER_TRY")
+}

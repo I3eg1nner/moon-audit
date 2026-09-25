@@ -1,0 +1,726 @@
+{
+  "scope": "independent executable IR specification; not production scanner acceptance",
+  "python": "3.10.12",
+  "source_manifest": {
+    "experiments/core_semantics/engine.py": "39c3482b9122a8111ba9518514536773435ce172488d846430bb7c1ecca25727",
+    "experiments/core_semantics/oracle.py": "886cc7b081ece74d282844e617e94b7f4043942cfc05f0025e87a48a9033ddb1",
+    "experiments/core_semantics/scenarios.py": "bcb7b92dbe0b338be941a01bcf915c3d8b504ac7db8dc415636ffbce89b0e1fb",
+    "experiments/core_semantics/test_engine.py": "b7cbe442edbf369d9dc188fc865a2ccddc3cb7f573b687e7294fa2d15c515cc2",
+    "experiments/core_semantics/validate.py": "198ba2effb810ac22722f84b86691c0e1c7b79b3aa81037884d0314098949cba"
+  },
+  "source_sha256": "72e9d8dc2b405bfaf78bde632900ba153b4fbbd0039827ccdfe42cf6a0d74195",
+  "witnesses": {
+    "read_after_write/alias": {
+      "status": "fixed_point",
+      "program_digest": "f1858112653e988daf949003f240cf7472c38d1558e8327cb267ea907983f3c9",
+      "findings": {
+        "main/a.safe": [
+          "helper/source"
+        ],
+        "main/a.value": [
+          "helper/source"
+        ]
+      },
+      "exits": [
+        "$normal"
+      ],
+      "stats": {
+        "transfers": 24,
+        "invocations": 2,
+        "evaluations": 4,
+        "state_nodes": 3,
+        "peak_queue": 1,
+        "seconds": 0.000189,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "cache_hit": false,
+      "expected": {
+        "main/a.value": [
+          "helper/source"
+        ],
+        "main/a.safe": [
+          "helper/source"
+        ]
+      },
+      "matches_concrete_traces": true
+    },
+    "read_after_write/distinct": {
+      "status": "fixed_point",
+      "program_digest": "3fe81ebe51f1dfe1e1ee039f28236f93a1ae9667aa431fc484d285e82bec020d",
+      "findings": {
+        "main/a.value": [
+          "helper/source"
+        ]
+      },
+      "exits": [
+        "$normal"
+      ],
+      "stats": {
+        "transfers": 24,
+        "invocations": 2,
+        "evaluations": 4,
+        "state_nodes": 3,
+        "peak_queue": 1,
+        "seconds": 0.000155,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "cache_hit": false,
+      "expected": {
+        "main/a.value": [
+          "helper/source"
+        ]
+      },
+      "matches_concrete_traces": true
+    },
+    "clean_last/alias": {
+      "status": "fixed_point",
+      "program_digest": "3c7d11b3266c3aa1332c8cde8ec8b9c1627b69db766e7c74c760e284eee7b8ab",
+      "findings": {},
+      "exits": [
+        "$normal"
+      ],
+      "stats": {
+        "transfers": 23,
+        "invocations": 2,
+        "evaluations": 4,
+        "state_nodes": 3,
+        "peak_queue": 1,
+        "seconds": 0.000139,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "cache_hit": false,
+      "expected": {},
+      "matches_concrete_traces": true
+    },
+    "clean_last/distinct": {
+      "status": "fixed_point",
+      "program_digest": "5f03a480e3daa647a3d6b5b4f9cb29a5b82b0f03d2c5d38a8c98ebba58dbe89b",
+      "findings": {
+        "main/a.value": [
+          "helper/source"
+        ]
+      },
+      "exits": [
+        "$normal"
+      ],
+      "stats": {
+        "transfers": 23,
+        "invocations": 2,
+        "evaluations": 4,
+        "state_nodes": 3,
+        "peak_queue": 1,
+        "seconds": 0.000215,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "cache_hit": false,
+      "expected": {
+        "main/a.value": [
+          "helper/source"
+        ]
+      },
+      "matches_concrete_traces": true
+    },
+    "dirty_last/alias": {
+      "status": "fixed_point",
+      "program_digest": "d02a74987d9a54afdf43203a5c11b79620b312cfd383e03a521ee2fa7b74a25a",
+      "findings": {
+        "main/a.value": [
+          "helper/source"
+        ]
+      },
+      "exits": [
+        "$normal"
+      ],
+      "stats": {
+        "transfers": 23,
+        "invocations": 2,
+        "evaluations": 4,
+        "state_nodes": 3,
+        "peak_queue": 1,
+        "seconds": 0.000208,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "cache_hit": false,
+      "expected": {
+        "main/a.value": [
+          "helper/source"
+        ]
+      },
+      "matches_concrete_traces": true
+    },
+    "dirty_last/distinct": {
+      "status": "fixed_point",
+      "program_digest": "570d4b4c8c68a251f2ea45addad97055852efd838b892bc23d97e1e3069a6163",
+      "findings": {
+        "main/b.value": [
+          "helper/source"
+        ]
+      },
+      "exits": [
+        "$normal"
+      ],
+      "stats": {
+        "transfers": 23,
+        "invocations": 2,
+        "evaluations": 4,
+        "state_nodes": 3,
+        "peak_queue": 1,
+        "seconds": 0.000215,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "cache_hit": false,
+      "expected": {
+        "main/b.value": [
+          "helper/source"
+        ]
+      },
+      "matches_concrete_traces": true
+    },
+    "return_before_clear/alias": {
+      "status": "fixed_point",
+      "program_digest": "c2afae99e9cc0c8d50a61929bea6822fe3d93928f0ce8599e251d20b581c3d34",
+      "findings": {
+        "main/result": [
+          "helper/source"
+        ]
+      },
+      "exits": [
+        "$normal"
+      ],
+      "stats": {
+        "transfers": 24,
+        "invocations": 2,
+        "evaluations": 4,
+        "state_nodes": 3,
+        "peak_queue": 1,
+        "seconds": 0.000249,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "cache_hit": false,
+      "expected": {
+        "main/result": [
+          "helper/source"
+        ]
+      },
+      "matches_concrete_traces": true
+    },
+    "return_before_clear/distinct": {
+      "status": "fixed_point",
+      "program_digest": "9d1cd13b5eff42fdb40a0a2563bf6b179bc0f9cd05e39931af5a28e7ba1b1d14",
+      "findings": {
+        "main/result": [
+          "helper/source"
+        ]
+      },
+      "exits": [
+        "$normal"
+      ],
+      "stats": {
+        "transfers": 24,
+        "invocations": 2,
+        "evaluations": 4,
+        "state_nodes": 3,
+        "peak_queue": 1,
+        "seconds": 0.000205,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "cache_hit": false,
+      "expected": {
+        "main/result": [
+          "helper/source"
+        ]
+      },
+      "matches_concrete_traces": true
+    },
+    "exception/normal_dirty": {
+      "status": "fixed_point",
+      "program_digest": "e2e90f647441ba83c2d7f5e7e665deb641bcb2bef275fce5a2ae9a5f4101ef48",
+      "findings": {
+        "normal/a.value": [
+          "helper/source"
+        ]
+      },
+      "exits": [
+        "$normal"
+      ],
+      "stats": {
+        "transfers": 26,
+        "invocations": 2,
+        "evaluations": 7,
+        "state_nodes": 6,
+        "peak_queue": 2,
+        "seconds": 0.000322,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "cache_hit": false,
+      "expected": {
+        "normal/a.value": [
+          "helper/source"
+        ]
+      },
+      "matches_concrete_traces": true
+    },
+    "exception/throw_dirty": {
+      "status": "fixed_point",
+      "program_digest": "b0538d6049d02b8139d2ec56d4bf34b88e6a48bca2464e0cc3ecc208e84cc3bf",
+      "findings": {
+        "exception/a.value": [
+          "helper/source"
+        ]
+      },
+      "exits": [
+        "$normal"
+      ],
+      "stats": {
+        "transfers": 26,
+        "invocations": 2,
+        "evaluations": 7,
+        "state_nodes": 6,
+        "peak_queue": 2,
+        "seconds": 0.000286,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "cache_hit": false,
+      "expected": {
+        "exception/a.value": [
+          "helper/source"
+        ]
+      },
+      "matches_concrete_traces": true
+    },
+    "exception/clear": {
+      "status": "fixed_point",
+      "program_digest": "bb11eb0a91389650be9ac847b70e52a09c119d3dcba7baaed8b676eecf07530b",
+      "findings": {},
+      "exits": [
+        "$normal"
+      ],
+      "stats": {
+        "transfers": 28,
+        "invocations": 2,
+        "evaluations": 7,
+        "state_nodes": 6,
+        "peak_queue": 2,
+        "seconds": 0.000307,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "cache_hit": false,
+      "expected": {},
+      "matches_concrete_traces": true
+    },
+    "exception/payload_object": {
+      "status": "fixed_point",
+      "program_digest": "b268b03c70512be2e1ade729d4583bdc93658e9fcfdce1a7e776617c284662f9",
+      "findings": {
+        "exception/a.value": [
+          "helper/source"
+        ],
+        "exception/payload.value": [
+          "helper/source"
+        ]
+      },
+      "exits": [
+        "$normal"
+      ],
+      "stats": {
+        "transfers": 28,
+        "invocations": 2,
+        "evaluations": 7,
+        "state_nodes": 6,
+        "peak_queue": 2,
+        "seconds": 0.000222,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "cache_hit": false,
+      "expected": {
+        "exception/payload.value": [
+          "helper/source"
+        ],
+        "exception/a.value": [
+          "helper/source"
+        ]
+      },
+      "matches_concrete_traces": true
+    },
+    "recursive/fixed_point": {
+      "status": "fixed_point",
+      "program_digest": "543201205aec39cd2d8494084f6f2d2b61c19f2ef51701c0f0fd4116528e825e",
+      "findings": {
+        "main/a.value": [
+          "helper/source"
+        ],
+        "main/result": [
+          "helper/source"
+        ]
+      },
+      "exits": [
+        "$normal"
+      ],
+      "stats": {
+        "transfers": 34,
+        "invocations": 3,
+        "evaluations": 13,
+        "state_nodes": 10,
+        "peak_queue": 3,
+        "seconds": 0.000372,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "cache_hit": false,
+      "expected": {
+        "main/a.value": [
+          "helper/source"
+        ],
+        "main/result": [
+          "helper/source"
+        ]
+      },
+      "matches_concrete_traces": true
+    },
+    "alias/possible": {
+      "status": "fixed_point",
+      "program_digest": "07cc8eddc392d0fcd817412040af77ace2f2562e3868a8209db6c5fe718f09aa",
+      "findings": {
+        "main/a.value": [
+          "main/input"
+        ],
+        "main/b.value": [
+          "main/input"
+        ]
+      },
+      "exits": [
+        "$normal"
+      ],
+      "stats": {
+        "transfers": 20,
+        "invocations": 2,
+        "evaluations": 7,
+        "state_nodes": 6,
+        "peak_queue": 2,
+        "seconds": 0.000155,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "cache_hit": false,
+      "expected": {
+        "main/a.value": [
+          "main/input"
+        ],
+        "main/b.value": [
+          "main/input"
+        ]
+      },
+      "matches_concrete_traces": true
+    },
+    "factory/distinct_calls": {
+      "status": "fixed_point",
+      "program_digest": "0ed3c820a07b969a0ff576e2a50162d56e3774698a859f482f497c982384c886",
+      "findings": {
+        "main/a.value": [
+          "main/input"
+        ]
+      },
+      "exits": [
+        "$normal"
+      ],
+      "stats": {
+        "transfers": 17,
+        "invocations": 3,
+        "evaluations": 7,
+        "state_nodes": 5,
+        "peak_queue": 1,
+        "seconds": 0.000122,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "cache_hit": false,
+      "expected": {
+        "main/a.value": [
+          "main/input"
+        ]
+      },
+      "matches_concrete_traces": true
+    }
+  },
+  "generated": {
+    "seed": 17,
+    "programs": 256,
+    "exact_matches": 256,
+    "scope": "straight-line field reads/writes and definite aliases; no frontend"
+  },
+  "cost": [
+    {
+      "calls": 8,
+      "objects": 0,
+      "python_traced_peak_bytes": 10293,
+      "transfers": 27,
+      "invocations": 9,
+      "evaluations": 26,
+      "state_nodes": 18,
+      "peak_queue": 1,
+      "seconds": 0.000561,
+      "budget_reason": null,
+      "max_steps": 100000,
+      "max_invocations": 2000,
+      "max_seconds": 10.0
+    },
+    {
+      "calls": 32,
+      "objects": 0,
+      "python_traced_peak_bytes": 36125,
+      "transfers": 99,
+      "invocations": 33,
+      "evaluations": 98,
+      "state_nodes": 66,
+      "peak_queue": 1,
+      "seconds": 0.001972,
+      "budget_reason": null,
+      "max_steps": 100000,
+      "max_invocations": 2000,
+      "max_seconds": 10.0
+    },
+    {
+      "calls": 128,
+      "objects": 0,
+      "python_traced_peak_bytes": 151303,
+      "transfers": 387,
+      "invocations": 129,
+      "evaluations": 386,
+      "state_nodes": 258,
+      "peak_queue": 1,
+      "seconds": 0.009391,
+      "budget_reason": null,
+      "max_steps": 100000,
+      "max_invocations": 2000,
+      "max_seconds": 10.0
+    },
+    {
+      "calls": 8,
+      "objects": 8,
+      "python_traced_peak_bytes": 19872,
+      "transfers": 51,
+      "invocations": 9,
+      "evaluations": 26,
+      "state_nodes": 18,
+      "peak_queue": 1,
+      "seconds": 0.001392,
+      "budget_reason": null,
+      "max_steps": 100000,
+      "max_invocations": 2000,
+      "max_seconds": 10.0
+    },
+    {
+      "calls": 32,
+      "objects": 32,
+      "python_traced_peak_bytes": 217376,
+      "transfers": 195,
+      "invocations": 33,
+      "evaluations": 98,
+      "state_nodes": 66,
+      "peak_queue": 1,
+      "seconds": 0.014211,
+      "budget_reason": null,
+      "max_steps": 100000,
+      "max_invocations": 2000,
+      "max_seconds": 10.0
+    },
+    {
+      "calls": 128,
+      "objects": 128,
+      "python_traced_peak_bytes": 2396118,
+      "transfers": 771,
+      "invocations": 129,
+      "evaluations": 386,
+      "state_nodes": 258,
+      "peak_queue": 1,
+      "seconds": 0.21698,
+      "budget_reason": null,
+      "max_steps": 100000,
+      "max_invocations": 2000,
+      "max_seconds": 10.0
+    }
+  ],
+  "budgets": {
+    "transfers": {
+      "status": "incomplete_budget",
+      "program_digest": "543201205aec39cd2d8494084f6f2d2b61c19f2ef51701c0f0fd4116528e825e",
+      "findings": {
+        "main/a.safe": [
+          "*",
+          "helper/source"
+        ],
+        "main/a.value": [
+          "*",
+          "helper/source"
+        ],
+        "main/b.safe": [
+          "*",
+          "helper/source"
+        ],
+        "main/b.value": [
+          "*",
+          "helper/source"
+        ],
+        "main/result": [
+          "*",
+          "helper/source"
+        ]
+      },
+      "exits": [
+        "$normal",
+        "*"
+      ],
+      "stats": {
+        "transfers": 2,
+        "invocations": 1,
+        "evaluations": 1,
+        "state_nodes": 1,
+        "peak_queue": 1,
+        "seconds": 5.8e-05,
+        "budget_reason": "transfer budget",
+        "max_steps": 1,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "cache_hit": false
+    },
+    "invocations": {
+      "status": "incomplete_budget",
+      "program_digest": "543201205aec39cd2d8494084f6f2d2b61c19f2ef51701c0f0fd4116528e825e",
+      "findings": {
+        "main/a.safe": [
+          "*",
+          "helper/source"
+        ],
+        "main/a.value": [
+          "*",
+          "helper/source"
+        ],
+        "main/b.safe": [
+          "*",
+          "helper/source"
+        ],
+        "main/b.value": [
+          "*",
+          "helper/source"
+        ],
+        "main/result": [
+          "*",
+          "helper/source"
+        ]
+      },
+      "exits": [
+        "$normal",
+        "*"
+      ],
+      "stats": {
+        "transfers": 4,
+        "invocations": 1,
+        "evaluations": 1,
+        "state_nodes": 1,
+        "peak_queue": 1,
+        "seconds": 6.4e-05,
+        "budget_reason": "invocation budget",
+        "max_steps": 100000,
+        "max_invocations": 1,
+        "max_seconds": 10.0
+      },
+      "cache_hit": false
+    },
+    "wall_time": {
+      "status": "incomplete_budget",
+      "program_digest": "543201205aec39cd2d8494084f6f2d2b61c19f2ef51701c0f0fd4116528e825e",
+      "findings": {
+        "main/a.safe": [
+          "*",
+          "helper/source"
+        ],
+        "main/a.value": [
+          "*",
+          "helper/source"
+        ],
+        "main/b.safe": [
+          "*",
+          "helper/source"
+        ],
+        "main/b.value": [
+          "*",
+          "helper/source"
+        ],
+        "main/result": [
+          "*",
+          "helper/source"
+        ]
+      },
+      "exits": [
+        "$normal",
+        "*"
+      ],
+      "stats": {
+        "transfers": 1,
+        "invocations": 1,
+        "evaluations": 1,
+        "state_nodes": 1,
+        "peak_queue": 1,
+        "seconds": 2.9e-05,
+        "budget_reason": "wall time budget",
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 0
+      },
+      "cache_hit": false
+    }
+  },
+  "gates": {
+    "ir_semantics": true,
+    "independent_finite_trace_differential": true,
+    "recursive_fixed_point_witness": true,
+    "explicit_conservative_budget_exit": true,
+    "call_block_worklist_cost": true,
+    "moonbit_frontend_adapter": false,
+    "real_corpus_cost": false,
+    "production_migration_approved": false
+  }
+}

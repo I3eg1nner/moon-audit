@@ -13,8 +13,8 @@ priv struct Cwe094Visitor {
 pub fn cwe094_info() -> RuleInfo {
   {
     id: { cwe: 94, variant: "eval-extern", },
-    name: "Code Injection via eval in Extern JS",
-    description: "eval() or new Function() in extern JS/JavaScript blocks enables arbitrary code execution.",
+    name: "JavaScript Eval-shaped Text",
+    description: "Embedded code contains eval/new Function-shaped text. Confirm executable JavaScript and whether untrusted input reaches it.",
     default_severity: Error,
   }
 }
@@ -46,7 +46,8 @@ impl @syntax.IterVisitor for Cwe094Visitor with fn visit_Impl_TopFuncDef(
   loc~,
 ) {
   env.current_loc = Some(loc)
-  @syntax.IterVisitor::base(env).visit_Impl_TopFuncDef(
+  @syntax.IterVisitor::visit_Impl_TopFuncDef(
+    @syntax.IterVisitor::base(env),
     fun_decl~,
     decl_body~,
     where_clause~,
@@ -94,7 +95,7 @@ impl @syntax.IterVisitor for Cwe094Visitor with fn visit_FuncStubs_Embedded(
           { cwe: 94, variant: "eval-extern", },
           env.severity,
           High,
-          "eval() or new Function() in extern JS block enables code injection. Consider safer alternatives.",
+          "Embedded code contains eval/new Function-shaped text. Confirm executable JavaScript and whether untrusted input reaches it.",
           env.file,
           env.source,
           loc,
@@ -102,5 +103,9 @@ impl @syntax.IterVisitor for Cwe094Visitor with fn visit_FuncStubs_Embedded(
       )
     }
   }
-  @syntax.IterVisitor::base(env).visit_FuncStubs_Embedded(language~, code~)
+  @syntax.IterVisitor::visit_FuncStubs_Embedded(
+    @syntax.IterVisitor::base(env),
+    language~,
+    code~,
+  )
 }

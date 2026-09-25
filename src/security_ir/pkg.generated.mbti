@@ -1,0 +1,52 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "minie135/moon-audit/src/security_ir"
+
+// Values
+pub fn analyze(Array[Function], String, limit? : Int) -> Result
+
+// Errors
+
+// Types and methods
+pub(all) struct Function {
+  id : String
+  parameters : Array[Int]
+  operations : Array[Op]
+} derive(ToJson)
+pub fn Function::to_json(Self) -> Json
+
+pub(all) enum Op {
+  Literal(Int, String)
+  Copy(Int, Int)
+  Request(Int, Int)
+  Query(Int, Int, String)
+  Lookup(Int, Int, Int)
+  Default(Int, Int, Int)
+  EscapeHtmlText(Int, Int)
+  RenderMarkdown(Int, Int, Bool, String)
+  Concat(Int, Array[Int])
+  Response(Int, Int, Bool, String)
+  Call(Int, String, Array[Int], String)
+  Return(Int)
+} derive(ToJson)
+pub fn Op::to_json(Self) -> Json
+
+pub(all) struct Result {
+  status : String
+  reason : String
+  source_paths : Array[Array[String]]
+  steps : Int
+} derive(ToJson)
+pub fn Result::to_json(Self) -> Json
+
+pub(all) struct Segment {
+  literal : String?
+  origin : String?
+  encoded_html_text : Bool
+  safe_html_fragment : Bool
+  trace : Array[String]
+} derive(ToJson)
+pub fn Segment::to_json(Self) -> Json
+
+// Type aliases
+
+// Traits

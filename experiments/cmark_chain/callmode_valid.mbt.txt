@@ -1,0 +1,8 @@
+pub fn try_bang(markdown : String) -> String {
+  try! @cmark_html.render(safe=false, markdown)
+}
+
+pub fn callback(markdown : String) -> String {
+  let run : (String) -> String = input => try! @cmark_html.render(safe=false, input)
+  run(markdown)
+}

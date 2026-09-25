@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+env:
+  MOONBIT_INSTALL_VERSION: "0.10.14+7d59c7ec9"
+
 jobs:
   build:
     permissions:
@@ -20,17 +23,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: install (unix)
-        if: ${{ matrix.os != 'windows-latest' }}
-        run: |
-          bash scripts/install-moon.sh
-          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
-
-      - name: install (windows)
-        if: ${{ matrix.os == 'windows-latest' }}
-        run: |
-          Set-ExecutionPolicy RemoteSigned -Scope CurrentUser; irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
-          "C:\Users\runneradmin\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install reviewed compiler and core archives
+        run: python scripts/install_fixed_toolchain.py --destination "${{ runner.temp }}/moon-audit-toolchain"
 
       # Keep native commands in separate steps so PowerShell cannot replace
       # an earlier nonzero exit status with a later command's success.
@@ -62,10 +59,62 @@ jobs:
       - name: moon test
         run: moon test --target all --deny-warn
 
-      - name: Counterexample regression gate
+      - name: Independent core specification (not production analysis)
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: bash tests/cases/run.sh
+        run: python3 -m unittest experiments.core_semantics.test_engine -v
 
       - name: CLI integration regression tests
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: python3 scripts/cli_regression_test.py
+
+  frontend-contract:
+    name: MoonBit project ${{ matrix.project_version }} compatibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        project_version: ["0.1.20260904", "0.1.20260915", "0.1.20260920"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install analyzer toolchain
+        shell: bash
+        run: |
+          python scripts/install_fixed_toolchain.py --destination "$RUNNER_TEMP/analyzer-moon"
+          printf '%s\n' '#!/bin/sh' "export MOON_HOME=\"$RUNNER_TEMP/analyzer-moon\"" 'export PATH="$MOON_HOME/bin:$PATH"' 'exec "$@"' > "$RUNNER_TEMP/analyzer-moon-wrapper"
+          chmod +x "$RUNNER_TEMP/analyzer-moon-wrapper"
+          echo "ANALYZER_MOON_WRAPPER=$RUNNER_TEMP/analyzer-moon-wrapper" >> "$GITHUB_ENV"
+      - name: Install target project toolchain
+        shell: bash
+        run: |
+          if [[ "${{ matrix.project_version }}" == "0.1.20260920" ]]; then
+            cp "$RUNNER_TEMP/analyzer-moon-wrapper" "$RUNNER_TEMP/project-moon-wrapper"
+          else
+            python scripts/install_fixed_toolchain.py --destination "$RUNNER_TEMP/project-moon" --lock "scripts/compat-toolchains/${{ matrix.project_version }}.json"
+            printf '%s\n' '#!/bin/sh' "export MOON_HOME=\"$RUNNER_TEMP/project-moon\"" 'export PATH="$MOON_HOME/bin:$PATH"' 'exec "$@"' > "$RUNNER_TEMP/project-moon-wrapper"
+          fi
+          chmod +x "$RUNNER_TEMP/project-moon-wrapper"
+          echo "PROJECT_MOON_WRAPPER=$RUNNER_TEMP/project-moon-wrapper" >> "$GITHUB_ENV"
+      - name: Show both toolchain versions
+        run: |
+          "$ANALYZER_MOON_WRAPPER" moon version --all
+          "$PROJECT_MOON_WRAPPER" moon version --all
+      - name: Build analyzer with its own toolchain
+        run: |
+          "$ANALYZER_MOON_WRAPPER" moon update
+          "$ANALYZER_MOON_WRAPPER" moon build --target native
+      - name: Check source-to-IR adapter with target compiler
+        run: python3 -m unittest discover -s experiments/frontend_adapter -p 'test_adapter.py' -v
+      - name: Check strict user-facing scan statuses
+        run: python3 -m unittest discover -s experiments/version_compat -p 'test_compatible_scan.py' -v
+      - name: Compare AST and semantic results across versions
+        run: python3 experiments/frontend_adapter/validate.py --analyzer-moon-wrapper "$ANALYZER_MOON_WRAPPER" --project-moon-wrapper "$PROJECT_MOON_WRAPPER" --baseline docs/metrics/frontend-adapter-2026-09-24.json --output "$RUNNER_TEMP/frontend-adapter-validation.json"
+      - name: Check production scanner against target compiler
+        run: python3 experiments/version_compat/verify.py --project-moon-wrapper "$PROJECT_MOON_WRAPPER" --output "$RUNNER_TEMP/scanner-version-compat.json"

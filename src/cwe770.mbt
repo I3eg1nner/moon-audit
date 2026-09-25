@@ -14,8 +14,8 @@ priv struct Cwe770Visitor {
 pub fn cwe770_info() -> RuleInfo {
   {
     id: { cwe: 770, variant: "no-body-limit", },
-    name: "Missing Request Body Size Limit",
-    description: "Server listen()/serve() without max body size limit is vulnerable to memory exhaustion via large request bodies.",
+    name: "Request Body Limit Configuration Review",
+    description: "Server-start-shaped call lacks a direct body-limit label. This heuristic does not inspect nested options; review actual server configuration before acting.",
     default_severity: Warning,
   }
 }
@@ -60,7 +60,7 @@ impl @syntax.IterVisitor for Cwe770Visitor with fn visit_Expr_DotApply(
           { cwe: 770, variant: "no-body-limit", },
           env.severity,
           Medium,
-          "Server started without request body size limit. Large payloads can exhaust memory. Set a max body size.",
+          "Server-start-shaped call lacks a direct body-limit label. This heuristic does not inspect nested options; review actual server configuration before acting.",
           env.file,
           env.source,
           loc,
@@ -68,7 +68,8 @@ impl @syntax.IterVisitor for Cwe770Visitor with fn visit_Expr_DotApply(
       )
     }
   }
-  @syntax.IterVisitor::base(env).visit_Expr_DotApply(
+  @syntax.IterVisitor::visit_Expr_DotApply(
+    @syntax.IterVisitor::base(env),
     self~,
     method_name~,
     args~,

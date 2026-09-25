@@ -14,7 +14,7 @@ pub fn cwe022_info() -> RuleInfo {
   {
     id: { cwe: 22, variant: "path-concat", },
     name: "Potential Path Traversal via String Concatenation",
-    description: "String concatenation to build file paths without traversal protection may allow directory traversal attacks.",
+    description: "Concatenation uses path/input-like names. Review any filesystem use, source trust and containment checks.",
     default_severity: Warning,
   }
 }
@@ -111,7 +111,7 @@ impl @syntax.IterVisitor for Cwe022Visitor with fn visit_Expr_Infix(
             { cwe: 22, variant: "path-concat", },
             env.severity,
             Low,
-            "String concatenation to build file path. Use path sanitization to prevent directory traversal (e.g., reject '..' segments).",
+            "Concatenation uses path/input-like names. Review any filesystem use, source trust and containment checks.",
             env.file,
             env.source,
             loc,
@@ -121,5 +121,11 @@ impl @syntax.IterVisitor for Cwe022Visitor with fn visit_Expr_Infix(
     }
     _ => ()
   }
-  @syntax.IterVisitor::base(env).visit_Expr_Infix(op~, lhs~, rhs~, loc~)
+  @syntax.IterVisitor::visit_Expr_Infix(
+    @syntax.IterVisitor::base(env),
+    op~,
+    lhs~,
+    rhs~,
+    loc~,
+  )
 }

@@ -1,0 +1,76 @@
+name: Native delivery acceptance
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  MOONBIT_INSTALL_VERSION: "0.10.14+7d59c7ec9"
+jobs:
+  native:
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            artifact: linux-x86_64
+          - os: macos-14
+            artifact: macos-arm64
+          - os: windows-2022
+            artifact: windows-x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install reviewed compiler and core archives
+        run: python scripts/install_fixed_toolchain.py --destination "${{ runner.temp }}/moon-audit-toolchain"
+      - name: Record toolchain
+        run: moon version --all
+      - name: Resolve pinned dependencies
+        run: moon update
+      - name: Check
+        run: moon check --target all --deny-warn
+      - name: Test
+        run: moon test --target all --deny-warn
+      - name: Build native release
+        run: moon build --target native --release
+      - name: Package and extract release
+        run: python scripts/package_native.py --platform ${{ matrix.artifact }} --output dist
+      - name: Accept extracted release
+        shell: bash
+        run: |
+          export ANALYZER="$PWD/dist/extracted/moon-audit"
+          if [ "${{ runner.os }}" = Windows ]; then export ANALYZER="$ANALYZER.exe"; fi
+          python scripts/native_delivery_test.py
+          python scripts/process_supervision_test.py
+      - name: Prepare fingerprinted semantic corpora
+        run: python scripts/prepare_semantic_corpus.py --destination "${{ runner.temp }}/moon-audit-models"
+      - name: Accept macOS process-group memory supervision
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          python scripts/macos_memory_test.py --analyzer dist/extracted/moon-audit --helper _build/native/release/build/tests/native_process_helper/native_process_helper.exe --toolchain "$PROJECT_TOOLCHAIN" --corpus "${{ runner.temp }}/moon-audit-models/mocket" --output dist/macos-memory-acceptance.json
+      - name: Accept scoped dataflow from extracted release
+        shell: bash
+        run: |
+          export ANALYZER="$PWD/dist/extracted/moon-audit"
+          if [ "${{ runner.os }}" = Windows ]; then export ANALYZER="$ANALYZER.exe"; fi
+          python scripts/native_semantic_test.py --corpus "${{ runner.temp }}/moon-audit-models/mocket" --output dist/semantic-acceptance.json
+          python experiments/cmark_chain/validate_production.py --mocket "${{ runner.temp }}/moon-audit-models/mocket" --cmark "${{ runner.temp }}/moon-audit-models/cmark" --toolchain "$PROJECT_TOOLCHAIN" --analyzer "$ANALYZER" --output dist/cmark-acceptance.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: moon-audit-${{ matrix.artifact }}
+          path: |
+            dist/*.zip
+            dist/*.sha256
+            dist/build-info.json
+            dist/*acceptance.json
+          if-no-files-found: error

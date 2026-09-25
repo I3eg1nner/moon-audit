@@ -1,0 +1,3 @@
+pub struct Dummy {}
+pub fn Dummy::replace(_self : Dummy, old~ : String, new~ : String) -> String { ignore((old, new)); "constant" }
+pub fn probe(input : Dummy) -> String { input.replace(old="<", new="&lt;") }

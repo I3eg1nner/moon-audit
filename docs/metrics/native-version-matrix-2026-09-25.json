@@ -1,0 +1,205 @@
+{
+  "schema": "moon-audit.native-version-matrix.v1",
+  "scanner_sha256": "e6153929f67d7842d4fa5ad2f0afdbbb52b716213a34d3f0bfefed47ebb4faa0",
+  "scope": "portable syntax, legacy package format and target-selected files; not all rules or historical syntax",
+  "cases": [
+    {
+      "toolchain": "moon 0.1.20260904 (94521db 2026-09-04) /tmp/moon-audit-ci-toolchain/bin/moon\nmoonc v0.10.12+1634b282e (2026-09-07) /tmp/moon-audit-ci-toolchain/bin/moonc\nmoonrun 0.1.20260904 (94521db 2026-09-04) /tmp/moon-audit-ci-toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "target": "native",
+      "seconds": 0.1828,
+      "passed": true,
+      "exit_code": 0,
+      "compiler_files": [
+        "common.mbt",
+        "native_only.mbt"
+      ],
+      "parsed_files": [
+        "common.mbt",
+        "native_only.mbt"
+      ],
+      "findings": [],
+      "errors": []
+    },
+    {
+      "toolchain": "moon 0.1.20260904 (94521db 2026-09-04) /tmp/moon-audit-ci-toolchain/bin/moon\nmoonc v0.10.12+1634b282e (2026-09-07) /tmp/moon-audit-ci-toolchain/bin/moonc\nmoonrun 0.1.20260904 (94521db 2026-09-04) /tmp/moon-audit-ci-toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "target": "js",
+      "seconds": 0.2463,
+      "passed": true,
+      "exit_code": 0,
+      "compiler_files": [
+        "common.mbt",
+        "js_only.mbt"
+      ],
+      "parsed_files": [
+        "common.mbt",
+        "js_only.mbt"
+      ],
+      "findings": [
+        "js_only.mbt"
+      ],
+      "errors": []
+    },
+    {
+      "toolchain": "moon 0.1.20260904 (94521db 2026-09-04) /tmp/moon-audit-ci-toolchain/bin/moon\nmoonc v0.10.12+1634b282e (2026-09-07) /tmp/moon-audit-ci-toolchain/bin/moonc\nmoonrun 0.1.20260904 (94521db 2026-09-04) /tmp/moon-audit-ci-toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "target": "wasm",
+      "seconds": 0.2165,
+      "passed": true,
+      "exit_code": 0,
+      "compiler_files": [
+        "common.mbt"
+      ],
+      "parsed_files": [
+        "common.mbt"
+      ],
+      "findings": [],
+      "errors": []
+    },
+    {
+      "toolchain": "moon 0.1.20260904 (94521db 2026-09-04) /tmp/moon-audit-ci-toolchain/bin/moon\nmoonc v0.10.12+1634b282e (2026-09-07) /tmp/moon-audit-ci-toolchain/bin/moonc\nmoonrun 0.1.20260904 (94521db 2026-09-04) /tmp/moon-audit-ci-toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "target": "wasm-gc",
+      "seconds": 0.1859,
+      "passed": true,
+      "exit_code": 0,
+      "compiler_files": [
+        "common.mbt"
+      ],
+      "parsed_files": [
+        "common.mbt"
+      ],
+      "findings": [],
+      "errors": []
+    },
+    {
+      "toolchain": "moon 0.1.20260915 (2e1a46d 2026-09-15) ~/.moon/bin/moon\nmoonc v0.10.13+cbb11c36f (2026-09-15) ~/.moon/bin/moonc\nmoonrun 0.1.20260915 (2e1a46d 2026-09-15) ~/.moon/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "target": "native",
+      "seconds": 0.1883,
+      "passed": true,
+      "exit_code": 0,
+      "compiler_files": [
+        "common.mbt",
+        "native_only.mbt"
+      ],
+      "parsed_files": [
+        "common.mbt",
+        "native_only.mbt"
+      ],
+      "findings": [],
+      "errors": []
+    },
+    {
+      "toolchain": "moon 0.1.20260915 (2e1a46d 2026-09-15) ~/.moon/bin/moon\nmoonc v0.10.13+cbb11c36f (2026-09-15) ~/.moon/bin/moonc\nmoonrun 0.1.20260915 (2e1a46d 2026-09-15) ~/.moon/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "target": "js",
+      "seconds": 0.2001,
+      "passed": true,
+      "exit_code": 0,
+      "compiler_files": [
+        "common.mbt",
+        "js_only.mbt"
+      ],
+      "parsed_files": [
+        "common.mbt",
+        "js_only.mbt"
+      ],
+      "findings": [
+        "js_only.mbt"
+      ],
+      "errors": []
+    },
+    {
+      "toolchain": "moon 0.1.20260915 (2e1a46d 2026-09-15) ~/.moon/bin/moon\nmoonc v0.10.13+cbb11c36f (2026-09-15) ~/.moon/bin/moonc\nmoonrun 0.1.20260915 (2e1a46d 2026-09-15) ~/.moon/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "target": "wasm",
+      "seconds": 0.2172,
+      "passed": true,
+      "exit_code": 0,
+      "compiler_files": [
+        "common.mbt"
+      ],
+      "parsed_files": [
+        "common.mbt"
+      ],
+      "findings": [],
+      "errors": []
+    },
+    {
+      "toolchain": "moon 0.1.20260915 (2e1a46d 2026-09-15) ~/.moon/bin/moon\nmoonc v0.10.13+cbb11c36f (2026-09-15) ~/.moon/bin/moonc\nmoonrun 0.1.20260915 (2e1a46d 2026-09-15) ~/.moon/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "target": "wasm-gc",
+      "seconds": 0.2175,
+      "passed": true,
+      "exit_code": 0,
+      "compiler_files": [
+        "common.mbt"
+      ],
+      "parsed_files": [
+        "common.mbt"
+      ],
+      "findings": [],
+      "errors": []
+    },
+    {
+      "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "target": "native",
+      "seconds": 0.2341,
+      "passed": true,
+      "exit_code": 0,
+      "compiler_files": [
+        "common.mbt",
+        "native_only.mbt"
+      ],
+      "parsed_files": [
+        "common.mbt",
+        "native_only.mbt"
+      ],
+      "findings": [],
+      "errors": []
+    },
+    {
+      "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "target": "js",
+      "seconds": 0.2276,
+      "passed": true,
+      "exit_code": 0,
+      "compiler_files": [
+        "common.mbt",
+        "js_only.mbt"
+      ],
+      "parsed_files": [
+        "common.mbt",
+        "js_only.mbt"
+      ],
+      "findings": [
+        "js_only.mbt"
+      ],
+      "errors": []
+    },
+    {
+      "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "target": "wasm",
+      "seconds": 0.1776,
+      "passed": true,
+      "exit_code": 0,
+      "compiler_files": [
+        "common.mbt"
+      ],
+      "parsed_files": [
+        "common.mbt"
+      ],
+      "findings": [],
+      "errors": []
+    },
+    {
+      "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "target": "wasm-gc",
+      "seconds": 0.1766,
+      "passed": true,
+      "exit_code": 0,
+      "compiler_files": [
+        "common.mbt"
+      ],
+      "parsed_files": [
+        "common.mbt"
+      ],
+      "findings": [],
+      "errors": []
+    }
+  ]
+}

@@ -8,8 +8,8 @@
 test "CWE-116: replace with HTML metachar should trigger" {
   let source = "fn foo(s : String) -> String { s.replace(old=\"<\", new=\"&lt;\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe116(impls, "test.mbt", source, findings, Error)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe116(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() > 0)
 }
 
@@ -17,9 +17,39 @@ test "CWE-116: replace with HTML metachar should trigger" {
 test "CWE-116: replace_all should not trigger" {
   let source = "fn foo(s : String) -> String { s.replace_all(old=\"<\", new=\"&lt;\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe116(impls, "test.mbt", source, findings, Error)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe116(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-116: qualified String::replace should trigger" {
+  let source = "fn foo(s : String) -> String { String::replace(s, old=\"<\", new=\"&lt;\") }"
+  let (impls, reports) = @parser.parse_string(source, name="test.mbt")
+  assert_true(reports.is_empty())
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe116(impls, "test.mbt", source, findings, Error)
+  inspect(findings.length(), content="1")
+}
+
+///|
+test "CWE-116: qualified safe replacements should not trigger" {
+  let source = "fn foo(s : String) -> String { String::replace_all(s, old=\"<\", new=\"&lt;\"); String::replace(s, old=\"x\", new=\"&lt;\") }"
+  let (impls, reports) = @parser.parse_string(source, name="test.mbt")
+  assert_true(reports.is_empty())
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe116(impls, "test.mbt", source, findings, Error)
+  inspect(findings.length(), content="0")
+}
+
+///|
+test "CWE-116: another type's replace is not String::replace" {
+  let source = "fn foo(box : Box) -> String { Box::replace(box, old=\"<\", new=\"&lt;\") }"
+  let (impls, reports) = @parser.parse_string(source, name="test.mbt")
+  assert_true(reports.is_empty())
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe116(impls, "test.mbt", source, findings, Error)
+  inspect(findings.length(), content="0")
 }
 
 // ---------------------------------------------------------------------------
@@ -30,8 +60,8 @@ test "CWE-116: replace_all should not trigger" {
 test "CWE-079/cmark: render without safe arg should not trigger (defaults true)" {
   let source = "fn foo(md : String) -> String { render(md) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe079_cmark(impls, "test.mbt", source, findings, Error)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe079_cmark(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() == 0)
 }
 
@@ -39,8 +69,8 @@ test "CWE-079/cmark: render without safe arg should not trigger (defaults true)"
 test "CWE-079/cmark: render with safe=true should not trigger" {
   let source = "fn foo(md : String) -> String { render(md, safe=true) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe079_cmark(impls, "test.mbt", source, findings, Error)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe079_cmark(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() == 0)
 }
 
@@ -48,8 +78,8 @@ test "CWE-079/cmark: render with safe=true should not trigger" {
 test "CWE-079/cmark: render with safe=false should trigger" {
   let source = "fn foo(md : String) -> String { render(safe=false, md) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe079_cmark(impls, "test.mbt", source, findings, Error)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe079_cmark(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() > 0)
 }
 
@@ -57,8 +87,8 @@ test "CWE-079/cmark: render with safe=false should trigger" {
 test "CWE-079/cmark: from_doc with safe=false should trigger" {
   let source = "fn foo(doc : Doc) -> String { from_doc(safe=false, doc) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe079_cmark(impls, "test.mbt", source, findings, Error)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe079_cmark(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() > 0)
 }
 
@@ -66,8 +96,8 @@ test "CWE-079/cmark: from_doc with safe=false should trigger" {
 test "CWE-079/cmark: from_doc with safe=true should not trigger" {
   let source = "fn foo(doc : Doc) -> String { from_doc(safe=true, doc) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe079_cmark(impls, "test.mbt", source, findings, Error)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe079_cmark(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() == 0)
 }
 
@@ -79,8 +109,8 @@ test "CWE-079/cmark: from_doc with safe=true should not trigger" {
 test "CWE-079/inner-html: non-constant arg should trigger" {
   let source = "fn foo(el : Element, content : String) -> Unit { el.inner_html(content) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe079_inner_html(impls, "test.mbt", source, findings, Error)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe079_inner_html(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() > 0)
 }
 
@@ -88,8 +118,8 @@ test "CWE-079/inner-html: non-constant arg should trigger" {
 test "CWE-079/inner-html: constant string arg should not trigger" {
   let source = "fn foo(el : Element) -> Unit { el.inner_html(\"<b>bold</b>\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe079_inner_html(impls, "test.mbt", source, findings, Error)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe079_inner_html(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() == 0)
 }
 
@@ -101,8 +131,8 @@ test "CWE-079/inner-html: constant string arg should not trigger" {
 test "CWE-094: eval in extern JS should trigger" {
   let source = "extern \"js\" fn dangerous() -> String =\n  #| eval(user_input)\n"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe094(impls, "test.mbt", source, findings, Error)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe094(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() > 0)
 }
 
@@ -110,8 +140,8 @@ test "CWE-094: eval in extern JS should trigger" {
 test "CWE-094: new Function in extern JS should trigger" {
   let source = "extern \"js\" fn build() -> String =\n  #| new Function(code)\n"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe094(impls, "test.mbt", source, findings, Error)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe094(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() > 0)
 }
 
@@ -119,8 +149,8 @@ test "CWE-094: new Function in extern JS should trigger" {
 test "CWE-094: safe extern JS should not trigger" {
   let source = "extern \"js\" fn safe_fn() -> Int =\n  #| return 42\n"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe094(impls, "test.mbt", source, findings, Error)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe094(impls, "test.mbt", source, findings, Error)
   assert_true(findings.length() == 0)
 }
 
@@ -132,8 +162,8 @@ test "CWE-094: safe extern JS should not trigger" {
 test "CWE-942: handle_cors with credentials=true without origin should trigger" {
   let source = "fn setup() -> Unit { handle_cors(credentials=true) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe942(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe942(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() > 0)
 }
 
@@ -141,8 +171,8 @@ test "CWE-942: handle_cors with credentials=true without origin should trigger" 
 test "CWE-942: handle_cors with no args (wildcard default, no credentials) should not trigger" {
   let source = "fn setup() -> Unit { handle_cors() }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe942(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe942(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -150,18 +180,18 @@ test "CWE-942: handle_cors with no args (wildcard default, no credentials) shoul
 test "CWE-942: handle_cors with credentials=true and wildcard should trigger" {
   let source = "fn setup() -> Unit { handle_cors(credentials=true) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe942(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe942(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() > 0)
-  assert_true(findings[0].severity == Error)
+  assert_true(findings[0].severity == Warning)
 }
 
 ///|
 test "CWE-942: handle_cors with explicit origin should not trigger" {
   let source = "fn setup() -> Unit { handle_cors(credentials=true, origin=\"https://example.com\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe942(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe942(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -173,8 +203,8 @@ test "CWE-942: handle_cors with explicit origin should not trigger" {
 test "CWE-614: set_cookie without security attrs should trigger" {
   let source = "fn foo(resp : Response) -> Unit { resp.set_cookie(\"session\", \"abc123\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe614(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe614(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() > 0)
 }
 
@@ -182,8 +212,8 @@ test "CWE-614: set_cookie without security attrs should trigger" {
 test "CWE-614: set_cookie with all security attrs should not trigger" {
   let source = "fn foo(resp : Response) -> Unit { resp.set_cookie(\"session\", \"abc123\", http_only=true, secure=true, same_site=\"Strict\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe614(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe614(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -195,8 +225,8 @@ test "CWE-614: set_cookie with all security attrs should not trigger" {
 test "CWE-770: serve without body limit with POST route should trigger" {
   let source = "fn start(app : App) -> Unit {\n  app.post(\"/upload\", handler)\n  app.serve(port=4000)\n}"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe770(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe770(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() > 0)
 }
 
@@ -204,8 +234,8 @@ test "CWE-770: serve without body limit with POST route should trigger" {
 test "CWE-770: serve with body limit should not trigger" {
   let source = "fn start(app : App) -> Unit {\n  app.post(\"/upload\", handler)\n  app.serve(port=4000, max_request_body_bytes=1048576)\n}"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe770(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe770(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -213,8 +243,8 @@ test "CWE-770: serve with body limit should not trigger" {
 test "CWE-770: serve without POST route should not trigger" {
   let source = "fn start(app : App) -> Unit {\n  app.get(\"/\", handler)\n  app.serve(port=4000)\n}"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe770(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe770(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -226,8 +256,8 @@ test "CWE-770: serve without POST route should not trigger" {
 test "CWE-346: upgrade_websocket without origin should trigger" {
   let source = "fn handle(req : Request) -> Unit { req.upgrade_websocket(handler) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe346(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe346(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() > 0)
 }
 
@@ -235,8 +265,8 @@ test "CWE-346: upgrade_websocket without origin should trigger" {
 test "CWE-346: upgrade_websocket with allowed_origins should not trigger" {
   let source = "fn handle(req : Request) -> Unit { req.upgrade_websocket(handler, allowed_origins=origins) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe346(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe346(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -248,8 +278,8 @@ test "CWE-346: upgrade_websocket with allowed_origins should not trigger" {
 test "CWE-022: path + user_input concat should trigger" {
   let source = "fn foo(path : String, user_input : String) -> String { path + user_input }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe022(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe022(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() > 0)
 }
 
@@ -257,8 +287,8 @@ test "CWE-022: path + user_input concat should trigger" {
 test "CWE-022: path + constant string should not trigger" {
   let source = "fn foo(path : String) -> String { path + \"/static\" }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe022(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe022(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -270,8 +300,8 @@ test "CWE-022: path + constant string should not trigger" {
 test "CWE-676: unsafe_to_char should not trigger (common safe conversion)" {
   let source = "fn foo(n : Int) -> Char { n.unsafe_to_char() }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe676(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe676(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -279,8 +309,8 @@ test "CWE-676: unsafe_to_char should not trigger (common safe conversion)" {
 test "CWE-676: unsafe_from_int via dot-apply should trigger" {
   let source = "fn foo(n : Int) -> Byte { n.unsafe_from_int() }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe676(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe676(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() > 0)
 }
 
@@ -288,8 +318,8 @@ test "CWE-676: unsafe_from_int via dot-apply should trigger" {
 test "CWE-676: safe method should not trigger" {
   let source = "fn foo(n : Int) -> Char { Char::from_int(n) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe676(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe676(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -297,8 +327,8 @@ test "CWE-676: safe method should not trigger" {
 test "CWE-676: unsafe_get (perf optimization) should not trigger" {
   let source = "fn foo(arr : FixedArray[Int]) -> Int { arr.unsafe_get(0) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe676(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe676(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -306,8 +336,8 @@ test "CWE-676: unsafe_get (perf optimization) should not trigger" {
 test "CWE-676: unsafe_reinterpret_as_bytes should not trigger" {
   let source = "fn foo(buf : FixedArray[Byte]) -> Bytes { buf.unsafe_reinterpret_as_bytes() }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe676(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe676(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -315,8 +345,8 @@ test "CWE-676: unsafe_reinterpret_as_bytes should not trigger" {
 test "CWE-676: unsafe_from_int should trigger" {
   let source = "fn foo(n : Int) -> MyEnum { MyEnum::unsafe_from_int(n) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe676(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe676(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() > 0)
 }
 
@@ -324,8 +354,8 @@ test "CWE-676: unsafe_from_int should trigger" {
 test "CWE-676: unsafe_new as function call should trigger" {
   let source = "fn foo() -> Unit { let p = Promise::unsafe_new(op) }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe676(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe676(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() > 0)
 }
 
@@ -337,8 +367,8 @@ test "CWE-676: unsafe_new as function call should trigger" {
 test "CWE-248: bare panic() should not trigger (match exhaustiveness sentinel)" {
   let source = "fn foo(x : Int) -> Int { if x < 0 { panic() }; x }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -346,8 +376,8 @@ test "CWE-248: bare panic() should not trigger (match exhaustiveness sentinel)" 
 test "CWE-248: abort() with custom message should trigger" {
   let source = "fn foo() -> Unit { abort(\"bad state\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() > 0)
 }
 
@@ -355,8 +385,8 @@ test "CWE-248: abort() with custom message should trigger" {
 test "CWE-248: normal function should not trigger" {
   let source = "fn foo(x : Int) -> Int { x + 1 }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -364,8 +394,8 @@ test "CWE-248: normal function should not trigger" {
 test "CWE-248: abort(unreachable) should not trigger" {
   let source = "fn foo() -> Unit { abort(\"unreachable\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -373,8 +403,8 @@ test "CWE-248: abort(unreachable) should not trigger" {
 test "CWE-248: abort(unimplemented) should not trigger" {
   let source = "fn foo() -> Unit { abort(\"unimplemented\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -382,8 +412,8 @@ test "CWE-248: abort(unimplemented) should not trigger" {
 test "CWE-248: panic in guard else should not trigger" {
   let source = "fn foo(x : Int?) -> Int { guard x is Some(v) else { panic() }; v }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -391,8 +421,8 @@ test "CWE-248: panic in guard else should not trigger" {
 test "CWE-248: platform stub file should not trigger" {
   let source = "fn foo() -> Unit { panic() }"
   let (impls, _) = @parser.parse_string(source, name="test.wasm.mbt")
-  let findings : Array[Finding] = []
-  run_cwe248(impls, "test.wasm.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe248(impls, "test.wasm.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -400,8 +430,8 @@ test "CWE-248: platform stub file should not trigger" {
 test "CWE-248: abort(Unreachable) case-insensitive should not trigger" {
   let source = "fn foo() -> Unit { abort(\"Unreachable\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -409,8 +439,8 @@ test "CWE-248: abort(Unreachable) case-insensitive should not trigger" {
 test "CWE-248: abort(index out of bounds) contract assertion should not trigger" {
   let source = "fn foo() -> Unit { abort(\"index out of bounds\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -418,8 +448,8 @@ test "CWE-248: abort(index out of bounds) contract assertion should not trigger"
 test "CWE-248: abort(division by zero) contract assertion should not trigger" {
   let source = "fn foo() -> Unit { abort(\"division by zero\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -427,8 +457,8 @@ test "CWE-248: abort(division by zero) contract assertion should not trigger" {
 test "CWE-248: abort(integer overflow) contract assertion should not trigger" {
   let source = "fn foo() -> Unit { abort(\"integer overflow\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -436,8 +466,8 @@ test "CWE-248: abort(integer overflow) contract assertion should not trigger" {
 test "CWE-248: panic(custom error) should still trigger" {
   let source = "fn foo() -> Unit { panic(\"something went wrong\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe248(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() > 0)
 }
 
@@ -449,8 +479,8 @@ test "CWE-248: panic(custom error) should still trigger" {
 test "CWE-704: .cast() should trigger" {
   let source = "fn foo(v : Value) -> String { v.cast() }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe704(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe704(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() > 0)
 }
 
@@ -458,8 +488,8 @@ test "CWE-704: .cast() should trigger" {
 test "CWE-704: .to_string() should not trigger" {
   let source = "fn foo(v : Int) -> String { v.to_string() }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe704(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe704(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -467,8 +497,8 @@ test "CWE-704: .to_string() should not trigger" {
 test "CWE-704: .cast() in extern js file should not trigger" {
   let source = "extern \"js\" fn js_get() -> JsValue = #| ...\nfn foo(v : JsValue) -> String { v.cast() }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe704(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe704(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -476,8 +506,8 @@ test "CWE-704: .cast() in extern js file should not trigger" {
 test "CWE-704: .cast() in #external type file should not trigger" {
   let source = "#external\ntype JsValue\nfn foo(v : JsValue) -> String { v.cast() }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe704(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe704(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -489,8 +519,8 @@ test "CWE-704: .cast() in #external type file should not trigger" {
 test "CWE-676: unsafe_to_char after guard should not trigger" {
   let source = "fn foo(c : Int) -> Char { guard c >= 0 && c <= 127 else { panic() }; c.unsafe_to_char() }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
-  let findings : Array[Finding] = []
-  run_cwe676(impls, "test.mbt", source, findings, Warning)
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe676(impls, "test.mbt", source, findings, Warning)
   assert_true(findings.length() == 0)
 }
 
@@ -498,8 +528,8 @@ test "CWE-676: unsafe_to_char after guard should not trigger" {
 test "t0_4_analysis_scope_disclosure" {
   // T0.4: scope string must carry analyzer/frontend version, excludes,
   // parse-failure count and the unanalyzed-is-not-safe note
-  let config = Config::default()
-  let result = scan_project(".", config)
+  let config = @src.Config::default()
+  let result = @src.scan_project(".", config)
   inspect(
     result.analysis_scope.has_prefix("analyzer=moon-audit "),
     content="true",
@@ -515,9 +545,17 @@ test "t0_4_analysis_scope_disclosure" {
     content="true",
   )
   // text output surfaces the scope section
-  let text = format_text(result, false)
+  let text = @src.format_text(result, false)
   inspect(text.contains("analysis-scope: "), content="true")
   // JSON output embeds the scope
-  let json = format_json(result)
+  let json = @src.format_json(result)
   inspect(json.contains("\"analysis_scope\""), content="true")
+}
+
+///|
+test "canonical directory normalizes every Windows separator" {
+  assert_eq(
+    @src.canonical_dir("C:\\work\\nested\\project"),
+    "C:/work/nested/project",
+  )
 }

@@ -6,6 +6,7 @@ priv struct Cwe942Visitor {
   findings : Array[Finding]
   file : String
   source : String
+  severity : Severity
 }
 
 ///|
@@ -13,7 +14,7 @@ pub fn cwe942_info() -> RuleInfo {
   {
     id: { cwe: 942, variant: "cors-credentials", },
     name: "Permissive CORS Configuration",
-    description: "handle_cors() without explicit origin defaults to '*', allowing any website to read responses. With credentials=true this enables credential theft.",
+    description: "CORS-shaped call combines credentials=true with wildcard or unresolved origin. Browsers reject credentialed wildcard response sharing; review intended origin policy, reflected origins and availability.",
     default_severity: Warning,
   }
 }
@@ -26,8 +27,7 @@ pub fn run_cwe942(
   findings : Array[Finding],
   severity : Severity,
 ) -> Unit {
-  let _ = severity
-  let visitor : Cwe942Visitor = { findings, file, source, }
+  let visitor : Cwe942Visitor = { findings, file, source, severity, }
   impls.each(fn(impl_) { @syntax.IterVisitor::visit_Impl(visitor, impl_) })
 }
 
@@ -64,15 +64,15 @@ impl @syntax.IterVisitor for Cwe942Visitor with fn visit_Expr_Apply(
       let has_credentials_true = has_labelled_bool_arg(
         args, "credentials", true,
       )
-      // Only flag when credentials=true with wildcard — that's the real attack vector.
+      // This combination warrants configuration review; it does not prove disclosure.
       // Wildcard without credentials is standard for public APIs.
       if has_credentials_true {
         env.findings.push(
           make_finding(
             { cwe: 942, variant: "cors-credentials", },
-            Error,
+            env.severity,
             High,
-            "CORS with credentials=true and wildcard origin allows any website to make authenticated requests and read responses. Specify an explicit origin.",
+            "CORS-shaped call combines credentials=true with wildcard or unresolved origin. Browsers reject credentialed wildcard response sharing; review intended origin policy, reflected origins and availability.",
             env.file,
             env.source,
             loc,
@@ -81,5 +81,10 @@ impl @syntax.IterVisitor for Cwe942Visitor with fn visit_Expr_Apply(
       }
     }
   }
-  @syntax.IterVisitor::base(env).visit_Expr_Apply(func~, args~, loc~)
+  @syntax.IterVisitor::visit_Expr_Apply(
+    @syntax.IterVisitor::base(env),
+    func~,
+    args~,
+    loc~,
+  )
 }

@@ -1,28 +1,128 @@
 ///|
 pub fn analyze_imports(pkg_dir : String) -> ImportContext {
+  let (imports, _) = analyze_imports_checked(pkg_dir)
+  imports
+}
+
+///|
+fn analyze_imports_checked(pkg_dir : String) -> (ImportContext, String?) {
   let pkg_path = @path.Path(pkg_dir).join(@path.Path("moon.pkg")).0
-  let content = @fs.read_file_to_string(pkg_path) catch {
-    _ => return ImportContext::empty()
+  let legacy_path = @path.Path(pkg_dir).join(@path.Path("moon.pkg.json")).0
+  if @fs.path_exists(pkg_path) {
+    let content = read_regular_text(pkg_path) catch {
+      _ => return (ImportContext::empty(), Some("Failed to read " + pkg_path))
+    }
+    return (
+      import_context_from_paths(extract_import_strings(content), false),
+      None,
+    )
   }
-  let imports = extract_import_strings(content)
-  {
-    has_cmark: imports.iter().any(fn(s) { s.contains("cmark") }),
-    has_rabbita: imports.iter().any(fn(s) { s.contains("rabbita") }),
-    has_mocket: imports.iter().any(fn(s) { s.contains("mocket") }),
-    has_crescent: imports.iter().any(fn(s) { s.contains("crescent") }),
-    has_liquid: imports.iter().any(fn(s) { s.contains("liquid") }),
-    has_pug: imports.iter().any(fn(s) { s.contains("pug") }),
-    is_stdlib: false,
+  if !@fs.path_exists(legacy_path) {
+    return (ImportContext::empty(), None)
+  }
+  let content = read_regular_text(legacy_path) catch {
+    _ => return (ImportContext::empty(), Some("Failed to read " + legacy_path))
+  }
+  let json = @json.parse(content) catch {
+    _ =>
+      return (
+        ImportContext::empty(),
+        Some("Invalid package JSON: " + legacy_path),
+      )
+  }
+  match json {
+    Object(fields) =>
+      match fields.get("import") {
+        Some(value) => {
+          if !legacy_import_shape_valid(value) {
+            return (
+              ImportContext::empty(),
+              Some("Invalid package import field: " + legacy_path),
+            )
+          }
+          (
+            import_context_from_paths(extract_legacy_import_value(value), false),
+            None,
+          )
+        }
+        None => (ImportContext::empty(), None)
+      }
+    _ =>
+      (
+        ImportContext::empty(),
+        Some("Invalid package JSON object: " + legacy_path),
+      )
+  }
+}
+
+///|
+fn legacy_import_shape_valid(value : Json) -> Bool {
+  match value {
+    Array(items) =>
+      items.all(fn(item) {
+        match item {
+          String(_) => true
+          Object(fields) =>
+            match fields.get("path") {
+              Some(String(_)) => true
+              _ => false
+            }
+          _ => false
+        }
+      })
+    Object(fields) => {
+      let mut valid = true
+      for _, alias_value in fields {
+        match alias_value {
+          String(_) | Null => ()
+          _ => valid = false
+        }
+      }
+      valid
+    }
+    Null => true
+    _ => false
   }
 }
 
 ///|
 pub fn analyze_mod_imports(project_root : String) -> ImportContext {
   let mod_path = @path.Path(project_root).join(@path.Path("moon.mod")).0
-  let content = @fs.read_file_to_string(mod_path) catch {
+  let legacy_path = @path.Path(project_root).join(@path.Path("moon.mod.json")).0
+  if @fs.path_exists(mod_path) {
+    let content = read_regular_text(mod_path) catch {
+      _ => return ImportContext::empty()
+    }
+    return import_context_from_paths(
+      extract_import_strings(content),
+      is_stdlib_module(content),
+    )
+  }
+  let content = read_regular_text(legacy_path) catch {
     _ => return ImportContext::empty()
   }
-  let imports = extract_import_strings(content)
+  let json = @json.parse(content) catch { _ => return ImportContext::empty() }
+  match json {
+    Object(fields) => {
+      let imports = match fields.get("deps") {
+        Some(value) => extract_legacy_import_value(value)
+        None => []
+      }
+      let is_stdlib = match fields.get("name") {
+        Some(String(name)) => is_stdlib_name(name)
+        _ => false
+      }
+      import_context_from_paths(imports, is_stdlib)
+    }
+    _ => ImportContext::empty()
+  }
+}
+
+///|
+fn import_context_from_paths(
+  imports : Array[String],
+  is_stdlib : Bool,
+) -> ImportContext {
   {
     has_cmark: imports.iter().any(fn(s) { s.contains("cmark") }),
     has_rabbita: imports.iter().any(fn(s) { s.contains("rabbita") }),
@@ -30,8 +130,33 @@ pub fn analyze_mod_imports(project_root : String) -> ImportContext {
     has_crescent: imports.iter().any(fn(s) { s.contains("crescent") }),
     has_liquid: imports.iter().any(fn(s) { s.contains("liquid") }),
     has_pug: imports.iter().any(fn(s) { s.contains("pug") }),
-    is_stdlib: is_stdlib_module(content),
+    is_stdlib,
   }
+}
+
+///|
+fn extract_legacy_import_value(value : Json) -> Array[String] {
+  let imports : Array[String] = []
+  match value {
+    Array(items) =>
+      for item in items {
+        match item {
+          String(path) => imports.push(path)
+          Object(fields) =>
+            match fields.get("path") {
+              Some(String(path)) => imports.push(path)
+              _ => ()
+            }
+          _ => ()
+        }
+      }
+    Object(fields) =>
+      for path, _ in fields {
+        imports.push(path)
+      }
+    _ => ()
+  }
+  imports
 }
 
 ///|
@@ -49,20 +174,25 @@ pub fn merge_imports(a : ImportContext, b : ImportContext) -> ImportContext {
 
 ///|
 fn is_stdlib_module(mod_content : String) -> Bool {
-  let stdlib_names = [
-    "moonbitlang/core", "moonbitlang/x", "moonbitlang/parser", "moonbitlang/lexer",
-  ]
   for line in mod_content.split("\n") {
     let trimmed = line.to_owned().trim(chars=" \t\r")
     if trimmed.has_prefix("name") && trimmed.contains("=") {
-      for name in stdlib_names {
-        if trimmed.contains(name) {
-          return true
-        }
+      if is_stdlib_name(trimmed.to_owned()) {
+        return true
       }
     }
   }
   false
+}
+
+///|
+fn is_stdlib_name(name : String) -> Bool {
+  [
+    "moonbitlang/core", "moonbitlang/x", "moonbitlang/parser", "moonbitlang/lexer",
+  ].contains(name) ||
+  [
+    "moonbitlang/core", "moonbitlang/x", "moonbitlang/parser", "moonbitlang/lexer",
+  ].any(fn(stdlib) { name.contains("\"" + stdlib + "\"") })
 }
 
 ///|

@@ -1,0 +1,193 @@
+{
+  "schema": "moon-audit.project-version-compat.v2",
+  "review_date": "2026-09-24",
+  "scope": "production syntax scanner CWE-116 dot/qualified call shapes and parser gap, plus compiler equivalence test",
+  "targets": {
+    "20260904": {
+      "schema": "moon-audit.version-compat.v1",
+      "status": "verified_limited",
+      "project_toolchain": "moon 0.1.20260904 (94521db 2026-09-04) /tmp/moon-audit-ci-toolchain/bin/moon\nmoonc v0.10.12+1634b282e (2026-09-07) /tmp/moon-audit-ci-toolchain/bin/moonc\nmoonrun 0.1.20260904 (94521db 2026-09-04) /tmp/moon-audit-ci-toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "module_version": "9.9.9",
+      "scanner_scope": "analyzer=moon-audit 0.5.0-dev (moonbitlang/parser 0.4.0); engine=syntax-pattern; interprocedural=false; type-resolution=false; sanitizer-resolution=false; cache=none; excludes=[_build,.mooncakes,examples,benchmarks]; implicit-excludes=[dotdirs,_build,*_test.mbt,*_wbtest.mbt]; selected=4; parsed=4; parse-failures=0; incremental=false; unanalyzed-is-not-safe",
+      "source_sha256": {
+        "moon.mod": "0b7656878fd90c130d58ad4988e83c029244d90f25c830a4bd96bdd5e0c9087e",
+        "moon.pkg": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "danger.mbt": "87fec44fa88cb4584af718d03af11431bb4c20623a26b5eb8a1beafa3a14e844",
+        "safe.mbt": "3676af7c6b8cbf5259c4387296d26313569fbc9a4609a97bf7169fd820dd5451",
+        "static_call.mbt": "409880ba686d2689ee02fcd8a9f63b67a614b14ad48c7bc849f2711d1b4a72eb",
+        "static_safe.mbt": "5d413eea1291ba7363c59daf9a4bbdba0ce6f78ec7f3d662d5537a1fc6df02f7",
+        "static_call_test.mbt": "a37544609ba0ded04af17dee0e42904c708c4468adce87d6dcdefb99af89c193"
+      },
+      "expected": [
+        [
+          "danger.mbt",
+          2,
+          "CWE-116/replace-escaping"
+        ]
+      ],
+      "observed": [
+        [
+          "danger.mbt",
+          2,
+          "CWE-116/replace-escaping"
+        ],
+        [
+          "static_call.mbt",
+          2,
+          "CWE-116/replace-escaping"
+        ]
+      ],
+      "equivalent_call_shape": {
+        "compiler_test": "passed",
+        "expected": [
+          "static_call.mbt",
+          2,
+          "CWE-116/replace-escaping"
+        ],
+        "observed": [
+          [
+            "static_call.mbt",
+            2,
+            "CWE-116/replace-escaping"
+          ]
+        ],
+        "status": "supported"
+      },
+      "parse_errors": [],
+      "files_scanned": 4,
+      "files_selected": 4,
+      "files_parsed": 4,
+      "new_syntax": {
+        "status": "compiler_accepted_parser_rejected",
+        "errors": [
+          "Parse error in <PROJECT>/new_syntax.mbt: error (<PROJECT>/new_syntax.mbt-2:7-2:8: Unexpected token `(`, you may expect id (lowercase start), `extend`, `;`, `{`."
+        ],
+        "source_sha256": "1628211b7dc7e51aa3e961436e0232b4106e3da3bd976dcbd4341e2718db639e"
+      }
+    },
+    "20260915": {
+      "schema": "moon-audit.version-compat.v1",
+      "status": "verified_limited",
+      "project_toolchain": "moon 0.1.20260915 (2e1a46d 2026-09-15) ~/.moon/bin/moon\nmoonc v0.10.13+cbb11c36f (2026-09-15) ~/.moon/bin/moonc\nmoonrun 0.1.20260915 (2e1a46d 2026-09-15) ~/.moon/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "module_version": "9.9.9",
+      "scanner_scope": "analyzer=moon-audit 0.5.0-dev (moonbitlang/parser 0.4.0); engine=syntax-pattern; interprocedural=false; type-resolution=false; sanitizer-resolution=false; cache=none; excludes=[_build,.mooncakes,examples,benchmarks]; implicit-excludes=[dotdirs,_build,*_test.mbt,*_wbtest.mbt]; selected=4; parsed=4; parse-failures=0; incremental=false; unanalyzed-is-not-safe",
+      "source_sha256": {
+        "moon.mod": "0b7656878fd90c130d58ad4988e83c029244d90f25c830a4bd96bdd5e0c9087e",
+        "moon.pkg": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "danger.mbt": "87fec44fa88cb4584af718d03af11431bb4c20623a26b5eb8a1beafa3a14e844",
+        "safe.mbt": "3676af7c6b8cbf5259c4387296d26313569fbc9a4609a97bf7169fd820dd5451",
+        "static_call.mbt": "409880ba686d2689ee02fcd8a9f63b67a614b14ad48c7bc849f2711d1b4a72eb",
+        "static_safe.mbt": "5d413eea1291ba7363c59daf9a4bbdba0ce6f78ec7f3d662d5537a1fc6df02f7",
+        "static_call_test.mbt": "a37544609ba0ded04af17dee0e42904c708c4468adce87d6dcdefb99af89c193"
+      },
+      "expected": [
+        [
+          "danger.mbt",
+          2,
+          "CWE-116/replace-escaping"
+        ]
+      ],
+      "observed": [
+        [
+          "danger.mbt",
+          2,
+          "CWE-116/replace-escaping"
+        ],
+        [
+          "static_call.mbt",
+          2,
+          "CWE-116/replace-escaping"
+        ]
+      ],
+      "equivalent_call_shape": {
+        "compiler_test": "passed",
+        "expected": [
+          "static_call.mbt",
+          2,
+          "CWE-116/replace-escaping"
+        ],
+        "observed": [
+          [
+            "static_call.mbt",
+            2,
+            "CWE-116/replace-escaping"
+          ]
+        ],
+        "status": "supported"
+      },
+      "parse_errors": [],
+      "files_scanned": 4,
+      "files_selected": 4,
+      "files_parsed": 4,
+      "new_syntax": {
+        "status": "compiler_accepted_parser_rejected",
+        "errors": [
+          "Parse error in <PROJECT>/new_syntax.mbt: error (<PROJECT>/new_syntax.mbt-2:7-2:8: Unexpected token `(`, you may expect id (lowercase start), `extend`, `;`, `{`."
+        ],
+        "source_sha256": "1628211b7dc7e51aa3e961436e0232b4106e3da3bd976dcbd4341e2718db639e"
+      }
+    },
+    "20260920": {
+      "schema": "moon-audit.version-compat.v1",
+      "status": "verified_limited",
+      "project_toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+      "module_version": "9.9.9",
+      "scanner_scope": "analyzer=moon-audit 0.5.0-dev (moonbitlang/parser 0.4.0); engine=syntax-pattern; interprocedural=false; type-resolution=false; sanitizer-resolution=false; cache=none; excludes=[_build,.mooncakes,examples,benchmarks]; implicit-excludes=[dotdirs,_build,*_test.mbt,*_wbtest.mbt]; selected=4; parsed=4; parse-failures=0; incremental=false; unanalyzed-is-not-safe",
+      "source_sha256": {
+        "moon.mod": "0b7656878fd90c130d58ad4988e83c029244d90f25c830a4bd96bdd5e0c9087e",
+        "moon.pkg": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "danger.mbt": "87fec44fa88cb4584af718d03af11431bb4c20623a26b5eb8a1beafa3a14e844",
+        "safe.mbt": "3676af7c6b8cbf5259c4387296d26313569fbc9a4609a97bf7169fd820dd5451",
+        "static_call.mbt": "409880ba686d2689ee02fcd8a9f63b67a614b14ad48c7bc849f2711d1b4a72eb",
+        "static_safe.mbt": "5d413eea1291ba7363c59daf9a4bbdba0ce6f78ec7f3d662d5537a1fc6df02f7",
+        "static_call_test.mbt": "a37544609ba0ded04af17dee0e42904c708c4468adce87d6dcdefb99af89c193"
+      },
+      "expected": [
+        [
+          "danger.mbt",
+          2,
+          "CWE-116/replace-escaping"
+        ]
+      ],
+      "observed": [
+        [
+          "danger.mbt",
+          2,
+          "CWE-116/replace-escaping"
+        ],
+        [
+          "static_call.mbt",
+          2,
+          "CWE-116/replace-escaping"
+        ]
+      ],
+      "equivalent_call_shape": {
+        "compiler_test": "passed",
+        "expected": [
+          "static_call.mbt",
+          2,
+          "CWE-116/replace-escaping"
+        ],
+        "observed": [
+          [
+            "static_call.mbt",
+            2,
+            "CWE-116/replace-escaping"
+          ]
+        ],
+        "status": "supported"
+      },
+      "parse_errors": [],
+      "files_scanned": 4,
+      "files_selected": 4,
+      "files_parsed": 4,
+      "new_syntax": {
+        "status": "compiler_accepted_parser_rejected",
+        "errors": [
+          "Parse error in <PROJECT>/new_syntax.mbt: error (<PROJECT>/new_syntax.mbt-2:7-2:8: Unexpected token `(`, you may expect id (lowercase start), `extend`, `;`, `{`."
+        ],
+        "source_sha256": "1628211b7dc7e51aa3e961436e0232b4106e3da3bd976dcbd4341e2718db639e"
+      }
+    }
+  }
+}

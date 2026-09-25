@@ -13,8 +13,8 @@ priv struct Cwe704Visitor {
 pub fn cwe704_info() -> RuleInfo {
   {
     id: { cwe: 704, variant: "unsafe-cast", },
-    name: "Unchecked Type Cast",
-    description: ".cast() bypasses type checking at runtime. Invalid casts can produce corrupted values or undefined behavior.",
+    name: "Cast-named Method Review",
+    description: "Method name suggests a cast. Resolve its declaration and conversion guarantees before treating it as a type-safety issue.",
     default_severity: Warning,
   }
 }
@@ -56,14 +56,15 @@ impl @syntax.IterVisitor for Cwe704Visitor with fn visit_Expr_DotApply(
         { cwe: 704, variant: "unsafe-cast", },
         env.severity,
         Medium,
-        "Unchecked .cast() bypasses type safety. The result may be invalid if the underlying value does not match the target type.",
+        "Method name suggests a cast. Resolve its declaration and conversion guarantees before treating it as a type-safety issue.",
         env.file,
         env.source,
         loc,
       ),
     )
   }
-  @syntax.IterVisitor::base(env).visit_Expr_DotApply(
+  @syntax.IterVisitor::visit_Expr_DotApply(
+    @syntax.IterVisitor::base(env),
     self~,
     method_name~,
     args~,

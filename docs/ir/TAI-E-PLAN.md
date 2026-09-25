@@ -1,5 +1,7 @@
 # moon-audit → Tai-e 级转变计划
 
+> 2026-09-22 路线复核：本文件的整体 Tai-e 对齐路线和跨语言数字比较已停止作为当前验收目标；其历史基线与计划不表示已经实现。当前决策见 [基础设施与组件取舍](../moonbit-infrastructure-research-2026-09-22.md)。
+
 > 基线锚点（2026-09-08, `05ccc9a`）: 30,189 行 / 379 测试 / 190 commit / mocket 1489-1941 bound / ptB=10 / cfg 386/386(100%) / divergent=0 / FP 0/0/0 / crescent 5 TP
 >
 > 完成度判定基础: 六项四标准（详见 ROADMAP-T 终局表）

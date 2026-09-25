@@ -1,0 +1,140 @@
+{
+  "date": "2026-09-25",
+  "scope": "finite_scanner_and_explicit_callback_dataflow",
+  "production_analysis": [
+    "syntax_hints",
+    "mocket-get-callbacks explicit native scope"
+  ],
+  "build_toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+  "validation": {
+    "moon_check_all_deny_warn": "passed",
+    "moon_fmt_check": "passed",
+    "moon_test_all_deny_warn": {
+      "wasm": 75,
+      "wasm-gc": 75,
+      "js": 75,
+      "native": 77
+    },
+    "cli_regressions": 21,
+    "native_toolchain_backend_matrix": 12,
+    "native_source_ir_cases": 13,
+    "independent_native_source_ir_cases": 13,
+    "rule_shape_matrix": 44,
+    "rule_registry_acceptance": 98,
+    "cmark_production_cases": 14,
+    "semantic_production_groups_linux": 15,
+    "historical_project_selected": 30,
+    "historical_project_parsed": 16,
+    "historical_project_parse_errors": 14,
+    "harness_tests": 33,
+    "independent_core_specification": 14
+  },
+  "evidence": [
+    "native-version-matrix-2026-09-25.json",
+    "native-ir-independent-review-2026-09-25.json",
+    "../../experiments/security_chain/native-ir-2026-09-25.json",
+    "semantic-production-acceptance-2026-09-25.json",
+    "historical-project-2026-09-25.json",
+    "../../experiments/rule_audit/registry-acceptance-final-2026-09-25.json",
+    "../../experiments/cmark_chain/production-ir-2026-09-25.json",
+    "three-platform-acceptance-2026-09-25.json"
+  ],
+  "pending": [],
+  "release_published": false,
+  "draft_pull_request": "https://github.com/I3eg1nner/moon-audit/pull/1",
+  "limits": [
+    "Conditional callback normal-return paths; not registration reachability or browser exploitability.",
+    "Linux per-process RLIMIT_AS; Windows per-process commit; macOS sampled group physical footprint; budgets are reported with platform-specific mechanism and limitations.",
+    "Unsafe Markdown retains partial dataflow and exits 2 for unknown HTML context.",
+    "No universal historical parser compatibility or complete MoonBit/Tai-e analysis."
+  ],
+  "linux_artifact": {
+    "path": "dist/moon-audit-0.5.0-dev-linux-x86_64.zip",
+    "sha256": "25b5cb09bf4ed5c8d29303f04fb80f8b022bf408ad9fa73c5e7a28e64aa25f0d",
+    "binary_sha256": "408bf924fbec0e28c61f6318d6ff692a458d0fd6931cb9960fc682dbc62d17f3",
+    "independent_delivery_tests": {
+      "passed": 24,
+      "failed": 0
+    },
+    "process_supervision_tests": {
+      "passed": 4,
+      "failed": 0
+    }
+  },
+  "ci_attempts": [
+    {
+      "commit": "5ae21a1088bc6ad17f95c3c5005516954d464be2",
+      "checks": "https://github.com/I3eg1nner/moon-audit/actions/runs/36104406615",
+      "checks_result": "all six jobs passed",
+      "delivery": "https://github.com/I3eg1nner/moon-audit/actions/runs/36104406618",
+      "delivery_result": "Linux passed; Windows helper binding identity mismatch, macOS worker initialization failure; repairs in progress"
+    }
+  ],
+  "acceptance_status": "finite_A_D_delivery_passed",
+  "ci_acceptance": [
+    {
+      "databaseId": 36105436648,
+      "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436648",
+      "headSha": "1a3e8b1a7918853bd97db133344f057343a5b34f",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "native (windows-2022, windows-x86_64)",
+          "conclusion": "success",
+          "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436648/job/107976812550"
+        },
+        {
+          "name": "native (ubuntu-24.04, linux-x86_64)",
+          "conclusion": "success",
+          "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436648/job/107976812704"
+        },
+        {
+          "name": "native (macos-14, macos-arm64)",
+          "conclusion": "success",
+          "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436648/job/107976812707"
+        }
+      ]
+    },
+    {
+      "databaseId": 36105436592,
+      "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436592",
+      "headSha": "1a3e8b1a7918853bd97db133344f057343a5b34f",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "MoonBit project 0.1.20260920 compatibility",
+          "conclusion": "success",
+          "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436592/job/107976812628"
+        },
+        {
+          "name": "build (ubuntu-latest)",
+          "conclusion": "success",
+          "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436592/job/107976812629"
+        },
+        {
+          "name": "MoonBit project 0.1.20260904 compatibility",
+          "conclusion": "success",
+          "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436592/job/107976812650"
+        },
+        {
+          "name": "build (macos-latest)",
+          "conclusion": "success",
+          "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436592/job/107976812693"
+        },
+        {
+          "name": "MoonBit project 0.1.20260915 compatibility",
+          "conclusion": "success",
+          "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436592/job/107976812715"
+        },
+        {
+          "name": "build (windows-latest)",
+          "conclusion": "success",
+          "url": "https://github.com/I3eg1nner/moon-audit/actions/runs/36105436592/job/107976812766"
+        }
+      ]
+    }
+  ],
+  "windows_memory_exhaustion_injection": "not_executed; platform initialization, functional semantic and process cleanup acceptance passed"
+}

@@ -1,0 +1,564 @@
+{
+  "schema": "moon-audit.frontend-adapter-validation.v1",
+  "analyzer_toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+  "project_toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+  "parser_package": "moonbitlang/parser@0.4.0",
+  "backend": "native",
+  "supported_fixtures": 5,
+  "passed": true,
+  "baseline_differences": [],
+  "production_migrated": false,
+  "generic_dispatch_supported": false,
+  "exception_supported": false,
+  "recursive_source_supported": false,
+  "exporter_sha256": "9818024130d9cce8f67c5d4517aeea3bd4a9db370da6ac96e6e74c03e2bd42f7",
+  "adapter_sha256": "fd38afbfca18fbbf27323ee3a28da17543f5ea1220344bce26e35732a4d55e18",
+  "rows": [
+    {
+      "fixture": "read_after_write_alias",
+      "status": "fixed_point",
+      "expected": [
+        true,
+        true
+      ],
+      "observed": [
+        true,
+        true
+      ],
+      "passed": true,
+      "source_sha256": "e68dbf1991405a155602bee0adb84a1160e436c17ad89a401bce86ad8c558dcf",
+      "program_digest": "a41f0d52ae1d5b5a6fbf91924281023af2b78896833c3f06cf94aef6638b78b7",
+      "ast_schema": [
+        "Accessor::Label|value",
+        "ApplyAttr::NoAttr|",
+        "ArgumentKind::Positional|",
+        "Argument|kind,value",
+        "Binder|name",
+        "Constant::String|value",
+        "ConstrId|id",
+        "DeclBody::DeclBody|expr",
+        "ErrorType::NoErrorType|",
+        "Expr::Apply::ArgumentList|[]",
+        "Expr::Apply|args,attr,func",
+        "Expr::Constant|constant",
+        "Expr::Field|accessor,record",
+        "Expr::Ident|id",
+        "Expr::Let|body,expr,pattern",
+        "Expr::Mutate|accessor,augmented_by,field,record",
+        "Expr::Record::FieldList|[]",
+        "Expr::Record|fields,trailing,type_name",
+        "Expr::Sequence::ExprList|[]",
+        "Expr::Sequence|exprs,last_expr",
+        "FieldDecl::AttrList|[]",
+        "FieldDecl|attrs,doc,mut,name,ty,vis",
+        "FieldDef|expr,is_pun,label",
+        "FieldName|label",
+        "FunDecl::AttrList|[]",
+        "FunDecl::ParameterList|[]",
+        "FunDecl::QuantifierList|[]",
+        "FunDecl|attrs,decl_params,doc,error_type,has_error,is_async,name,quantifiers,return_type,type_name,vis",
+        "Impl::TopFuncDef|decl_body,fun_decl,where_clause",
+        "Impl::TopTypeDef|value",
+        "Label|name",
+        "LongIdent::Ident|value",
+        "Parameter::Positional|binder,ty",
+        "Pattern::Var|value",
+        "Trailing::None|",
+        "Type::Name::TypeList|[]",
+        "Type::Name|constr_id,tys",
+        "TypeDecl::AttrList|[]",
+        "TypeDecl::DerivingList|[]",
+        "TypeDecl::ParamList|[]",
+        "TypeDecl|attrs,components,deriving,doc,is_declare,params,tycon,type_vis",
+        "TypeDesc::Record::FieldList|[]",
+        "TypeDesc::Record|value",
+        "TypeName|is_object,name",
+        "Var|name",
+        "Visibility::Default|",
+        "Visibility::Pub|attr"
+      ],
+      "lookups": [
+        {
+          "call": "source@5:17",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "2:4-2:10"
+          }
+        },
+        {
+          "call": "fill@10:3",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "4:4-4:8"
+          }
+        },
+        {
+          "call": "sink@11:3",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "3:4-3:8"
+          }
+        },
+        {
+          "call": "sink@12:3",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "3:4-3:8"
+          }
+        }
+      ],
+      "solver_stats": {
+        "transfers": 24,
+        "invocations": 2,
+        "evaluations": 4,
+        "state_nodes": 3,
+        "peak_queue": 1,
+        "seconds": 0.000259,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "seconds_including_frontend": 10.1435
+    },
+    {
+      "fixture": "clean_last_alias",
+      "status": "fixed_point",
+      "expected": [
+        false,
+        false
+      ],
+      "observed": [
+        false,
+        false
+      ],
+      "passed": true,
+      "source_sha256": "a714015a5e145badfbf02721be73bdf7be7eac08d6732e88f31d694e2222368f",
+      "program_digest": "296f53eeb16bbf0a1d025cccfba4177d610a55e689ec84d0d8067ef0080e7bf8",
+      "ast_schema": [
+        "Accessor::Label|value",
+        "ApplyAttr::NoAttr|",
+        "ArgumentKind::Positional|",
+        "Argument|kind,value",
+        "Binder|name",
+        "Constant::String|value",
+        "ConstrId|id",
+        "DeclBody::DeclBody|expr",
+        "ErrorType::NoErrorType|",
+        "Expr::Apply::ArgumentList|[]",
+        "Expr::Apply|args,attr,func",
+        "Expr::Constant|constant",
+        "Expr::Field|accessor,record",
+        "Expr::Ident|id",
+        "Expr::Let|body,expr,pattern",
+        "Expr::Mutate|accessor,augmented_by,field,record",
+        "Expr::Record::FieldList|[]",
+        "Expr::Record|fields,trailing,type_name",
+        "Expr::Sequence::ExprList|[]",
+        "Expr::Sequence|exprs,last_expr",
+        "FieldDecl::AttrList|[]",
+        "FieldDecl|attrs,doc,mut,name,ty,vis",
+        "FieldDef|expr,is_pun,label",
+        "FieldName|label",
+        "FunDecl::AttrList|[]",
+        "FunDecl::ParameterList|[]",
+        "FunDecl::QuantifierList|[]",
+        "FunDecl|attrs,decl_params,doc,error_type,has_error,is_async,name,quantifiers,return_type,type_name,vis",
+        "Impl::TopFuncDef|decl_body,fun_decl,where_clause",
+        "Impl::TopTypeDef|value",
+        "Label|name",
+        "LongIdent::Ident|value",
+        "Parameter::Positional|binder,ty",
+        "Pattern::Var|value",
+        "Trailing::None|",
+        "Type::Name::TypeList|[]",
+        "Type::Name|constr_id,tys",
+        "TypeDecl::AttrList|[]",
+        "TypeDecl::DerivingList|[]",
+        "TypeDecl::ParamList|[]",
+        "TypeDecl|attrs,components,deriving,doc,is_declare,params,tycon,type_vis",
+        "TypeDesc::Record::FieldList|[]",
+        "TypeDesc::Record|value",
+        "TypeName|is_object,name",
+        "Var|name",
+        "Visibility::Default|",
+        "Visibility::Pub|attr"
+      ],
+      "lookups": [
+        {
+          "call": "source@5:17",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "2:4-2:10"
+          }
+        },
+        {
+          "call": "fill@10:3",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "4:4-4:8"
+          }
+        },
+        {
+          "call": "sink@11:3",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "3:4-3:8"
+          }
+        },
+        {
+          "call": "sink@12:3",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "3:4-3:8"
+          }
+        }
+      ],
+      "solver_stats": {
+        "transfers": 24,
+        "invocations": 2,
+        "evaluations": 4,
+        "state_nodes": 3,
+        "peak_queue": 1,
+        "seconds": 0.000304,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "seconds_including_frontend": 0.9303
+    },
+    {
+      "fixture": "dirty_last_alias",
+      "status": "fixed_point",
+      "expected": [
+        true,
+        false
+      ],
+      "observed": [
+        true,
+        false
+      ],
+      "passed": true,
+      "source_sha256": "b2172e0b552f7bb6d42b3b61840b1650fe65cfc1ca75fe8c2387a7bf75761c49",
+      "program_digest": "89b9d36d7ad90b6faea0ee8cc8b0a6309150b0083ed7b8481d23d84ce7b52d8c",
+      "ast_schema": [
+        "Accessor::Label|value",
+        "ApplyAttr::NoAttr|",
+        "ArgumentKind::Positional|",
+        "Argument|kind,value",
+        "Binder|name",
+        "Constant::String|value",
+        "ConstrId|id",
+        "DeclBody::DeclBody|expr",
+        "ErrorType::NoErrorType|",
+        "Expr::Apply::ArgumentList|[]",
+        "Expr::Apply|args,attr,func",
+        "Expr::Constant|constant",
+        "Expr::Field|accessor,record",
+        "Expr::Ident|id",
+        "Expr::Let|body,expr,pattern",
+        "Expr::Mutate|accessor,augmented_by,field,record",
+        "Expr::Record::FieldList|[]",
+        "Expr::Record|fields,trailing,type_name",
+        "Expr::Sequence::ExprList|[]",
+        "Expr::Sequence|exprs,last_expr",
+        "FieldDecl::AttrList|[]",
+        "FieldDecl|attrs,doc,mut,name,ty,vis",
+        "FieldDef|expr,is_pun,label",
+        "FieldName|label",
+        "FunDecl::AttrList|[]",
+        "FunDecl::ParameterList|[]",
+        "FunDecl::QuantifierList|[]",
+        "FunDecl|attrs,decl_params,doc,error_type,has_error,is_async,name,quantifiers,return_type,type_name,vis",
+        "Impl::TopFuncDef|decl_body,fun_decl,where_clause",
+        "Impl::TopTypeDef|value",
+        "Label|name",
+        "LongIdent::Ident|value",
+        "Parameter::Positional|binder,ty",
+        "Pattern::Var|value",
+        "Trailing::None|",
+        "Type::Name::TypeList|[]",
+        "Type::Name|constr_id,tys",
+        "TypeDecl::AttrList|[]",
+        "TypeDecl::DerivingList|[]",
+        "TypeDecl::ParamList|[]",
+        "TypeDecl|attrs,components,deriving,doc,is_declare,params,tycon,type_vis",
+        "TypeDesc::Record::FieldList|[]",
+        "TypeDesc::Record|value",
+        "TypeName|is_object,name",
+        "Var|name",
+        "Visibility::Default|",
+        "Visibility::Pub|attr"
+      ],
+      "lookups": [
+        {
+          "call": "source@6:18",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "2:4-2:10"
+          }
+        },
+        {
+          "call": "fill@10:3",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "4:4-4:8"
+          }
+        },
+        {
+          "call": "sink@11:3",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "3:4-3:8"
+          }
+        },
+        {
+          "call": "sink@12:3",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "3:4-3:8"
+          }
+        }
+      ],
+      "solver_stats": {
+        "transfers": 24,
+        "invocations": 2,
+        "evaluations": 4,
+        "state_nodes": 3,
+        "peak_queue": 1,
+        "seconds": 0.000268,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "seconds_including_frontend": 0.9685
+    },
+    {
+      "fixture": "read_after_write_distinct",
+      "status": "fixed_point",
+      "expected": [
+        true,
+        false,
+        false,
+        false
+      ],
+      "observed": [
+        true,
+        false,
+        false,
+        false
+      ],
+      "passed": true,
+      "source_sha256": "57e52adfbbbdf5c06e06f46f2390e1e3b2a25feda2d5b75cfdf667a51697639e",
+      "program_digest": "d456bb44d280d9763517a15fda38d794a059cd56cf8ac1e11f180911270262cc",
+      "ast_schema": [
+        "Accessor::Label|value",
+        "ApplyAttr::NoAttr|",
+        "ArgumentKind::Positional|",
+        "Argument|kind,value",
+        "Binder|name",
+        "Constant::String|value",
+        "ConstrId|id",
+        "DeclBody::DeclBody|expr",
+        "ErrorType::NoErrorType|",
+        "Expr::Apply::ArgumentList|[]",
+        "Expr::Apply|args,attr,func",
+        "Expr::Constant|constant",
+        "Expr::Field|accessor,record",
+        "Expr::Ident|id",
+        "Expr::Let|body,expr,pattern",
+        "Expr::Mutate|accessor,augmented_by,field,record",
+        "Expr::Record::FieldList|[]",
+        "Expr::Record|fields,trailing,type_name",
+        "Expr::Sequence::ExprList|[]",
+        "Expr::Sequence|exprs,last_expr",
+        "FieldDecl::AttrList|[]",
+        "FieldDecl|attrs,doc,mut,name,ty,vis",
+        "FieldDef|expr,is_pun,label",
+        "FieldName|label",
+        "FunDecl::AttrList|[]",
+        "FunDecl::ParameterList|[]",
+        "FunDecl::QuantifierList|[]",
+        "FunDecl|attrs,decl_params,doc,error_type,has_error,is_async,name,quantifiers,return_type,type_name,vis",
+        "Impl::TopFuncDef|decl_body,fun_decl,where_clause",
+        "Impl::TopTypeDef|value",
+        "Label|name",
+        "LongIdent::Ident|value",
+        "Parameter::Positional|binder,ty",
+        "Pattern::Var|value",
+        "Trailing::None|",
+        "Type::Name::TypeList|[]",
+        "Type::Name|constr_id,tys",
+        "TypeDecl::AttrList|[]",
+        "TypeDecl::DerivingList|[]",
+        "TypeDecl::ParamList|[]",
+        "TypeDecl|attrs,components,deriving,doc,is_declare,params,tycon,type_vis",
+        "TypeDesc::Record::FieldList|[]",
+        "TypeDesc::Record|value",
+        "TypeName|is_object,name",
+        "Var|name",
+        "Visibility::Default|",
+        "Visibility::Pub|attr"
+      ],
+      "lookups": [
+        {
+          "call": "source@5:17",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "2:4-2:10"
+          }
+        },
+        {
+          "call": "fill@11:3",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "4:4-4:8"
+          }
+        },
+        {
+          "call": "sink@12:3",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "3:4-3:8"
+          }
+        },
+        {
+          "call": "sink@13:3",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "3:4-3:8"
+          }
+        },
+        {
+          "call": "sink@14:3",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "3:4-3:8"
+          }
+        },
+        {
+          "call": "sink@15:3",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "3:4-3:8"
+          }
+        }
+      ],
+      "solver_stats": {
+        "transfers": 36,
+        "invocations": 2,
+        "evaluations": 4,
+        "state_nodes": 3,
+        "peak_queue": 1,
+        "seconds": 0.001526,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "seconds_including_frontend": 1.3948
+    },
+    {
+      "fixture": "shadow",
+      "status": "fixed_point",
+      "expected": [
+        false,
+        true
+      ],
+      "observed": [
+        false,
+        true
+      ],
+      "passed": true,
+      "source_sha256": "b78402f9d54377d4f1b45c9060a6589e2603206fdc72313a4fc9c592f51b4b31",
+      "program_digest": "694fa2004c0233fdf0eb459fcf4b6b964fe4738b1a9cb6eba2aa5233b726591c",
+      "ast_schema": [
+        "Accessor::Label|value",
+        "ApplyAttr::NoAttr|",
+        "ArgumentKind::Positional|",
+        "Argument|kind,value",
+        "Binder|name",
+        "Constant::String|value",
+        "ConstrId|id",
+        "DeclBody::DeclBody|expr",
+        "ErrorType::NoErrorType|",
+        "Expr::Apply::ArgumentList|[]",
+        "Expr::Apply|args,attr,func",
+        "Expr::Constant|constant",
+        "Expr::Field|accessor,record",
+        "Expr::Ident|id",
+        "Expr::Let|body,expr,pattern",
+        "Expr::Mutate|accessor,augmented_by,field,record",
+        "Expr::Record::FieldList|[]",
+        "Expr::Record|fields,trailing,type_name",
+        "Expr::Sequence::ExprList|[]",
+        "Expr::Sequence|exprs,last_expr",
+        "FieldDecl::AttrList|[]",
+        "FieldDecl|attrs,doc,mut,name,ty,vis",
+        "FieldDef|expr,is_pun,label",
+        "FieldName|label",
+        "FunDecl::AttrList|[]",
+        "FunDecl::ParameterList|[]",
+        "FunDecl::QuantifierList|[]",
+        "FunDecl|attrs,decl_params,doc,error_type,has_error,is_async,name,quantifiers,return_type,type_name,vis",
+        "Impl::TopFuncDef|decl_body,fun_decl,where_clause",
+        "Impl::TopTypeDef|value",
+        "Label|name",
+        "LongIdent::Ident|value",
+        "Parameter::Positional|binder,ty",
+        "Pattern::Var|value",
+        "Trailing::None|",
+        "Type::Name::TypeList|[]",
+        "Type::Name|constr_id,tys",
+        "TypeDecl::AttrList|[]",
+        "TypeDecl::DerivingList|[]",
+        "TypeDecl::ParamList|[]",
+        "TypeDecl|attrs,components,deriving,doc,is_declare,params,tycon,type_vis",
+        "TypeDesc::Record::FieldList|[]",
+        "TypeDesc::Record|value",
+        "TypeName|is_object,name",
+        "Var|name",
+        "Visibility::Default|",
+        "Visibility::Pub|attr"
+      ],
+      "lookups": [
+        {
+          "call": "source@8:15",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "2:4-2:10"
+          }
+        },
+        {
+          "call": "sink@9:3",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "3:4-3:8"
+          }
+        },
+        {
+          "call": "sink@10:3",
+          "declaration": {
+            "path": "main.mbt",
+            "range": "3:4-3:8"
+          }
+        }
+      ],
+      "solver_stats": {
+        "transfers": 17,
+        "invocations": 1,
+        "evaluations": 1,
+        "state_nodes": 1,
+        "peak_queue": 1,
+        "seconds": 0.000152,
+        "budget_reason": null,
+        "max_steps": 100000,
+        "max_invocations": 2000,
+        "max_seconds": 10.0
+      },
+      "seconds_including_frontend": 0.7767
+    }
+  ]
+}

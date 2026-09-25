@@ -1,0 +1,638 @@
+{
+  "schema_version": 1,
+  "purpose": "official_binding_probe_not_production_frontend_acceptance",
+  "reviewed_commit": "af354b7a031ee8e0a7e62e76875b82a0a39ac71b",
+  "source_commit_verified": true,
+  "source_fingerprint": "e36c3a0d905f1d4f967bf46fd552a206980332917dacc9da2b99f45032326e0a",
+  "dependency_fingerprints": {
+    "moonbitlang/async": "a1c17674a7ae69c7433b5cfddbfbed7a519bcad93a055bcb760d5a10ec2dc10a",
+    "moonbitlang/x": "c8af6344a3508a5c76627a528281a348eb503fafc67b9cb8f5296eaf555e7a2b",
+    "oboard/mimetype": "d8f2673c2adb7ad26e3e9fd64982a16b958efacd6056aa8b12aafc02b2d76d58"
+  },
+  "commands": [
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "version",
+        "--all"
+      ],
+      "exit_code": 0,
+      "stdout": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg\n",
+      "stderr": "",
+      "seconds": 0.0444
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "check",
+        "--frozen",
+        "--target",
+        "native",
+        "security_probe",
+        "shadow_probe",
+        "--diagnostic-limit",
+        "3"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Warning: [0079]\n    ╭─[ /tmp/moon-audit-mocket-bindings-79togqma/mocket/index.mbt:57:10 ]\n    │\n 57 │ } derive(Eq)\n    │          ─┬  \n    │           ╰── Warning (implicit_impl_as_method): The methods not_equal, equal from `impl Eq for SameSiteOption` are implicit promoted as regular method for `SameSiteOption`. This behavior is deprecated and will be removed in the future. Add a `pub extend SameSiteOption with Eq::{not_equal, equal}` declaration or manually define regular methods for type `SameSiteOption` instead. If the promotion is not desirable, add `#deprecated` on the `extend` declaration.\n────╯\nWarning: [0079]\n    ╭─[ /tmp/moon-audit-mocket-bindings-79togqma/mocket/index.mbt:60:1 ]\n    │\n 60 │ pub impl Show for SameSiteOption with fn output(self, logger) -> Unit {\n    │ ────────────────┬───────────────  \n    │                 ╰───────────────── Warning (implicit_impl_as_method): The methods to_string, output from `impl Show for SameSiteOption` are implicit promoted as regular method for `SameSiteOption`. This behavior is deprecated and will be removed in the future. Add a `pub extend SameSiteOption with Show::{to_string, output}` declaration or manually define regular methods for type `SameSiteOption` instead. If the promotion is not desirable, add `#deprecated` on the `extend` declaration.\n────╯\nWarning: [0079]\n    ╭─[ /tmp/moon-audit-mocket-bindings-79togqma/mocket/index.mbt:69:1 ]\n    │\n 69 │ pub impl ToJson for SameSiteOption with fn to_json(self : SameSiteOption) -> Json {\n    │ ─────────────────┬────────────────  \n    │                  ╰────────────────── Warning (implicit_impl_as_method): The methods to_json from `impl ToJson for SameSiteOption` are implicit promoted as regular method for `SameSiteOption`. This behavior is deprecated and will be removed in the future. Add a `pub extend SameSiteOption with ToJson::{to_json}` declaration or manually define regular methods for type `SameSiteOption` instead. If the promotion is not desirable, add `#deprecated` on the `extend` declaration.\n────╯\nWarning: diagnostic output limited by --diagnostic-limit: 0 errors and 24 warnings were not displayed.\nFinished. moon: ran 36 tasks, now up to date (27 warnings, 0 errors)\n",
+      "seconds": 0.9234
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "ide",
+        "peek-def",
+        "--json",
+        "--target",
+        "native",
+        "--loc",
+        "security_probe/probe.mbt:8:7"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-mocket-bindings-79togqma/mocket/index.mbt\",\"range\":\"152:16-152:19\"}]\n",
+      "stderr": "",
+      "seconds": 0.6624
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "ide",
+        "peek-def",
+        "--json",
+        "--no-check",
+        "--target",
+        "native",
+        "--loc",
+        "security_probe/probe.mbt:8:7"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-mocket-bindings-79togqma/mocket/index.mbt\",\"range\":\"152:16-152:19\"}]\n",
+      "stderr": "",
+      "seconds": 0.2299
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "ide",
+        "peek-def",
+        "--json",
+        "--no-check",
+        "--target",
+        "native",
+        "--loc",
+        "security_probe/probe.mbt:9:24"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-mocket-bindings-79togqma/mocket/event.mbt\",\"range\":\"3:3-3:6\"}]\n",
+      "stderr": "",
+      "seconds": 0.2068
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "ide",
+        "peek-def",
+        "--json",
+        "--no-check",
+        "--target",
+        "native",
+        "--loc",
+        "security_probe/probe.mbt:9:28"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-mocket-bindings-79togqma/mocket/request.mbt\",\"range\":\"33:21-33:26\"}]\n",
+      "stderr": "",
+      "seconds": 0.2037
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "ide",
+        "peek-def",
+        "--json",
+        "--no-check",
+        "--target",
+        "native",
+        "--loc",
+        "security_probe/probe.mbt:10:33"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt\",\"range\":\"269:31-269:34\"}]\n",
+      "stderr": "",
+      "seconds": 0.2032
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "ide",
+        "peek-def",
+        "--json",
+        "--no-check",
+        "--target",
+        "native",
+        "--loc",
+        "security_probe/probe.mbt:10:42"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt\",\"range\":\"48:19-48:28\"}]\n",
+      "stderr": "",
+      "seconds": 0.2039
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "ide",
+        "peek-def",
+        "--json",
+        "--no-check",
+        "--target",
+        "native",
+        "--loc",
+        "security_probe/probe.mbt:11:29"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-mocket-bindings-79togqma/mocket/security_probe/probe.mbt\",\"range\":\"2:4-2:9\"}]\n",
+      "stderr": "",
+      "seconds": 0.2197
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "ide",
+        "peek-def",
+        "--json",
+        "--no-check",
+        "--target",
+        "native",
+        "--loc",
+        "security_probe/probe.mbt:12:13"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-mocket-bindings-79togqma/mocket/responder.mbt\",\"range\":\"92:8-92:12\"}]\n",
+      "stderr": "",
+      "seconds": 0.2173
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "ide",
+        "peek-def",
+        "--json",
+        "--no-check",
+        "--target",
+        "native",
+        "--loc",
+        "security_probe/probe.mbt:16:37"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-mocket-bindings-79togqma/mocket/utils.mbt\",\"range\":\"128:8-128:19\"}]\n",
+      "stderr": "",
+      "seconds": 0.2195
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "ide",
+        "peek-def",
+        "--json",
+        "--no-check",
+        "--target",
+        "native",
+        "--loc",
+        "security_probe/probe.mbt:12:18"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-mocket-bindings-79togqma/mocket/security_probe/probe.mbt\",\"range\":\"11:9-11:17\"}]\n",
+      "stderr": "",
+      "seconds": 0.2228
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "ide",
+        "hover",
+        "--json",
+        "--no-check",
+        "--target",
+        "native",
+        "--loc",
+        "security_probe/probe.mbt:12:18"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"range\":\"12:18-12:26\",\"contents\":[\"```moonbit\\nString\\n```\"]}\n",
+      "stderr": "",
+      "seconds": 0.2126
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "ide",
+        "peek-def",
+        "--json",
+        "--no-check",
+        "--target",
+        "native",
+        "--loc",
+        "security_probe/probe.mbt:11:20"
+      ],
+      "exit_code": 1,
+      "stdout": "Error: could not find definition at security_probe/probe.mbt:11:20\n",
+      "stderr": "",
+      "seconds": 0.2213
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "ide",
+        "hover",
+        "--json",
+        "--no-check",
+        "--target",
+        "native",
+        "--loc",
+        "security_probe/probe.mbt:9:18"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"range\":\"9:18-9:23\",\"contents\":[\"```moonbit\\n@mocket.MocketEvent\\n```\"]}\n",
+      "stderr": "",
+      "seconds": 0.2228
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "ide",
+        "hover",
+        "--json",
+        "--no-check",
+        "--target",
+        "native",
+        "--loc",
+        "security_probe/probe.mbt:34:16"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"range\":\"34:16-34:21\",\"contents\":[\"```moonbit\\n&Show\\n```\"]}\n",
+      "stderr": "",
+      "seconds": 0.2101
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "ide",
+        "peek-def",
+        "--json",
+        "--no-check",
+        "--target",
+        "native",
+        "--loc",
+        "security_probe/probe.mbt:28:5"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-mocket-bindings-79togqma/mocket/security_probe/probe.mbt\",\"range\":\"26:13-26:19\"}]\n",
+      "stderr": "",
+      "seconds": 0.2087
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "ide",
+        "hover",
+        "--json",
+        "--no-check",
+        "--target",
+        "native",
+        "--loc",
+        "shadow_probe/probe.mbt:6:16"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"range\":\"6:16-6:21\",\"contents\":[\"```moonbit\\nString\\n```\"]}\n",
+      "stderr": "",
+      "seconds": 0.2059
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+        "moon",
+        "ide",
+        "peek-def",
+        "--json",
+        "--no-check",
+        "--target",
+        "native",
+        "--loc",
+        "shadow_probe/probe.mbt:5:23"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-mocket-bindings-79togqma/mocket/shadow_probe/probe.mbt\",\"range\":\"2:17-2:23\"}]\n",
+      "stderr": "",
+      "seconds": 0.2026
+    }
+  ],
+  "observations": [
+    {
+      "name": "route_registration",
+      "kind": "peek-def",
+      "query": "security_probe/probe.mbt:8:7",
+      "command_index": 3,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-mocket-bindings-79togqma/mocket/index.mbt",
+          "range": "152:16-152:19"
+        }
+      ],
+      "exit_code": 0,
+      "unique_expected_declaration": true,
+      "declaration_source": {
+        "path": "/tmp/moon-audit-mocket-bindings-79togqma/mocket/index.mbt",
+        "sha256": "9109bffdc75e47e5793c9fcd6c89cb19a71a9ac25d64fafa1c7ac7c7853ad973",
+        "line": "pub fn Mocket::get(self : Mocket, path : String, handler : HttpHandler) -> Unit {"
+      }
+    },
+    {
+      "name": "request_field",
+      "kind": "peek-def",
+      "query": "security_probe/probe.mbt:9:24",
+      "command_index": 4,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-mocket-bindings-79togqma/mocket/event.mbt",
+          "range": "3:3-3:6"
+        }
+      ],
+      "exit_code": 0,
+      "unique_expected_declaration": true,
+      "declaration_source": {
+        "path": "/tmp/moon-audit-mocket-bindings-79togqma/mocket/event.mbt",
+        "sha256": "1146bde3891781984d0c98e84386a4b423d753d2cadc5f9095e51e2c258a76db",
+        "line": "  req : HttpRequest"
+      }
+    },
+    {
+      "name": "query_source",
+      "kind": "peek-def",
+      "query": "security_probe/probe.mbt:9:28",
+      "command_index": 5,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-mocket-bindings-79togqma/mocket/request.mbt",
+          "range": "33:21-33:26"
+        }
+      ],
+      "exit_code": 0,
+      "unique_expected_declaration": true,
+      "declaration_source": {
+        "path": "/tmp/moon-audit-mocket-bindings-79togqma/mocket/request.mbt",
+        "sha256": "b8a10625f022328175f087b4ebdd8eb4e838763bf2d6c45ee414304803f3ff43",
+        "line": "pub fn HttpRequest::query(self : HttpRequest) -> Map[String, String] {"
+      }
+    },
+    {
+      "name": "map_get",
+      "kind": "peek-def",
+      "query": "security_probe/probe.mbt:10:33",
+      "command_index": 6,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+          "range": "269:31-269:34"
+        }
+      ],
+      "exit_code": 0,
+      "unique_expected_declaration": true,
+      "declaration_source": {
+        "path": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+        "sha256": "fe413a7ffa2e4148abf2f37b01decef05e544e998b3cd730a73817830a63bfd6",
+        "line": "pub fn[K : Hash + Eq, V] Map::get(self : Map[K, V], key : K) -> V? {"
+      }
+    },
+    {
+      "name": "option_unwrap",
+      "kind": "peek-def",
+      "query": "security_probe/probe.mbt:10:42",
+      "command_index": 7,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+          "range": "48:19-48:28"
+        }
+      ],
+      "exit_code": 0,
+      "unique_expected_declaration": true,
+      "declaration_source": {
+        "path": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+        "sha256": "059fcefd01f0393fc0ded6456e28d3dc0699dd6c32fdd0ac80aadbb35473184a",
+        "line": "pub fn[T] Option::unwrap_or(self : T?, default : T) -> T {"
+      }
+    },
+    {
+      "name": "string_helper",
+      "kind": "peek-def",
+      "query": "security_probe/probe.mbt:11:29",
+      "command_index": 8,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-mocket-bindings-79togqma/mocket/security_probe/probe.mbt",
+          "range": "2:4-2:9"
+        }
+      ],
+      "exit_code": 0,
+      "unique_expected_declaration": true,
+      "declaration_source": {
+        "path": "/tmp/moon-audit-mocket-bindings-79togqma/mocket/security_probe/probe.mbt",
+        "sha256": "28e4d4f7a7f3a8d3946a6055da3ebcc15f7e322cae15118a9932e644f14aaf3a",
+        "line": "fn relay(input : String) -> String {"
+      }
+    },
+    {
+      "name": "html_constructor",
+      "kind": "peek-def",
+      "query": "security_probe/probe.mbt:12:13",
+      "command_index": 9,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-mocket-bindings-79togqma/mocket/responder.mbt",
+          "range": "92:8-92:12"
+        }
+      ],
+      "exit_code": 0,
+      "unique_expected_declaration": true,
+      "declaration_source": {
+        "path": "/tmp/moon-audit-mocket-bindings-79togqma/mocket/responder.mbt",
+        "sha256": "4b273a040c4ce219b9c2f0a7c810be90c873d3aad3062a9076e0d3e9f5e2e6b9",
+        "line": "pub fn html(html : &Show) -> &Responder {"
+      }
+    },
+    {
+      "name": "html_text_encoder",
+      "kind": "peek-def",
+      "query": "security_probe/probe.mbt:16:37",
+      "command_index": 10,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-mocket-bindings-79togqma/mocket/utils.mbt",
+          "range": "128:8-128:19"
+        }
+      ],
+      "exit_code": 0,
+      "unique_expected_declaration": true,
+      "declaration_source": {
+        "path": "/tmp/moon-audit-mocket-bindings-79togqma/mocket/utils.mbt",
+        "sha256": "66c99f7c77a01765262e89a96148624440048fd856e79486cf4ddfb200a3e0c3",
+        "line": "pub fn escape_html(s : String) -> String {"
+      }
+    },
+    {
+      "name": "html_actual_binding",
+      "kind": "peek-def",
+      "query": "security_probe/probe.mbt:12:18",
+      "command_index": 11,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-mocket-bindings-79togqma/mocket/security_probe/probe.mbt",
+          "range": "11:9-11:17"
+        }
+      ],
+      "exit_code": 0,
+      "unique_expected_declaration": true,
+      "declaration_source": {
+        "path": "/tmp/moon-audit-mocket-bindings-79togqma/mocket/security_probe/probe.mbt",
+        "sha256": "28e4d4f7a7f3a8d3946a6055da3ebcc15f7e322cae15118a9932e644f14aaf3a",
+        "line": "    let rendered : String = relay(input)"
+      }
+    },
+    {
+      "name": "html_actual_hover",
+      "kind": "hover",
+      "query": "security_probe/probe.mbt:12:18",
+      "command_index": 12,
+      "response": {
+        "range": "12:18-12:26",
+        "contents": [
+          "```moonbit\nString\n```"
+        ]
+      },
+      "exit_code": 0
+    },
+    {
+      "name": "builtin_string_annotation",
+      "kind": "peek-def",
+      "query": "security_probe/probe.mbt:11:20",
+      "command_index": 13,
+      "response": null,
+      "exit_code": 1
+    },
+    {
+      "name": "callback_parameter_hover",
+      "kind": "hover",
+      "query": "security_probe/probe.mbt:9:18",
+      "command_index": 14,
+      "response": {
+        "range": "9:18-9:23",
+        "contents": [
+          "```moonbit\n@mocket.MocketEvent\n```"
+        ]
+      },
+      "exit_code": 0
+    },
+    {
+      "name": "unknown_show_hover",
+      "kind": "hover",
+      "query": "security_probe/probe.mbt:34:16",
+      "command_index": 15,
+      "response": {
+        "range": "34:16-34:21",
+        "contents": [
+          "```moonbit\n&Show\n```"
+        ]
+      },
+      "exit_code": 0
+    },
+    {
+      "name": "overwritten_return_binding",
+      "kind": "peek-def",
+      "query": "security_probe/probe.mbt:28:5",
+      "command_index": 16,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-mocket-bindings-79togqma/mocket/security_probe/probe.mbt",
+          "range": "26:13-26:19"
+        }
+      ],
+      "exit_code": 0,
+      "unique_expected_declaration": true,
+      "declaration_source": {
+        "path": "/tmp/moon-audit-mocket-bindings-79togqma/mocket/security_probe/probe.mbt",
+        "sha256": "28e4d4f7a7f3a8d3946a6055da3ebcc15f7e322cae15118a9932e644f14aaf3a",
+        "line": "    let mut result = @mocket.html(relay(input))"
+      }
+    },
+    {
+      "name": "shadow_string_actual_hover",
+      "kind": "hover",
+      "query": "shadow_probe/probe.mbt:6:16",
+      "command_index": 17,
+      "response": {
+        "range": "6:16-6:21",
+        "contents": [
+          "```moonbit\nString\n```"
+        ]
+      },
+      "exit_code": 0
+    },
+    {
+      "name": "shadow_string_annotation",
+      "kind": "peek-def",
+      "query": "shadow_probe/probe.mbt:5:23",
+      "command_index": 18,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-mocket-bindings-79togqma/mocket/shadow_probe/probe.mbt",
+          "range": "2:17-2:23"
+        }
+      ],
+      "exit_code": 0,
+      "unique_expected_declaration": true,
+      "declaration_source": {
+        "path": "/tmp/moon-audit-mocket-bindings-79togqma/mocket/shadow_probe/probe.mbt",
+        "sha256": "6cc4e756b4eaf0a13b414e6bc9d862a8973def64f5c75159f37509333935978c",
+        "line": "pub(all) struct String(Int) derive(Show)"
+      }
+    }
+  ],
+  "limits": [
+    "Query coordinates are authored; AST extraction and lowering are not implemented here.",
+    "Definition locations establish declaration identity, not full runtime dispatch targets.",
+    "Hover String is identical for builtin String and a user-defined String implementing Show.",
+    "No structured canonical type ID or generic substitution export was demonstrated.",
+    "A return variable resolves to its binding, not its latest reaching assignment."
+  ],
+  "fixture_sha256": {
+    "moon.pkg.txt": "58c945e8bdd3bce188047b0cc2a37a27a8f7923e2c6ec9f03bc338d6a8f06265",
+    "probe.mbt.txt": "28e4d4f7a7f3a8d3946a6055da3ebcc15f7e322cae15118a9932e644f14aaf3a",
+    "string_shadow.mbt.txt": "6cc4e756b4eaf0a13b414e6bc9d862a8973def64f5c75159f37509333935978c"
+  },
+  "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg\n",
+  "ide_bootstrap_succeeded": true,
+  "required_declarations_unique": true,
+  "string_hover_ambiguity_reproduced": true,
+  "canonical_string_type_fact_available": false,
+  "status": "bindings_verified_type_boundary_restricted"
+}

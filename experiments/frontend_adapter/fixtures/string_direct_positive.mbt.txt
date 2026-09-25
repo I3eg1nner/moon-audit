@@ -1,0 +1,6 @@
+fn source() -> String { "input" }
+fn sink(value : String) -> Unit { ignore(value) }
+fn relay(value : String) -> String { value }
+fn go() -> Unit {
+  sink(relay(source()))
+}

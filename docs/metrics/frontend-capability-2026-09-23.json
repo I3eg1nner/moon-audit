@@ -1,0 +1,1025 @@
+{
+  "schema": "moon-audit.frontend-capability-probe.v1",
+  "target": "native",
+  "version": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg\n",
+  "source_files": {
+    "moon.mod": "name = \"review/frontend_contract\"\npreferred_target = \"native\"\n",
+    "moon.pkg": "import { \"review/frontend_contract/left\" @left, \"review/frontend_contract/right\" @right }\n",
+    "left/moon.pkg": "",
+    "right/moon.pkg": "",
+    "left/lib.mbt": "pub fn choose(value : String) -> String { value }\n",
+    "right/lib.mbt": "pub fn choose(value : String) -> String { ignore(value); \"safe\" }\n",
+    "probe.mbt": "pub struct Box { mut value : String }\nfn fill(first : Box, second : Box) -> Unit {\n  first.value = \"dirty\"\n  second.value = \"safe\"\n}\npub fn alias_case() -> String {\n  let box = Box::{value: \"initial\"}\n  fill(box, box)\n  box.value\n}\npub fn shadow_case() -> String {\n  let box = Box::{value: \"outer\"}\n  let old = box\n  let box = Box::{value: \"inner\"}\n  box.value = \"new\"\n  old.value\n}\npub fn cross_package(value : String) -> String {\n  let a = @left.choose(value)\n  @right.choose(a)\n}\nfn Box::read(self : Box) -> String { self.value }\npub fn method_case(box : Box) -> String { box.read() }\ntrait Render { render(Self) -> String }\nimpl Render for Box with fn render(self) -> String { self.value }\nfn[T : Render] generic_wrap(value : T) -> String { value.render() }\npub fn generic_case(box : Box) -> String { generic_wrap(box) }\npub fn callback_case(f : (String) -> String, value : String) -> String { f(value) }\nfn fallback() -> String { \"fallback\" }\nfn with_default(value? : String = fallback()) -> String { value }\npub fn default_case() -> String { with_default() }\nsuberror Boom { Boom }\nfn write_then_raise(box : Box) -> Unit raise Boom { box.value = \"dirty\"; raise Boom }\npub fn error_case(box : Box) -> String {\n  try { write_then_raise(box); \"normal\" } catch { Boom => box.value }\n}\n"
+  },
+  "source_sha256": {
+    "moon.mod": "8c29e36054489d84d76029c1ecaa2595a47f067cb5e4717d96d8522e1bdfd82c",
+    "moon.pkg": "9d578d39556a637c92f4a71ed7fbcf14c651d97d45ca428900ed58d8524cdb58",
+    "left/moon.pkg": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "right/moon.pkg": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "left/lib.mbt": "0dd0286189f934b2697464a23b9fba3f46fb8e8a1fabd4cb01eab069de9ed6a9",
+    "right/lib.mbt": "a9b52e7e619687cf520881c9cd71d98b6b821fa9baf6ea39f81d427bd49f318d",
+    "probe.mbt": "007acd781c1842fc7e5ab6f332fd91381347fb7f3fc361dfcf83ea2b874572a8"
+  },
+  "commands": [
+    {
+      "command": [
+        "moon",
+        "version",
+        "--all"
+      ],
+      "exit_code": 0,
+      "stdout": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg\n",
+      "stderr": "",
+      "seconds": 0.0441
+    },
+    {
+      "command": [
+        "moon",
+        "check",
+        "--target",
+        "native"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Warning: [0004]\n    ╭─[ /tmp/moon-audit-g0-final-20260923/probe.mbt:24:7 ]\n    │\n 24 │ trait Render { render(Self) -> String }\n    │       ───┬──  \n    │          ╰──── Warning (missing_priv): The trait 'Render' does not occur in public signature of current package, consider marking it as `priv`.\n────╯\nWarning: [0004]\n    ╭─[ /tmp/moon-audit-g0-final-20260923/probe.mbt:32:10 ]\n    │\n 32 │ suberror Boom { Boom }\n    │          ──┬─  \n    │            ╰─── Warning (missing_priv): The type 'Boom' does not occur in public signature of current package, consider marking it as `priv`.\n────╯\nFinished. moon: ran 6 tasks, now up to date (2 warnings, 0 errors)\n",
+      "seconds": 0.1862
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "peek-def",
+        "--loc",
+        "probe.mbt:8:3",
+        "--target",
+        "native",
+        "--no-check",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-g0-final-20260923/probe.mbt\",\"range\":\"2:4-2:8\"}]\n",
+      "stderr": "",
+      "seconds": 0.1762
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "hover",
+        "--loc",
+        "probe.mbt:8:8",
+        "--target",
+        "native",
+        "--no-check",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"range\":\"8:8-8:11\",\"contents\":[\"```moonbit\\nBox\\n```\"]}\n",
+      "stderr": "",
+      "seconds": 0.1706
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "peek-def",
+        "--loc",
+        "probe.mbt:9:7",
+        "--target",
+        "native",
+        "--no-check",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-g0-final-20260923/probe.mbt\",\"range\":\"1:22-1:27\"}]\n",
+      "stderr": "",
+      "seconds": 0.1726
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "peek-def",
+        "--loc",
+        "probe.mbt:15:3",
+        "--target",
+        "native",
+        "--no-check",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-g0-final-20260923/probe.mbt\",\"range\":\"14:7-14:10\"}]\n",
+      "stderr": "",
+      "seconds": 0.1742
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "peek-def",
+        "--loc",
+        "probe.mbt:13:13",
+        "--target",
+        "native",
+        "--no-check",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-g0-final-20260923/probe.mbt\",\"range\":\"12:7-12:10\"}]\n",
+      "stderr": "",
+      "seconds": 0.1713
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "peek-def",
+        "--loc",
+        "probe.mbt:19:17",
+        "--target",
+        "native",
+        "--no-check",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-g0-final-20260923/left/lib.mbt\",\"range\":\"1:8-1:14\"}]\n",
+      "stderr": "",
+      "seconds": 0.1745
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "peek-def",
+        "--loc",
+        "probe.mbt:20:10",
+        "--target",
+        "native",
+        "--no-check",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-g0-final-20260923/right/lib.mbt\",\"range\":\"1:8-1:14\"}]\n",
+      "stderr": "",
+      "seconds": 0.1884
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "peek-def",
+        "--loc",
+        "probe.mbt:23:47",
+        "--target",
+        "native",
+        "--no-check",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-g0-final-20260923/probe.mbt\",\"range\":\"22:9-22:13\"}]\n",
+      "stderr": "",
+      "seconds": 0.1905
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "peek-def",
+        "--loc",
+        "probe.mbt:26:58",
+        "--target",
+        "native",
+        "--no-check",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-g0-final-20260923/probe.mbt\",\"range\":\"26:8-26:14\"}]\n",
+      "stderr": "",
+      "seconds": 0.1817
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "hover",
+        "--loc",
+        "probe.mbt:27:44",
+        "--target",
+        "native",
+        "--no-check",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"range\":\"27:44-27:56\",\"contents\":[\"```moonbit\\nfn[T : Render] generic_wrap(value : T) -> String\\n```\"]}\n",
+      "stderr": "",
+      "seconds": 0.1768
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "peek-def",
+        "--loc",
+        "probe.mbt:28:74",
+        "--target",
+        "native",
+        "--no-check",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-g0-final-20260923/probe.mbt\",\"range\":\"28:22-28:23\"}]\n",
+      "stderr": "",
+      "seconds": 0.1743
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "peek-def",
+        "--loc",
+        "probe.mbt:31:35",
+        "--target",
+        "native",
+        "--no-check",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-g0-final-20260923/probe.mbt\",\"range\":\"30:4-30:16\"}]\n",
+      "stderr": "",
+      "seconds": 0.1746
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "hover",
+        "--loc",
+        "probe.mbt:35:9",
+        "--target",
+        "native",
+        "--no-check",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"range\":\"35:9-35:25\",\"contents\":[\"```moonbit\\nfn write_then_raise(box : Box) -> Unit raise Boom\\n```\"]}\n",
+      "stderr": "",
+      "seconds": 0.1715
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "find-references",
+        "--loc",
+        "probe.mbt:7:7",
+        "--target",
+        "native",
+        "--no-check",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"path\":\"/tmp/moon-audit-g0-final-20260923/probe.mbt\",\"range\":\"8:8-8:11\",\"is_test\":false},{\"path\":\"/tmp/moon-audit-g0-final-20260923/probe.mbt\",\"range\":\"8:13-8:16\",\"is_test\":false},{\"path\":\"/tmp/moon-audit-g0-final-20260923/probe.mbt\",\"range\":\"9:3-9:6\",\"is_test\":false}]\n",
+      "stderr": "",
+      "seconds": 0.1796
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "gen-symbols",
+        "--target",
+        "native",
+        "--no-check"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "",
+      "seconds": 0.0165
+    }
+  ],
+  "observations": [
+    {
+      "name": "direct_call",
+      "query": "probe.mbt:8:3",
+      "command_index": 2,
+      "valid_json": true,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-g0-final-20260923/probe.mbt",
+          "range": "2:4-2:8"
+        }
+      ],
+      "expected_declaration": [
+        "probe.mbt",
+        2
+      ],
+      "matches_expected_declaration": true,
+      "contract_satisfied": true
+    },
+    {
+      "name": "actual_type",
+      "query": "probe.mbt:8:8",
+      "command_index": 3,
+      "valid_json": true,
+      "response": {
+        "range": "8:8-8:11",
+        "contents": [
+          "```moonbit\nBox\n```"
+        ]
+      },
+      "expected_declaration": null,
+      "expected_display_text": "Box",
+      "matches_expected_display": true,
+      "contract_satisfied": true
+    },
+    {
+      "name": "field_declaration",
+      "query": "probe.mbt:9:7",
+      "command_index": 4,
+      "valid_json": true,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-g0-final-20260923/probe.mbt",
+          "range": "1:22-1:27"
+        }
+      ],
+      "expected_declaration": [
+        "probe.mbt",
+        1
+      ],
+      "matches_expected_declaration": true,
+      "contract_satisfied": true
+    },
+    {
+      "name": "shadow_inner",
+      "query": "probe.mbt:15:3",
+      "command_index": 5,
+      "valid_json": true,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-g0-final-20260923/probe.mbt",
+          "range": "14:7-14:10"
+        }
+      ],
+      "expected_declaration": [
+        "probe.mbt",
+        14
+      ],
+      "matches_expected_declaration": true,
+      "contract_satisfied": true
+    },
+    {
+      "name": "shadow_outer",
+      "query": "probe.mbt:13:13",
+      "command_index": 6,
+      "valid_json": true,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-g0-final-20260923/probe.mbt",
+          "range": "12:7-12:10"
+        }
+      ],
+      "expected_declaration": [
+        "probe.mbt",
+        12
+      ],
+      "matches_expected_declaration": true,
+      "contract_satisfied": true
+    },
+    {
+      "name": "package_left",
+      "query": "probe.mbt:19:17",
+      "command_index": 7,
+      "valid_json": true,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-g0-final-20260923/left/lib.mbt",
+          "range": "1:8-1:14"
+        }
+      ],
+      "expected_declaration": [
+        "left/lib.mbt",
+        1
+      ],
+      "matches_expected_declaration": true,
+      "contract_satisfied": true
+    },
+    {
+      "name": "package_right",
+      "query": "probe.mbt:20:10",
+      "command_index": 8,
+      "valid_json": true,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-g0-final-20260923/right/lib.mbt",
+          "range": "1:8-1:14"
+        }
+      ],
+      "expected_declaration": [
+        "right/lib.mbt",
+        1
+      ],
+      "matches_expected_declaration": true,
+      "contract_satisfied": true
+    },
+    {
+      "name": "method",
+      "query": "probe.mbt:23:47",
+      "command_index": 9,
+      "valid_json": true,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-g0-final-20260923/probe.mbt",
+          "range": "22:9-22:13"
+        }
+      ],
+      "expected_declaration": [
+        "probe.mbt",
+        22
+      ],
+      "matches_expected_declaration": true,
+      "contract_satisfied": true
+    },
+    {
+      "name": "generic_trait",
+      "query": "probe.mbt:26:58",
+      "command_index": 10,
+      "valid_json": true,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-g0-final-20260923/probe.mbt",
+          "range": "26:8-26:14"
+        }
+      ],
+      "expected_declaration": [
+        "probe.mbt",
+        24
+      ],
+      "matches_expected_declaration": false,
+      "contract_satisfied": false
+    },
+    {
+      "name": "generic_call",
+      "query": "probe.mbt:27:44",
+      "command_index": 11,
+      "valid_json": true,
+      "response": {
+        "range": "27:44-27:56",
+        "contents": [
+          "```moonbit\nfn[T : Render] generic_wrap(value : T) -> String\n```"
+        ]
+      },
+      "expected_declaration": null,
+      "expected_display_text": "fn[T : Render] generic_wrap(value : T) -> String",
+      "matches_expected_display": true,
+      "contract_satisfied": true
+    },
+    {
+      "name": "callback",
+      "query": "probe.mbt:28:74",
+      "command_index": 12,
+      "valid_json": true,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-g0-final-20260923/probe.mbt",
+          "range": "28:22-28:23"
+        }
+      ],
+      "expected_declaration": [
+        "probe.mbt",
+        28
+      ],
+      "matches_expected_declaration": true,
+      "contract_satisfied": true
+    },
+    {
+      "name": "default_call",
+      "query": "probe.mbt:31:35",
+      "command_index": 13,
+      "valid_json": true,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-g0-final-20260923/probe.mbt",
+          "range": "30:4-30:16"
+        }
+      ],
+      "expected_declaration": [
+        "probe.mbt",
+        30
+      ],
+      "matches_expected_declaration": true,
+      "contract_satisfied": true
+    },
+    {
+      "name": "error_call",
+      "query": "probe.mbt:35:9",
+      "command_index": 14,
+      "valid_json": true,
+      "response": {
+        "range": "35:9-35:25",
+        "contents": [
+          "```moonbit\nfn write_then_raise(box : Box) -> Unit raise Boom\n```"
+        ]
+      },
+      "expected_declaration": null,
+      "expected_display_text": "fn write_then_raise(box : Box) -> Unit raise Boom",
+      "matches_expected_display": true,
+      "contract_satisfied": true
+    },
+    {
+      "name": "aliased_actual_references",
+      "query": "probe.mbt:7:7",
+      "command_index": 15,
+      "valid_json": true,
+      "response": [
+        {
+          "path": "/tmp/moon-audit-g0-final-20260923/probe.mbt",
+          "range": "8:8-8:11",
+          "is_test": false
+        },
+        {
+          "path": "/tmp/moon-audit-g0-final-20260923/probe.mbt",
+          "range": "8:13-8:16",
+          "is_test": false
+        },
+        {
+          "path": "/tmp/moon-audit-g0-final-20260923/probe.mbt",
+          "range": "9:3-9:6",
+          "is_test": false
+        }
+      ],
+      "expected_declaration": null,
+      "matches_expected_references": true,
+      "contract_satisfied": true
+    }
+  ],
+  "compiler_check_passed": true,
+  "solver_input_ready": false,
+  "limits": [
+    "Fixture positions are authored, not discovered by a source frontend.",
+    "Definition locations are not complete runtime call targets.",
+    "No typed IR, CFG, heap effect, argument binding or error-edge export demonstrated.",
+    "No production scanner or core implementation is changed."
+  ],
+  "symbol_index": [
+    {
+      "kind": [
+        "Sym",
+        "Boom"
+      ],
+      "path": "probe.mbt",
+      "pkg": "review/frontend_contract",
+      "tag": "0x60",
+      "range": [
+        32,
+        1,
+        32,
+        23
+      ],
+      "name_range": [
+        32,
+        10,
+        32,
+        14
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "SymChild",
+        "Box",
+        "read"
+      ],
+      "path": "probe.mbt",
+      "pkg": "review/frontend_contract",
+      "tag": "0x1000",
+      "range": [
+        22,
+        1,
+        22,
+        50
+      ],
+      "name_range": [
+        22,
+        9,
+        22,
+        13
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "Sym",
+        "fallback"
+      ],
+      "path": "probe.mbt",
+      "pkg": "review/frontend_contract",
+      "tag": "0x1000",
+      "range": [
+        29,
+        1,
+        29,
+        39
+      ],
+      "name_range": [
+        29,
+        4,
+        29,
+        12
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "Sym",
+        "fill"
+      ],
+      "path": "probe.mbt",
+      "pkg": "review/frontend_contract",
+      "tag": "0x1000",
+      "range": [
+        2,
+        1,
+        5,
+        2
+      ],
+      "name_range": [
+        2,
+        4,
+        2,
+        8
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "Sym",
+        "generic_wrap"
+      ],
+      "path": "probe.mbt",
+      "pkg": "review/frontend_contract",
+      "tag": "0x1000",
+      "range": [
+        26,
+        1,
+        26,
+        68
+      ],
+      "name_range": [
+        26,
+        16,
+        26,
+        28
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "Sym",
+        "with_default"
+      ],
+      "path": "probe.mbt",
+      "pkg": "review/frontend_contract",
+      "tag": "0x1000",
+      "range": [
+        30,
+        1,
+        30,
+        66
+      ],
+      "name_range": [
+        30,
+        4,
+        30,
+        16
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "Sym",
+        "write_then_raise"
+      ],
+      "path": "probe.mbt",
+      "pkg": "review/frontend_contract",
+      "tag": "0x1000",
+      "range": [
+        33,
+        1,
+        33,
+        86
+      ],
+      "name_range": [
+        33,
+        4,
+        33,
+        20
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "TraitImpl",
+        "Render",
+        "render",
+        "Box"
+      ],
+      "path": "probe.mbt",
+      "pkg": "review/frontend_contract",
+      "tag": "0x4000",
+      "range": [
+        25,
+        1,
+        25,
+        66
+      ],
+      "name_range": [
+        25,
+        29,
+        25,
+        35
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "Sym",
+        "alias_case"
+      ],
+      "path": "probe.mbt",
+      "pkg": "review/frontend_contract",
+      "tag": "0x1001",
+      "range": [
+        6,
+        1,
+        10,
+        2
+      ],
+      "name_range": [
+        6,
+        8,
+        6,
+        18
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "Sym",
+        "callback_case"
+      ],
+      "path": "probe.mbt",
+      "pkg": "review/frontend_contract",
+      "tag": "0x1001",
+      "range": [
+        28,
+        1,
+        28,
+        84
+      ],
+      "name_range": [
+        28,
+        8,
+        28,
+        21
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "Sym",
+        "cross_package"
+      ],
+      "path": "probe.mbt",
+      "pkg": "review/frontend_contract",
+      "tag": "0x1001",
+      "range": [
+        18,
+        1,
+        21,
+        2
+      ],
+      "name_range": [
+        18,
+        8,
+        18,
+        21
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "Sym",
+        "default_case"
+      ],
+      "path": "probe.mbt",
+      "pkg": "review/frontend_contract",
+      "tag": "0x1001",
+      "range": [
+        31,
+        1,
+        31,
+        51
+      ],
+      "name_range": [
+        31,
+        8,
+        31,
+        20
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "Sym",
+        "error_case"
+      ],
+      "path": "probe.mbt",
+      "pkg": "review/frontend_contract",
+      "tag": "0x1001",
+      "range": [
+        34,
+        1,
+        36,
+        2
+      ],
+      "name_range": [
+        34,
+        8,
+        34,
+        18
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "Sym",
+        "generic_case"
+      ],
+      "path": "probe.mbt",
+      "pkg": "review/frontend_contract",
+      "tag": "0x1001",
+      "range": [
+        27,
+        1,
+        27,
+        63
+      ],
+      "name_range": [
+        27,
+        8,
+        27,
+        20
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "Sym",
+        "method_case"
+      ],
+      "path": "probe.mbt",
+      "pkg": "review/frontend_contract",
+      "tag": "0x1001",
+      "range": [
+        23,
+        1,
+        23,
+        55
+      ],
+      "name_range": [
+        23,
+        8,
+        23,
+        19
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "Sym",
+        "shadow_case"
+      ],
+      "path": "probe.mbt",
+      "pkg": "review/frontend_contract",
+      "tag": "0x1001",
+      "range": [
+        11,
+        1,
+        17,
+        2
+      ],
+      "name_range": [
+        11,
+        8,
+        11,
+        19
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "Sym",
+        "Box"
+      ],
+      "path": "probe.mbt",
+      "pkg": "review/frontend_contract",
+      "tag": "0x111",
+      "range": [
+        1,
+        1,
+        1,
+        38
+      ],
+      "name_range": [
+        1,
+        12,
+        1,
+        15
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "Sym",
+        "Render"
+      ],
+      "path": "probe.mbt",
+      "pkg": "review/frontend_contract",
+      "tag": "0x2000",
+      "range": [
+        24,
+        1,
+        24,
+        40
+      ],
+      "name_range": [
+        24,
+        7,
+        24,
+        13
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "Sym",
+        "choose"
+      ],
+      "path": "left/lib.mbt",
+      "pkg": "review/frontend_contract/left",
+      "tag": "0x1001",
+      "range": [
+        1,
+        1,
+        1,
+        50
+      ],
+      "name_range": [
+        1,
+        8,
+        1,
+        14
+      ],
+      "doc_range": null
+    },
+    {
+      "kind": [
+        "Sym",
+        "choose"
+      ],
+      "path": "right/lib.mbt",
+      "pkg": "review/frontend_contract/right",
+      "tag": "0x1001",
+      "range": [
+        1,
+        1,
+        1,
+        66
+      ],
+      "name_range": [
+        1,
+        8,
+        1,
+        14
+      ],
+      "doc_range": null
+    }
+  ],
+  "symbol_index_limits": {
+    "observed_keys": [
+      "doc_range",
+      "kind",
+      "name_range",
+      "path",
+      "pkg",
+      "range",
+      "tag"
+    ],
+    "tag_is_not_unique": true,
+    "only_current_package_indexed": false
+  },
+  "source_unchanged": true,
+  "lookup_checks_passed": false,
+  "producer_sha256": "206bf3ad0276e91a8ef18be6cb81e4d5f3d89f5e249141d5c7ba6479dec124d1"
+}

@@ -1,0 +1,25 @@
+///|
+pub fn raw(markdown : String) -> String raise {
+  @cmark_html.render(safe=false, markdown)
+}
+
+///|
+pub fn safe(markdown : String) -> String raise {
+  @cmark_html.render(safe=true, markdown)
+}
+
+///|
+pub fn default_safe(markdown : String) -> String raise {
+  @cmark_html.render(markdown)
+}
+
+///|
+fn render(safe~ : Bool, markdown : String) -> String {
+  ignore(safe)
+  markdown
+}
+
+///|
+pub fn unrelated(markdown : String) -> String {
+  render(safe=false, markdown)
+}

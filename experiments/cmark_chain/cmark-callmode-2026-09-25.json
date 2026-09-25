@@ -1,0 +1,703 @@
+{
+  "schema": "moon-audit.cmark-callmode.v1",
+  "production_ready": false,
+  "commands": [
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/toolchain/bin/moon",
+        "version",
+        "--all"
+      ],
+      "exit_code": 0,
+      "stdout": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg\n",
+      "stderr": "",
+      "seconds": 0.0428
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/toolchain/bin/moon",
+        "check",
+        "--frozen",
+        "--target",
+        "native",
+        "--diagnostic-limit",
+        "5"
+      ],
+      "exit_code": 255,
+      "stdout": "",
+      "stderr": "Error: [4122]\n   ╭─[ /tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt:2:3 ]\n   │\n 2 │   @cmark_html.render!(safe=false, markdown)\n   │   ────────────────────┬────────────────────  \n   │                       ╰────────────────────── Function with error can only be used inside a function with error types in its signature. Please fix the return type of this function.\n───╯\nError: [3002]\n   ╭─[ /tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt:2:21 ]\n   │\n 2 │   @cmark_html.render!(safe=false, markdown)\n   │                     ┬  \n   │                     ╰── Parse error, unexpected `f!(..)`, you may expect `f(..)`.\n───╯\nError: [4122]\n   ╭─[ /tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt:6:43 ]\n   │\n 6 │   let run : (String) -> String = input => @cmark_html.render!(safe=false, input)\n   │                                           ───────────────────┬──────────────────  \n   │                                                              ╰──────────────────── Function with error can only be used inside a function with error types in its signature. For anonymous functions, use `fn () raise { ... }` instead of `fn` to declare the function with an error type.\n───╯\nError: [3002]\n   ╭─[ /tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt:6:61 ]\n   │\n 6 │   let run : (String) -> String = input => @cmark_html.render!(safe=false, input)\n   │                                                             ┬  \n   │                                                             ╰── Parse error, unexpected `f!(..)`, you may expect `f(..)`.\n───╯\nFailed with 0 warnings, 4 errors.\nError: failed to run check for target Native\n\nCaused by:\n    failed when checking project\n",
+      "seconds": 0.7179
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/toolchain/bin/moon",
+        "check",
+        "--frozen",
+        "--target",
+        "native",
+        "--diagnostic-limit",
+        "3"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Finished. moon: ran 3 tasks, now up to date\n",
+      "seconds": 0.1852
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/toolchain/bin/moon",
+        "test",
+        "--frozen",
+        "--target",
+        "native",
+        "probe_wbtest.mbt",
+        "--diagnostic-limit",
+        "3"
+      ],
+      "exit_code": 0,
+      "stdout": "Total tests: 2, passed: 2, failed: 0.\n",
+      "stderr": "",
+      "seconds": 2.397
+    },
+    {
+      "command": [
+        "/data/my/moon-audit/_build/native/debug/build/src/frontend_export/frontend_export.exe",
+        "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt"
+      ],
+      "exit_code": 0,
+      "stdout": "[{\"kind\":\"Impl::TopFuncDef\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":1},\"end\":{\"line\":3,\"column\":2}},\"children\":{\"fun_decl\":{\"kind\":\"FunDecl\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":1},\"end\":{\"line\":1,\"column\":45}},\"children\":{\"type_name\":null,\"name\":{\"kind\":\"Binder\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":8},\"end\":{\"line\":1,\"column\":16}},\"children\":{\"name\":\"try_bang\"}},\"has_error\":null,\"is_async\":null,\"decl_params\":{\"kind\":\"FunDecl::ParameterList\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":16},\"end\":{\"line\":1,\"column\":35}},\"children\":[{\"kind\":\"Parameter::Positional\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":17},\"end\":{\"line\":1,\"column\":34}},\"children\":{\"binder\":{\"kind\":\"Binder\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":17},\"end\":{\"line\":1,\"column\":25}},\"children\":{\"name\":\"markdown\"}},\"ty\":{\"kind\":\"Type::Name\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":28},\"end\":{\"line\":1,\"column\":34}},\"children\":{\"constr_id\":{\"kind\":\"ConstrId\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":28},\"end\":{\"line\":1,\"column\":34}},\"children\":{\"id\":{\"kind\":\"LongIdent::Ident\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":28},\"end\":{\"line\":1,\"column\":34}},\"children\":{\"value\":\"String\"}}}},\"tys\":{\"kind\":\"Type::Name::TypeList\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":28},\"end\":{\"line\":1,\"column\":34}},\"children\":[]}}}}}]},\"quantifiers\":{\"kind\":\"FunDecl::QuantifierList\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":16},\"end\":{\"line\":1,\"column\":35}},\"children\":[]},\"return_type\":{\"kind\":\"Type::Name\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":39},\"end\":{\"line\":1,\"column\":45}},\"children\":{\"constr_id\":{\"kind\":\"ConstrId\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":39},\"end\":{\"line\":1,\"column\":45}},\"children\":{\"id\":{\"kind\":\"LongIdent::Ident\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":39},\"end\":{\"line\":1,\"column\":45}},\"children\":{\"value\":\"String\"}}}},\"tys\":{\"kind\":\"Type::Name::TypeList\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":39},\"end\":{\"line\":1,\"column\":45}},\"children\":[]}}},\"error_type\":{\"kind\":\"ErrorType::NoErrorType\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":1},\"end\":{\"line\":1,\"column\":45}},\"children\":{}},\"vis\":{\"kind\":\"Visibility::Pub\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":1},\"end\":{\"line\":1,\"column\":4}},\"children\":{\"attr\":null}},\"attrs\":{\"kind\":\"FunDecl::AttrList\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":16},\"end\":{\"line\":1,\"column\":35}},\"children\":[]},\"doc\":\"\"}},\"where_clause\":null,\"decl_body\":{\"kind\":\"DeclBody::DeclBody\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":1,\"column\":1},\"end\":{\"line\":3,\"column\":2}},\"children\":{\"expr\":{\"kind\":\"Expr::TryOperator\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":2,\"column\":3},\"end\":{\"line\":2,\"column\":48}},\"children\":{\"body\":{\"kind\":\"Expr::Apply\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":2,\"column\":8},\"end\":{\"line\":2,\"column\":48}},\"children\":{\"func\":{\"kind\":\"Expr::Ident\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":2,\"column\":8},\"end\":{\"line\":2,\"column\":26}},\"children\":{\"id\":{\"kind\":\"Var\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":2,\"column\":8},\"end\":{\"line\":2,\"column\":26}},\"children\":{\"name\":{\"kind\":\"LongIdent::Dot\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":2,\"column\":8},\"end\":{\"line\":2,\"column\":26}},\"children\":{\"pkg\":\"cmark_html\",\"id\":\"render\"}}}}}},\"args\":{\"kind\":\"Expr::Apply::ArgumentList\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":2,\"column\":8},\"end\":{\"line\":2,\"column\":48}},\"children\":[{\"kind\":\"Argument\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":2,\"column\":32},\"end\":{\"line\":2,\"column\":37}},\"children\":{\"value\":{\"kind\":\"Expr::Constant\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":2,\"column\":32},\"end\":{\"line\":2,\"column\":37}},\"children\":{\"constant\":{\"kind\":\"Constant::Bool\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":2,\"column\":32},\"end\":{\"line\":2,\"column\":37}},\"children\":{\"value\":false}}}},\"kind\":{\"kind\":\"ArgumentKind::Labelled\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":2,\"column\":27},\"end\":{\"line\":2,\"column\":31}},\"children\":{\"value\":{\"kind\":\"Label\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":2,\"column\":27},\"end\":{\"line\":2,\"column\":31}},\"children\":{\"name\":\"safe\"}}}}}},{\"kind\":\"Argument\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":2,\"column\":39},\"end\":{\"line\":2,\"column\":47}},\"children\":{\"value\":{\"kind\":\"Expr::Ident\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":2,\"column\":39},\"end\":{\"line\":2,\"column\":47}},\"children\":{\"id\":{\"kind\":\"Var\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":2,\"column\":39},\"end\":{\"line\":2,\"column\":47}},\"children\":{\"name\":{\"kind\":\"LongIdent::Ident\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":2,\"column\":39},\"end\":{\"line\":2,\"column\":47}},\"children\":{\"value\":\"markdown\"}}}}}},\"kind\":{\"kind\":\"ArgumentKind::Positional\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":2,\"column\":39},\"end\":{\"line\":2,\"column\":47}},\"children\":{}}}}]},\"attr\":{\"kind\":\"ApplyAttr::NoAttr\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":2,\"column\":8},\"end\":{\"line\":2,\"column\":48}},\"children\":{}}}},\"kind\":{\"kind\":\"TryOperatorKind::Exclamation\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":2,\"column\":3},\"end\":{\"line\":2,\"column\":48}},\"children\":{}}}}}}}},{\"kind\":\"Impl::TopFuncDef\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":1},\"end\":{\"line\":8,\"column\":2}},\"children\":{\"fun_decl\":{\"kind\":\"FunDecl\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":1},\"end\":{\"line\":5,\"column\":45}},\"children\":{\"type_name\":null,\"name\":{\"kind\":\"Binder\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":8},\"end\":{\"line\":5,\"column\":16}},\"children\":{\"name\":\"callback\"}},\"has_error\":null,\"is_async\":null,\"decl_params\":{\"kind\":\"FunDecl::ParameterList\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":16},\"end\":{\"line\":5,\"column\":35}},\"children\":[{\"kind\":\"Parameter::Positional\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":17},\"end\":{\"line\":5,\"column\":34}},\"children\":{\"binder\":{\"kind\":\"Binder\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":17},\"end\":{\"line\":5,\"column\":25}},\"children\":{\"name\":\"markdown\"}},\"ty\":{\"kind\":\"Type::Name\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":28},\"end\":{\"line\":5,\"column\":34}},\"children\":{\"constr_id\":{\"kind\":\"ConstrId\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":28},\"end\":{\"line\":5,\"column\":34}},\"children\":{\"id\":{\"kind\":\"LongIdent::Ident\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":28},\"end\":{\"line\":5,\"column\":34}},\"children\":{\"value\":\"String\"}}}},\"tys\":{\"kind\":\"Type::Name::TypeList\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":28},\"end\":{\"line\":5,\"column\":34}},\"children\":[]}}}}}]},\"quantifiers\":{\"kind\":\"FunDecl::QuantifierList\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":16},\"end\":{\"line\":5,\"column\":35}},\"children\":[]},\"return_type\":{\"kind\":\"Type::Name\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":39},\"end\":{\"line\":5,\"column\":45}},\"children\":{\"constr_id\":{\"kind\":\"ConstrId\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":39},\"end\":{\"line\":5,\"column\":45}},\"children\":{\"id\":{\"kind\":\"LongIdent::Ident\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":39},\"end\":{\"line\":5,\"column\":45}},\"children\":{\"value\":\"String\"}}}},\"tys\":{\"kind\":\"Type::Name::TypeList\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":39},\"end\":{\"line\":5,\"column\":45}},\"children\":[]}}},\"error_type\":{\"kind\":\"ErrorType::NoErrorType\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":1},\"end\":{\"line\":5,\"column\":45}},\"children\":{}},\"vis\":{\"kind\":\"Visibility::Pub\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":1},\"end\":{\"line\":5,\"column\":4}},\"children\":{\"attr\":null}},\"attrs\":{\"kind\":\"FunDecl::AttrList\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":16},\"end\":{\"line\":5,\"column\":35}},\"children\":[]},\"doc\":\"\"}},\"where_clause\":null,\"decl_body\":{\"kind\":\"DeclBody::DeclBody\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":5,\"column\":1},\"end\":{\"line\":8,\"column\":2}},\"children\":{\"expr\":{\"kind\":\"Expr::Let\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":3},\"end\":{\"line\":7,\"column\":16}},\"children\":{\"pattern\":{\"kind\":\"Pattern::Constraint\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":7},\"end\":{\"line\":6,\"column\":31}},\"children\":{\"pat\":{\"kind\":\"Pattern::Var\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":7},\"end\":{\"line\":6,\"column\":10}},\"children\":{\"value\":{\"kind\":\"Binder\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":7},\"end\":{\"line\":6,\"column\":10}},\"children\":{\"name\":\"run\"}}}},\"ty\":{\"kind\":\"Type::Arrow\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":13},\"end\":{\"line\":6,\"column\":31}},\"children\":{\"args\":{\"kind\":\"Type::Arrow::ArgList\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":13},\"end\":{\"line\":6,\"column\":31}},\"children\":[{\"kind\":\"Type::Name\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":14},\"end\":{\"line\":6,\"column\":20}},\"children\":{\"constr_id\":{\"kind\":\"ConstrId\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":14},\"end\":{\"line\":6,\"column\":20}},\"children\":{\"id\":{\"kind\":\"LongIdent::Ident\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":14},\"end\":{\"line\":6,\"column\":20}},\"children\":{\"value\":\"String\"}}}},\"tys\":{\"kind\":\"Type::Name::TypeList\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":14},\"end\":{\"line\":6,\"column\":20}},\"children\":[]}}}]},\"res\":{\"kind\":\"Type::Name\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":25},\"end\":{\"line\":6,\"column\":31}},\"children\":{\"constr_id\":{\"kind\":\"ConstrId\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":25},\"end\":{\"line\":6,\"column\":31}},\"children\":{\"id\":{\"kind\":\"LongIdent::Ident\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":25},\"end\":{\"line\":6,\"column\":31}},\"children\":{\"value\":\"String\"}}}},\"tys\":{\"kind\":\"Type::Name::TypeList\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":25},\"end\":{\"line\":6,\"column\":31}},\"children\":[]}}},\"err\":{\"kind\":\"ErrorType::NoErrorType\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":13},\"end\":{\"line\":6,\"column\":31}},\"children\":{}},\"is_async\":null,\"nocancel\":null}}}},\"expr\":{\"kind\":\"Expr::Function\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":34},\"end\":{\"line\":6,\"column\":85}},\"children\":{\"func\":{\"kind\":\"Func::Lambda\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":34},\"end\":{\"line\":6,\"column\":85}},\"children\":{\"parameters\":{\"kind\":\"Func::Lambda::ParameterList\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":34},\"end\":{\"line\":6,\"column\":39}},\"children\":[{\"kind\":\"Parameter::Positional\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":34},\"end\":{\"line\":6,\"column\":39}},\"children\":{\"binder\":{\"kind\":\"Binder\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":34},\"end\":{\"line\":6,\"column\":39}},\"children\":{\"name\":\"input\"}},\"ty\":null}}]},\"body\":{\"kind\":\"Expr::TryOperator\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":43},\"end\":{\"line\":6,\"column\":85}},\"children\":{\"body\":{\"kind\":\"Expr::Apply\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":48},\"end\":{\"line\":6,\"column\":85}},\"children\":{\"func\":{\"kind\":\"Expr::Ident\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":48},\"end\":{\"line\":6,\"column\":66}},\"children\":{\"id\":{\"kind\":\"Var\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":48},\"end\":{\"line\":6,\"column\":66}},\"children\":{\"name\":{\"kind\":\"LongIdent::Dot\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":48},\"end\":{\"line\":6,\"column\":66}},\"children\":{\"pkg\":\"cmark_html\",\"id\":\"render\"}}}}}},\"args\":{\"kind\":\"Expr::Apply::ArgumentList\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":48},\"end\":{\"line\":6,\"column\":85}},\"children\":[{\"kind\":\"Argument\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":72},\"end\":{\"line\":6,\"column\":77}},\"children\":{\"value\":{\"kind\":\"Expr::Constant\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":72},\"end\":{\"line\":6,\"column\":77}},\"children\":{\"constant\":{\"kind\":\"Constant::Bool\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":72},\"end\":{\"line\":6,\"column\":77}},\"children\":{\"value\":false}}}},\"kind\":{\"kind\":\"ArgumentKind::Labelled\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":67},\"end\":{\"line\":6,\"column\":71}},\"children\":{\"value\":{\"kind\":\"Label\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":67},\"end\":{\"line\":6,\"column\":71}},\"children\":{\"name\":\"safe\"}}}}}},{\"kind\":\"Argument\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":79},\"end\":{\"line\":6,\"column\":84}},\"children\":{\"value\":{\"kind\":\"Expr::Ident\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":79},\"end\":{\"line\":6,\"column\":84}},\"children\":{\"id\":{\"kind\":\"Var\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":79},\"end\":{\"line\":6,\"column\":84}},\"children\":{\"name\":{\"kind\":\"LongIdent::Ident\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":79},\"end\":{\"line\":6,\"column\":84}},\"children\":{\"value\":\"input\"}}}}}},\"kind\":{\"kind\":\"ArgumentKind::Positional\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":79},\"end\":{\"line\":6,\"column\":84}},\"children\":{}}}}]},\"attr\":{\"kind\":\"ApplyAttr::NoAttr\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":48},\"end\":{\"line\":6,\"column\":85}},\"children\":{}}}},\"kind\":{\"kind\":\"TryOperatorKind::Exclamation\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":43},\"end\":{\"line\":6,\"column\":85}},\"children\":{}}}},\"return_type\":null,\"error_type\":{\"kind\":\"ErrorType::NoErrorType\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":34},\"end\":{\"line\":6,\"column\":85}},\"children\":{}},\"nocancel\":null,\"kind\":{\"kind\":\"FnKind::Arrow\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":6,\"column\":34},\"end\":{\"line\":6,\"column\":85}},\"children\":{}},\"has_error\":null,\"is_async\":null}}}},\"body\":{\"kind\":\"Expr::Apply\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":7,\"column\":3},\"end\":{\"line\":7,\"column\":16}},\"children\":{\"func\":{\"kind\":\"Expr::Ident\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":7,\"column\":3},\"end\":{\"line\":7,\"column\":6}},\"children\":{\"id\":{\"kind\":\"Var\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":7,\"column\":3},\"end\":{\"line\":7,\"column\":6}},\"children\":{\"name\":{\"kind\":\"LongIdent::Ident\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":7,\"column\":3},\"end\":{\"line\":7,\"column\":6}},\"children\":{\"value\":\"run\"}}}}}},\"args\":{\"kind\":\"Expr::Apply::ArgumentList\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":7,\"column\":3},\"end\":{\"line\":7,\"column\":16}},\"children\":[{\"kind\":\"Argument\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":7,\"column\":7},\"end\":{\"line\":7,\"column\":15}},\"children\":{\"value\":{\"kind\":\"Expr::Ident\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":7,\"column\":7},\"end\":{\"line\":7,\"column\":15}},\"children\":{\"id\":{\"kind\":\"Var\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":7,\"column\":7},\"end\":{\"line\":7,\"column\":15}},\"children\":{\"name\":{\"kind\":\"LongIdent::Ident\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":7,\"column\":7},\"end\":{\"line\":7,\"column\":15}},\"children\":{\"value\":\"markdown\"}}}}}},\"kind\":{\"kind\":\"ArgumentKind::Positional\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":7,\"column\":7},\"end\":{\"line\":7,\"column\":15}},\"children\":{}}}}]},\"attr\":{\"kind\":\"ApplyAttr::NoAttr\",\"loc\":{\"file\":\"/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt\",\"start\":{\"line\":7,\"column\":3},\"end\":{\"line\":7,\"column\":16}},\"children\":{}}}}}}}}}}]\n",
+      "stderr": "",
+      "seconds": 0.0071
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/toolchain/bin/moon",
+        "check",
+        "--frozen",
+        "--target",
+        "native",
+        "abort_case",
+        "--diagnostic-limit",
+        "3"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Finished. moon: ran 2 tasks, now up to date\n",
+      "seconds": 0.1224
+    },
+    {
+      "command": [
+        "/tmp/moon-audit-upgrade-20260922/toolchain/bin/moon",
+        "run",
+        "--frozen",
+        "--target",
+        "native",
+        "abort_case"
+      ],
+      "exit_code": 134,
+      "stdout": "BEFORE_TRY\n",
+      "stderr": "PanicError\n    at moonbit_main (/tmp/moon-audit-cmark-callmode-xfv5scz8/abort_case/main.mbt:7)\n    at main (/tmp/moon-audit-cmark-callmode-xfv5scz8/abort_case/main.mbt:7)\n    at __libc_start_call_main (../sysdeps/nptl/libc_start_call_main.h:58)\n    at __libc_start_main_impl (../csu/libc-start.c:392)\n    at ??? (???:0)\n",
+      "seconds": 0.6303
+    }
+  ],
+  "source_fingerprint": "7b615bb63630907c5febae1ab012d6c841d8d46de6f0d85c48ee404d87301d85",
+  "exporter_sha256": "ba1fc7b8dcf04644f447c1c390ab448454b0ace7bf654828204f9f5c3ff18c7f",
+  "fixture_sha256": {
+    "callmode_valid.mbt.txt": "80e0b6bc571d9b923c130e63d94a7e60760e10dafa9fae2c9efb0e4adbb612c6",
+    "callmode_legacy.mbt.txt": "47628036097b19930db017813dae8b94250ee5b25530ba1e73b00553f21e10fc",
+    "callmode_test.mbt.txt": "c7eb33ced61125f123af2dbd791e8581aacb3739a0e8bb7843e662709980ab62",
+    "callmode_abort.mbt.txt": "d60297b34e188c0c901224754037750bbcf90b5669c38b395cd5fdc9585b40ef"
+  },
+  "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg\n",
+  "legacy_render_bang_rejected": true,
+  "try_bang_compiles_and_runs": true,
+  "try_operator_nodes": [
+    {
+      "kind": "Expr::TryOperator",
+      "loc": {
+        "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+        "start": {
+          "line": 2,
+          "column": 3
+        },
+        "end": {
+          "line": 2,
+          "column": 48
+        }
+      },
+      "children": {
+        "body": {
+          "kind": "Expr::Apply",
+          "loc": {
+            "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+            "start": {
+              "line": 2,
+              "column": 8
+            },
+            "end": {
+              "line": 2,
+              "column": 48
+            }
+          },
+          "children": {
+            "func": {
+              "kind": "Expr::Ident",
+              "loc": {
+                "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                "start": {
+                  "line": 2,
+                  "column": 8
+                },
+                "end": {
+                  "line": 2,
+                  "column": 26
+                }
+              },
+              "children": {
+                "id": {
+                  "kind": "Var",
+                  "loc": {
+                    "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                    "start": {
+                      "line": 2,
+                      "column": 8
+                    },
+                    "end": {
+                      "line": 2,
+                      "column": 26
+                    }
+                  },
+                  "children": {
+                    "name": {
+                      "kind": "LongIdent::Dot",
+                      "loc": {
+                        "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                        "start": {
+                          "line": 2,
+                          "column": 8
+                        },
+                        "end": {
+                          "line": 2,
+                          "column": 26
+                        }
+                      },
+                      "children": {
+                        "pkg": "cmark_html",
+                        "id": "render"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "args": {
+              "kind": "Expr::Apply::ArgumentList",
+              "loc": {
+                "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                "start": {
+                  "line": 2,
+                  "column": 8
+                },
+                "end": {
+                  "line": 2,
+                  "column": 48
+                }
+              },
+              "children": [
+                {
+                  "kind": "Argument",
+                  "loc": {
+                    "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                    "start": {
+                      "line": 2,
+                      "column": 32
+                    },
+                    "end": {
+                      "line": 2,
+                      "column": 37
+                    }
+                  },
+                  "children": {
+                    "value": {
+                      "kind": "Expr::Constant",
+                      "loc": {
+                        "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                        "start": {
+                          "line": 2,
+                          "column": 32
+                        },
+                        "end": {
+                          "line": 2,
+                          "column": 37
+                        }
+                      },
+                      "children": {
+                        "constant": {
+                          "kind": "Constant::Bool",
+                          "loc": {
+                            "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                            "start": {
+                              "line": 2,
+                              "column": 32
+                            },
+                            "end": {
+                              "line": 2,
+                              "column": 37
+                            }
+                          },
+                          "children": {
+                            "value": false
+                          }
+                        }
+                      }
+                    },
+                    "kind": {
+                      "kind": "ArgumentKind::Labelled",
+                      "loc": {
+                        "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                        "start": {
+                          "line": 2,
+                          "column": 27
+                        },
+                        "end": {
+                          "line": 2,
+                          "column": 31
+                        }
+                      },
+                      "children": {
+                        "value": {
+                          "kind": "Label",
+                          "loc": {
+                            "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                            "start": {
+                              "line": 2,
+                              "column": 27
+                            },
+                            "end": {
+                              "line": 2,
+                              "column": 31
+                            }
+                          },
+                          "children": {
+                            "name": "safe"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "kind": "Argument",
+                  "loc": {
+                    "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                    "start": {
+                      "line": 2,
+                      "column": 39
+                    },
+                    "end": {
+                      "line": 2,
+                      "column": 47
+                    }
+                  },
+                  "children": {
+                    "value": {
+                      "kind": "Expr::Ident",
+                      "loc": {
+                        "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                        "start": {
+                          "line": 2,
+                          "column": 39
+                        },
+                        "end": {
+                          "line": 2,
+                          "column": 47
+                        }
+                      },
+                      "children": {
+                        "id": {
+                          "kind": "Var",
+                          "loc": {
+                            "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                            "start": {
+                              "line": 2,
+                              "column": 39
+                            },
+                            "end": {
+                              "line": 2,
+                              "column": 47
+                            }
+                          },
+                          "children": {
+                            "name": {
+                              "kind": "LongIdent::Ident",
+                              "loc": {
+                                "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                                "start": {
+                                  "line": 2,
+                                  "column": 39
+                                },
+                                "end": {
+                                  "line": 2,
+                                  "column": 47
+                                }
+                              },
+                              "children": {
+                                "value": "markdown"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "kind": {
+                      "kind": "ArgumentKind::Positional",
+                      "loc": {
+                        "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                        "start": {
+                          "line": 2,
+                          "column": 39
+                        },
+                        "end": {
+                          "line": 2,
+                          "column": 47
+                        }
+                      },
+                      "children": {}
+                    }
+                  }
+                }
+              ]
+            },
+            "attr": {
+              "kind": "ApplyAttr::NoAttr",
+              "loc": {
+                "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                "start": {
+                  "line": 2,
+                  "column": 8
+                },
+                "end": {
+                  "line": 2,
+                  "column": 48
+                }
+              },
+              "children": {}
+            }
+          }
+        },
+        "kind": {
+          "kind": "TryOperatorKind::Exclamation",
+          "loc": {
+            "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+            "start": {
+              "line": 2,
+              "column": 3
+            },
+            "end": {
+              "line": 2,
+              "column": 48
+            }
+          },
+          "children": {}
+        }
+      }
+    },
+    {
+      "kind": "Expr::TryOperator",
+      "loc": {
+        "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+        "start": {
+          "line": 6,
+          "column": 43
+        },
+        "end": {
+          "line": 6,
+          "column": 85
+        }
+      },
+      "children": {
+        "body": {
+          "kind": "Expr::Apply",
+          "loc": {
+            "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+            "start": {
+              "line": 6,
+              "column": 48
+            },
+            "end": {
+              "line": 6,
+              "column": 85
+            }
+          },
+          "children": {
+            "func": {
+              "kind": "Expr::Ident",
+              "loc": {
+                "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                "start": {
+                  "line": 6,
+                  "column": 48
+                },
+                "end": {
+                  "line": 6,
+                  "column": 66
+                }
+              },
+              "children": {
+                "id": {
+                  "kind": "Var",
+                  "loc": {
+                    "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                    "start": {
+                      "line": 6,
+                      "column": 48
+                    },
+                    "end": {
+                      "line": 6,
+                      "column": 66
+                    }
+                  },
+                  "children": {
+                    "name": {
+                      "kind": "LongIdent::Dot",
+                      "loc": {
+                        "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                        "start": {
+                          "line": 6,
+                          "column": 48
+                        },
+                        "end": {
+                          "line": 6,
+                          "column": 66
+                        }
+                      },
+                      "children": {
+                        "pkg": "cmark_html",
+                        "id": "render"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "args": {
+              "kind": "Expr::Apply::ArgumentList",
+              "loc": {
+                "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                "start": {
+                  "line": 6,
+                  "column": 48
+                },
+                "end": {
+                  "line": 6,
+                  "column": 85
+                }
+              },
+              "children": [
+                {
+                  "kind": "Argument",
+                  "loc": {
+                    "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                    "start": {
+                      "line": 6,
+                      "column": 72
+                    },
+                    "end": {
+                      "line": 6,
+                      "column": 77
+                    }
+                  },
+                  "children": {
+                    "value": {
+                      "kind": "Expr::Constant",
+                      "loc": {
+                        "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                        "start": {
+                          "line": 6,
+                          "column": 72
+                        },
+                        "end": {
+                          "line": 6,
+                          "column": 77
+                        }
+                      },
+                      "children": {
+                        "constant": {
+                          "kind": "Constant::Bool",
+                          "loc": {
+                            "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                            "start": {
+                              "line": 6,
+                              "column": 72
+                            },
+                            "end": {
+                              "line": 6,
+                              "column": 77
+                            }
+                          },
+                          "children": {
+                            "value": false
+                          }
+                        }
+                      }
+                    },
+                    "kind": {
+                      "kind": "ArgumentKind::Labelled",
+                      "loc": {
+                        "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                        "start": {
+                          "line": 6,
+                          "column": 67
+                        },
+                        "end": {
+                          "line": 6,
+                          "column": 71
+                        }
+                      },
+                      "children": {
+                        "value": {
+                          "kind": "Label",
+                          "loc": {
+                            "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                            "start": {
+                              "line": 6,
+                              "column": 67
+                            },
+                            "end": {
+                              "line": 6,
+                              "column": 71
+                            }
+                          },
+                          "children": {
+                            "name": "safe"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "kind": "Argument",
+                  "loc": {
+                    "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                    "start": {
+                      "line": 6,
+                      "column": 79
+                    },
+                    "end": {
+                      "line": 6,
+                      "column": 84
+                    }
+                  },
+                  "children": {
+                    "value": {
+                      "kind": "Expr::Ident",
+                      "loc": {
+                        "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                        "start": {
+                          "line": 6,
+                          "column": 79
+                        },
+                        "end": {
+                          "line": 6,
+                          "column": 84
+                        }
+                      },
+                      "children": {
+                        "id": {
+                          "kind": "Var",
+                          "loc": {
+                            "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                            "start": {
+                              "line": 6,
+                              "column": 79
+                            },
+                            "end": {
+                              "line": 6,
+                              "column": 84
+                            }
+                          },
+                          "children": {
+                            "name": {
+                              "kind": "LongIdent::Ident",
+                              "loc": {
+                                "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                                "start": {
+                                  "line": 6,
+                                  "column": 79
+                                },
+                                "end": {
+                                  "line": 6,
+                                  "column": 84
+                                }
+                              },
+                              "children": {
+                                "value": "input"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "kind": {
+                      "kind": "ArgumentKind::Positional",
+                      "loc": {
+                        "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                        "start": {
+                          "line": 6,
+                          "column": 79
+                        },
+                        "end": {
+                          "line": 6,
+                          "column": 84
+                        }
+                      },
+                      "children": {}
+                    }
+                  }
+                }
+              ]
+            },
+            "attr": {
+              "kind": "ApplyAttr::NoAttr",
+              "loc": {
+                "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+                "start": {
+                  "line": 6,
+                  "column": 48
+                },
+                "end": {
+                  "line": 6,
+                  "column": 85
+                }
+              },
+              "children": {}
+            }
+          }
+        },
+        "kind": {
+          "kind": "TryOperatorKind::Exclamation",
+          "loc": {
+            "file": "/tmp/moon-audit-cmark-callmode-xfv5scz8/probe.mbt",
+            "start": {
+              "line": 6,
+              "column": 43
+            },
+            "end": {
+              "line": 6,
+              "column": 85
+            }
+          },
+          "children": {}
+        }
+      }
+    }
+  ],
+  "expected_ast_verified": true,
+  "try_bang_error_terminates": true,
+  "status": "verified",
+  "limits": [
+    "Error termination uses a controlled raising helper; no failing cmark input is claimed.",
+    "This probes nonraising callbacks, not mocket registration or production lowering."
+  ]
+}

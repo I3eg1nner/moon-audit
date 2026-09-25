@@ -1,6 +1,8 @@
-# TODO（live checklist）— IR 演进
+# 旧 IR 演进 TODO（历史记录）
 
-> 规则：完成一项勾一项并把证据（数字/commit）写到 CONTEXT.md；发现新事实先更新 RESEARCH.md 再动方案。
+> 历史归档（2026-09-25）：本清单描述已删减的旧 IR/污点引擎，原勾选状态不能代表当前生产能力。当前唯一执行清单见 [根目录 TODO](../../TODO.md)。
+
+> 旧规则：完成一项勾一项并把证据（数字/commit）写到 CONTEXT.md；发现新事实先更新 RESEARCH.md 再动方案。
 
 ## Phase R：调研（2026-09-03 完成）
 - [x] mooncakes 全量 registry 扫描（2,328 包）：无 IR/分析类工具

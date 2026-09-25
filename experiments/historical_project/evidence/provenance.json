@@ -1,0 +1,16 @@
+{
+  "observed_date": "2026-09-25",
+  "project_commit_api": "https://api.github.com/repos/moonbitlang/quickcheck/commits/04e4d54c0b3cb5a53f2c2530f7eadf546a903f60",
+  "toolchain_release_api": "https://api.github.com/repos/chawyehsu/moonbit-binaries/releases/tags/v0.6.30%2B07d9d2445",
+  "toolchain_release_published_at": "2025-10-31T08:16:32Z",
+  "mirror_description": "Archives original MoonBit toolchains; core is repacked to zip by archive service",
+  "independent_index_url": "https://raw.githubusercontent.com/moonbit-community/moonbit-overlay/master/versions/toolchains/v0.6.30+07d9d2445.json",
+  "independent_index_linux_sha256_sri": "sha256-yLGzna7bZNP6VTZK6vwtfnTQFWRGixpxRcM2l0LmRxs=",
+  "independent_index_linux_sha256": "c8b1b39daedb64d3fa55364aeafc2d7e74d01564468b1a7145c3369742e6471b",
+  "old_official_endpoint": {
+    "url": "https://cli.moonbitlang.com/binaries/0.6.30%2B07d9d2445/moonbit-linux-x86_64.tar.gz",
+    "observed_http_status": 403,
+    "interpretation": "Unavailable to this session; not proof archive never existed"
+  },
+  "original_archive_sha256": "c8b1b39daedb64d3fa55364aeafc2d7e74d01564468b1a7145c3369742e6471b"
+}

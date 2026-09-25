@@ -4,100 +4,28 @@ package "minie135/moon-audit/src"
 import {
   "moonbitlang/core/debug",
   "moonbitlang/core/list",
-  "moonbitlang/core/ref",
-  "moonbitlang/moon_config",
-  "moonbitlang/parser/mbti_ast",
+  "moonbitlang/lexer/basic",
   "moonbitlang/parser/syntax",
 }
 
 // Values
-pub const ANALYZER_VERSION : String = "0.4.0"
+pub const ANALYZER_VERSION : String = "0.5.0-dev"
 
-pub const PARSER_SPEC_VERSION : String = "0.3.18"
+pub const PARSER_POLICY_VERSION : String = "handrolled-moonyacc-interpolation-v2"
 
-pub const PARSER_VERSION_KEY : String = "moonbitlang/parser@0.3.18"
-
-pub fn analysis_cache_key(String, String) -> String
+pub const PARSER_SPEC_VERSION : String = "0.4.0"
 
 pub fn analyze_imports(String) -> ImportContext
 
 pub fn analyze_mod_imports(String) -> ImportContext
 
-pub fn append_ruleset(TaintRuleset, TaintRuleset, String, Array[String]) -> Unit
-
-pub fn build_block_ir(String, @syntax.Expr, rules? : TaintRuleset) -> BlockIr
-
-pub fn build_ledger(BaselineDiff, Map[String, String]) -> Array[RuleLedger]
-
-pub fn build_summary(ScanResult, Array[RuleInfo]) -> ScanSummary
-
-pub fn builtin_model_names() -> Array[String]
-
 pub fn canonical_dir(String) -> String
-
-pub fn cfg_exec_reset() -> Unit
-
-pub fn cfg_exec_scope_suffix() -> String
-
-pub fn cfg_exec_stats() -> (Int, Int, Int, Int)
-
-pub fn cfg_exec_unconfirmed_count() -> Int
-
-pub fn cfg_exec_widening_count() -> Int
-
-pub fn cfg_hybrid_classify(String, @syntax.Expr, Map[Int, Taint], Array[(String, Int)], TaintRuleset, params~ : @list.List[@syntax.Parameter]?) -> String
-
-pub fn cfg_kill_keys(BlockIr) -> Array[String]
-
-pub fn cfg_unreachable_sink_lines(String, @syntax.Expr, TaintRuleset) -> Array[Int]
-
-pub fn cfg_verify_mode() -> Bool
-
-pub fn classify_pkg(String) -> String
-
-pub fn collect_audit_files(String, Config) -> Array[(String, String)]
-
-pub fn collect_fn_cfgs(@list.List[@syntax.Impl]) -> Array[BlockIr?]
-
-pub fn collect_fn_sig(@list.List[@syntax.Parameter], String, PkgSymbols, @syntax.Type?, @syntax.ErrorType, Bool, @list.List[@syntax.TypeVarBinder], String) -> Unit
-
-pub fn collect_fn_traces(@list.List[@syntax.Impl], String, String) -> Array[(String, Array[Stmt])]
-
-pub fn collect_func_summaries(String, String, InterProceduralContext) -> Unit
-
-pub fn collect_func_summaries_flow(@list.List[@syntax.Impl], String, InterProceduralContext, rules? : TaintRuleset, pkg_root? : String) -> Unit
-
-pub fn collect_idents(@syntax.Expr, Array[String]) -> Unit
-
-pub fn collect_mbti_dir(String, PkgSymbols) -> Unit
-
-pub fn collect_mbti_file(String, PkgSymbols) -> Unit
-
-pub fn collect_mbti_fn_sig(@mbti_ast.FuncSig, String, PkgSymbols) -> Unit
-
-pub fn collect_mbti_trait_method(@mbti_ast.TraitMethodSig, String, PkgSymbols) -> Unit
-
-pub fn collect_mutate_receivers(@syntax.Expr, Array[String]) -> Unit
-
-pub fn collect_summaries_scc(Array[SummaryUnit], InterProceduralContext, pkg_root? : String, strategy? : ContextStrategy, warn_unimplemented? : Bool) -> Unit
-
-pub fn collect_symbols(Array[@syntax.Impl], PkgSymbols) -> Unit
-
-pub fn collect_workspace_members(@moon_config.Ast, String, Array[String]) -> Unit
-
-pub fn compare_calls(Array[String], Array[String]) -> CallComparison
 
 pub fn compute_fingerprint(RuleId, String) -> String
 
 pub fn confidence_from_str(String) -> Confidence
 
 pub fn confidence_str(Confidence) -> String
-
-pub fn constraints_from_cfg(BlockIr, Array[PTConstraint]) -> Unit
-
-pub fn constraints_from_trace(Array[Stmt], Array[PTConstraint]) -> Unit
-
-pub fn core_model_types() -> Map[String, IRType]
 
 pub fn cwe022_info() -> RuleInfo
 
@@ -129,119 +57,25 @@ pub fn cwe770_info() -> RuleInfo
 
 pub fn cwe942_info() -> RuleInfo
 
-pub fn default_registry(conservative_alias? : Bool) -> AnalysisRegistry
-
-pub fn dep_canonical_pkg(String) -> String
-
-pub fn derive_identities(PkgSymbols) -> WorldIdentities
-
-pub fn diff_findings(Array[Finding], Array[PrevFinding]) -> BaselineDiff
-
-pub fn disk_cache_load(String, String) -> FnCache
-
-pub fn disk_cache_path(String) -> String
-
-pub fn disk_cache_save(FnCache, String, String) -> Unit
-
-pub fn dump_analyses(String, String, Config, conservative_alias? : Bool) -> Unit
-
-pub fn entry_stats_line(ProgramWorld) -> String
-
-pub fn env_terminal_size(Map[String, Taint]) -> Int
-
-pub fn exec_independent(BlockIr, Array[(String, Taint)], TaintRuleset, InterProceduralContext?) -> Array[Finding]
-
-pub fn executor_unconfirmed(Array[(String, Int)], Array[(String, Int)]) -> Int
-
-pub fn extend_ruleset_with_model(TaintRuleset, String) -> Bool
-
-pub fn extract_summary_units(@list.List[@syntax.Impl], String, pkg_root? : String) -> Array[SummaryUnit]
-
-pub fn fact_of_field_ref(String, String) -> SecurityFact
-
-pub fn fact_of_taint_clean() -> SecurityFact
-
-pub fn fact_of_tainted_param(String) -> SecurityFact
-
-pub fn fact_of_tainted_unknown() -> SecurityFact
+pub fn excluded_by_policy(String, String, Config) -> Bool
 
 pub fn filter_baseline(Array[Finding], Map[String, Bool], root? : String) -> Array[Finding]
 
-pub fn filter_by_llm_results(Array[LLMAnalysisResult], Double) -> Array[LLMAnalysisResult]
-
-pub fn flow_engine_taint_report(Array[Finding]) -> String
-
-pub fn fn_body_hash(String, String) -> String
-
-pub fn format_baseline_diff(BaselineDiff) -> String
-
-pub fn format_comparison_json(CallComparison) -> String
-
-pub fn format_comparison_text(CallComparison) -> String
-
-pub fn format_instrument_report_json(Array[InstrumentReport]) -> String
-
 pub fn format_json(ScanResult) -> String
-
-pub fn format_json_with_diff(ScanResult, BaselineDiff) -> String
-
-pub fn format_ledger(Array[RuleLedger]) -> String
-
-pub fn format_llm_report(Array[LLMAnalysisResult]) -> String
-
-pub fn format_poc_report(Array[PoCTemplate]) -> String
-
-pub fn format_poc_script(PoCTemplate) -> String
-
-pub fn format_prompt_as_json(LLMAnalysisRequest, model? : String) -> String
-
-pub fn format_remediation_report(Array[Remediation]) -> String
 
 pub fn format_sarif(ScanResult) -> String
 
-pub fn format_summary_json(ScanSummary) -> String
-
-pub fn format_summary_text(ScanSummary) -> String
-
-pub fn format_taint_report(Array[TaintFlow]) -> String
-
 pub fn format_text(ScanResult, Bool) -> String
-
-pub fn generate_all_pocs(Array[Finding], ImportContext) -> Array[PoCTemplate]
-
-pub fn generate_analysis_prompt(Finding, String, ImportContext) -> LLMAnalysisRequest
 
 pub fn generate_baseline(Array[Finding], root? : String) -> String
 
-pub fn generate_batch_prompts(Array[Finding], Map[String, String], ImportContext) -> Array[LLMAnalysisRequest]
-
-pub fn generate_deep_audit_script(LLMConfig, Array[Finding], Array[(String, String)]) -> String
-
-pub fn generate_instrument_report(String, Config) -> Array[InstrumentReport]
-
-pub fn generate_llm_script(LLMConfig, Array[LLMAnalysisRequest]) -> String
-
-pub fn generate_poc(Finding, ImportContext) -> PoCTemplate?
-
-pub fn get_all_remediations(Array[Finding]) -> Array[Remediation]
-
-pub fn get_fallback_reasons(String, Config) -> Array[String]
-
-pub fn get_impl_method(PkgSymbols, String) -> String?
-
 pub fn get_labelled_string_value(@list.List[@syntax.Argument], String) -> String?
-
-pub fn get_remediation(Finding) -> Remediation
 
 pub fn get_source_line(String, Int) -> String
 
 pub fn has_labelled_arg(@list.List[@syntax.Argument], String) -> Bool
 
 pub fn has_labelled_bool_arg(@list.List[@syntax.Argument], String, Bool) -> Bool
-
-pub fn hir_trace_show(Array[Stmt]) -> String
-
-pub let indep_unsupported_count : @ref.Ref[Int]
 
 pub fn is_any_constant(@syntax.Expr) -> Bool
 
@@ -253,83 +87,23 @@ pub fn is_safe_value(@syntax.Expr) -> Bool
 
 pub fn is_sanitized_expr(@syntax.Expr) -> Bool
 
-pub let last_world_timings : StageTimings
-
 pub fn list_all_rules() -> Array[RuleInfo]
-
-pub fn live_vars_examples(LiveVarsSummary, Int) -> String
-
-pub fn live_vars_line(LiveVarsSummary) -> String
-
-pub fn live_vars_of_cfg(BlockIr) -> LiveVarsSummary
-
-pub fn live_vars_of_trace(Array[Stmt]) -> LiveVarsSummary
 
 pub fn load_baseline(String) -> Map[String, Bool]
 
-pub fn load_changed_files(String) -> Array[String]
-
 pub fn load_config(String) -> Config
-
-pub fn load_env(String) -> Map[String, String]
-
-pub fn load_env_merged(String) -> Map[String, String]
-
-pub fn load_llm_config(String) -> LLMConfig
-
-pub fn load_program_world(String, Config, with_symbols? : Bool, conservative_alias? : Bool) -> ProgramWorld
-
-pub fn load_taint_rules(String) -> (TaintRuleset, String, Array[String])
-
-pub fn loop_budget_reset() -> Unit
-
-pub fn loop_fixpoint_exhausted_count() -> Int
-
-pub fn loop_fixpoint_last_iterations() -> Int
-
-pub fn loop_fixpoint_widening_count() -> Int
-
-pub fn materialize_trait_from_sig(PkgSymbols, String) -> Unit
 
 pub fn merge_imports(ImportContext, ImportContext) -> ImportContext
 
-pub fn model_method_ret(PkgSymbols, String, String) -> IRType?
-
 pub fn parse_changed_files(String) -> Array[String]
 
-pub fn parse_dynamic_log(String) -> Array[String]
+pub fn parse_source(String, name? : String) -> (@list.List[@syntax.Impl], Array[@basic.Report])
 
-pub fn parse_llm_response(Finding, String) -> LLMAnalysisResult?
+pub fn read_regular_text(String) -> String raise
 
-pub fn parse_report_findings(String) -> Array[PrevFinding]
-
-pub fn parse_ruleset_json(Json, String, Array[String]) -> TaintRuleset
-
-pub fn parse_static_edges(String) -> Array[String]
-
-pub fn parse_type_expr(String) -> IRType
-
-pub fn poc_type_str(PoCType) -> String
-
-pub fn project_trait_params(FnSig) -> Array[IRType?]
-
-pub fn pt_node_show(String) -> String
-
-pub fn pt_solve_batched(IRStatsResult, strategy? : ContextStrategy) -> Unit
-
-pub fn resolve_extends(TaintRuleset, String, Array[String], Array[String]) -> Unit
-
-pub fn risk_level(Double) -> String
-
-pub fn risk_score(ScanSummary) -> Double
+pub fn rule_capabilities() -> Json
 
 pub fn rule_id_str(RuleId) -> String
-
-pub fn run_call_graph(String, Config, conservative_alias? : Bool) -> CallGraph
-
-pub fn run_call_graph_with_world(ProgramWorld, event_cbs? : Array[(String, String) -> Unit]) -> CallGraph
-
-pub fn run_cross_func_taint(@list.List[@syntax.Impl], String, String, Array[Finding], InterProceduralContext, ImportContext, String) -> Unit
 
 pub fn run_cwe022(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
@@ -341,7 +115,7 @@ pub fn run_cwe079_template(@list.List[@syntax.Impl], String, String, Array[Findi
 
 pub fn run_cwe094(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
-pub fn run_cwe113(@list.List[@syntax.Impl], String, String, Array[Finding], Severity, ictx? : InterProceduralContext, rules? : TaintRuleset, output_sinks_enabled? : Bool, pkg_root? : String, cfg_engine? : Bool, cache? : FnCache, symbols_fp? : String) -> Unit
+pub fn run_cwe113(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
 pub fn run_cwe116(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
@@ -359,25 +133,11 @@ pub fn run_cwe770(@list.List[@syntax.Impl], String, String, Array[Finding], Seve
 
 pub fn run_cwe942(@list.List[@syntax.Impl], String, String, Array[Finding], Severity) -> Unit
 
-pub fn run_flow_taint_func(@list.List[@syntax.Parameter]?, @syntax.Expr, String, String, Severity, Array[Finding], pkg_root? : String, ictx? : InterProceduralContext, rules? : TaintRuleset, output_sinks_enabled? : Bool, fn_name? : String, hir_out? : Array[(String, Array[Stmt])], deferred_facts? : Array[String]) -> Unit
+pub fn scan_project(String, Config, compiler_files? : Array[String]?) -> ScanResult
 
-pub fn run_flow_taint_func_top(@syntax.Expr, String, String, Severity, pkg_root? : String, Array[Finding], rules? : TaintRuleset, output_sinks_enabled? : Bool) -> Unit
+pub fn semantic_complete(Json) -> Bool
 
-pub fn run_flow_taint_trace(@list.List[@syntax.Parameter]?, @syntax.Expr, String, String, Severity, Array[Finding]) -> Array[Stmt]
-
-pub fn run_ir_stats(String, Config, conservative_alias? : Bool) -> IRStatsResult
-
-pub fn run_ir_stats_with_world(ProgramWorld) -> IRStatsResult
-
-pub fn run_taint_analysis(@list.List[@syntax.Impl], String, String, ImportContext) -> TaintState
-
-pub fn scan_package_calls(Array[@syntax.Impl], String, PkgSymbols, IRStatsResult, pkg_alias? : Map[String, String], pt_deferred? : Bool) -> Unit
-
-pub fn scan_project(String, Config) -> ScanResult
-
-pub fn scan_project_with_world(ProgramWorld, Config) -> ScanResult
-
-pub fn set_cfg_verify_mode(Bool) -> Unit
+pub fn semantic_findings(Json) -> Array[Finding]
 
 pub fn severity_from_str(String) -> Severity
 
@@ -385,173 +145,17 @@ pub fn severity_level(Severity) -> Int
 
 pub fn severity_str(Severity) -> String
 
-pub fn sig_arrow_args(PkgSymbols, String) -> Array[Array[IRType?]]?
-
-pub fn sig_trait_params(PkgSymbols, String) -> Array[IRType?]?
-
-pub fn sink_target_hit(String, TaintRuleset) -> Bool
-
-pub fn sink_value_slot_of(String, TaintRuleset) -> Int
-
-pub fn solve_pt_constraints(Array[PTConstraint], budget? : Int) -> PTSolution
-
-pub fn store_fn_sig(PkgSymbols, String, FnSig) -> Unit
-
-pub fn summary_lookup(InterProceduralContext, String, String) -> FuncTaintSummary?
-
-pub fn symbols_fingerprint(PkgSymbols) -> String
-
-pub fn taint_flows_to_findings(Array[TaintFlow], Severity) -> Array[Finding]
-
-pub fn trace_kill_keys(Array[Stmt]) -> Array[String]
-
-pub fn type_to_ir(@syntax.Type, PkgSymbols) -> IRType
-
-pub fn unified_solve(ProgramWorld, Config) -> SolverState
-
-pub fn validate_cfg(BlockIr) -> Array[String]
-
-pub fn world_identity_of(ProgramWorld, String, String) -> String?
-
-pub let world_loads : WorldLoadCounter
-
-pub fn world_pkg_imports(ProgramWorld, String) -> Array[String]
-
-pub fn write_runtime_package(String) -> Unit
-
 // Errors
 
 // Types and methods
-pub(all) struct AnalysisCtx {
-  world : ProgramWorld
-  dep_results : Map[AnalysisId, AnalysisResult]
-  events : AnalysisEvents
-}
-
-pub(all) struct AnalysisEvents {
-  on_new_call_edge : Array[(String, String) -> Unit]
-}
-pub fn AnalysisEvents::emit_new_call_edge(Self, String, String) -> Unit
-pub fn AnalysisEvents::new() -> Self
-
-pub(all) enum AnalysisId {
-  TaintFlow
-  CallGraph
-  HIRTrace
-  PointsTo
-  LiveVars
-  Custom(String)
-} derive(Eq, Hash, @debug.Debug)
-pub fn AnalysisId::display(Self) -> String
-
-pub(all) struct AnalysisRegistry {
-  specs : Map[AnalysisId, AnalysisSpec]
-}
-pub fn AnalysisRegistry::new() -> Self
-pub fn AnalysisRegistry::plan(Self, Array[AnalysisId]) -> Result[Array[AnalysisId], String]
-pub fn AnalysisRegistry::register(Self, AnalysisSpec) -> Unit
-pub fn AnalysisRegistry::run_all(Self, Array[AnalysisId], ProgramWorld, events? : AnalysisEvents) -> Result[Map[AnalysisId, AnalysisResult], String]
-
-pub(all) enum AnalysisResult {
-  TaintFlowR(ScanResult)
-  CallGraphR(CallGraph)
-  HIRTraceR(Array[(String, String, Array[Stmt])])
-  PointsToR(PTWorldSummary)
-  LiveVarsR(LiveWorldSummary)
-}
-
-pub(all) struct AnalysisSpec {
-  id : AnalysisId
-  deps : Array[AnalysisId]
-  run : (ProgramWorld, AnalysisCtx) -> AnalysisResult
-}
-
-pub(all) struct BaselineDiff {
-  new_findings : Array[Finding]
-  resolved : Array[PrevFinding]
-  unchanged : Array[Finding]
-  prev_total : Int
-  current_total : Int
-}
-
-pub(all) struct Block {
-  id : Int
-  stmts : Array[Stmt]
-  succs : Array[Int]
-}
-
-pub(all) struct BlockIr {
-  fn_name : String
-  blocks : Array[Block]
-  entry : Int
-  normal_exit : Int
-  error_exit : Int
-  temp_taints : Map[Int, Taint]
-  expr_refs : Map[Int, @syntax.Expr]
-}
-
-pub(all) struct CWEStat {
-  cwe_id : Int
-  name : String
-  count : Int
-}
-
-pub(all) struct CallComparison {
-  recall_pct : Int
-  precision_pct : Int
-  matched : Int
-  dynamic_only : Array[String]
-  static_only : Array[String]
-  dynamic_total : Int
-  static_total : Int
-}
-
-pub(all) struct CallGraph {
-  edges : Array[String]
-  dispatch_edges : Array[String]
-  unresolved : Array[String]
-  bound_sites : Int
-  candidate_sites : Int
-  unresolved_sites : Int
-  pt_resolved_sites : Int
-  pt_equal_or_fallback : Int
-  pt_has_pt_sites : Int
-  pt_not_converged : Bool
-}
-pub fn CallGraph::site_coverage(Self) -> Int
-pub fn CallGraph::site_total(Self) -> Int
-
-pub(all) struct CallSiteStat {
-  caller : String
-  file : String
-  line : Int
-  recv_var : String
-  recv_pt : Array[String]
-  kind : String
-  resolved : Bool
-  target : String
-  recv_ty : String
-}
-
-pub(all) enum CallbackTiming {
-  Immediate
-  Deferred
-} derive(Eq, @debug.Debug)
-
-pub(all) struct CfgExecCounters {
-  mut cfg_executed : Int
-  mut ast_fallback : Int
-  mut cfg_divergent : Int
-  mut visits_capped : Int
-  mut widenings : Int
-  mut cfg_unconfirmed : Int
-}
-
 pub(all) enum Confidence {
   High
   Medium
   Low
 } derive(Eq, @debug.Debug)
+pub fn Confidence::equal(Self, Self) -> Bool
+pub fn Confidence::not_equal(Self, Self) -> Bool
+pub fn Confidence::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Config {
   rules : Map[String, RuleConfig]
@@ -561,28 +165,16 @@ pub(all) struct Config {
   min_severity : Severity
   changed_files : Array[String]
   incremental : Bool
-  analysis_mode : String
-  context_strategy : ContextStrategy
-  mut cfg_engine : Bool
 }
 pub fn Config::default() -> Self
 pub fn Config::get_severity(Self, String, Severity) -> Severity
 pub fn Config::is_enabled(Self, String) -> Bool
 
-pub(all) enum ContextStrategy {
-  Insensitive
-  CallSite(Int)
-  ObjectSensitive(Int)
-  ClosureEnv
-} derive(Eq, @debug.Debug)
-pub fn ContextStrategy::is_implemented(Self) -> Bool
-pub fn ContextStrategy::name(Self) -> String
-
-pub(all) struct FileStat {
-  file : String
-  finding_count : Int
-  error_count : Int
-  warning_count : Int
+pub(all) struct FileCoverage {
+  path : String
+  status : String
+  reason : String
+  rules : Array[RuleCoverage]
 }
 
 pub(all) struct Finding {
@@ -597,86 +189,10 @@ pub(all) struct Finding {
   end_column : Int
   snippet : String
   fingerprint : String
+  evidence : String
+  dataflow : Array[String]
 } derive(@debug.Debug)
-
-pub(all) struct FnCache {
-  entries : Map[String, FnCacheEntry]
-  mut hits : Int
-  mut misses : Int
-}
-pub fn FnCache::invalidate_all(Self) -> Unit
-pub fn FnCache::key(String, String) -> String
-pub fn FnCache::lookup(Self, String, String, String, String) -> Array[Finding]?
-pub fn FnCache::new() -> Self
-pub fn FnCache::size(Self) -> Int
-pub fn FnCache::store(Self, String, String, String, String, Array[Finding], Int) -> Unit
-
-pub(all) struct FnCacheEntry {
-  body_hash : String
-  symbols_fp : String
-  findings : Array[Finding]
-  env_keys : Int
-}
-
-pub(all) struct FnP {
-  binder : String
-  kind : String
-  has_default : Bool
-  ty : IRType
-  arrow_args : Array[IRType?]
-} derive(@debug.Debug)
-
-pub(all) struct FnSig {
-  params : Array[FnP]
-  generic_constraints : Array[String]
-  return_ty : IRType
-  error_effect : String
-  is_async : Bool
-  entry : String
-} derive(@debug.Debug)
-
-pub(all) struct FuncTaintSummary {
-  name : String
-  file : String
-  line : Int
-  params : Array[String]
-  param_sinks : Map[String, Array[TaintSink]]
-  ret_from : Array[String]
-  field_taint : Map[String, Array[(String, String)]]
-  param_field_sinks : Array[(String, String)]
-}
-
-pub(all) struct IRStatsResult {
-  mut files_scanned : Int
-  mut funcs_scanned : Int
-  mut total_calls : Int
-  mut static_calls : Int
-  mut static_resolved : Int
-  mut receiver_calls : Int
-  mut receiver_resolved : Int
-  mut receiver_dispatch : Int
-  mut receiver_unknown : Int
-  mut higher_calls : Int
-  mut alias_unresolved : Int
-  mut pt_iterations : Int
-  mut pt_not_converged : Bool
-  mut pt_carrier : PtCarrier?
-  sites : Array[CallSiteStat]
-}
-pub fn IRStatsResult::combined_resolution(Self) -> Int
-pub fn IRStatsResult::new() -> Self
-pub fn IRStatsResult::pt_resolved_dispatch(Self) -> Int
-
-pub(all) enum IRType {
-  IRUnresolved
-  IRConcrete(String, Array[IRType])
-  IRTraitObj(String)
-  IRTypeParam(String)
-  IRFn(String)
-  IRUnit
-} derive(Eq, @debug.Debug)
-pub fn IRType::display(Self) -> String
-pub fn IRType::is_concrete(Self) -> Bool
+pub fn Finding::to_repr(Self) -> @debug.Repr
 
 pub(all) struct ImportContext {
   has_cmark : Bool
@@ -689,244 +205,22 @@ pub(all) struct ImportContext {
 }
 pub fn ImportContext::empty() -> Self
 
-pub(all) struct InstrumentReport {
-  fn_name : String
-  file : String
-  line : Int
-  pkg_dir : String
-}
-
-pub(all) struct InterProceduralContext {
-  summaries : Map[String, FuncTaintSummary]
-  mut pkg_hint : String?
-  mut world_symbols : PkgSymbols?
-  dispatch_hints : Map[String, Array[String]]
-  mut not_converged : Int
-}
-pub fn InterProceduralContext::new() -> Self
-
-pub(all) struct LLMAnalysisRequest {
-  finding : Finding
-  source_context : String
-  import_context : ImportContext
-  prompt : String
-  system_prompt : String
-}
-
-pub(all) struct LLMAnalysisResult {
-  finding : Finding
-  is_true_positive : Bool
-  confidence : Double
-  explanation : String
-  severity_adjustment : Severity?
-  remediation : String
-}
-
-pub(all) struct LLMConfig {
-  base_url : String
-  model : String
-  api_key : String
-}
-pub fn LLMConfig::default() -> Self
-
-pub(all) struct LibModelCallback {
-  name : String
-  placeholders : Array[String]
-  timing : CallbackTiming
-} derive(@debug.Debug)
-
-pub(all) struct LiveFnReport {
-  fn_name : String
-  file : String
-  summary : LiveVarsSummary
-}
-
-pub(all) struct LiveVarInfo {
-  decl : String
-  def_site : Int
-  last_use : Int
-}
-
-pub(all) struct LiveVarsSummary {
-  infos : Array[LiveVarInfo]
-  total : Int
-  live : Int
-  dead : Int
-}
-pub fn LiveVarsSummary::dead_ratio(Self) -> Int
-
-pub(all) struct LiveWorldSummary {
-  fn_count : Int
-  total_decls : Int
-  dead : Int
-  cfg_fallback : Int
-  per_fn : Array[LiveFnReport]
-}
-
-pub(all) struct Location {
-  file : String
-  line : Int
-  column : Int
-}
-
-pub(all) struct OwaspStat {
-  category : String
-  count : Int
-  cwe_ids : Array[Int]
-}
-
-pub(all) enum PTConstraint {
-  PTAlloc(String, String)
-  PTCopy(String, String)
-  PTStore(String, String, String)
-  PTLoad(String, String, String)
-} derive(@debug.Debug)
-
-pub(all) struct PTFnReport {
-  fn_name : String
-  file : String
-  constraints : Array[PTConstraint]
-  sol : PTSolution
-}
-
-pub(all) struct PTFnSlice {
-  fn_name : String
-  constraints : Array[PTConstraint]
-  site_start : Int
-  site_end : Int
-}
-
-pub(all) struct PTPending {
-  kind : String
-  pvar : String
-  callee : String
-  param_node : String
-  owner_fn : String
-  site : String
-}
-
-pub(all) struct PTSolution {
-  pts : Map[String, Map[String, Bool]]
-  fstore : Map[String, Map[String, Bool]]
-  iterations : Int
-  converged : Bool
-}
-pub fn PTSolution::contains(Self, String, String) -> Bool
-pub fn PTSolution::fstore_of(Self, String, String) -> Array[String]
-pub fn PTSolution::pts_of(Self, String) -> Array[String]
-
-pub(all) struct PTWorldSummary {
-  fn_count : Int
-  constraint_count : Int
-  nodes_with_pts : Int
-  cfg_fallback : Int
-  per_fn : Array[PTFnReport]
-}
-
-pub(all) struct PkgFiles {
-  dir : String
-  files : Array[String]
-}
-
-pub(all) struct PkgSymbols {
-  model_types : Map[String, IRType]
-  mut alias_mode : Bool
-  mut alias_unresolved : Int
-  fn_exists : Map[String, Bool]
-  fn_ret : Map[String, IRType]
-  impl_methods : Map[String, String]
-  constructors : Map[String, String]
-  struct_fields : Map[String, Map[String, IRType]]
-  constr_params : Map[String, Array[IRType]]
-  trait_params : Map[String, Array[IRType?]]
-  fn_param_arrows : Map[String, Array[Array[IRType?]]]
-  alias_arrows : Map[String, Array[IRType?]]
-  fn_sigs : Map[String, FnSig]
-  value_types : Map[String, IRType]
-  globals : Map[String, IRType]
-  lib_fn_ret : Map[String, IRType]
-  lib_callbacks : Map[String, Array[String]]
-  trait_names : Map[String, Bool]
-  type_params : Map[String, Bool]
-}
-pub fn PkgSymbols::new() -> Self
-
-pub(all) struct PoCTemplate {
-  finding : Finding
-  poc_type : PoCType
-  title : String
-  description : String
-  prerequisites : Array[String]
-  attack_steps : Array[String]
-  script : String
-  expected_result : String
-  cwe_url : String
-}
-
-pub(all) enum PoCType {
-  HttpRequest
-  RawSocket
-  BrowserBased
-  CLICommand
-}
-
-pub(all) struct PrevFinding {
-  fingerprint : String
-  rule_id : String
-  file : String
-  line : Int
-  message : String
-} derive(@debug.Debug)
-
-pub(all) struct ProgramWorld {
-  root : String
-  packages : Array[PkgFiles]
-  symbols : PkgSymbols
-  aliases : Map[String, Map[String, String]]
-  imports : Map[String, Array[String]]
-  workspace_members : Array[String]
-  config_reports : Array[String]
-  config : Config
-  identities : WorldIdentities
-  entry_kinds : Map[String, String]
-}
-
-pub(all) struct PtCarrier {
-  slices : Array[PTFnSlice]
-  pendings : Array[PTPending]
-}
-
-pub(all) enum Reach {
-  Reachable
-  Unreachable
-} derive(Eq, @debug.Debug)
-
-pub(all) struct Remediation {
-  rule_id : String
-  title : String
-  risk_summary : String
-  fix_description : String
-  code_before : String
-  code_after : String
-  references : Array[String]
-  owasp_category : String
-}
-
-pub(all) enum RhsKind {
-  RTemp(Int)
-  RWhole
-}
-pub fn RhsKind::show(Self) -> String
-
 pub(all) struct RuleConfig {
   enabled : Bool
   severity : Severity?
+}
+
+pub(all) struct RuleCoverage {
+  id : String
+  status : String
+  reason : String
 }
 
 pub(all) struct RuleId {
   cwe : Int
   variant : String
 } derive(@debug.Debug)
+pub fn RuleId::to_repr(Self) -> @debug.Repr
 
 pub(all) struct RuleInfo {
   id : RuleId
@@ -935,208 +229,28 @@ pub(all) struct RuleInfo {
   default_severity : Severity
 }
 
-pub(all) struct RuleLedger {
-  rule_id : String
-  mut tp_candidates : Int
-  mut fp_suspects : Int
-  mut fixed_suspects : Int
-  mut confirmed : Int
-  mut untriaged : Int
-} derive(@debug.Debug)
-
-pub(all) struct RuleStat {
-  rule_id : String
-  name : String
-  count : Int
-  severity : Severity
-}
-
 pub(all) struct ScanResult {
   findings : Array[Finding]
+  project_verification : Json?
+  semantic_analysis : Json?
   files_scanned : Int
+  files_selected : Int
+  files_parsed : Int
   errors : Array[String]
   analysis_scope : String
+  file_coverage : Array[FileCoverage]
+  configured_excludes : Array[String]
+  incremental : Bool
 }
-
-pub(all) struct ScanSummary {
-  total_findings : Int
-  error_count : Int
-  warning_count : Int
-  info_count : Int
-  files_scanned : Int
-  files_with_findings : Int
-  rules_triggered : Array[RuleStat]
-  file_stats : Array[FileStat]
-  cwe_categories : Array[CWEStat]
-  owasp_mapping : Array[OwaspStat]
-  scan_errors : Int
-}
-
-pub(all) struct SecurityFact {
-  reach : Reach
-  src : Array[String]
-  unknown : Bool
-} derive(Eq, @debug.Debug)
-pub fn SecurityFact::bottom() -> Self
-pub fn SecurityFact::clean() -> Self
-pub fn SecurityFact::from_source(String) -> Self
-pub fn SecurityFact::is_tainted(Self) -> Bool
-pub fn SecurityFact::join(Self, Self) -> Self
-pub fn SecurityFact::leq(Self, Self) -> Bool
-pub fn SecurityFact::tainted_unknown() -> Self
-pub fn SecurityFact::to_taint_view(Self) -> String
 
 pub(all) enum Severity {
   Error
   Warning
   Info
 } derive(Eq, @debug.Debug)
-
-pub(all) struct SolverState {
-  pts : Map[String, PTSolution]
-  resolved_targets : Map[String, Array[String]]
-}
-pub fn SolverState::new() -> Self
-
-pub(all) struct StageTimings {
-  mut stages : Array[(String, UInt64)]
-}
-pub fn StageTimings::new() -> Self
-pub fn StageTimings::record(Self, String, UInt64) -> Unit
-pub fn StageTimings::render(Self) -> String
-pub fn StageTimings::reset(Self) -> Unit
-pub fn[T] StageTimings::time(Self, String, () -> T) -> T
-
-pub(all) enum Stmt {
-  LetEvalTemp(Int, Int)
-  BindVar(String, RhsKind)
-  BindTuplePositions(String, Array[Int])
-  BindCtorPositions(String, String, Array[Int])
-  CallStmt(String, Array[Int])
-  SinkStmt(String, Array[Int], Int)
-  AssignStmt(String, Int)
-  RetStmt(Int?)
-  RaiseStmt(Int?)
-  BreakStmt(Int?)
-  ContinueStmt
-  DeferReg(String)
-}
-pub fn Stmt::show(Self) -> String
-
-pub(all) struct SummaryUnit {
-  name : String
-  params : @list.List[@syntax.Parameter]?
-  body : @syntax.Expr
-  file : String
-  line : Int
-}
-
-pub(all) enum Taint {
-  Clean
-  Tainted
-  TaintedParam(String)
-  TaintedFieldRef(String, String)
-} derive(Eq)
-
-pub(all) struct TaintFlow {
-  source : TaintSource
-  sink : TaintSink
-  source_location : Location
-  sink_location : Location
-  path : Array[String]
-}
-
-pub(all) struct TaintMethodRule {
-  method_name : String
-  kind : String
-  value_slot : Int
-} derive(Eq, @debug.Debug)
-
-pub(all) struct TaintRuleset {
-  sources : Array[TaintMethodRule]
-  sinks : Array[TaintMethodRule]
-  sanitizers : Array[TaintMethodRule]
-  fn_types : Array[(String, String)]
-  callbacks : Array[(String, Array[String])]
-  extends : Array[String]
-  cb_timing : Array[(String, CallbackTiming)]
-  trait_edges : Array[TraitCallbackEdge]
-} derive(@debug.Debug)
-pub fn TaintRuleset::apply_to_symbols(Self, PkgSymbols) -> Unit
-pub fn TaintRuleset::cb_timing_deferred(Self, String) -> Bool
-pub fn TaintRuleset::cb_timing_deferred_key(Self, String) -> String?
-pub fn TaintRuleset::empty() -> Self
-pub fn TaintRuleset::header_sink_hit(Self, String) -> Bool
-pub fn TaintRuleset::output_sink_hit(Self, String) -> Bool
-pub fn TaintRuleset::output_sink_slot(Self, String) -> Int?
-pub fn TaintRuleset::sanitizer_hit(Self, String) -> Bool
-pub fn TaintRuleset::sink_value_slot(Self, String) -> Int?
-pub fn TaintRuleset::size(Self) -> Int
-pub fn TaintRuleset::source_hit(Self, String) -> Bool
-
-pub(all) enum TaintSink {
-  HtmlOutput
-  SqlQuery
-  FilePathConcat
-  HeaderValue
-  CookieValue
-  ShellCommand
-  ExternJsEval
-  RedirectUrl
-}
-
-pub(all) enum TaintSource {
-  RouteParam(String)
-  QueryParam(String)
-  RequestBody
-  RequestHeader(String)
-  WebSocketMessage
-  FileUpload
-  FormField(String)
-}
-
-pub(all) struct TaintState {
-  tainted_vars : Map[String, TaintedVar]
-  flows : Array[TaintFlow]
-  current_file : String
-}
-pub fn TaintState::add_tainted_var(Self, String, TaintSource, Int) -> Unit
-pub fn TaintState::clear_var(Self, String) -> Unit
-pub fn TaintState::get_taint_source(Self, String) -> TaintSource?
-pub fn TaintState::is_tainted(Self, String) -> Bool
-pub fn TaintState::new(String) -> Self
-pub fn TaintState::propagate(Self, String, String, Int) -> Unit
-pub fn TaintState::record_flow(Self, TaintSource, TaintSink, Int, Int, Int, Int, Array[String]) -> Unit
-
-pub(all) struct TaintedVar {
-  name : String
-  source : TaintSource
-  file : String
-  line : Int
-}
-
-pub(all) struct TraitCallbackEdge {
-  lib_method : String
-  trait_method : String
-  note : String
-} derive(@debug.Debug)
-
-pub(all) enum ValuePos {
-  PTuple(String, Int)
-  PCtor(String, String, Int)
-}
-pub fn ValuePos::key(Self) -> String
-
-pub(all) struct WorldIdentities {
-  fns : Array[String]
-  types : Array[String]
-  traits : Array[String]
-  fields : Array[String]
-}
-
-pub(all) struct WorldLoadCounter {
-  mut count : Int
-}
+pub fn Severity::equal(Self, Self) -> Bool
+pub fn Severity::not_equal(Self, Self) -> Bool
+pub fn Severity::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

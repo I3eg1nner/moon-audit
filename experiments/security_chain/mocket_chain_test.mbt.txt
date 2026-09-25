@@ -1,0 +1,128 @@
+///|
+fn relay(value : String) -> String {
+  value
+}
+
+///|
+fn html_text(value : String) -> String {
+  "<p>" + value + "</p>"
+}
+
+///|
+async test "security-chain raw query reaches HTML response" {
+  let app = @mocket.new()
+  app.get("/review", event => {
+    let value = event.req.query().get("q").unwrap_or("")
+    @mocket.html(html_text(relay(value)))
+  })
+  let response = @mocket.dispatch_http(
+    app, "GET", "/review?q=%3Cimg%20src%3Dx%20onerror%3Dalert%281%29%3E", {}, b"",
+  )
+  assert_eq(response.headers.get("Content-Type"), Some("text/html; charset=utf-8"))
+  let actual : String = response.read_body()
+  assert_eq(actual, "<p><img src=x onerror=alert(1)></p>")
+  println("SECURITY_CHAIN raw " + actual)
+}
+
+///|
+async test "security-chain escaped query is encoded in HTML text" {
+  let app = @mocket.new()
+  app.get("/review", event => {
+    let value = event.req.query().get("q").unwrap_or("")
+    @mocket.html(html_text(@mocket.escape_html(relay(value))))
+  })
+  let response = @mocket.dispatch_http(
+    app, "GET", "/review?q=%3Cimg%20src%3Dx%20onerror%3Dalert%281%29%3E", {}, b"",
+  )
+  assert_eq(response.headers.get("Content-Type"), Some("text/html; charset=utf-8"))
+  let actual : String = response.read_body()
+  assert_eq(actual, "<p>&lt;img src=x onerror=alert(1)&gt;</p>")
+  println("SECURITY_CHAIN escaped " + actual)
+}
+
+///|
+async test "security-chain text response preserves bytes with plain content type" {
+  let app = @mocket.new()
+  app.get("/review", event => {
+    let value = event.req.query().get("q").unwrap_or("")
+    @mocket.text(relay(value))
+  })
+  let response = @mocket.dispatch_http(
+    app, "GET", "/review?q=%3Cimg%20src%3Dx%20onerror%3Dalert%281%29%3E", {}, b"",
+  )
+  assert_eq(response.headers.get("Content-Type"), Some("text/plain; charset=utf-8"))
+  let actual : String = response.read_body()
+  assert_eq(actual, "<img src=x onerror=alert(1)>")
+  println("SECURITY_CHAIN plain " + actual)
+}
+
+///|
+async test "security-chain constant response ignores query" {
+  let app = @mocket.new()
+  app.get("/review", _ => @mocket.html("<p>constant</p>"))
+  let response = @mocket.dispatch_http(
+    app, "GET", "/review?q=%3Cimg%20src%3Dx%20onerror%3Dalert%281%29%3E", {}, b"",
+  )
+  let actual : String = response.read_body()
+  assert_eq(actual, "<p>constant</p>")
+  println("SECURITY_CHAIN constant " + actual)
+}
+
+///|
+async test "security-chain discarded HTML responder does not reach response" {
+  let app = @mocket.new()
+  app.get("/review", event => {
+    let value = event.req.query().get("q").unwrap_or("")
+    let _discarded = @mocket.html(relay(value))
+    @mocket.html("<p>retained</p>")
+  })
+  let response = @mocket.dispatch_http(
+    app, "GET", "/review?q=%3Cimg%20src%3Dx%20onerror%3Dalert%281%29%3E", {}, b"",
+  )
+  let actual : String = response.read_body()
+  assert_eq(actual, "<p>retained</p>")
+  println("SECURITY_CHAIN discarded " + actual)
+}
+
+///|
+async test "security-chain overwritten HTML responder does not reach response" {
+  let app = @mocket.new()
+  app.get("/review", event => {
+    let value = event.req.query().get("q").unwrap_or("")
+    let mut result = @mocket.html(relay(value))
+    result = @mocket.html("<p>replacement</p>")
+    result
+  })
+  let response = @mocket.dispatch_http(
+    app, "GET", "/review?q=%3Cimg%20src%3Dx%20onerror%3Dalert%281%29%3E", {}, b"",
+  )
+  let actual : String = response.read_body()
+  assert_eq(actual, "<p>replacement</p>")
+  println("SECURITY_CHAIN overwritten " + actual)
+}
+
+///|
+async test "security-chain absent query uses safe default" {
+  let app = @mocket.new()
+  app.get("/review", event => {
+    let value = event.req.query().get("q").unwrap_or("missing")
+    @mocket.html(html_text(relay(value)))
+  })
+  let response = @mocket.dispatch_http(app, "GET", "/review", {}, b"")
+  let actual : String = response.read_body()
+  assert_eq(actual, "<p>missing</p>")
+  println("SECURITY_CHAIN absent " + actual)
+}
+
+///|
+async test "security-chain HTML escaping is not JavaScript neutralization" {
+  let app = @mocket.new()
+  app.get("/review", event => {
+    let value = event.req.query().get("q").unwrap_or("")
+    @mocket.html("<script>" + @mocket.escape_html(relay(value)) + "</script>")
+  })
+  let response = @mocket.dispatch_http(app, "GET", "/review?q=alert%281%29", {}, b"")
+  let actual : String = response.read_body()
+  assert_eq(actual, "<script>alert(1)</script>")
+  println("SECURITY_CHAIN script_context " + actual)
+}

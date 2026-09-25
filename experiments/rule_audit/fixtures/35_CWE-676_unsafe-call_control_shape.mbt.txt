@@ -1,0 +1,2 @@
+pub fn unsafe_cast(value : Int) -> Int { value }
+pub fn probe(input : Int) -> Int { guard true else { return 0 }; unsafe_cast(input) }

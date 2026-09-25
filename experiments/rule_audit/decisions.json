@@ -1,0 +1,251 @@
+{
+  "schema": "moon-audit.rule-audit-decisions.v1",
+  "scope": "All findings remain syntax_hint. Compiler acceptance of a fixture proves syntax/API call validity, never user control, sink reachability, exploitability or sanitizer sufficiency.",
+  "default_policy": "Enable only replace-escaping and cmark-unsafe as narrow opt-out hints; retain other rules as explicit opt-in review aids.",
+  "rules": [
+    {
+      "id": "CWE-116/replace-escaping",
+      "default_enabled": true,
+      "trigger": "replace with security-character literal old/new labelled arguments",
+      "forms": [
+        "receiver.replace",
+        "String::replace"
+      ],
+      "real_evidence": "Builtin String API calls compile; runtime oracle confirms << becomes &lt;< with replace and &lt;&lt; with replace_all.",
+      "limitations": [
+        "Dot receiver type is unresolved",
+        "User type named String or Dummy.replace can be safe and still match",
+        "No proof that output reaches HTML or input is untrusted"
+      ],
+      "decision": "retain_hint",
+      "wording": "Call named replace with an escaping-shaped replacement. If this resolves to builtin String::replace, only the first occurrence is replaced; review receiver identity and output context."
+    },
+    {
+      "id": "CWE-79/cmark-unsafe",
+      "default_enabled": true,
+      "trigger": "render/from_doc/renderer/xhtml_renderer called with literal safe=false and cmark import-name hint",
+      "forms": [
+        "unqualified function",
+        "package-qualified function"
+      ],
+      "real_evidence": "cmark 0.4.8 render safe=false/true/default compiled in real-library matrix; separate second-library runtime validation",
+      "limitations": [
+        "Import substring does not establish declaration identity",
+        "A local render function can match",
+        "Disabling safe mode does not establish untrusted HTML reaching a browser"
+      ],
+      "decision": "retain_hint",
+      "wording": "Rendering-shaped call sets safe=false. For the reviewed cmark API this allows raw HTML; confirm API identity and trust boundary."
+    },
+    {
+      "id": "CWE-79/inner-html",
+      "default_enabled": false,
+      "trigger": "inner_html method with nonliteral/non-uppercase-ident argument and rabbita import-name hint",
+      "forms": [
+        "receiver.inner_html"
+      ],
+      "real_evidence": "rabbita 0.15.5 source html/attrs.mbt and svg/attrs.mbt assigns innerHTML; no compiled library fixture in this audit",
+      "limitations": [
+        "Receiver declaration unresolved",
+        "Variables holding safe constants still match",
+        "Uppercase variable name is not a safety proof",
+        "No DOM insertion reachability"
+      ],
+      "decision": "opt_in_unverified_library",
+      "wording": "Method named inner_html receives an expression. Confirm it is a raw HTML API and inspect where its input originates."
+    },
+    {
+      "id": "CWE-79/template-injection",
+      "default_enabled": false,
+      "trigger": "html call with interpolation plus source text hint and mocket/crescent import-name hint",
+      "forms": [
+        "unqualified html",
+        "package-qualified html",
+        "receiver.html"
+      ],
+      "real_evidence": "mocket 0.9.1 HTML interpolation calls compile; trusted local constant interpolation still matches",
+      "limitations": [
+        "No response-return proof",
+        "No source provenance",
+        "No encoding semantics",
+        "No declaration binding"
+      ],
+      "decision": "opt_in_heuristic",
+      "wording": "HTML-shaped call contains string interpolation. Review API identity, input origin, output context and whether this response is returned."
+    },
+    {
+      "id": "CWE-94/eval-extern",
+      "default_enabled": false,
+      "trigger": "embedded JS or unspecified-language FFI code contains eval( or new Function text",
+      "forms": [
+        "embedded FFI string",
+        "embedded FFI multiline string"
+      ],
+      "real_evidence": "Actual JS extern eval and identity compile with JS target",
+      "limitations": [
+        "Comment containing eval(input) triggers",
+        "No JavaScript parser",
+        "Whitespace and aliases can evade matching",
+        "No user-control evidence"
+      ],
+      "decision": "opt_in_text_heuristic",
+      "wording": "Embedded code contains eval/new Function-shaped text. Confirm executable JavaScript and whether untrusted input reaches it."
+    },
+    {
+      "id": "CWE-113/crlf-injection",
+      "default_enabled": false,
+      "trigger": "set_header/add_header/append_header/set_response_header with nonliteral second positional or value-labelled argument",
+      "forms": [
+        "receiver method only"
+      ],
+      "real_evidence": "Current crescent source has HttpResponse.header, outside matched name set. Real-library fixture compilation is blocked by old lexscan in cookie.mbt; no real sink or CRLF behavior validated.",
+      "limitations": [
+        "No validated current-library matched sink",
+        "Safe values in locals trigger",
+        "No knowledge of library rejection/normalization",
+        "Does not match current crescent header API"
+      ],
+      "decision": "opt_in_stale_api",
+      "wording": "Dynamic header-shaped argument. Confirm API identity and CRLF rejection at the real serialization boundary."
+    },
+    {
+      "id": "CWE-942/cors-credentials",
+      "default_enabled": false,
+      "trigger": "handle_cors/append_cors_headers/append_cors_preflight_headers with credentials=true and no literal non-wildcard origin",
+      "forms": [
+        "unqualified function",
+        "package-qualified function"
+      ],
+      "real_evidence": "Real mocket calls compile; implementation emits wildcard headers. WHATWG Fetch rejects wildcard sharing for credentials=include.",
+      "limitations": [
+        "Original credential theft claim is false for wildcard+credentials alone",
+        "Dynamic trusted origin can match",
+        "No browser behavioral or reflected-origin proof",
+        "No declaration binding"
+      ],
+      "decision": "opt_in_configuration_review",
+      "wording": "CORS-shaped call combines credentials=true with wildcard or unresolved origin. Browsers reject credentialed wildcard response sharing; review intended origin policy, reflected origins and availability.",
+      "source": "https://fetch.spec.whatwg.org/#cors-protocol-and-credentials"
+    },
+    {
+      "id": "CWE-614/cookie-attrs",
+      "default_enabled": false,
+      "trigger": "set_cookie method omits one of http_only, secure, same_site labels and mocket/crescent import hint",
+      "forms": [
+        "receiver.set_cookie"
+      ],
+      "real_evidence": "Real mocket 0.9.1 missing/true/false attribute calls compile",
+      "limitations": [
+        "False attributes are treated as present/safe",
+        "Cookie role and deployment are unknown",
+        "No serialization inspection",
+        "Same-name harmless APIs trigger"
+      ],
+      "decision": "opt_in_presence_heuristic",
+      "wording": "Cookie-shaped call omits explicit security attribute labels. Review actual values, cookie purpose and library defaults."
+    },
+    {
+      "id": "CWE-770/no-body-limit",
+      "default_enabled": false,
+      "trigger": "serve/listen/serve_async call lacks selected direct labels; source also contains .post/.put/.patch and crescent import hint",
+      "forms": [
+        "receiver method only"
+      ],
+      "real_evidence": "Crescent 0.11.0 source uses NativeServeOptions(max_request_body_bytes=...); bounded and unbounded calls both match syntax. The real library rejects the fixed compiler due to old lexscan in cookie.mbt, so API calls are not compiler-verified in this audit.",
+      "limitations": [
+        "Current API nested options cause false positive",
+        "File text does not bind routes to server",
+        "No default or reverse-proxy configuration knowledge"
+      ],
+      "decision": "opt_in_stale_api",
+      "wording": "Server-start-shaped call lacks a direct body-limit label. This heuristic does not inspect nested options; review actual server configuration before acting."
+    },
+    {
+      "id": "CWE-346/ws-origin",
+      "default_enabled": false,
+      "trigger": "upgrade_websocket/ws_upgrade lacks origin or allowed_origins labels and mocket/crescent import hint",
+      "forms": [
+        "receiver method",
+        "unqualified function",
+        "package-qualified function"
+      ],
+      "real_evidence": "No matching API declarations found in reviewed mocket 0.9.1 or crescent 0.11.0; synthetic calls only",
+      "limitations": [
+        "No real current-library API validation",
+        "Prior middleware validation invisible",
+        "Label presence is not validation proof"
+      ],
+      "decision": "opt_in_unverified_api",
+      "wording": "WebSocket-upgrade-shaped call lacks origin labels. Confirm a real upgrade API and inspect origin validation across middleware."
+    },
+    {
+      "id": "CWE-22/path-concat",
+      "default_enabled": false,
+      "trigger": "String + operands with path/input-like variable names or slash literal",
+      "forms": [
+        "infix +"
+      ],
+      "real_evidence": "Actual builtin string concatenation compiles; constant-valued locals still match",
+      "limitations": [
+        "Variable names do not prove user control",
+        "No filesystem sink or normalization semantics",
+        "Path joining alone is not path traversal"
+      ],
+      "decision": "opt_in_naming_heuristic",
+      "wording": "Concatenation uses path/input-like names. Review any filesystem use, source trust and containment checks."
+    },
+    {
+      "id": "CWE-676/unsafe-call",
+      "default_enabled": false,
+      "trigger": "unsafe_to*/unsafe_from*/unsafe_new/unsafe_cast names outside any guard body; unsafe_to_char/byte excluded",
+      "forms": [
+        "receiver method",
+        "unqualified function",
+        "qualified function",
+        "type method"
+      ],
+      "real_evidence": "No matched dangerous public builtin API validated; synthetic harmless unsafe_cast compiles and matches",
+      "limitations": [
+        "Arbitrary guard suppresses without proving precondition",
+        "Function name does not establish unsafe semantics",
+        "Many genuine unsafe APIs are excluded"
+      ],
+      "decision": "opt_in_name_heuristic",
+      "wording": "Call name suggests an unchecked operation. Confirm the declaration and its preconditions; current guard filtering does not prove safety."
+    },
+    {
+      "id": "CWE-248/panic-reachable",
+      "default_enabled": false,
+      "trigger": "panic/abort name except guard else, unwrap-like functions, filename/text exclusions",
+      "forms": [
+        "unqualified function only"
+      ],
+      "real_evidence": "Real builtin abort compiles; reachable guard abort is filtered; local harmless abort binding also matches",
+      "limitations": [
+        "No reachability analysis",
+        "String contents and function names are not safety proofs",
+        "Platform file exclusion hides compiled target behavior",
+        "Local binding unresolved"
+      ],
+      "decision": "opt_in_incomplete_abort_inventory",
+      "wording": "Call named panic/abort may terminate execution if it resolves to the builtin. Review reachability and input conditions; filtered locations are not proven safe."
+    },
+    {
+      "id": "CWE-704/unsafe-cast",
+      "default_enabled": false,
+      "trigger": "cast/reinterpret_cast dot method, except any file containing extern JS or #external text",
+      "forms": [
+        "receiver.cast",
+        "receiver.reinterpret_cast"
+      ],
+      "real_evidence": "Only synthetic harmless custom cast method validated in this audit; no canonical unsafe library cast proven",
+      "limitations": [
+        "No receiver or declaration identity",
+        "File-wide extern substring suppresses unrelated calls",
+        "Custom safe conversions match"
+      ],
+      "decision": "opt_in_unverified_api",
+      "wording": "Method name suggests a cast. Resolve its declaration and conversion guarantees before treating it as a type-safety issue."
+    }
+  ]
+}

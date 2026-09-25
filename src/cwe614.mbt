@@ -13,8 +13,8 @@ priv struct Cwe614Visitor {
 pub fn cwe614_info() -> RuleInfo {
   {
     id: { cwe: 614, variant: "cookie-attrs", },
-    name: "Cookie Missing Security Attributes",
-    description: "set_cookie() without http_only, secure, or same_site attributes leaves cookies vulnerable to theft and CSRF.",
+    name: "Cookie Attribute Label Review",
+    description: "Cookie-shaped call omits explicit security attribute labels. Review actual values, cookie purpose and library defaults.",
     default_severity: Warning,
   }
 }
@@ -58,7 +58,7 @@ impl @syntax.IterVisitor for Cwe614Visitor with fn visit_Expr_DotApply(
           { cwe: 614, variant: "cookie-attrs", },
           env.severity,
           Medium,
-          "set_cookie() missing security attributes: " +
+          "Cookie-shaped call omits explicit security attribute labels. Review actual values, cookie purpose and library defaults." +
           attrs +
           ". Add these to protect against XSS cookie theft and CSRF.",
           env.file,
@@ -68,7 +68,8 @@ impl @syntax.IterVisitor for Cwe614Visitor with fn visit_Expr_DotApply(
       )
     }
   }
-  @syntax.IterVisitor::base(env).visit_Expr_DotApply(
+  @syntax.IterVisitor::visit_Expr_DotApply(
+    @syntax.IterVisitor::base(env),
     self~,
     method_name~,
     args~,

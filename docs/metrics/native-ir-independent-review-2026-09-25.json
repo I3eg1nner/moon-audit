@@ -1,0 +1,100 @@
+{
+  "date": "2026-09-25",
+  "review": "independent_subagent",
+  "scope": "restricted_native_mocket_source_to_ir",
+  "status": "passed",
+  "case_count": 13,
+  "cases": [
+    {
+      "name": "/raw",
+      "passed": true,
+      "status": "complete",
+      "path_count": 1,
+      "reason": ""
+    },
+    {
+      "name": "/safe",
+      "passed": true,
+      "status": "complete",
+      "path_count": 0,
+      "reason": ""
+    },
+    {
+      "name": "/discarded",
+      "passed": true,
+      "status": "complete",
+      "path_count": 0,
+      "reason": ""
+    },
+    {
+      "name": "/overwritten",
+      "passed": true,
+      "status": "complete",
+      "path_count": 0,
+      "reason": ""
+    },
+    {
+      "name": "/plain",
+      "passed": true,
+      "status": "complete",
+      "path_count": 0,
+      "reason": ""
+    },
+    {
+      "name": "/script",
+      "passed": true,
+      "status": "incomplete",
+      "path_count": 1,
+      "reason": "unsupported_html_context"
+    },
+    {
+      "name": "/homonym",
+      "passed": true,
+      "status": "complete",
+      "path_count": 1,
+      "reason": ""
+    },
+    {
+      "name": "/unknown",
+      "passed": true,
+      "status": "incomplete",
+      "path_count": 0,
+      "reason": "Failure(src/security_frontend/lower.mbt:263:10-263:66@minie135/moon-audit FAILED: unsupported_semantics: /tmp/moon-audit-native-chain-bdjpbsn7/consumer/probe.mbt:3:44)"
+    },
+    {
+      "name": "/recursive",
+      "passed": true,
+      "status": "incomplete",
+      "path_count": 0,
+      "reason": "incomplete_budget"
+    },
+    {
+      "name": "/doubling",
+      "passed": true,
+      "status": "incomplete",
+      "path_count": 0,
+      "reason": "incomplete_budget"
+    },
+    {
+      "name": "library_changed",
+      "passed": true
+    },
+    {
+      "name": "dependency_changed",
+      "passed": true
+    },
+    {
+      "name": "unsupported_registration_shape",
+      "passed": true
+    }
+  ],
+  "elapsed_seconds": 29.439,
+  "fixture_sha256": "161b0fd4a6d755e00dec1e2f3c6a8a8697265e9abc58e3f594a0c2f36c94f5a1",
+  "source_fingerprint": "e36c3a0d905f1d4f967bf46fd552a206980332917dacc9da2b99f45032326e0a",
+  "limitations": [
+    "Only pinned mocket .get literal-path inline callback declarations are covered.",
+    "Registration execution, middleware and browser exploitability are not proven.",
+    "Whole mocket checkout fails newest compiler in examples/benchmarks; this is a consumer project.",
+    "No production semantic mode, branch/heap analysis or historical-language compatibility claim."
+  ]
+}

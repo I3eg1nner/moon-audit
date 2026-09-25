@@ -1,0 +1,1 @@
+pub fn probe(input : String) -> String { input.replace(old="<", new="&lt;") }

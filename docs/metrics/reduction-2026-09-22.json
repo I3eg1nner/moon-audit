@@ -1,0 +1,338 @@
+{
+  "baseline_head": "41f76dc5b0b6a796d4c7bb21fab3496111f3f9ae",
+  "reference_boundary": "1def569 (before interprocedural analysis); current parser/rules/output retained selectively",
+  "snapshot": ".recovery/2026-09-22-before-redesign",
+  "snapshot_sha256": "f1410bb3d6c4f405606f4fcf919ad3f39f7d46fd10b82c7fda2e5e6cb129d8f0",
+  "before": {
+    "mbt_files": 96,
+    "mbt_lines": 37401
+  },
+  "after": {
+    "mbt_files": 28,
+    "mbt_lines": 4330
+  },
+  "removed_files": [
+    "src/abstract_domain.mbt",
+    "src/abstract_domain_test.mbt",
+    "src/acceptance.mbt",
+    "src/acceptance_test.mbt",
+    "src/analysis_api.mbt",
+    "src/analysis_api_test.mbt",
+    "src/analysis_dump.mbt",
+    "src/analysis_dump_test.mbt",
+    "src/block_exec.mbt",
+    "src/block_exec_test.mbt",
+    "src/block_ir.mbt",
+    "src/block_ir_test.mbt",
+    "src/call_site_id.mbt",
+    "src/cfg_indep.mbt",
+    "src/cfg_indep_test.mbt",
+    "src/cfg_value.mbt",
+    "src/cfg_verify.mbt",
+    "src/core_library_models.mbt",
+    "src/deep_audit.mbt",
+    "src/default_arguments.mbt",
+    "src/e2_test.mbt",
+    "src/env_config.mbt",
+    "src/exception_flow.mbt",
+    "src/extended_test.mbt",
+    "src/field_effects.mbt",
+    "src/flow_call_binding.mbt",
+    "src/fn_sig.mbt",
+    "src/formatting_model.mbt",
+    "src/function_id.mbt",
+    "src/hir.mbt",
+    "src/hir_test.mbt",
+    "src/incremental_cache.mbt",
+    "src/incremental_cache_test.mbt",
+    "src/incremental_test.mbt",
+    "src/instrument.mbt",
+    "src/ir_types.mbt",
+    "src/joint_points.mbt",
+    "src/joint_points_test.mbt",
+    "src/lib_models.mbt",
+    "src/live_vars.mbt",
+    "src/live_vars_test.mbt",
+    "src/llm_prompt.mbt",
+    "src/param_binding.mbt",
+    "src/poc_gen.mbt",
+    "src/points_to.mbt",
+    "src/points_to_test.mbt",
+    "src/program_world.mbt",
+    "src/program_world_test.mbt",
+    "src/receiver_flow.mbt",
+    "src/remediation.mbt",
+    "src/review_contract_test.mbt",
+    "src/summary.mbt",
+    "src/summary_bindings.mbt",
+    "src/summary_scc.mbt",
+    "src/summary_scc_test.mbt",
+    "src/t53_cb_timing_test.mbt",
+    "src/t7_test.mbt",
+    "src/taint.mbt",
+    "src/taint_flow.mbt",
+    "src/taint_flow_test.mbt",
+    "src/taint_interprocedural.mbt",
+    "src/taint_interprocedural_test.mbt",
+    "src/taint_rules.mbt",
+    "src/taint_rules_test.mbt",
+    "src/taint_rules_unify_test.mbt",
+    "src/timing.mbt",
+    "src/tyrecon.mbt",
+    "src/tyrecon_test.mbt",
+    "src/unified_solver.mbt"
+  ],
+  "retained_or_reworked_files": [
+    "src/baseline.mbt",
+    "src/baseline_test.mbt",
+    "src/config.mbt",
+    "src/cwe022.mbt",
+    "src/cwe079_cmark.mbt",
+    "src/cwe079_inner_html.mbt",
+    "src/cwe079_template.mbt",
+    "src/cwe094.mbt",
+    "src/cwe113.mbt",
+    "src/cwe116.mbt",
+    "src/cwe248.mbt",
+    "src/cwe346.mbt",
+    "src/cwe614.mbt",
+    "src/cwe676.mbt",
+    "src/cwe704.mbt",
+    "src/cwe770.mbt",
+    "src/cwe942.mbt",
+    "src/frontend.mbt",
+    "src/frontend_test.mbt",
+    "src/helpers.mbt",
+    "src/import_analysis.mbt",
+    "src/main/main.mbt",
+    "src/output.mbt",
+    "src/sarif.mbt",
+    "src/scanner.mbt",
+    "src/scanner_test.mbt",
+    "src/test_support_test.mbt",
+    "src/types.mbt"
+  ],
+  "production_interprocedural": false,
+  "new_core_migration_approved": false,
+  "line_reduction_percent": 88.4,
+  "checks": [
+    {
+      "name": "fmt",
+      "command": [
+        "moon",
+        "fmt"
+      ],
+      "exit_code": 0,
+      "seconds": 0.035,
+      "output": "Finished. moon: ran 31 tasks, now up to date\n"
+    },
+    {
+      "name": "check",
+      "command": [
+        "moon",
+        "check",
+        "--target",
+        "all",
+        "--deny-warn"
+      ],
+      "exit_code": 0,
+      "seconds": 2.054,
+      "output": "Finished. moon: ran 33 tasks, now up to date\n"
+    },
+    {
+      "name": "info",
+      "command": [
+        "moon",
+        "info"
+      ],
+      "exit_code": 0,
+      "seconds": 1.935,
+      "output": "Finished. moon: ran 21 tasks, now up to date\n"
+    },
+    {
+      "name": "build",
+      "command": [
+        "moon",
+        "build",
+        "--target",
+        "all"
+      ],
+      "exit_code": 0,
+      "seconds": 13.779,
+      "output": "Finished. moon: ran 81 tasks, now up to date\n"
+    },
+    {
+      "name": "tests",
+      "command": [
+        "moon",
+        "test",
+        "--target",
+        "all",
+        "--deny-warn"
+      ],
+      "exit_code": 0,
+      "seconds": 17.28,
+      "output": "Total tests: 66, passed: 66, failed: 0. [wasm]\nTotal tests: 66, passed: 66, failed: 0. [wasm-gc]\nTotal tests: 66, passed: 66, failed: 0. [js]\nTotal tests: 66, passed: 66, failed: 0. [native]\n"
+    }
+  ],
+  "additional_checks": {
+    "cli": {
+      "tests": 14,
+      "passed": true,
+      "output": "test_baseline_does_not_hide_same_code_in_new_file (__main__.CliRegression) ... ok\ntest_baseline_paths_survive_relative_absolute_and_new_checkout (__main__.CliRegression) ... ok\ntest_findings_are_informational_unless_requested (__main__.CliRegression) ... ok\ntest_header_pattern_is_a_review_hint_with_literal_control (__main__.CliRegression) ... ok\ntest_incomplete_scan_cannot_replace_baseline (__main__.CliRegression) ... ok\ntest_incremental_does_not_report_unselected_parse_errors (__main__.CliRegression) ... ok\ntest_incremental_json_exact_and_empty (__main__.CliRegression) ... ok\ntest_operational_and_argument_failures (__main__.CliRegression) ... ok\ntest_parse_failure_is_a_failed_scan_with_json_report (__main__.CliRegression) ... ok\ntest_retired_semantic_options_are_rejected (__main__.CliRegression) ... ok\ntest_rules_enable_disabled_and_accumulate (__main__.CliRegression) ... ok\ntest_sarif_incomplete_is_not_successful (__main__.CliRegression) ... ok\ntest_sarif_reports_current_version (__main__.CliRegression) ... ok\ntest_scope_is_explicit_even_with_no_findings (__main__.CliRegression) ... ok\n\n----------------------------------------------------------------------\nRan 14 tests in 0.156s\n\nOK\n"
+    },
+    "harness": {
+      "tests": 33,
+      "passed": true,
+      "output": "test_action_atomically_replaces_a_report_symlink (__main__.HarnessTests) ... ok\ntest_action_command_failure_does_not_publish_outputs (__main__.HarnessTests) ... ok\ntest_action_counts_compact_json_and_sarif_exactly (__main__.HarnessTests) ... ok\ntest_action_findings_failure_preserves_report_and_sarif_outputs (__main__.HarnessTests) ... ok\ntest_action_invalid_report_does_not_accept_stale_artifact (__main__.HarnessTests) ... ok\ntest_action_report_directory_is_not_published_as_a_file (__main__.HarnessTests) ... ok\ntest_action_sarif_directory_does_not_upload_stale_reports (__main__.HarnessTests) ... ok\ntest_action_treats_path_input_as_literal_data (__main__.HarnessTests) ... ok\ntest_action_validates_enumerated_inputs (__main__.HarnessTests) ... ok\ntest_action_zero_findings_are_one_valid_output (__main__.HarnessTests) ... ok\ntest_c14_command_failure_cleans_temporary_project (__main__.HarnessTests) ... ok\ntest_c8_requires_default_argument_call (__main__.HarnessTests) ... ok\ntest_case_expectation_mismatch (__main__.HarnessTests) ... ok\ntest_cases_success_and_cleanup (__main__.HarnessTests) ... ok\ntest_compiler_failure_despite_success_shaped_output (__main__.HarnessTests) ... ok\ntest_corpus_command_failures_are_retained (__main__.HarnessTests) ... ok\ntest_corpus_continues_after_errors (__main__.HarnessTests) ... ok\ntest_corpus_findings_are_successful_measurements (__main__.HarnessTests) ... ok\ntest_corpus_paths_with_quotes_spaces_and_colons (__main__.HarnessTests) ... ok\ntest_corpus_rejects_malformed_reports (__main__.HarnessTests) ... ok\ntest_corpus_rejects_missing_measurements (__main__.HarnessTests) ... ok\ntest_corpus_timeout (__main__.HarnessTests) ... ok\ntest_empty_corpus_does_not_include_machine_local_extras (__main__.HarnessTests) ... ok\ntest_install_fails_after_bounded_installer_attempts (__main__.HarnessTests) ... ok\ntest_install_never_executes_a_partial_download (__main__.HarnessTests) ... ok\ntest_install_retries_a_failed_download (__main__.HarnessTests) ... ok\ntest_install_retries_failed_core_installation (__main__.HarnessTests) ... ok\ntest_isolated_failure_cannot_pass_as_zero_findings (__main__.HarnessTests) ... ok\ntest_isolated_missing_output_is_infrastructure_failure (__main__.HarnessTests) ... ok\ntest_isolated_timeout_is_infrastructure_failure (__main__.HarnessTests) ... ok\ntest_missing_case_file_is_infrastructure_failure (__main__.HarnessTests) ... ok\ntest_record_pins_respects_corpus_and_repo_overrides (__main__.HarnessTests) ... ok\ntest_sarif_counter_adds_multiple_runs (__main__.HarnessTests) ... ok\n\n----------------------------------------------------------------------\nRan 33 tests in 8.158s\n\nOK\n"
+    },
+    "core-spec": {
+      "tests": 14,
+      "passed": true,
+      "output": "test_binding_is_consumed_and_in_cache_identity (experiments.core_semantics.test_engine.CoreSemanticsTests) ... ok\ntest_budget_havocs_future_fields_exits_and_sinks (experiments.core_semantics.test_engine.CoreSemanticsTests) ... ok\ntest_budget_retains_supplied_objects_and_is_not_cached (experiments.core_semantics.test_engine.CoreSemanticsTests) ... ok\ntest_call_chain_revisits_call_blocks_without_replaying_prefixes (experiments.core_semantics.test_engine.CoreSemanticsTests) ... ok\ntest_factory_calls_have_distinct_contextual_objects (experiments.core_semantics.test_engine.CoreSemanticsTests) ... ok\ntest_generated_straight_line_alias_programs_match_oracle (experiments.core_semantics.test_engine.CoreSemanticsTests) ... ok\ntest_mapping_order_does_not_change_semantics (experiments.core_semantics.test_engine.CoreSemanticsTests) ... ok\ntest_order_changes_result_and_cache_key (experiments.core_semantics.test_engine.CoreSemanticsTests) ... ok\ntest_program_snapshot_cannot_change_under_its_cache_digest (experiments.core_semantics.test_engine.CoreSemanticsTests) ... ok\ntest_read_after_write_alias_and_distinct_controls (experiments.core_semantics.test_engine.CoreSemanticsTests) ... ok\ntest_recursive_input_reaches_fixed_point_without_depth_cutoff (experiments.core_semantics.test_engine.CoreSemanticsTests) ... ok\ntest_repeated_allocation_identity_requires_weak_updates (experiments.core_semantics.test_engine.CoreSemanticsTests) ... ok\ntest_unsupported_or_incomplete_contracts_are_rejected (experiments.core_semantics.test_engine.CoreSemanticsTests) ... ok\ntest_witnesses_match_independent_concrete_traces (experiments.core_semantics.test_engine.CoreSemanticsTests) ... ok\n\n----------------------------------------------------------------------\nRan 14 tests in 0.153s\n\nOK\n"
+    }
+  },
+  "git_head_and_index_unchanged": true,
+  "source_manifest": [
+    {
+      "path": ".github/workflows/check.yml",
+      "sha256": "7db18e76457b5a41a6cf153d4ba8e674a349cab7ce32fb78c53c79aee91a65ce"
+    },
+    {
+      "path": "moon.mod",
+      "sha256": "cb5af27b27954417cdb371312bf04d23eac01dcece0e07edd23d4fdefc56725a"
+    },
+    {
+      "path": "scripts/cli_regression_test.py",
+      "sha256": "963bdec21206dc149af3fc4d6727d381275814d2ce7af6fb875b49f1cf439fa4"
+    },
+    {
+      "path": "src/baseline.mbt",
+      "sha256": "fa2d121329e2e4cca9d784fc5683d849f76fd639a3748c49bbd33ee841322438"
+    },
+    {
+      "path": "src/baseline_test.mbt",
+      "sha256": "89e2567506dc61df45f3f3a1441d55024fa3850b912a43cc0ee6f19800ef2780"
+    },
+    {
+      "path": "src/config.mbt",
+      "sha256": "ce0dd41b58ecfe2e582993641c5ca81e187f1dc99dd42867781ee3a9e0a5d8cb"
+    },
+    {
+      "path": "src/cwe022.mbt",
+      "sha256": "2ce0aa4797d71b6cdd7b51c173fb2ec03bb4953eb6b90a10b537c6cff5b89ad9"
+    },
+    {
+      "path": "src/cwe079_cmark.mbt",
+      "sha256": "fd4919801edb73c26626c0400d24098e2a1821bfd43f9579377e376980f6536e"
+    },
+    {
+      "path": "src/cwe079_inner_html.mbt",
+      "sha256": "41d2ca35cbe8d47aae0da1af689518044f66391a83d0faa60c4300c017eee19b"
+    },
+    {
+      "path": "src/cwe079_template.mbt",
+      "sha256": "5a205a539ec974de0015b8bc32145ee6dca4508fd1e410c4d219c4528d2d6d43"
+    },
+    {
+      "path": "src/cwe094.mbt",
+      "sha256": "9e4ecab5352726e4e1b47a589df35eb70e7c4bfa2c3a0aba52ab30578cba34f3"
+    },
+    {
+      "path": "src/cwe113.mbt",
+      "sha256": "2275e69336400812ce108db61f40b00261c34ad18f371c3fd81764c7c02f8384"
+    },
+    {
+      "path": "src/cwe116.mbt",
+      "sha256": "aca666859fe4ff7b73830b4de87f7f041c268e6c49e9d0b00046f32ac86bcf71"
+    },
+    {
+      "path": "src/cwe248.mbt",
+      "sha256": "8010320bb96b2fd1eb92d2b68c7b0a20887530d373bc4d09ea14fd84784c4b72"
+    },
+    {
+      "path": "src/cwe346.mbt",
+      "sha256": "a1abb0f45c82ec7ecb0e3db4b3ff584ab65df14d2cb29cb165f0c74cf428c507"
+    },
+    {
+      "path": "src/cwe614.mbt",
+      "sha256": "e22028492b49a85cd9b88cb182e6e805990ec7c3656665eae8b5d4146039f065"
+    },
+    {
+      "path": "src/cwe676.mbt",
+      "sha256": "71e3231f9e7ac92fc29782323cc849b4d047622a26f5cd20889e3c276858d10b"
+    },
+    {
+      "path": "src/cwe704.mbt",
+      "sha256": "6cca31fec6f7ad6e42cb3bf7ab35a5093060d140e4492315179c68eca135b436"
+    },
+    {
+      "path": "src/cwe770.mbt",
+      "sha256": "4a2e203f3e2e87677e609bc1d3010a346c4333eb25559279452c73be02158dfd"
+    },
+    {
+      "path": "src/cwe942.mbt",
+      "sha256": "d66d87df5f6790ee49f20c3b570ecae0d7cd8091e3db51e347ab838682723f53"
+    },
+    {
+      "path": "src/frontend.mbt",
+      "sha256": "bdfb2e26d946818379257af66023429ce6f5c10582f734069478206e33209bee"
+    },
+    {
+      "path": "src/frontend_test.mbt",
+      "sha256": "bbbdd2e30ea0decdd8a896809ac75bfaf29ed6c90e286b233e6000081a804e97"
+    },
+    {
+      "path": "src/helpers.mbt",
+      "sha256": "abef0483f6f92cdbc708f1e65b097947eb595d3c2108dacbc4ce8648d2f14131"
+    },
+    {
+      "path": "src/import_analysis.mbt",
+      "sha256": "f58b25415f60c91d2610db012c4c40aea3e2363f23700b91ea217b384526f9ed"
+    },
+    {
+      "path": "src/main/main.mbt",
+      "sha256": "23c7464b0c1b2271809cc1e34ac33076eb84f37c289bc95b2f522c4d591a96ad"
+    },
+    {
+      "path": "src/main/moon.pkg",
+      "sha256": "8ba785cc96fbe299cd4ac63d5c5dcfa0c16ad4f52e503e9bfbf4c578d24ddab0"
+    },
+    {
+      "path": "src/main/pkg.generated.mbti",
+      "sha256": "7a2463522ad6604c4e1425281279da285fe12ae9a852316d36fcc0419ee28d1c"
+    },
+    {
+      "path": "src/moon.pkg",
+      "sha256": "363750c0bc7a2aec909bfe920f370d0da82c2f4e53aa640856caa94f16621872"
+    },
+    {
+      "path": "src/output.mbt",
+      "sha256": "57131c9fee79ba4b53019d7c787fac41868e87fd304f1b35b5f2879133ac7220"
+    },
+    {
+      "path": "src/pkg.generated.mbti",
+      "sha256": "e3790b63e54b1a365868ba32f96b02b02d9bd2536e65a311faf881affc9c255d"
+    },
+    {
+      "path": "src/sarif.mbt",
+      "sha256": "6190f8ac9ea503d267601dd385bd68ab48afca4408878cfc472e93da3e815a91"
+    },
+    {
+      "path": "src/scanner.mbt",
+      "sha256": "3674257044f4c910ee8f45fde792007bca39ea97f64a43256193e3486a195603"
+    },
+    {
+      "path": "src/scanner_test.mbt",
+      "sha256": "49bfa5e720061c302a5e6824ffbecfcf44e739d17be696a695af731653f528cf"
+    },
+    {
+      "path": "src/test_support_test.mbt",
+      "sha256": "200bacf62a62a77282b38013d1c5f479b35f6812cac857a761c58fe5df17e3f1"
+    },
+    {
+      "path": "src/types.mbt",
+      "sha256": "43709f23304191a1e2f114a72f8a4bd833bca7dd82298571e9c4c2f0fdc8320c"
+    }
+  ]
+}

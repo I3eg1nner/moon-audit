@@ -28,6 +28,20 @@ pub fn format_sarif(result : ScanResult) -> String {
           },
         },
         "results": Json::array(sarif_results),
+        "properties": {
+          "project_verification": result.project_verification.unwrap_or(
+            Json::null(),
+          ),
+          "semantic_analysis": result.semantic_analysis.unwrap_or(Json::null()),
+          "analysis_scope": Json::string(result.analysis_scope),
+          "analysis_manifest": analysis_manifest_json(result),
+          "files_selected": Json::number(result.files_selected.to_double()),
+          "files_parsed": Json::number(result.files_parsed.to_double()),
+          "errors": Json::array(result.errors.map(fn(e) { Json::string(e) })),
+        },
+        "invocations": Json::array([
+          { "executionSuccessful": Json::boolean(result.errors.is_empty()) },
+        ]),
       },
     ]),
   }
@@ -71,7 +85,11 @@ fn finding_to_sarif(f : Finding) -> Json {
       },
     ]),
     "partialFingerprints": { "moon-audit/v1": Json::string(f.fingerprint) },
-    "properties": { "confidence": Json::string(confidence_str(f.confidence)) },
+    "properties": {
+      "confidence": Json::string(confidence_str(f.confidence)),
+      "evidence": Json::string(f.evidence),
+      "dataflow": f.dataflow.to_json(),
+    },
   }
 }
 

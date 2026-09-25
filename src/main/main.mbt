@@ -1,909 +1,230 @@
 ///|
-fn main {
+async fn main {
+  let raw = @env.args()
+  if raw.length() > 1 && raw[1] == "--internal-supervise" {
+    let code = @project.supervise(raw) catch { _ => 125 }
+    @sys.exit(code)
+    return
+  }
+  if raw.length() > 1 && raw[1] == "--internal-semantic" {
+    if raw.length() != 5 {
+      @sys.exit(2)
+      return
+    }
+    if !@project.limit_worker_memory(2048) {
+      let failure : Json = {
+        "status": "incomplete",
+        "reason": "semantic_memory_supervision_setup_failed",
+      }
+      println(failure.stringify())
+      @sys.exit(2)
+      return
+    }
+    let home = if raw[4] == "" { None } else { Some(raw[4]) }
+    let verified = @project.verify(raw[2], raw[3], home, "native", 30)
+    if verified.status != "compiler_verified" {
+      println(verified.to_json().stringify())
+      @sys.exit(2)
+      return
+    }
+    let report = @semantic.analyze(raw[2], raw[3], home, verified.files)
+    let complete = @audit.semantic_complete(report) &&
+      @project.unchanged(verified.snapshot, raw[2])
+    if report is Object(fields) {
+      fields["status"] = Json::string(
+        if complete {
+          "complete_within_declared_scope"
+        } else {
+          "incomplete"
+        },
+      )
+      fields["coverage_status"] = Json::string("explicit_callback_scope")
+      fields["schema"] = Json::string("moon-audit.scoped-dataflow.v1")
+      fields.remove("production_ready")
+      fields["support"] = Json::string("validated_callback_subset")
+      fields["budget"] = {
+        "wall_seconds": 60,
+        "memory": @project.memory_budget(),
+        "query_limit": 256,
+        "parallel_queries": 4,
+        "ir_units_per_callback": 10000,
+      }
+    }
+    println(report.stringify())
+    if !complete {
+      @sys.exit(2)
+    }
+    return
+  }
+  let options = [
+    @argparse.OptionArg(
+      "semantic-scope",
+      long="semantic-scope",
+      about="Required for semantic: mocket-get-callbacks",
+    ),
+    @argparse.OptionArg(
+      "analysis",
+      long="analysis",
+      default_values=["syntax"],
+      about="syntax, or explicitly scoped semantic analysis",
+    ),
+    @argparse.OptionArg(
+      "project-toolchain",
+      long="project-toolchain",
+      about="Target MoonBit toolchain directory",
+    ),
+    @argparse.OptionArg(
+      "project-moon",
+      long="project-moon",
+      about="Target moon executable",
+    ),
+    @argparse.OptionArg(
+      "target",
+      long="target",
+      default_values=["native"],
+      about="native, js, wasm or wasm-gc",
+    ),
+    @argparse.OptionArg(
+      "timeout-seconds",
+      long="timeout-seconds",
+      default_values=["300"],
+      about="Compiler command timeout",
+    ),
+    @argparse.OptionArg(
+      "format",
+      short='f',
+      long="format",
+      default_values=["text"],
+      about="text, json or sarif",
+    ),
+    @argparse.OptionArg("output", short='o', long="output", about="Report file"),
+    @argparse.OptionArg(
+      "config",
+      short='c',
+      long="config",
+      about="JSON configuration",
+    ),
+    @argparse.OptionArg(
+      "severity",
+      long="severity",
+      default_values=["warning"],
+      about="error, warning or info",
+    ),
+    @argparse.OptionArg(
+      "rule",
+      long="rule",
+      action=@argparse.Append,
+      about="Only run selected pattern rules",
+    ),
+    @argparse.OptionArg(
+      "changed-files",
+      long="changed-files",
+      about="Restrict scan to listed files; no caller analysis",
+    ),
+    @argparse.OptionArg(
+      "baseline",
+      long="baseline",
+      about="Suppress recorded finding occurrences",
+    ),
+  ]
+  let positionals = [
+    @argparse.PositionArg(
+      "path",
+      default_values=["."],
+      about="Project directory",
+    ),
+  ]
   let cmd = @argparse.Command(
     "moon-audit",
-    about="Static security scanner for MoonBit projects",
     version=@audit.ANALYZER_VERSION,
+    about="MoonBit syntax-pattern scanner; no interprocedural analysis",
     flags=[
+      @argparse.FlagArg(
+        "verify-project",
+        long="verify-project",
+        about="Verify with the target project toolchain",
+      ),
       @argparse.FlagArg(
         "quiet",
         short='q',
         long="quiet",
-        about="Only output findings",
+        about="Suppress progress messages",
       ),
       @argparse.FlagArg(
         "verbose",
         short='v',
         long="verbose",
-        about="Show detailed scan info",
-      ),
-      @argparse.FlagArg(
-        "timing",
-        long="timing",
-        about="T7.4: print per-stage timings (world-load/symbols/analysis/output)",
-      ),
-      @argparse.FlagArg(
-        "ledger",
-        long="ledger",
-        about="With --baseline-report: print the per-rule precision ledger (tp-candidates/fp-suspects/confirmed/untriaged) + corpus summary",
+        about="Detailed text report",
       ),
       @argparse.FlagArg(
         "fail-on-error",
         long="fail-on-error",
-        about="Exit with code 1 when error-level findings exist (for CI gating)",
-      ),
-      @argparse.FlagArg(
-        "cfg-verify",
-        long="cfg-verify",
-        about="E1b strict mode: fail the scan (exit 2) when any walk finding is NOT confirmed by the CFG executor (gates builder regressions)",
-      ),
-      @argparse.FlagArg(
-        "diagnose-fallback",
-        short='F',
-        long="diagnose-fallback",
-        about="G2: list per-function CFG fallback reasons (file:fn — validation failure) then exit",
-      ),
-      @argparse.FlagArg(
-        "cfg-engine",
-        long="cfg-engine",
-        about="PROD-1: use the independent CFG executor (exec_independent) as findings producer; AST walk is fallback for unsupported functions",
+        about="Exit 1 for error-level findings",
       ),
     ],
-    options=[
-      @argparse.OptionArg(
-        "format",
-        short='f',
-        long="format",
-        about="Output format: text, json, sarif",
-        default_values=["text"],
-      ),
-      @argparse.OptionArg(
-        "output",
-        short='o',
-        long="output",
-        about="Write output to file",
-      ),
-      @argparse.OptionArg(
-        "config",
-        short='c',
-        long="config",
-        about="Config file path",
-        default_values=[".moon-audit.json"],
-      ),
-      @argparse.OptionArg(
-        "mode",
-        long="mode",
-        about="T7.5: quick (default) | deep (force interprocedural taint + SCC summaries)",
-        default_values=["quick"],
-      ),
-      @argparse.OptionArg(
-        "context-strategy",
-        long="context-strategy",
-        about="T7.1: insensitive (default) | call-site-N | object-N | closure-env (non-insensitive warns not-implemented)",
-        default_values=["insensitive"],
-      ),
-      @argparse.OptionArg(
-        "severity",
-        long="severity",
-        about="Minimum severity: error, warning, info",
-        default_values=["warning"],
-      ),
-      @argparse.OptionArg(
-        "rule",
-        long="rule",
-        action=@argparse.Append,
-        about="Only run specific rule(s)",
-      ),
-      @argparse.OptionArg(
-        "changed-files",
-        long="changed-files",
-        about="File containing changed file paths (one per line) for incremental scanning",
-      ),
-      @argparse.OptionArg(
-        "baseline",
-        long="baseline",
-        about="Baseline file to exclude known findings",
-      ),
-      @argparse.OptionArg(
-        "baseline-report",
-        long="baseline-report",
-        about="Previous scan report (JSON) to diff against: classifies findings as new/resolved/unchanged by fingerprint",
-      ),
-    ],
-    positionals=[
-      @argparse.PositionArg("path", about="Project path to scan", default_values=[
-        ".",
-      ]),
-    ],
+    options~,
+    positionals~,
     subcommands=[
-      @argparse.Command("list-rules", about="List all available rules"),
       @argparse.Command(
-        "llm-analyze",
-        about="Generate LLM analysis prompts for findings",
-        options=[
-          @argparse.OptionArg(
-            "format",
-            short='f',
-            long="format",
-            about="Output format: script (auto-run Python), json (API bodies), text (readable)",
-            default_values=["json"],
-          ),
-          @argparse.OptionArg(
-            "output",
-            short='o',
-            long="output",
-            about="Write prompts to file",
-          ),
-          @argparse.OptionArg(
-            "config",
-            short='c',
-            long="config",
-            about="Config file path",
-            default_values=[".moon-audit.json"],
-          ),
-        ],
-        positionals=[
-          @argparse.PositionArg("path", about="Project path to scan", default_values=[
-            ".",
-          ]),
-        ],
-      ),
-      @argparse.Command(
-        "generate-poc",
-        about="Generate PoC exploit scripts from findings",
-        options=[
-          @argparse.OptionArg(
-            "output",
-            short='o',
-            long="output",
-            about="Write PoC report to file",
-          ),
-          @argparse.OptionArg(
-            "config",
-            short='c',
-            long="config",
-            about="Config file path",
-            default_values=[".moon-audit.json"],
-          ),
-        ],
-        positionals=[
-          @argparse.PositionArg("path", about="Project path to scan", default_values=[
-            ".",
-          ]),
-        ],
-      ),
-      @argparse.Command(
-        "remediate",
-        about="Generate remediation guide from findings",
-        options=[
-          @argparse.OptionArg(
-            "output",
-            short='o',
-            long="output",
-            about="Write remediation report to file",
-          ),
-          @argparse.OptionArg(
-            "config",
-            short='c',
-            long="config",
-            about="Config file path",
-            default_values=[".moon-audit.json"],
-          ),
-        ],
-        positionals=[
-          @argparse.PositionArg("path", about="Project path to scan", default_values=[
-            ".",
-          ]),
-        ],
-      ),
-      @argparse.Command(
-        "pipeline",
-        about="Run analysis pipeline: scan + taint + summary",
-        flags=[
-          @argparse.FlagArg(
-            "fail-on-error",
-            long="fail-on-error",
-            about="Exit with code 1 when error-level findings exist",
-          ),
-        ],
-        options=[
-          @argparse.OptionArg(
-            "output-dir",
-            short='d',
-            long="output-dir",
-            about="Output directory for all reports (default: moon-audit-report)",
-            default_values=["moon-audit-report"],
-          ),
-          @argparse.OptionArg(
-            "config",
-            short='c',
-            long="config",
-            about="Config file path",
-            default_values=[".moon-audit.json"],
-          ),
-        ],
-        positionals=[
-          @argparse.PositionArg("path", about="Project path to scan", default_values=[
-            ".",
-          ]),
-        ],
-      ),
-      @argparse.Command(
-        "summary",
-        about="Show scan summary with statistics",
-        options=[
-          @argparse.OptionArg(
-            "format",
-            short='f',
-            long="format",
-            about="Output format: text, json",
-            default_values=["text"],
-          ),
-          @argparse.OptionArg(
-            "output",
-            short='o',
-            long="output",
-            about="Write summary to file",
-          ),
-          @argparse.OptionArg(
-            "config",
-            short='c',
-            long="config",
-            about="Config file path",
-            default_values=[".moon-audit.json"],
-          ),
-        ],
-        positionals=[
-          @argparse.PositionArg("path", about="Project path to scan", default_values=[
-            ".",
-          ]),
-        ],
-      ),
-      @argparse.Command(
-        "compare-calls",
-        about="P1b: compare static call graph with dynamic log → recall/precision",
-        positionals=[
-          @argparse.PositionArg("static-json", about="Static edges JSON", default_values=[
-            "",
-          ]),
-          @argparse.PositionArg("dynamic-log", about="Dynamic log file", default_values=[
-            "",
-          ]),
-        ],
-      ),
-      @argparse.Command(
-        "instrument",
-        about="P1a: generate instrument runtime package + function report JSON",
-        options=[
-          @argparse.OptionArg(
-            "output",
-            short='o',
-            long="output",
-            about="Output dir for runtime package",
-            default_values=["./instrument-runtime"],
-          ),
-        ],
-        positionals=[
-          @argparse.PositionArg("path", about="Project path", default_values=[
-            ".",
-          ]),
-        ],
-      ),
-      @argparse.Command(
-        "dump-analyses",
-        about="T6.4: export analysis results (HIR/call-graph/points-to/live-vars/plan) with provenance",
-        flags=[
-          @argparse.FlagArg(
-            "conservative-alias",
-            long="conservative-alias",
-            about="Enable legacy short-key alias binding (default: strict)",
-          ),
-        ],
-        options=[
-          @argparse.OptionArg(
-            "output",
-            short='o',
-            long="output",
-            about="Output directory for the dump files",
-            default_values=["moon-audit-dump"],
-          ),
-        ],
-        positionals=[
-          @argparse.PositionArg("path", about="Project path to analyze", default_values=[
-            ".",
-          ]),
-        ],
-      ),
-      @argparse.Command(
-        "call-graph",
-        about="M4 slice: closed-world call graph (CHA + devirtualization)",
-        flags=[
-          @argparse.FlagArg(
-            "timing",
-            long="timing",
-            about="T7.4: print per-stage timings",
-          ),
-          @argparse.FlagArg(
-            "details",
-            short='d',
-            long="details",
-            about="List all edges",
-          ),
-          @argparse.FlagArg(
-            "conservative-alias",
-            long="conservative-alias",
-            about="Enable legacy short-key alias binding (default: strict)",
-          ),
-        ],
-        positionals=[
-          @argparse.PositionArg("path", about="Project path to analyze", default_values=[
-            ".",
-          ]),
-        ],
-      ),
-      @argparse.Command(
-        "ir-stats",
-        about="M1 IR spike: measure type-reconstruction call-site resolution rate",
-        flags=[
-          @argparse.FlagArg(
-            "timing",
-            long="timing",
-            about="T7.4: print per-stage timings",
-          ),
-          @argparse.FlagArg(
-            "details",
-            short='d',
-            long="details",
-            about="List unresolved call sites",
-          ),
-          @argparse.FlagArg(
-            "conservative-alias",
-            long="conservative-alias",
-            about="Enable legacy short-key alias binding (default: strict)",
-          ),
-          @argparse.FlagArg(
-            "live-vars",
-            long="live-vars",
-            about="T3.4: live-variable summary per function on the HIR statement layer",
-          ),
-        ],
-        positionals=[
-          @argparse.PositionArg("path", about="Project path to analyze", default_values=[
-            ".",
-          ]),
-        ],
+        "list-rules",
+        about="List supported syntax-pattern rules",
       ),
       @argparse.Command(
         "generate-baseline",
-        about="Generate a baseline file from current scan findings",
-        options=[
-          @argparse.OptionArg(
-            "output",
-            short='o',
-            long="output",
-            about="Baseline output file path",
-            default_values=[".moon-audit-baseline.json"],
-          ),
-          @argparse.OptionArg(
-            "config",
-            short='c',
-            long="config",
-            about="Config file path",
-            default_values=[".moon-audit.json"],
+        about="Record findings after a complete pattern scan",
+        flags=[
+          @argparse.FlagArg(
+            "verify-project",
+            long="verify-project",
+            about="Verify with the project toolchain",
           ),
         ],
-        positionals=[
-          @argparse.PositionArg("path", about="Project path to scan", default_values=[
-            ".",
-          ]),
-        ],
-      ),
-      @argparse.Command(
-        "deep-audit",
-        about="Generate LLM-powered deep security audit script (static + AI code review)",
-        options=[
-          @argparse.OptionArg(
-            "output",
-            short='o',
-            long="output",
-            about="Output script file path",
-            default_values=["deep_audit.py"],
-          ),
-          @argparse.OptionArg(
-            "config",
-            short='c',
-            long="config",
-            about="Config file path",
-            default_values=[".moon-audit.json"],
-          ),
-        ],
-        positionals=[
-          @argparse.PositionArg("path", about="Project path to scan", default_values=[
-            ".",
-          ]),
-        ],
+        options~,
+        positionals~,
       ),
     ],
   )
   let matches = cmd.parse() catch {
     e => {
-      println("Error: " + e.to_string())
-      println(cmd.render_help())
-      @sys.exit(2)
+      cli_error(e.to_string())
       return
     }
   }
   match matches.subcommand {
-    Some(("list-rules", _)) => cmd_list_rules()
-    Some(("llm-analyze", sub)) => cmd_llm_analyze(sub)
-    Some(("generate-poc", sub)) => cmd_generate_poc(sub)
-    Some(("remediate", sub)) => cmd_remediate(sub)
-    Some(("pipeline", sub)) => cmd_pipeline(sub)
-    Some(("summary", sub)) => cmd_summary(sub)
-    Some(("generate-baseline", sub)) => cmd_generate_baseline(sub)
-    Some(("ir-stats", sub)) => cmd_ir_stats(sub)
-    Some(("compare-calls", sub)) => cmd_compare_calls(sub)
-    Some(("instrument", sub)) => cmd_instrument(sub)
-    Some(("instrument-calls", sub)) => cmd_instrument_calls(sub)
-    Some(("call-graph", sub)) => cmd_call_graph(sub)
-    Some(("dump-analyses", sub)) => cmd_dump_analyses(sub)
-    Some(("deep-audit", sub)) => cmd_deep_audit(sub)
-    _ => cmd_scan(matches)
-  }
-}
-
-///|
-fn cmd_list_rules() -> Unit {
-  let rules = @audit.list_all_rules()
-  let config = @audit.Config::default()
-  println("Available rules:\n")
-  for rule in rules {
-    let id = @audit.rule_id_str(rule.id)
-    let sev = @audit.severity_str(rule.default_severity)
-    let status = if config.is_enabled(id) { "on" } else { "off" }
-    println("  " + id + " [" + sev + "] (" + status + ")")
-    println("    " + rule.name)
-    println("    " + rule.description)
-    println("")
-  }
-  println("Rules marked (off) require project-level context and have higher")
-  println("false-positive risk. Enable them in .moon-audit.json when needed.")
-  // Taint rule DSL: show the effective taint vocabulary source
-  let (rs, source, _) = @audit.load_taint_rules(".")
-  println("")
-  println("Taint rule vocabulary:")
-  println("  source:      " + source)
-  println(
-    "  custom entries: " +
-    rs.size().to_string() +
-    " (sources " +
-    rs.sources.length().to_string() +
-    ", sinks " +
-    rs.sinks.length().to_string() +
-    ", sanitizers " +
-    rs.sanitizers.length().to_string() +
-    ")",
-  )
-  println(
-    "  (built-in tables always apply; custom entries ADD — see docs/ir/RULES-DSL.md)",
-  )
-}
-
-///|
-fn cmd_scan(matches : @argparse.Matches) -> Unit {
-  let path = match matches.values.get("path") {
-    Some(arr) => if arr.length() > 0 { arr[0] } else { "." }
-    None => "."
-  }
-  let format = match matches.values.get("format") {
-    Some(arr) => if arr.length() > 0 { arr[0] } else { "text" }
-    None => "text"
-  }
-  let machine_output = format == "json" || format == "sarif"
-  let diagnostics : Array[String] = []
-  if format != "text" && !machine_output {
-    cli_error("unknown output format: " + format)
-    return
-  }
-  let output_file = match matches.values.get("output") {
-    Some(arr) => if arr.length() > 0 { Some(arr[0]) } else { None }
-    None => None
-  }
-  let verbose = match matches.flags.get("verbose") {
-    Some(v) => v
-    None => false
-  }
-  let quiet = match matches.flags.get("quiet") {
-    Some(v) => v
-    None => false
-  }
-  let fail_on_error = match matches.flags.get("fail-on-error") {
-    Some(v) => v
-    None => false
-  }
-  let cfg_verify = match matches.flags.get("cfg-verify") {
-    Some(v) => v
-    None => false
-  }
-  @audit.set_cfg_verify_mode(cfg_verify)
-  let severity_name = get_val(matches, "severity", "warning")
-  if severity_name != "error" &&
-    severity_name != "warning" &&
-    severity_name != "info" {
-    cli_error("unknown severity: " + severity_name)
-    return
-  }
-  let severity_filter = match matches.values.get("severity") {
-    Some(arr) =>
-      if arr.length() > 0 {
-        @audit.severity_from_str(arr[0])
-      } else {
-        @audit.Warning
-      }
-    None => @audit.Warning
-  }
-  let mut config = match load_scan_config(matches, path) {
-    Some(config) => config
-    None => return
-  }
-  config = { ..config, min_severity: severity_filter, }
-  // T7.5: analysis mode (quick = default behavior; deep forces interproc)
-  let mode = match matches.values.get("mode") {
-    Some(arr) => if arr.length() > 0 { arr[0] } else { "quick" }
-    None => "quick"
-  }
-  if mode == "deep" || mode == "quick" {
-    config = { ..config, analysis_mode: mode, }
-  } else {
-    cli_error("unknown analysis mode: " + mode)
-    return
-  }
-  // T7.1: context strategy pluggable skeleton
-  let cs_raw = match matches.values.get("context-strategy") {
-    Some(arr) => if arr.length() > 0 { arr[0] } else { "insensitive" }
-    None => "insensitive"
-  }
-  let cs = match parse_context_strategy(cs_raw) {
-    Some(strategy) => strategy
-    None => {
-      cli_error("unknown context strategy: " + cs_raw)
-      return
-    }
-  }
-  config = { ..config, context_strategy: cs, }
-  if !cs.is_implemented() {
-    diagnostics.push(
-      "moon-audit: warning: --context-strategy '" +
-      cs_raw +
-      "' is not implemented; running insensitive baseline (no silent downgrade)",
-    )
-  }
-  // T7.4: timing capture
-  let timing_on = match matches.flags.get("timing") {
-    Some(v) => v
-    None => false
-  }
-  let timings = @audit.StageTimings::new()
-  let changed_files_path = get_opt(matches, "changed-files")
-  match changed_files_path {
-    Some(cf_path) => {
-      let content = @fs.read_file_to_string(cf_path) catch {
-        _ => {
-          cli_error("cannot read changed-files list: " + cf_path)
-          return
-        }
-      }
-      let changed = @audit.parse_changed_files(content)
-      config = { ..config, changed_files: changed, incremental: true, }
-      // T0.2/T0.4: incremental mode limits the scanned set; callers of a
-      // changed function are NOT invalidated (G8) — the result describes
-      // the changed files only, not the whole project
-      diagnostics.push(
-        "analysis-scope: incremental=true; requested-files=" +
-        changed.length().to_string() +
-        "; caller-invalidation=not-implemented (G8 — affected callers of changed functions are NOT re-analyzed); unanalyzed-is-not-safe",
-      )
-    }
-    None => ()
-  }
-  match matches.values.get("rule") {
-    Some(selected) if selected.length() > 0 => {
-      let all_rules = @audit.list_all_rules()
-      for requested in selected {
-        if !all_rules.any(fn(rule) { @audit.rule_id_str(rule.id) == requested }) {
-          cli_error("unknown rule: " + requested)
-          return
-        }
-      }
-      for rule in all_rules {
-        let id = @audit.rule_id_str(rule.id)
-        config.rules[id] = {
-          enabled: selected.contains(id),
-          severity: match config.rules.get(id) {
-            Some(previous) => previous.severity
-            None => None
-          },
-        }
-      }
-    }
-    _ => ()
-  }
-  let path_ok = @fs.is_dir(path) catch { _ => false }
-  if !path_ok {
-    cli_error("path not found or not a directory: " + path)
-    return
-  }
-  // G2: per-function CFG fallback diagnosis
-  let diag_fb = match matches.flags.get("diagnose-fallback") {
-    Some(v) => v
-    None => false
-  }
-  if diag_fb {
-    let reasons = @audit.get_fallback_reasons(path, config)
-    println(
-      "== CFG fallback diagnosis (" +
-      reasons.length().to_string() +
-      " functions) ==",
-    )
-    for r in reasons {
-      println("  " + r)
-    }
-    return
-  }
-  if !quiet && !machine_output {
-    for diagnostic in diagnostics {
-      println(diagnostic)
-    }
-    println("moon-audit v0.4.0 - Static security analyzer for MoonBit\n")
-    println("Scanning: " + path)
-    if config.cfg_engine {
-      println("Engine: independent CFG executor (--cfg-engine)")
-    }
-    if config.incremental || config.changed_files.length() > 0 {
-      println(
-        "Incremental mode: " +
-        config.changed_files.length().to_string() +
-        " changed file(s)",
-      )
-    }
-    println("")
-  }
-  // T6.2: request via the analysis registry (behavior-identical adapter)
-  let taint_world = timings.time("world-load", fn() {
-    // R2-fix1: load with_symbols=true — the CLI main path must have the
-    // full symbol table so dispatch_hints and pt bridges have data
-    @audit.load_program_world(path, config, with_symbols=true)
-  })
-  let taint_registry = @audit.default_registry()
-  // PROD-1: --cfg-engine flag → config.cfg_engine = true
-  let cfg_engine = match matches.flags.get("cfg-engine") {
-    Some(v) => v
-    None => false
-  }
-  if cfg_engine {
-    config.cfg_engine = true
-  }
-  let result = timings.time("analysis", fn() {
-    match taint_registry.run_all([@audit.TaintFlow], taint_world) {
-      Ok(results) =>
-        match results.get(@audit.TaintFlow) {
-          Some(@audit.TaintFlowR(r)) => r
-          _ => @audit.scan_project(path, config)
-        }
-      Err(_) => @audit.scan_project(path, config)
-    }
-  })
-  let baseline_path = get_opt(matches, "baseline")
-  let baseline = match baseline_path {
-    Some(bp) => {
-      let content = @fs.read_file_to_string(bp) catch {
-        _ => {
-          cli_error("cannot read baseline: " + bp)
-          return
-        }
-      }
-      let parsed = @json.parse(content) catch {
-        _ => {
-          cli_error("invalid JSON baseline: " + bp)
-          return
-        }
-      }
-      match parsed {
-        Array(_) => ()
-        _ => {
-          cli_error("baseline must be a JSON array: " + bp)
-          return
-        }
-      }
-      @audit.load_baseline(bp)
-    }
-    None => Map([])
-  }
-  let after_baseline = @audit.filter_baseline(
-    result.findings,
-    baseline,
-    root=path,
-  )
-  let baseline_filtered = result.findings.length() - after_baseline.length()
-  if baseline_filtered > 0 && !quiet && !machine_output {
-    println(
-      "Baseline: filtered " +
-      baseline_filtered.to_string() +
-      " known finding(s)",
-    )
-  }
-  let filtered_findings = after_baseline.filter(fn(f) {
-    @audit.severity_level(f.severity) >= @audit.severity_level(severity_filter)
-  })
-  let filtered_result : @audit.ScanResult = {
-    findings: filtered_findings,
-    files_scanned: result.files_scanned,
-    errors: result.errors,
-    analysis_scope: result.analysis_scope,
-  }
-  // Acceptance mode: diff against a previous scan report (TP/FP/FN tracking)
-  let baseline_report_path = get_opt(matches, "baseline-report")
-  let diff = match baseline_report_path {
-    Some(brp) => {
-      let content = @fs.read_file_to_string(brp) catch {
-        _ => {
-          cli_error("cannot read baseline report: " + brp)
-          return
-        }
-      }
-      let parsed = @json.parse(content) catch {
-        _ => {
-          cli_error("invalid JSON baseline report: " + brp)
-          return
-        }
-      }
-      match parsed {
-        { "findings": Array(_), .. } => ()
-        _ => {
-          cli_error("baseline report must contain a findings array: " + brp)
-          return
-        }
-      }
-      let prev = @audit.parse_report_findings(content)
-      Some(@audit.diff_findings(filtered_findings, prev))
-    }
-    None => None
-  }
-  let mut output = if format == "json" {
-    match diff {
-      Some(d) => @audit.format_json_with_diff(filtered_result, d)
-      None => @audit.format_json(filtered_result)
-    }
-  } else if format == "sarif" {
-    @audit.format_sarif(filtered_result)
-  } else {
-    @audit.format_text(filtered_result, verbose)
-  }
-  let ledger_on = match matches.flags.get("ledger") {
-    Some(v) => v
-    None => false
-  }
-  let ledger = if ledger_on {
-    match diff {
-      Some(d) => Some(@audit.format_ledger(@audit.build_ledger(d, Map([]))))
-      None => {
-        diagnostics.push(
-          "moon-audit: note: --ledger requires --baseline-report; skipped",
-        )
-        None
-      }
-    }
-  } else {
-    None
-  }
-  // Supplemental information stays inside the report in machine-readable modes.
-  if machine_output && (diagnostics.length() > 0 || timing_on || ledger_on) {
-    let metadata : Map[String, Json] = Map([])
-    metadata["messages"] = Json::array(
-      diagnostics.map(fn(d) { Json::string(d) }),
-    )
-    if timing_on {
-      metadata["timing"] = Json::string(timings.render())
-    }
-    match ledger {
-      Some(text) => metadata["ledger"] = Json::string(text)
-      None => ()
-    }
-    let json = @json.parse(output) catch {
-      _ => {
-        cli_error("could not serialize scan report")
+    Some(("list-rules", _)) => {
+      if get_val(matches, "format", "text") == "json" {
+        println(@audit.rule_capabilities().stringify(indent=2))
         return
       }
+      for rule in @audit.list_all_rules() {
+        println(@audit.rule_id_str(rule.id) + "  " + rule.name)
+      }
+      println(
+        "Scope: syntax patterns only; no type, sanitizer or cross-function resolution.",
+      )
     }
-    match json {
-      Object(obj) =>
-        if format == "sarif" {
-          match obj.get("runs") {
-            Some(Array([Object(run)])) =>
-              run["properties"] = Json::object(metadata)
-            _ => ()
-          }
-        } else {
-          obj["diagnostics"] = Json::object(metadata)
-        }
-      _ => ()
-    }
-    output = json.stringify(indent=2)
-  }
-  match output_file {
-    Some(out_path) => {
-      @fs.write_string_to_file(out_path, output) catch {
-        _ => {
-          cli_error("failed to write output file: " + out_path)
-          return
+    Some(("generate-baseline", sub)) => {
+      // Preserve explicitly supplied parent options; child command-line values win.
+      for key, value in matches.values {
+        if matches.sources.get(key) is Some(Argv) &&
+          !(sub.sources.get(key) is Some(Argv)) {
+          sub.values[key] = value
         }
       }
-      if !quiet && !machine_output {
-        println("Output written to: " + out_path)
+      if flag(matches, "verify-project") {
+        sub.flags["verify-project"] = true
       }
+      scan(sub, true)
     }
-    None => println(output)
+    _ => scan(matches, false)
   }
-  if timing_on && !quiet && !machine_output {
-    println(timings.render())
-  }
-  // text mode: print the baseline-diff summary after the report
-  match (diff, machine_output, quiet) {
-    (Some(d), false, false) => println(@audit.format_baseline_diff(d))
-    _ => ()
-  }
-  if !quiet && !machine_output {
-    match ledger {
-      Some(text) => println(text)
-      None =>
-        if ledger_on {
-          println(
-            "moon-audit: note: --ledger requires --baseline-report; skipped",
-          )
-        }
-    }
-  }
-  if result.errors.length() > 0 && !quiet && !machine_output {
-    println("")
-    println(
-      "Scan completed with " +
-      result.errors.length().to_string() +
-      " file error(s):",
-    )
-    for e in result.errors {
-      println("  " + e)
-    }
-  }
-  if result.errors.length() > 0 {
-    @sys.exit(2)
-    return
-  }
-  if fail_on_error {
-    let has_errors = filtered_findings
-      .iter()
-      .any(fn(f) { f.severity == @audit.Error })
-    if has_errors {
-      @sys.exit(1)
-    }
-  }
-  // E1b strict gate: --cfg-verify fails on ANY unconfirmed candidate
-  // (walk finding the CFG executor did not fire — builder regression
-  // signal), regardless of finding severity
-  if cfg_verify {
-    let (_exec, _fallback, divergent, _capped) = @audit.cfg_exec_stats()
-    let unconfirmed = @audit.cfg_exec_unconfirmed_count()
-    if unconfirmed > 0 || divergent > 0 {
-      if !machine_output {
-        println(
-          "cfg-verify: FAILED — " +
-          unconfirmed.to_string() +
-          " unconfirmed candidate(s), " +
-          divergent.to_string() +
-          " divergent function(s)",
-        )
-      }
-      @sys.exit(2)
-    }
+}
+
+///|
+fn get_opt(matches : @argparse.Matches, key : String) -> String? {
+  match matches.values.get(key) {
+    Some(values) if !values.is_empty() => Some(values[0])
+    _ => None
   }
 }
 
@@ -911,905 +232,20 @@ fn cmd_scan(matches : @argparse.Matches) -> Unit {
 fn get_val(
   matches : @argparse.Matches,
   key : String,
-  default : String,
+  fallback : String,
 ) -> String {
-  match matches.values.get(key) {
-    Some(arr) => if arr.length() > 0 { arr[0] } else { default }
-    None => default
+  match get_opt(matches, key) {
+    Some(v) => v
+    None => fallback
   }
 }
 
 ///|
-fn get_opt(matches : @argparse.Matches, key : String) -> String? {
-  match matches.values.get(key) {
-    Some(arr) => if arr.length() > 0 { Some(arr[0]) } else { None }
-    None => None
-  }
-}
-
-///|
-fn write_pipeline_file(path : String, content : String) -> Unit {
-  @fs.write_string_to_file(path, content) catch {
-    err => {
-      let _ = err
-      cli_error("failed to write " + path)
-    }
-  }
-}
-
-///|
-fn write_output(content : String, output_file : String?) -> Unit {
-  match output_file {
-    Some(out_path) => {
-      @fs.write_string_to_file(out_path, content) catch {
-        _ => {
-          cli_error("failed to write output file: " + out_path)
-          return
-        }
-      }
-      println("Output written to: " + out_path)
-    }
-    None => println(content)
-  }
-}
-
-///|
-fn do_scan(matches : @argparse.Matches) -> @audit.ScanResult? {
-  let path = get_val(matches, "path", ".")
-  let path_ok = @fs.is_dir(path) catch { _ => false }
-  if !path_ok {
-    cli_error("path not found or not a directory: " + path)
-    return None
-  }
-  let config = match load_scan_config(matches, path) {
-    Some(config) => config
-    None => return None
-  }
-  let result = @audit.scan_project(path, config)
-  if !scan_completed(result) {
-    return None
-  }
-  Some(result)
-}
-
-///|
-fn cmd_llm_analyze(matches : @argparse.Matches) -> Unit {
-  let format = get_val(matches, "format", "json")
-  let output_file = get_opt(matches, "output")
-  let path = get_val(matches, "path", ".")
-  println("moon-audit LLM Analysis\n")
-  println("Scanning: " + path + "\n")
-  let result = match do_scan(matches) {
-    Some(r) => r
-    None => return
-  }
-  if result.findings.length() == 0 {
-    println("No findings to analyze.")
-    return
-  }
-  println(
-    "Found " +
-    result.findings.length().to_string() +
-    " finding(s), preparing LLM analysis...\n",
-  )
-  let llm_config = @audit.load_llm_config(path)
-  println("LLM Config:")
-  println("  Base URL: " + llm_config.base_url)
-  println("  Model:    " + llm_config.model)
-  if llm_config.api_key.length() > 0 {
-    let end = if llm_config.api_key.length() > 8 {
-      8
-    } else {
-      llm_config.api_key.length()
-    }
-    let masked = llm_config.api_key[0:end].to_owned()
-    println("  API Key:  " + masked + "...")
-  } else {
-    println("  API Key:  (not set - configure LLM_API_KEY in .env)")
-  }
-  println("")
-  let sources : Map[String, String] = Map([])
-  for f in result.findings {
-    if !sources.contains(f.file) {
-      let content = @fs.read_file_to_string(f.file) catch { _ => "" }
-      sources[f.file] = content
-    }
-  }
-  let imports = @audit.ImportContext::empty()
-  let requests = @audit.generate_batch_prompts(
-    result.findings,
-    sources,
-    imports,
-  )
-  if format == "script" || format == "run" {
-    let script = @audit.generate_llm_script(llm_config, requests)
-    let script_file = match output_file {
-      Some(f) => f
-      None => "llm_analyze.py"
-    }
-    @fs.write_string_to_file(script_file, script) catch {
-      _ => {
-        println("Error writing script file")
-        return
-      }
-    }
-    println("Generated: " + script_file)
-    println("")
-    println("Run the analysis:")
-    println("  python3 " + script_file)
-  } else if format == "json" {
-    let buf = StringBuilder()
-    buf.write_string("[\n")
-    for i, req in requests {
-      if i > 0 {
-        buf.write_string(",\n")
-      }
-      buf.write_string(@audit.format_prompt_as_json(req))
-    }
-    buf.write_string("\n]")
-    write_output(buf.to_string(), output_file)
-  } else {
-    let buf = StringBuilder()
-    buf.write_string("# LLM Analysis Prompts\n\n")
-    buf.write_string(
-      "Use these prompts with Claude or other LLMs to verify findings.\n\n",
-    )
-    for i, req in requests {
-      buf.write_string("## Finding ")
-      buf.write_string((i + 1).to_string())
-      buf.write_string(": ")
-      buf.write_string(@audit.rule_id_str(req.finding.rule_id))
-      buf.write_string(" (")
-      buf.write_string(req.finding.file)
-      buf.write_string(":")
-      buf.write_string(req.finding.line.to_string())
-      buf.write_string(")\n\n")
-      buf.write_string("### System Prompt\n\n```\n")
-      buf.write_string(req.system_prompt)
-      buf.write_string("\n```\n\n")
-      buf.write_string("### User Prompt\n\n```\n")
-      buf.write_string(req.prompt)
-      buf.write_string("\n```\n\n---\n\n")
-    }
-    write_output(buf.to_string(), output_file)
-  }
-}
-
-///|
-fn cmd_generate_poc(matches : @argparse.Matches) -> Unit {
-  let output_file = get_opt(matches, "output")
-  let path = get_val(matches, "path", ".")
-  println("moon-audit PoC Generator\n")
-  println("Scanning: " + path + "\n")
-  let result = match do_scan(matches) {
-    Some(r) => r
-    None => return
-  }
-  if result.findings.length() == 0 {
-    println("No findings to generate PoC for.")
-    return
-  }
-  let imports = @audit.ImportContext::empty()
-  let pocs = @audit.generate_all_pocs(result.findings, imports)
-  if pocs.length() == 0 {
-    println("No PoC templates available for the detected finding types.")
-    return
-  }
-  println("Generated " + pocs.length().to_string() + " PoC template(s)\n")
-  let report = @audit.format_poc_report(pocs)
-  write_output(report, output_file)
-}
-
-///|
-fn cmd_remediate(matches : @argparse.Matches) -> Unit {
-  let output_file = get_opt(matches, "output")
-  let path = get_val(matches, "path", ".")
-  println("moon-audit Remediation Guide Generator\n")
-  println("Scanning: " + path + "\n")
-  let result = match do_scan(matches) {
-    Some(r) => r
-    None => return
-  }
-  if result.findings.length() == 0 {
-    println("No findings to remediate.")
-    return
-  }
-  let remediations = @audit.get_all_remediations(result.findings)
-  println(
-    "Generated remediation guide for " +
-    remediations.length().to_string() +
-    " rule(s)\n",
-  )
-  let report = @audit.format_remediation_report(remediations)
-  write_output(report, output_file)
-}
-
-///|
-fn cmd_summary(matches : @argparse.Matches) -> Unit {
-  let format = get_val(matches, "format", "text")
-  let output_file = get_opt(matches, "output")
-  let path = get_val(matches, "path", ".")
-  println("moon-audit Scan Summary\n")
-  println("Scanning: " + path + "\n")
-  let result = match do_scan(matches) {
-    Some(r) => r
-    None => return
-  }
-  let rules = @audit.list_all_rules()
-  let summary = @audit.build_summary(result, rules)
-  let score = @audit.risk_score(summary)
-  let level = @audit.risk_level(score)
-  let output = if format == "json" {
-    @audit.format_summary_json(summary)
-  } else {
-    let text = @audit.format_summary_text(summary)
-    let buf = StringBuilder()
-    buf.write_string(text)
-    buf.write_string("\n  Risk Score: ")
-    buf.write_string(score.to_string())
-    buf.write_string(" / 100 (")
-    buf.write_string(level)
-    buf.write_string(")\n")
-    buf.to_string()
-  }
-  write_output(output, output_file)
-}
-
-///|
-fn cmd_pipeline(matches : @argparse.Matches) -> Unit {
-  let path = get_val(matches, "path", ".")
-  let out_dir = get_val(matches, "output-dir", "moon-audit-report")
-  let fail_on_error = match matches.flags.get("fail-on-error") {
+fn flag(matches : @argparse.Matches, key : String) -> Bool {
+  match matches.flags.get(key) {
     Some(v) => v
     None => false
   }
-  let config = match load_scan_config(matches, path) {
-    Some(config) => config
-    None => return
-  }
-  println("=".repeat(60))
-  println("  moon-audit Analysis Pipeline")
-  println("=".repeat(60))
-  println("")
-  println("  Target:  " + path)
-  println("  Output:  " + out_dir + "/")
-  println("")
-  let path_ok = @fs.is_dir(path) catch { _ => false }
-  if !path_ok {
-    cli_error("path not found or not a directory: " + path)
-    return
-  }
-  @fs.create_dir(out_dir) catch {
-    err => {
-      let _ = err
-      cli_error("failed to create output directory: " + out_dir)
-      return
-    }
-  }
-  // Phase 1: Static scan
-  println("[1/3] Static scan...")
-  let result = @audit.scan_project(path, config)
-  println(
-    "      " +
-    result.files_scanned.to_string() +
-    " files scanned, " +
-    result.findings.length().to_string() +
-    " finding(s)",
-  )
-  let scan_text = @audit.format_text(result, true)
-  let scan_path = @path.Path(out_dir).join(@path.Path("scan-results.txt")).0
-  write_pipeline_file(scan_path, scan_text)
-  let sarif = @audit.format_sarif(result)
-  let sarif_path = @path.Path(out_dir).join(@path.Path("scan-results.sarif")).0
-  write_pipeline_file(sarif_path, sarif)
-  let json_out = @audit.format_json(result)
-  let json_path = @path.Path(out_dir).join(@path.Path("scan-results.json")).0
-  write_pipeline_file(json_path, json_out)
-  if !scan_completed(result) {
-    return
-  }
-  if result.findings.length() == 0 {
-    println("")
-    println("No findings detected. Scan results written to " + out_dir + "/")
-    println("Pipeline complete (phases 2-3 skipped: no findings to analyze).")
-    return
-  }
-  // Phase 2: Taint analysis (D2c: unified on the flow engine — the report
-  // is derived from the SAME findings the scan produced, so the pipeline
-  // taint report and scan results can never diverge semantically)
-  println("[2/3] Taint analysis...")
-  let taint_report = @audit.flow_engine_taint_report(result.findings)
-  let taint_path = @path.Path(out_dir).join(@path.Path("taint-analysis.txt")).0
-  write_pipeline_file(taint_path, taint_report)
-  println(
-    "      " +
-    result.findings.length().to_string() +
-    " taint flow(s) traced (flow-engine findings)",
-  )
-  // Phase 3: Summary
-  println("[3/3] Summary report...")
-  let rules = @audit.list_all_rules()
-  let summary = @audit.build_summary(result, rules)
-  let score = @audit.risk_score(summary)
-  let level = @audit.risk_level(score)
-  let summary_text = @audit.format_summary_text(summary)
-  let summary_path = @path.Path(out_dir).join(@path.Path("summary.txt")).0
-  write_pipeline_file(summary_path, summary_text)
-  let summary_json = @audit.format_summary_json(summary)
-  let summary_json_path = @path.Path(out_dir).join(@path.Path("summary.json")).0
-  write_pipeline_file(summary_json_path, summary_json)
-  // Final output
-  println("")
-  println("=".repeat(60))
-  println("  Pipeline Complete")
-  println("=".repeat(60))
-  println("")
-  println("  Findings:    " + result.findings.length().to_string())
-  println("  Risk Score:  " + score.to_string() + " / 100 (" + level + ")")
-  println("")
-  println("  Output directory: " + out_dir + "/")
-  println("    scan-results.txt      Static scan findings (text)")
-  println("    scan-results.json     Static scan findings (JSON)")
-  println("    scan-results.sarif    SARIF 2.1.0 (GitHub Code Scanning)")
-  println("    taint-analysis.txt    Data flow taint traces")
-  println("    summary.txt           Risk summary (text)")
-  println("    summary.json          Risk summary (JSON)")
-  println("")
-  println("  Optional next steps:")
-  println("    moon-audit llm-analyze " + path + "   # LLM-assisted triage")
-  println("    moon-audit generate-poc " + path + "  # PoC exploit templates")
-  println("    moon-audit remediate " + path + "     # Fix guide")
-  if fail_on_error {
-    let has_errors = result.findings
-      .iter()
-      .any(fn(f) { f.severity == @audit.Error })
-    if has_errors {
-      @sys.exit(1)
-    }
-  }
-}
-
-///|
-fn cmd_generate_baseline(matches : @argparse.Matches) -> Unit {
-  let path = get_val(matches, "path", ".")
-  let output_path = get_val(matches, "output", ".moon-audit-baseline.json")
-  println("moon-audit: generating baseline from: " + path)
-  let result = match do_scan(matches) {
-    Some(result) => result
-    None => return
-  }
-  let baseline = @audit.generate_baseline(result.findings, root=path)
-  @fs.write_string_to_file(output_path, baseline) catch {
-    err => {
-      let _ = err
-      cli_error("failed to write baseline to " + output_path)
-      return
-    }
-  }
-  println(
-    "Baseline written to: " +
-    output_path +
-    " (" +
-    result.findings.length().to_string() +
-    " findings)",
-  )
-  println("Use --baseline " + output_path + " to filter these in future scans")
-}
-
-///|
-fn cmd_deep_audit(matches : @argparse.Matches) -> Unit {
-  let path = get_val(matches, "path", ".")
-  let output_path = get_val(matches, "output", "deep_audit.py")
-  if !require_project_dir(path) {
-    return
-  }
-  let config = match load_scan_config(matches, path) {
-    Some(config) => config
-    None => return
-  }
-  println("moon-audit Deep Audit\n")
-  println("Scanning: " + path)
-  let result = @audit.scan_project(path, config)
-  if !scan_completed(result) {
-    return
-  }
-  println("Static findings: " + result.findings.length().to_string())
-  let source_files = @audit.collect_audit_files(path, config)
-  println("Source files collected: " + source_files.length().to_string())
-  let llm_config = @audit.load_llm_config(path)
-  println("LLM: " + llm_config.model + " @ " + llm_config.base_url)
-  if llm_config.api_key.length() == 0 {
-    println("\nWarning: No API key configured. Set LLM_API_KEY in .env")
-  }
-  println("")
-  let script = @audit.generate_deep_audit_script(
-    llm_config,
-    result.findings,
-    source_files,
-  )
-  @fs.write_string_to_file(output_path, script) catch {
-    _ => {
-      cli_error("failed to write script: " + output_path)
-      return
-    }
-  }
-  println("Generated: " + output_path)
-  println("")
-  println("Run the deep audit:")
-  println("  python3 " + output_path)
-  println("")
-  println("The script will:")
-  println(
-    "  1. Verify " +
-    result.findings.length().to_string() +
-    " static findings with LLM (true/false positive)",
-  )
-  println(
-    "  2. Send " +
-    source_files.length().to_string() +
-    " source files for deep security review",
-  )
-  println("  3. Save combined report to deep_audit_report.json")
-}
-
-///|
-// enumerate .mbt source files under root with the standard excludes
-
-///|
-fn collect_mbt_files(root : String) -> Array[String] {
-  let out : Array[String] = []
-  fn walk(dir : String) -> Unit {
-    let entries = @fs.read_dir(dir) catch { _ => return }
-    for entry in entries {
-      if entry.has_prefix(".") ||
-        entry == "_build" ||
-        entry == "examples" ||
-        entry == "benchmarks" {
-        continue
-      }
-      let full = @path.Path(dir).join(@path.Path(entry)).0
-      let is_dir = @fs.is_dir(full) catch { _ => false }
-      if is_dir {
-        walk(full)
-      } else if entry.has_suffix(".mbt") &&
-        !entry.has_suffix("_test.mbt") &&
-        !entry.has_suffix("_wbtest.mbt") {
-        out.push(full)
-      }
-    }
-  }
-  walk(root)
-  out
-}
-
-///|
-fn cmd_ir_stats(matches : @argparse.Matches) -> Unit {
-  let path = get_val(matches, "path", ".")
-  if !require_project_dir(path) {
-    return
-  }
-  let details = match matches.flags.get("details") {
-    Some(v) => v
-    None => false
-  }
-  let live_vars = match matches.flags.get("live-vars") {
-    Some(v) => v
-    None => false
-  }
-  println("moon-audit ir-stats (M1 type-reconstruction spike)")
-  println("target: " + path)
-  println("")
-  // measurement tools use the standard exclude set (examples/benchmarks
-  // are not product code) instead of inheriting the tool repo's config
-  let config = @audit.Config::default()
-  let conservative = match matches.flags.get("conservative-alias") {
-    Some(v) => v
-    None => false
-  }
-  let timing_on = match matches.flags.get("timing") {
-    Some(v) => v
-    None => false
-  }
-  let timings = @audit.StageTimings::new()
-  let stats = timings.time("analysis", fn() {
-    @audit.run_ir_stats(path, config, conservative_alias=conservative)
-  })
-  if timing_on {
-    println(@audit.last_world_timings.render())
-    println(timings.render())
-    println("")
-  }
-  println(
-    "alias mode: " +
-    (if conservative {
-      "conservative (legacy short-key binding)"
-    } else {
-      "strict (default; fallback misses count as unknown(alias))"
-    }),
-  )
-  println("files scanned:  " + stats.files_scanned.to_string())
-  println("funcs scanned:  " + stats.funcs_scanned.to_string())
-  println("call sites:     " + stats.total_calls.to_string())
-  println("")
-  println(
-    "static calls:   " +
-    stats.static_calls.to_string() +
-    "  resolved " +
-    stats.static_resolved.to_string() +
-    " (" +
-    pct(stats.static_resolved, stats.static_calls) +
-    ")",
-  )
-  println(
-    "receiver calls: " +
-    stats.receiver_calls.to_string() +
-    "  concrete " +
-    stats.receiver_resolved.to_string() +
-    " (" +
-    pct(stats.receiver_resolved, stats.receiver_calls) +
-    ")  dispatch " +
-    stats.receiver_dispatch.to_string() +
-    "  pt-resolved " +
-    stats.pt_resolved_dispatch().to_string() +
-    (if stats.pt_not_converged { "  [pt-not-converged]" } else { "" }) +
-    "  unknown " +
-    stats.receiver_unknown.to_string(),
-  )
-  println(
-    "higher-order:   " +
-    stats.higher_calls.to_string() +
-    "  (closure/callback callees — M2/M4 scope)",
-  )
-  println("")
-  // T0.2: split metrics — no single mixed-denominator percentage.
-  // - bound sites = call sites with a KNOWN target function (static
-  //   confirmed + receiver-with-impl-hit)
-  // - candidates = devirtualized/dyn sites contributing candidate edges
-  //   (candidate != bound)
-  // - unknown = no target identified, with reason buckets
-  println("metrics (T0.2 split — legacy 'combined' kept for continuity):")
-  println(
-    "  bound sites:     " +
-    (stats.static_resolved + stats.receiver_resolved).to_string() +
-    "/" +
-    stats.total_calls.to_string(),
-  )
-  println(
-    "  candidate sites: " +
-    stats.receiver_dispatch.to_string() +
-    "  (dyn/trait-object — candidate edges, NOT bound)",
-  )
-  println(
-    "  unknown sites:   " +
-    (stats.receiver_unknown +
-    (stats.static_calls - stats.static_resolved) +
-    stats.higher_calls).to_string() +
-    "  (receiver=" +
-    stats.receiver_unknown.to_string() +
-    " static=" +
-    (stats.static_calls - stats.static_resolved).to_string() +
-    " higher=" +
-    stats.higher_calls.to_string() +
-    ")",
-  )
-  // T0.2: unknown-site reason classification (four classes)
-  let mut ffi = 0
-  let mut cascade = 0
-  let mut higher = 0
-  let mut unsupported = 0
-  let alias_unresolved = stats.alias_unresolved
-  for site in stats.sites {
-    // dispatch sites are CANDIDATES (reported above), not unknown
-    let is_dispatch = site.recv_ty.has_prefix("trait:") ||
-      site.recv_ty.has_prefix("T:")
-    if !site.resolved && !is_dispatch {
-      match site_reason(site) {
-        "ffi" => ffi += 1
-        "cascade" => cascade += 1
-        "higher" => higher += 1
-        _ => unsupported += 1
-      }
-    }
-  }
-  println(
-    "  unknown by reason: ffi=" +
-    ffi.to_string() +
-    "  cascade=" +
-    cascade.to_string() +
-    "  higher=" +
-    higher.to_string() +
-    "  unsupported=" +
-    unsupported.to_string() +
-    "  alias=" +
-    alias_unresolved.to_string() +
-    "  (alias = strict-mode short-key fallback misses; see --conservative-alias)",
-  )
-  if live_vars {
-    // T3.4: second analysis on the SAME HIR statement layer — no taint
-    // semantics involved (live_vars consumes Array[Stmt] only)
-    println("")
-    println("live variables (T3.4, shared HIR layer):")
-    let mut total_fns = 0
-    let mut total_decls = 0
-    let mut total_dead = 0
-    let files = collect_mbt_files(path)
-    for file in files {
-      let source = @fs.read_file_to_string(file) catch { _ => continue }
-      let (impls, _) = @parser.parse_string(source, name=file)
-      for pair in @audit.collect_fn_traces(impls, file, source) {
-        total_fns += 1
-        let summary = @audit.live_vars_of_trace(pair.1)
-        total_decls += summary.total
-        total_dead += summary.dead
-        println(
-          "  " +
-          pair.0 +
-          ": " +
-          @audit.live_vars_line(summary) +
-          "  | " +
-          @audit.live_vars_examples(summary, 2),
-        )
-      }
-    }
-    println(
-      "  -- " +
-      total_fns.to_string() +
-      " funcs, " +
-      total_decls.to_string() +
-      " decls, " +
-      total_dead.to_string() +
-      " dead",
-    )
-  }
-  if details {
-    println("")
-    println("unknown-site reasons (per site):")
-    for site in stats.sites {
-      if !site.resolved {
-        println(
-          "  [" +
-          site_reason(site) +
-          "] " +
-          site.kind +
-          " " +
-          site.file +
-          ":" +
-          site.line.to_string() +
-          "  target=" +
-          site.target +
-          "  recv=" +
-          site.recv_ty,
-        )
-      }
-    }
-  }
-}
-
-///|
-// T0.2 unknown-site reason classes:
-//   ffi          — site lives in an FFI binding context (native/js/mongoose)
-//   higher       — callee is a function value (closure/callback)
-//   cascade      — receiver type lost via an unresolved chain
-//   unsupported  — static identity not established (cross-pkg, no decl)
-fn site_reason(site : @audit.CallSiteStat) -> String {
-  if site.kind == "higher" {
-    return "higher"
-  }
-  let f = site.file
-  if f.contains("/native/") ||
-    f.contains("/js/") ||
-    f.contains("mongoose") ||
-    f.contains(".native.") ||
-    f.contains(".js.") {
-    return "ffi"
-  }
-  if site.kind == "receiver" {
-    return "cascade"
-  }
-  "unsupported"
-}
-
-///|
-fn pct(num : Int, den : Int) -> String {
-  if den == 0 {
-    return "0%"
-  }
-  (num * 100 / den).to_string() + "%"
-}
-
-///|
-fn cmd_call_graph(matches : @argparse.Matches) -> Unit {
-  let path = get_val(matches, "path", ".")
-  if !require_project_dir(path) {
-    return
-  }
-  let details = match matches.flags.get("details") {
-    Some(v) => v
-    None => false
-  }
-  println("moon-audit call-graph (M4 closed-world slice)")
-  println("target: " + path)
-  println("")
-  let config = @audit.Config::default()
-  let conservative = match matches.flags.get("conservative-alias") {
-    Some(v) => v
-    None => false
-  }
-  // T6.2: request via the analysis registry (behavior-identical adapter)
-  let timing_on = match matches.flags.get("timing") {
-    Some(v) => v
-    None => false
-  }
-  let timings = @audit.StageTimings::new()
-  let cg_world = timings.time("world-load", fn() {
-    @audit.load_program_world(path, config)
-  })
-  let cg_registry = @audit.default_registry(conservative_alias=conservative)
-  let cg = timings.time("analysis", fn() {
-    match cg_registry.run_all([@audit.CallGraph], cg_world) {
-      Ok(results) =>
-        match results.get(@audit.CallGraph) {
-          Some(@audit.CallGraphR(c)) => c
-          _ =>
-            @audit.run_call_graph(path, config, conservative_alias=conservative)
-        }
-      Err(_) =>
-        @audit.run_call_graph(path, config, conservative_alias=conservative)
-    }
-  })
-  if timing_on {
-    println(@audit.last_world_timings.render())
-    println(timings.render())
-    println("")
-  }
-  println(
-    "alias mode: " +
-    (if conservative {
-      "conservative (legacy short-key binding)"
-    } else {
-      "strict (default)"
-    }),
-  )
-  println("direct edges:      " + cg.edges.length().to_string())
-  println(
-    "dispatch edges:    " +
-    cg.dispatch_edges.length().to_string() +
-    "  (devirtualized via impl enumeration)",
-  )
-  println("unresolved edges:  " + cg.unresolved.length().to_string())
-  // T4c-2: dispatch sites whose candidate set was REFINED by the
-  // receiver's points-to types (intersection with impl enumeration)
-  println(
-    "pt-resolved dispatch: " +
-    cg.pt_resolved_sites.to_string() +
-    (if cg.pt_not_converged { "  [pt-not-converged]" } else { "" }) +
-    "  (receiver points-to types narrowed the target set)",
-  )
-  // T0.2: candidate-edge sets are reported separately from bound edges;
-  // the legacy single 'edge coverage' percentage mixed candidate edges
-  // into the numerator and is removed (review counterexample: 1 of 2
-  // sites with candidate sets showed 75% via 3 candidate edges)
-  println(
-    "candidate-set size: total dispatch edges / sites with candidates = " +
-    cg.dispatch_edges.length().to_string() +
-    "/" +
-    cg.candidate_sites.to_string() +
-    "  (avg " +
-    avg_set_size(cg) +
-    ")",
-  )
-  // T0.2(b): per-site coverage — denominator is CALL SITES, never edges
-  println(
-    "site coverage:      " +
-    (
-      (cg.bound_sites + cg.candidate_sites).to_string() +
-      "/" +
-      cg.site_total().to_string() +
-      " = " +
-      cg.site_coverage().to_string() +
-      "%  (denominator = call sites; a 13-target candidate set is ONE site)"
-    ),
-  )
-  println("note: candidate != bound (T0.2 four-level status vocabulary)")
-  if details {
-    println("")
-    println("edges:")
-    for e in cg.edges {
-      println("  " + e)
-    }
-    println("dispatch edges:")
-    for e in cg.dispatch_edges {
-      println("  " + e)
-    }
-  }
-}
-
-///|
-
-///|
-fn avg_set_size(cg : @audit.CallGraph) -> String {
-  let sites = cg.candidate_sites
-  if sites == 0 {
-    return "0"
-  }
-  (cg.dispatch_edges.length() / sites).to_string()
-}
-
-///|
-fn cmd_dump_analyses(matches : @argparse.Matches) -> Unit {
-  let path = get_val(matches, "path", ".")
-  if !require_project_dir(path) {
-    return
-  }
-  let dir = get_val(matches, "output", "moon-audit-dump")
-  let conservative = match matches.flags.get("conservative-alias") {
-    Some(v) => v
-    None => false
-  }
-  println("moon-audit dump-analyses (T6.4 + T4.5 evidence)")
-  println("target: " + path)
-  println("output: " + dir + "/")
-  println("")
-  let config = @audit.Config::default()
-  @audit.dump_analyses(dir, path, config, conservative_alias=conservative)
-  let files = [
-    "analysis-plan.txt", "hir-traces.txt", "taint-findings.txt", "call-graph.txt",
-    "points-to.txt", "live-vars.txt",
-  ]
-  for name in files {
-    let p = @path.Path(dir).join(@path.Path(name)).0
-    let content = @fs.read_file_to_string(p) catch { _ => "" }
-    let lines = content.split("\n").count()
-    println("  " + name + ": " + lines.to_string() + " lines")
-  }
-  println("")
-  println(
-    "done — each section carries provenance (fn @ file / file:line / iterations)",
-  )
-}
-
-///|
-fn parse_context_strategy(raw : String) -> @audit.ContextStrategy? {
-  match raw {
-    "insensitive" => Some(@audit.ContextStrategy::Insensitive)
-    "call-site-1" | "call-site" => Some(@audit.ContextStrategy::CallSite(1))
-    "call-site-2" => Some(@audit.ContextStrategy::CallSite(2))
-    "object-1" | "object" => Some(@audit.ContextStrategy::ObjectSensitive(1))
-    "object-2" => Some(@audit.ContextStrategy::ObjectSensitive(2))
-    "closure-env" => Some(@audit.ContextStrategy::ClosureEnv)
-    _ => None
-  }
-}
-
-///|
-fn cmd_instrument_calls(matches : @argparse.Matches) -> Unit {
-  let path = get_val(matches, "path", ".")
-  if !require_project_dir(path) {
-    return
-  }
-  let config = @audit.Config::default()
-  let cg = @audit.run_call_graph(path, config)
-  println("{")
-  println("  \"instrumented_call_sites\": [")
-  let mut first = true
-  for e in cg.edges {
-    if !first {
-      println(",")
-    }
-    first = false
-    println("    {\"edge\": \"" + e + "\"}")
-  }
-  println("")
-  println("  ],")
-  println(
-    "  \"total_bound_sites\": " +
-    (cg.bound_sites + cg.candidate_sites).to_string() +
-    ",",
-  )
-  println(
-    "  \"note\": \"dynamic ground truth: instrument at runtime; unobserved != FP\"",
-  )
-  println("}")
 }
 
 ///|
@@ -1819,115 +255,336 @@ fn cli_error(message : String) -> Unit {
 }
 
 ///|
-fn require_project_dir(path : String) -> Bool {
-  let exists = @fs.is_dir(path) catch { _ => false }
-  if exists {
-    return true
-  }
-  cli_error("path not found or not a directory: " + path)
-  false
-}
-
-///|
-fn scan_completed(result : @audit.ScanResult) -> Bool {
-  if result.errors.is_empty() {
-    return true
-  }
-  for error in result.errors {
-    println("  " + error)
-  }
-  cli_error(
-    "scan incomplete: " + result.errors.length().to_string() + " file error(s)",
-  )
-  false
-}
-
-///|
-fn load_scan_config(
-  matches : @argparse.Matches,
-  path : String,
-) -> @audit.Config? {
-  let requested = get_val(matches, "config", ".moon-audit.json")
-  let resolved = if requested == ".moon-audit.json" {
-    @path.Path(path).join(@path.Path(requested)).0
-  } else {
-    requested
-  }
-  if requested != ".moon-audit.json" || @fs.path_exists(resolved) {
-    let content = @fs.read_file_to_string(resolved) catch {
-      _ => {
-        cli_error("cannot read config: " + resolved)
-        return None
-      }
-    }
-    let parsed = @json.parse(content) catch {
-      _ => {
-        cli_error("invalid JSON config: " + resolved)
-        return None
-      }
-    }
-    match parsed {
-      Object(_) => ()
-      _ => {
-        cli_error("config must be a JSON object: " + resolved)
-        return None
-      }
+fn read_json(path : String) -> Json? {
+  let content = @audit.read_regular_text(path) catch {
+    _ => {
+      cli_error("cannot read " + path)
+      return None
     }
   }
-  Some(@audit.load_config(resolved))
+  let value = @json.parse(content) catch {
+    _ => {
+      cli_error("invalid JSON: " + path)
+      return None
+    }
+  }
+  Some(value)
 }
 
 ///|
-fn cmd_instrument(matches : @argparse.Matches) -> Unit {
-  let path = get_val(matches, "path", ".")
-  let output = get_val(matches, "output", "./instrument-runtime")
-  println("moon-audit instrument (P1a simplified)")
-  println("target: " + path)
-  println("runtime output: " + output)
-  println("")
-  let config = @audit.Config::default()
-  let report = @audit.generate_instrument_report(path, config)
-  @audit.write_runtime_package(output)
-  println("runtime package written to " + output + "/")
-  println("  (moon.mod + src/runtime.mbt + src/main.mbt)")
-  println("")
-  println(@audit.format_instrument_report_json(report))
-}
-
-///|
-fn cmd_compare_calls(matches : @argparse.Matches) -> Unit {
-  let static_path = get_val(matches, "static-json", "")
-  let dynamic_path = get_val(matches, "dynamic-log", "")
-  if static_path == "" || dynamic_path == "" {
-    println("usage: moon-audit compare-calls <static-json> <dynamic-log>")
-    println(
-      "  static-json: output from 'moon-audit call-graph' or 'instrument'",
-    )
-    println(
-      "  dynamic-log: output from instrumented runtime (one edge per line)",
+async fn scan(matches : @argparse.Matches, baseline : Bool) -> Unit {
+  let root = @project.absolute(get_val(matches, "path", "."))
+  if !(@fs.is_dir(root) catch { _ => false }) {
+    cli_error("path not found or not a directory: " + root)
+    return
+  }
+  let format = get_val(matches, "format", "text")
+  if !["text", "json", "sarif"].contains(format) {
+    cli_error("unknown output format: " + format)
+    return
+  }
+  let analysis = get_val(matches, "analysis", "syntax")
+  if !["syntax", "semantic"].contains(analysis) {
+    cli_error("unknown analysis: " + analysis)
+    return
+  }
+  if analysis == "semantic" &&
+    get_opt(matches, "semantic-scope") != Some("mocket-get-callbacks") {
+    cli_error(
+      "semantic analysis requires --semantic-scope mocket-get-callbacks; it does not establish project-wide security coverage",
     )
     return
   }
-  let static_json = @fs.read_file_to_string(static_path) catch {
-    _ => {
-      println("error: cannot read static JSON: " + static_path)
-      return
+  if analysis == "syntax" && get_opt(matches, "semantic-scope") is Some(_) {
+    cli_error("semantic-scope requires --analysis semantic")
+    return
+  }
+  let home = get_opt(matches, "project-toolchain").map(@project.absolute)
+  let moon = get_opt(matches, "project-moon")
+  if home is Some(_) && moon is Some(_) {
+    cli_error("project-toolchain and project-moon are mutually exclusive")
+    return
+  }
+  let verify = flag(matches, "verify-project")
+  if analysis == "semantic" &&
+    (!verify || get_opt(matches, "changed-files") is Some(_)) {
+    cli_error(
+      "semantic analysis requires --verify-project and a full file set (changed-files is unsupported)",
+    )
+    return
+  }
+  if !verify && (home is Some(_) || moon is Some(_)) {
+    cli_error("toolchain options require --verify-project")
+    return
+  }
+  let target = get_val(matches, "target", "native")
+  if !["native", "js", "wasm", "wasm-gc"].contains(target) {
+    cli_error("unknown target: " + target)
+    return
+  }
+  if analysis == "semantic" && target != "native" {
+    cli_error("semantic models currently require --target native")
+    return
+  }
+  let seconds = @string.parse_int(get_val(matches, "timeout-seconds", "300")) catch {
+    _ => 0
+  }
+  if seconds <= 0 || seconds > 86400 {
+    cli_error("timeout-seconds must be between 1 and 86400")
+    return
+  }
+  let severity = get_val(matches, "severity", "warning")
+  if !["error", "warning", "info"].contains(severity) {
+    cli_error("unknown severity: " + severity)
+    return
+  }
+  let config_path = get_val(
+    matches,
+    "config",
+    @path.Path(root).join(@path.Path(".moon-audit.json")).0,
+  )
+  if get_opt(matches, "config") is Some(_) || @fs.path_exists(config_path) {
+    match read_json(config_path) {
+      Some(Object(fields)) => {
+        // Retired configuration must fail explicitly, never silently select a weaker engine.
+        if fields.contains("taint") {
+          cli_error(
+            "taint configuration requires the retired interprocedural engine",
+          )
+          return
+        }
+        match fields.get("rules") {
+          Some(Object(rules)) =>
+            for id, _ in rules {
+              if !@audit.list_all_rules().any(fn(r) {
+                  @audit.rule_id_str(r.id) == id
+                }) {
+                cli_error("unsupported rule in config: " + id)
+                return
+              }
+            }
+          _ => ()
+        }
+      }
+      Some(_) => {
+        cli_error("config must be a JSON object")
+        return
+      }
+      None => return
     }
   }
-  let dynamic_log = @fs.read_file_to_string(dynamic_path) catch {
-    _ => {
-      println("error: cannot read dynamic log: " + dynamic_path)
+  if @fs.path_exists(@path.Path(root).join(@path.Path("taint-rules.json")).0) {
+    cli_error("taint-rules.json is unsupported by the syntax-pattern scanner")
+    return
+  }
+  let mut config = @audit.load_config(config_path)
+  match get_opt(matches, "changed-files") {
+    Some(path) => {
+      let content = @audit.read_regular_text(path) catch {
+        _ => {
+          cli_error("cannot read changed-files list: " + path)
+          return
+        }
+      }
+      config = {
+        ..config,
+        changed_files: @audit.parse_changed_files(content),
+        incremental: true,
+      }
+    }
+    None => ()
+  }
+  match matches.values.get("rule") {
+    Some(selected) if !selected.is_empty() => {
+      let rules = @audit.list_all_rules()
+      for id in selected {
+        if !rules.any(fn(rule) { @audit.rule_id_str(rule.id) == id }) {
+          cli_error("unknown rule: " + id)
+          return
+        }
+      }
+      for rule in rules {
+        let id = @audit.rule_id_str(rule.id)
+        let previous = config.rules.get(id)
+        config.rules[id] = {
+          enabled: selected.contains(id),
+          severity: match previous {
+            Some(p) => p.severity
+            None => None
+          },
+        }
+      }
+    }
+    _ => ()
+  }
+  let baseline_entries = match get_opt(matches, "baseline") {
+    Some(path) => {
+      match read_json(path) {
+        Some(Array(_)) => ()
+        Some(_) => {
+          cli_error("baseline must be a JSON array")
+          return
+        }
+        None => return
+      }
+      @audit.load_baseline(path)
+    }
+    None => Map([])
+  }
+  let verification = if verify {
+    let executable = match (home, moon) {
+      (Some(dir), _) => {
+        let unix = @path.Path(dir).join(@path.Path("bin/moon")).0
+        if @fs.path_exists(unix + ".exe") {
+          unix + ".exe"
+        } else {
+          unix
+        }
+      }
+      (_, Some(exe)) => @project.absolute(exe)
+      _ => "moon"
+    }
+    Some(@project.verify(root, executable, home, target, seconds))
+  } else {
+    None
+  }
+  let selected = match verification {
+    Some(v) if v.status == "compiler_verified" => Some(v.files)
+    _ => None
+  }
+  let mut result = @audit.scan_project(root, config, compiler_files=selected)
+  match verification {
+    Some(v) => {
+      let mut status = v.status
+      if status == "compiler_verified" && !@project.unchanged(v.snapshot, root) {
+        status = "project_changed"
+      }
+      let policy_excluded : Array[String] = []
+      let missing : Array[String] = []
+      for file in v.files {
+        if @audit.excluded_by_policy(file, root, config) {
+          policy_excluded.push(file)
+          continue
+        }
+        let covered = result.file_coverage.any(fn(entry) {
+          @project.absolute(entry.path) == file &&
+          (
+            entry.status == "parsed" ||
+            (
+              entry.status == "skipped" &&
+              entry.reason == "not_in_changed_files"
+            )
+          )
+        })
+        if !covered {
+          missing.push(file)
+        }
+      }
+      if status == "compiler_verified" && !missing.is_empty() {
+        status = "scope_incomplete"
+      }
+      if status == "compiler_verified" && !result.errors.is_empty() {
+        status = "scanner_incomplete"
+      }
+      if status != "compiler_verified" {
+        result.errors.push("project verification: " + status + ": " + v.detail)
+      }
+      let metadata = { ..v, status, }.to_json()
+      if metadata is Object(fields) {
+        fields["policy_excluded_files"] = Json::array(
+          policy_excluded.map(Json::string),
+        )
+        fields["compiler_files_not_parsed"] = Json::array(
+          missing.map(Json::string),
+        )
+      }
+      result = { ..result, project_verification: Some(metadata), }
+    }
+    None => ()
+  }
+  if analysis == "semantic" && result.errors.is_empty() {
+    let executable = match (home, moon) {
+      (Some(dir), _) => {
+        let name = @path.Path(dir).join(@path.Path("bin/moon")).0
+        if @fs.path_exists(name + ".exe") {
+          name + ".exe"
+        } else {
+          name
+        }
+      }
+      (_, Some(exe)) => @project.absolute(exe)
+      _ => "moon"
+    }
+    let report = @project.semantic_worker(
+      root,
+      executable,
+      home,
+      Int::min(seconds, 60),
+    ) catch {
+      e =>
+        {
+          "status": Json::string("incomplete"),
+          "reason": Json::string(
+            "semantic_worker_failed_or_budget: " + e.to_string(),
+          ),
+        }
+    }
+    let stable = match verification {
+      Some(v) => @project.unchanged(v.snapshot, root)
+      None => false
+    }
+    if !stable ||
+      !(report is { "status": String("complete_within_declared_scope"), .. }) {
+      result.errors.push(
+        "semantic analysis incomplete; inspect semantic_analysis",
+      )
+    }
+    for finding in @audit.semantic_findings(report) {
+      result.findings.push(finding)
+    }
+    result = { ..result, semantic_analysis: Some(report), }
+  }
+  if baseline {
+    if !result.errors.is_empty() {
+      cli_error("scan incomplete; baseline was not written")
       return
     }
+    write_output(
+      @audit.generate_baseline(result.findings, root~),
+      get_opt(matches, "output"),
+    )
+    return
   }
-  let static_edges = @audit.parse_static_edges(static_json)
-  let dynamic_edges = @audit.parse_dynamic_log(dynamic_log)
-  if static_edges.length() == 0 {
-    println("warning: no static edges parsed (check JSON format)")
+  let findings = @audit.filter_baseline(
+    result.findings,
+    baseline_entries,
+    root~,
+  ).filter(fn(f) {
+    @audit.severity_level(f.severity) >=
+    @audit.severity_level(@audit.severity_from_str(severity))
+  })
+  let filtered : @audit.ScanResult = { ..result, findings, }
+  let report = match format {
+    "json" => @audit.format_json(filtered)
+    "sarif" => @audit.format_sarif(filtered)
+    _ => @audit.format_text(filtered, flag(matches, "verbose"))
   }
-  if dynamic_edges.length() == 0 {
-    println("warning: no dynamic edges parsed (check log format)")
+  write_output(report, get_opt(matches, "output"))
+  if !result.errors.is_empty() {
+    @sys.exit(2)
+  } else if flag(matches, "fail-on-error") &&
+    findings.any(fn(f) { f.severity == @audit.Error }) {
+    @sys.exit(1)
   }
-  let comp = @audit.compare_calls(static_edges, dynamic_edges)
-  println(@audit.format_comparison_text(comp))
+}
+
+///|
+fn write_output(content : String, output : String?) -> Unit {
+  match output {
+    Some(path) =>
+      @fs.write_string_to_file(path, content) catch {
+        _ => cli_error("failed to write output file: " + path)
+      }
+    None => println(content)
+  }
 }

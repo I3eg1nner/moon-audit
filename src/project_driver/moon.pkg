@@ -1,0 +1,17 @@
+import {
+  "moonbitlang/core/json",
+  "moonbitlang/core/buffer",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/async",
+  "moonbitlang/async/process",
+  "moonbitlang/x/fs",
+  "moonbitlang/x/path",
+  "moonbitlang/core/env",
+  "moonbitlang/x/crypto",
+}
+
+supported_targets = "+native"
+
+options(
+  "native-stub": [ "supervisor.c", "path_identity.c" ],
+)

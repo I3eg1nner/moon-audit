@@ -1,0 +1,1 @@
+Warning: `moon.mod.json` at '$HISTORICAL_WORK/scope-fixtures/current/empty' is deprecated. Run `moon fmt` to migrate to `moon.mod`.

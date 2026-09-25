@@ -1,0 +1,2187 @@
+{
+  "schema": "moon-audit.native-security-chain-validation.v1",
+  "production_ready": false,
+  "reviewed_commit": "af354b7a031ee8e0a7e62e76875b82a0a39ac71b",
+  "fixture_sha256": "161b0fd4a6d755e00dec1e2f3c6a8a8697265e9abc58e3f594a0c2f36c94f5a1",
+  "source_fingerprint": "e36c3a0d905f1d4f967bf46fd552a206980332917dacc9da2b99f45032326e0a",
+  "dependency_fingerprints": {
+    "moonbitlang/async": "a1c17674a7ae69c7433b5cfddbfbed7a519bcad93a055bcb760d5a10ec2dc10a",
+    "moonbitlang/x": "c8af6344a3508a5c76627a528281a348eb503fafc67b9cb8f5296eaf555e7a2b",
+    "oboard/mimetype": "d8f2673c2adb7ad26e3e9fd64982a16b958efacd6056aa8b12aafc02b2d76d58"
+  },
+  "cases": [
+    {
+      "name": "/raw",
+      "passed": true,
+      "status": "complete",
+      "path_count": 1,
+      "reason": ""
+    },
+    {
+      "name": "/safe",
+      "passed": true,
+      "status": "complete",
+      "path_count": 0,
+      "reason": ""
+    },
+    {
+      "name": "/discarded",
+      "passed": true,
+      "status": "complete",
+      "path_count": 0,
+      "reason": ""
+    },
+    {
+      "name": "/overwritten",
+      "passed": true,
+      "status": "complete",
+      "path_count": 0,
+      "reason": ""
+    },
+    {
+      "name": "/plain",
+      "passed": true,
+      "status": "complete",
+      "path_count": 0,
+      "reason": ""
+    },
+    {
+      "name": "/script",
+      "passed": true,
+      "status": "incomplete",
+      "path_count": 1,
+      "reason": "unsupported_html_context"
+    },
+    {
+      "name": "/homonym",
+      "passed": true,
+      "status": "complete",
+      "path_count": 1,
+      "reason": ""
+    },
+    {
+      "name": "/unknown",
+      "passed": true,
+      "status": "incomplete",
+      "path_count": 0,
+      "reason": "Failure(src/security_frontend/lower.mbt:263:10-263:66@minie135/moon-audit FAILED: unsupported_semantics: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:3:44)"
+    },
+    {
+      "name": "/recursive",
+      "passed": true,
+      "status": "incomplete",
+      "path_count": 0,
+      "reason": "incomplete_budget"
+    },
+    {
+      "name": "/doubling",
+      "passed": true,
+      "status": "incomplete",
+      "path_count": 0,
+      "reason": "incomplete_budget"
+    },
+    {
+      "name": "library_changed",
+      "passed": true
+    },
+    {
+      "name": "dependency_changed",
+      "passed": true
+    },
+    {
+      "name": "unsupported_registration_shape",
+      "passed": true
+    }
+  ],
+  "runs": [
+    {
+      "name": "source_matrix",
+      "command": [
+        "/data/my/moon-audit/_build/native/debug/build/src/semantic_probe/semantic_probe.exe",
+        "/tmp/moon-audit-native-chain-ph_wwgfa/consumer",
+        "/tmp/moon-audit-upgrade-20260922/toolchain"
+      ],
+      "seconds": 23.073,
+      "exit_code": 2,
+      "stderr": "",
+      "report": {
+        "coverage_status": "restricted_experiment",
+        "schema": "moon-audit.experimental-security-ir.v1",
+        "production_ready": false,
+        "entry_scope": "only two-positional-argument .get literal-route inline-callback declarations; registration invocation and unchanged responder middleware/content-type behavior are preconditions; other registration forms are not covered",
+        "functions": [
+          {
+            "id": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:1:4",
+            "parameters": [
+              11
+            ],
+            "operations": [
+              [
+                "Copy",
+                12,
+                11
+              ],
+              [
+                "Return",
+                12
+              ]
+            ]
+          },
+          {
+            "id": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:8:7",
+            "parameters": [
+              1
+            ],
+            "operations": [
+              [
+                "Copy",
+                2,
+                1
+              ],
+              [
+                "Request",
+                3,
+                2
+              ],
+              [
+                "Query",
+                4,
+                3,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:9:17"
+              ],
+              [
+                "Literal",
+                5,
+                "q"
+              ],
+              [
+                "Lookup",
+                6,
+                4,
+                5
+              ],
+              [
+                "Literal",
+                7,
+                ""
+              ],
+              [
+                "Default",
+                8,
+                6,
+                7
+              ],
+              [
+                "Copy",
+                9,
+                8
+              ],
+              [
+                "Call",
+                10,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:1:4",
+                [
+                  9
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:10:18"
+              ],
+              [
+                "Response",
+                13,
+                10,
+                true,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:10:5"
+              ],
+              [
+                "Return",
+                13
+              ]
+            ]
+          },
+          {
+            "id": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:12:7",
+            "parameters": [
+              14
+            ],
+            "operations": [
+              [
+                "Copy",
+                15,
+                14
+              ],
+              [
+                "Request",
+                16,
+                15
+              ],
+              [
+                "Query",
+                17,
+                16,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:13:17"
+              ],
+              [
+                "Literal",
+                18,
+                "q"
+              ],
+              [
+                "Lookup",
+                19,
+                17,
+                18
+              ],
+              [
+                "Literal",
+                20,
+                ""
+              ],
+              [
+                "Default",
+                21,
+                19,
+                20
+              ],
+              [
+                "Copy",
+                22,
+                21
+              ],
+              [
+                "Call",
+                23,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:1:4",
+                [
+                  22
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:14:38"
+              ],
+              [
+                "EscapeHtmlText",
+                24,
+                23
+              ],
+              [
+                "Response",
+                25,
+                24,
+                true,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:14:5"
+              ],
+              [
+                "Return",
+                25
+              ]
+            ]
+          },
+          {
+            "id": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:16:7",
+            "parameters": [
+              26
+            ],
+            "operations": [
+              [
+                "Copy",
+                27,
+                26
+              ],
+              [
+                "Request",
+                28,
+                27
+              ],
+              [
+                "Query",
+                29,
+                28,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:17:17"
+              ],
+              [
+                "Literal",
+                30,
+                "q"
+              ],
+              [
+                "Lookup",
+                31,
+                29,
+                30
+              ],
+              [
+                "Literal",
+                32,
+                ""
+              ],
+              [
+                "Default",
+                33,
+                31,
+                32
+              ],
+              [
+                "Copy",
+                34,
+                33
+              ],
+              [
+                "Call",
+                35,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:1:4",
+                [
+                  34
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:18:35"
+              ],
+              [
+                "Response",
+                36,
+                35,
+                true,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:18:22"
+              ],
+              [
+                "Literal",
+                37,
+                "constant"
+              ],
+              [
+                "Response",
+                38,
+                37,
+                true,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:19:5"
+              ],
+              [
+                "Return",
+                38
+              ]
+            ]
+          },
+          {
+            "id": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:21:7",
+            "parameters": [
+              39
+            ],
+            "operations": [
+              [
+                "Copy",
+                40,
+                39
+              ],
+              [
+                "Request",
+                41,
+                40
+              ],
+              [
+                "Query",
+                42,
+                41,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:22:17"
+              ],
+              [
+                "Literal",
+                43,
+                "q"
+              ],
+              [
+                "Lookup",
+                44,
+                42,
+                43
+              ],
+              [
+                "Literal",
+                45,
+                ""
+              ],
+              [
+                "Default",
+                46,
+                44,
+                45
+              ],
+              [
+                "Copy",
+                47,
+                46
+              ],
+              [
+                "Call",
+                48,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:1:4",
+                [
+                  47
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:23:35"
+              ],
+              [
+                "Response",
+                49,
+                48,
+                true,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:23:22"
+              ],
+              [
+                "Literal",
+                50,
+                "replacement"
+              ],
+              [
+                "Response",
+                51,
+                50,
+                true,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:24:14"
+              ],
+              [
+                "Copy",
+                49,
+                51
+              ],
+              [
+                "Copy",
+                52,
+                49
+              ],
+              [
+                "Return",
+                52
+              ]
+            ]
+          },
+          {
+            "id": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:27:7",
+            "parameters": [
+              53
+            ],
+            "operations": [
+              [
+                "Copy",
+                54,
+                53
+              ],
+              [
+                "Request",
+                55,
+                54
+              ],
+              [
+                "Query",
+                56,
+                55,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:28:17"
+              ],
+              [
+                "Literal",
+                57,
+                "q"
+              ],
+              [
+                "Lookup",
+                58,
+                56,
+                57
+              ],
+              [
+                "Literal",
+                59,
+                ""
+              ],
+              [
+                "Default",
+                60,
+                58,
+                59
+              ],
+              [
+                "Copy",
+                61,
+                60
+              ],
+              [
+                "Call",
+                62,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:1:4",
+                [
+                  61
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:29:18"
+              ],
+              [
+                "Response",
+                63,
+                62,
+                false,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:29:5"
+              ],
+              [
+                "Return",
+                63
+              ]
+            ]
+          },
+          {
+            "id": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:31:7",
+            "parameters": [
+              64
+            ],
+            "operations": [
+              [
+                "Copy",
+                65,
+                64
+              ],
+              [
+                "Request",
+                66,
+                65
+              ],
+              [
+                "Query",
+                67,
+                66,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:32:17"
+              ],
+              [
+                "Literal",
+                68,
+                "q"
+              ],
+              [
+                "Lookup",
+                69,
+                67,
+                68
+              ],
+              [
+                "Literal",
+                70,
+                ""
+              ],
+              [
+                "Default",
+                71,
+                69,
+                70
+              ],
+              [
+                "Copy",
+                72,
+                71
+              ],
+              [
+                "EscapeHtmlText",
+                73,
+                72
+              ],
+              [
+                "Literal",
+                74,
+                "<script>"
+              ],
+              [
+                "Copy",
+                75,
+                73
+              ],
+              [
+                "Literal",
+                76,
+                "</script>"
+              ],
+              [
+                "Concat",
+                77,
+                [
+                  74,
+                  75,
+                  76
+                ]
+              ],
+              [
+                "Response",
+                78,
+                77,
+                true,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:34:5"
+              ],
+              [
+                "Return",
+                78
+              ]
+            ]
+          },
+          {
+            "id": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:2:4",
+            "parameters": [
+              89
+            ],
+            "operations": [
+              [
+                "Copy",
+                90,
+                89
+              ],
+              [
+                "Return",
+                90
+              ]
+            ]
+          },
+          {
+            "id": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:36:7",
+            "parameters": [
+              79
+            ],
+            "operations": [
+              [
+                "Copy",
+                80,
+                79
+              ],
+              [
+                "Request",
+                81,
+                80
+              ],
+              [
+                "Query",
+                82,
+                81,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:37:17"
+              ],
+              [
+                "Literal",
+                83,
+                "q"
+              ],
+              [
+                "Lookup",
+                84,
+                82,
+                83
+              ],
+              [
+                "Literal",
+                85,
+                ""
+              ],
+              [
+                "Default",
+                86,
+                84,
+                85
+              ],
+              [
+                "Copy",
+                87,
+                86
+              ],
+              [
+                "Call",
+                88,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:2:4",
+                [
+                  87
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:38:18"
+              ],
+              [
+                "Response",
+                91,
+                88,
+                true,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:38:5"
+              ],
+              [
+                "Return",
+                91
+              ]
+            ]
+          },
+          {
+            "id": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:3:4",
+            "parameters": [
+              102
+            ],
+            "operations": []
+          },
+          {
+            "id": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:4:4",
+            "parameters": [
+              113
+            ],
+            "operations": [
+              [
+                "Copy",
+                114,
+                113
+              ],
+              [
+                "Call",
+                115,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:4:4",
+                [
+                  114
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:4:37"
+              ],
+              [
+                "Return",
+                115
+              ]
+            ]
+          },
+          {
+            "id": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:44:7",
+            "parameters": [
+              103
+            ],
+            "operations": [
+              [
+                "Copy",
+                104,
+                103
+              ],
+              [
+                "Request",
+                105,
+                104
+              ],
+              [
+                "Query",
+                106,
+                105,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:45:17"
+              ],
+              [
+                "Literal",
+                107,
+                "q"
+              ],
+              [
+                "Lookup",
+                108,
+                106,
+                107
+              ],
+              [
+                "Literal",
+                109,
+                ""
+              ],
+              [
+                "Default",
+                110,
+                108,
+                109
+              ],
+              [
+                "Copy",
+                111,
+                110
+              ],
+              [
+                "Call",
+                112,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:4:4",
+                [
+                  111
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:46:18"
+              ],
+              [
+                "Response",
+                116,
+                112,
+                true,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:46:5"
+              ],
+              [
+                "Return",
+                116
+              ]
+            ]
+          },
+          {
+            "id": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+            "parameters": [
+              127
+            ],
+            "operations": [
+              [
+                "Copy",
+                128,
+                127
+              ],
+              [
+                "Copy",
+                129,
+                127
+              ],
+              [
+                "Concat",
+                130,
+                [
+                  128,
+                  129
+                ]
+              ],
+              [
+                "Return",
+                130
+              ]
+            ]
+          },
+          {
+            "id": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:48:7",
+            "parameters": [
+              117
+            ],
+            "operations": [
+              [
+                "Copy",
+                118,
+                117
+              ],
+              [
+                "Request",
+                119,
+                118
+              ],
+              [
+                "Query",
+                120,
+                119,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:49:17"
+              ],
+              [
+                "Literal",
+                121,
+                "q"
+              ],
+              [
+                "Lookup",
+                122,
+                120,
+                121
+              ],
+              [
+                "Literal",
+                123,
+                ""
+              ],
+              [
+                "Default",
+                124,
+                122,
+                123
+              ],
+              [
+                "Copy",
+                125,
+                124
+              ],
+              [
+                "Call",
+                126,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  125
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:50:14"
+              ],
+              [
+                "Copy",
+                131,
+                126
+              ],
+              [
+                "Call",
+                132,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  131
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:51:14"
+              ],
+              [
+                "Copy",
+                133,
+                132
+              ],
+              [
+                "Call",
+                134,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  133
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:52:14"
+              ],
+              [
+                "Copy",
+                135,
+                134
+              ],
+              [
+                "Call",
+                136,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  135
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:53:14"
+              ],
+              [
+                "Copy",
+                137,
+                136
+              ],
+              [
+                "Call",
+                138,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  137
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:54:14"
+              ],
+              [
+                "Copy",
+                139,
+                138
+              ],
+              [
+                "Call",
+                140,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  139
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:55:14"
+              ],
+              [
+                "Copy",
+                141,
+                140
+              ],
+              [
+                "Call",
+                142,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  141
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:56:14"
+              ],
+              [
+                "Copy",
+                143,
+                142
+              ],
+              [
+                "Call",
+                144,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  143
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:57:14"
+              ],
+              [
+                "Copy",
+                145,
+                144
+              ],
+              [
+                "Call",
+                146,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  145
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:58:14"
+              ],
+              [
+                "Copy",
+                147,
+                146
+              ],
+              [
+                "Call",
+                148,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  147
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:59:14"
+              ],
+              [
+                "Copy",
+                149,
+                148
+              ],
+              [
+                "Call",
+                150,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  149
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:60:15"
+              ],
+              [
+                "Copy",
+                151,
+                150
+              ],
+              [
+                "Call",
+                152,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  151
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:61:15"
+              ],
+              [
+                "Copy",
+                153,
+                152
+              ],
+              [
+                "Call",
+                154,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  153
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:62:15"
+              ],
+              [
+                "Copy",
+                155,
+                154
+              ],
+              [
+                "Call",
+                156,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  155
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:63:15"
+              ],
+              [
+                "Copy",
+                157,
+                156
+              ],
+              [
+                "Call",
+                158,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  157
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:64:15"
+              ],
+              [
+                "Copy",
+                159,
+                158
+              ],
+              [
+                "Call",
+                160,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  159
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:65:15"
+              ],
+              [
+                "Copy",
+                161,
+                160
+              ],
+              [
+                "Call",
+                162,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  161
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:66:15"
+              ],
+              [
+                "Copy",
+                163,
+                162
+              ],
+              [
+                "Call",
+                164,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  163
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:67:15"
+              ],
+              [
+                "Copy",
+                165,
+                164
+              ],
+              [
+                "Call",
+                166,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  165
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:68:15"
+              ],
+              [
+                "Copy",
+                167,
+                166
+              ],
+              [
+                "Call",
+                168,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  167
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:69:15"
+              ],
+              [
+                "Copy",
+                169,
+                168
+              ],
+              [
+                "Call",
+                170,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  169
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:70:15"
+              ],
+              [
+                "Copy",
+                171,
+                170
+              ],
+              [
+                "Call",
+                172,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  171
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:71:15"
+              ],
+              [
+                "Copy",
+                173,
+                172
+              ],
+              [
+                "Call",
+                174,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  173
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:72:15"
+              ],
+              [
+                "Copy",
+                175,
+                174
+              ],
+              [
+                "Call",
+                176,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  175
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:73:15"
+              ],
+              [
+                "Copy",
+                177,
+                176
+              ],
+              [
+                "Call",
+                178,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  177
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:74:15"
+              ],
+              [
+                "Copy",
+                179,
+                178
+              ],
+              [
+                "Call",
+                180,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  179
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:75:15"
+              ],
+              [
+                "Copy",
+                181,
+                180
+              ],
+              [
+                "Call",
+                182,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  181
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:76:15"
+              ],
+              [
+                "Copy",
+                183,
+                182
+              ],
+              [
+                "Call",
+                184,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  183
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:77:15"
+              ],
+              [
+                "Copy",
+                185,
+                184
+              ],
+              [
+                "Call",
+                186,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  185
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:78:15"
+              ],
+              [
+                "Copy",
+                187,
+                186
+              ],
+              [
+                "Call",
+                188,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:5:4",
+                [
+                  187
+                ],
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:79:15"
+              ],
+              [
+                "Copy",
+                189,
+                188
+              ],
+              [
+                "Response",
+                190,
+                189,
+                true,
+                "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:80:5"
+              ],
+              [
+                "Return",
+                190
+              ]
+            ]
+          }
+        ],
+        "binding_queries": 102,
+        "routes": [
+          {
+            "entry": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:8:7",
+            "result": {
+              "status": "complete",
+              "reason": "",
+              "source_paths": [
+                [
+                  "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:9:17",
+                  "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:10:18",
+                  "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:10:5",
+                  "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:8:7:route_response"
+                ]
+              ],
+              "steps": 24
+            },
+            "route": "/raw"
+          },
+          {
+            "entry": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:12:7",
+            "result": {
+              "status": "complete",
+              "reason": "",
+              "source_paths": [],
+              "steps": 23
+            },
+            "route": "/safe"
+          },
+          {
+            "entry": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:16:7",
+            "result": {
+              "status": "complete",
+              "reason": "",
+              "source_paths": [],
+              "steps": 22
+            },
+            "route": "/discarded"
+          },
+          {
+            "entry": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:21:7",
+            "result": {
+              "status": "complete",
+              "reason": "",
+              "source_paths": [],
+              "steps": 24
+            },
+            "route": "/overwritten"
+          },
+          {
+            "entry": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:27:7",
+            "result": {
+              "status": "complete",
+              "reason": "",
+              "source_paths": [],
+              "steps": 20
+            },
+            "route": "/plain"
+          },
+          {
+            "entry": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:31:7",
+            "result": {
+              "status": "incomplete",
+              "reason": "unsupported_html_context",
+              "source_paths": [
+                [
+                  "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:32:17",
+                  "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:34:5",
+                  "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:31:7:route_response"
+                ]
+              ],
+              "steps": 26
+            },
+            "route": "/script"
+          },
+          {
+            "entry": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:36:7",
+            "result": {
+              "status": "complete",
+              "reason": "",
+              "source_paths": [
+                [
+                  "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:37:17",
+                  "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:38:18",
+                  "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:38:5",
+                  "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:36:7:route_response"
+                ]
+              ],
+              "steps": 24
+            },
+            "route": "/homonym"
+          },
+          {
+            "entry": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:40:7",
+            "status": "incomplete",
+            "reason": "Failure(src/security_frontend/lower.mbt:263:10-263:66@minie135/moon-audit FAILED: unsupported_semantics: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:3:44)"
+          },
+          {
+            "entry": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:44:7",
+            "result": {
+              "status": "incomplete",
+              "reason": "incomplete_budget",
+              "source_paths": [],
+              "steps": 139
+            },
+            "route": "/recursive"
+          },
+          {
+            "entry": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:48:7",
+            "result": {
+              "status": "incomplete",
+              "reason": "incomplete_budget",
+              "source_paths": [],
+              "steps": 9784
+            },
+            "route": "/doubling"
+          }
+        ],
+        "errors": [],
+        "bindings": [
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:8:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:9:23",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/event.mbt",
+            "range": "3:3-3:6"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:9:27",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/request.mbt",
+            "range": "33:21-33:26"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:9:35",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+            "range": "269:31-269:34"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:9:44",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+            "range": "48:19-48:28"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:10:18",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "1:4-1:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:10:5",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/responder.mbt",
+            "range": "92:8-92:12"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:12:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:13:23",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/event.mbt",
+            "range": "3:3-3:6"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:13:27",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/request.mbt",
+            "range": "33:21-33:26"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:13:35",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+            "range": "269:31-269:34"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:13:44",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+            "range": "48:19-48:28"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:14:38",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "1:4-1:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:14:18",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/utils.mbt",
+            "range": "128:8-128:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:14:5",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/responder.mbt",
+            "range": "92:8-92:12"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:16:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:17:23",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/event.mbt",
+            "range": "3:3-3:6"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:17:27",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/request.mbt",
+            "range": "33:21-33:26"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:17:35",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+            "range": "269:31-269:34"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:17:44",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+            "range": "48:19-48:28"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:18:35",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "1:4-1:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:18:22",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/responder.mbt",
+            "range": "92:8-92:12"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:19:5",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/responder.mbt",
+            "range": "92:8-92:12"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:21:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:22:23",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/event.mbt",
+            "range": "3:3-3:6"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:22:27",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/request.mbt",
+            "range": "33:21-33:26"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:22:35",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+            "range": "269:31-269:34"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:22:44",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+            "range": "48:19-48:28"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:23:35",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "1:4-1:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:23:22",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/responder.mbt",
+            "range": "92:8-92:12"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:24:14",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/responder.mbt",
+            "range": "92:8-92:12"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:27:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:28:23",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/event.mbt",
+            "range": "3:3-3:6"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:28:27",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/request.mbt",
+            "range": "33:21-33:26"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:28:35",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+            "range": "269:31-269:34"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:28:44",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+            "range": "48:19-48:28"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:29:18",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "1:4-1:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:29:5",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/responder.mbt",
+            "range": "97:8-97:12"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:31:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:32:23",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/event.mbt",
+            "range": "3:3-3:6"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:32:27",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/request.mbt",
+            "range": "33:21-33:26"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:32:35",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+            "range": "269:31-269:34"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:32:44",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+            "range": "48:19-48:28"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:33:19",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/utils.mbt",
+            "range": "128:8-128:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:34:5",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/responder.mbt",
+            "range": "92:8-92:12"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:36:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:37:23",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/event.mbt",
+            "range": "3:3-3:6"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:37:27",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/request.mbt",
+            "range": "33:21-33:26"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:37:35",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+            "range": "269:31-269:34"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:37:44",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+            "range": "48:19-48:28"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:38:18",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "2:4-2:15"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:38:5",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/responder.mbt",
+            "range": "92:8-92:12"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:40:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:41:23",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/event.mbt",
+            "range": "3:3-3:6"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:41:27",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/request.mbt",
+            "range": "33:21-33:26"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:41:35",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+            "range": "269:31-269:34"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:41:44",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+            "range": "48:19-48:28"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:42:18",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "3:4-3:15"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:44:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:45:23",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/event.mbt",
+            "range": "3:3-3:6"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:45:27",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/request.mbt",
+            "range": "33:21-33:26"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:45:35",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+            "range": "269:31-269:34"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:45:44",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+            "range": "48:19-48:28"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:46:18",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "4:4-4:8"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:4:37",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "4:4-4:8"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:46:5",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/responder.mbt",
+            "range": "92:8-92:12"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:48:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:49:23",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/event.mbt",
+            "range": "3:3-3:6"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:49:27",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/request.mbt",
+            "range": "33:21-33:26"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:49:35",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/linked_hash_map.mbt",
+            "range": "269:31-269:34"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:49:44",
+            "definition": "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/builtin/option.mbt",
+            "range": "48:19-48:28"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:50:14",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:51:14",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:52:14",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:53:14",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:54:14",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:55:14",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:56:14",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:57:14",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:58:14",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:59:14",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:60:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:61:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:62:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:63:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:64:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:65:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:66:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:67:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:68:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:69:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:70:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:71:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:72:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:73:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:74:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:75:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:76:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:77:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:78:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:79:15",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt",
+            "range": "5:4-5:9"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:80:5",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/responder.mbt",
+            "range": "92:8-92:12"
+          }
+        ],
+        "status": "incomplete",
+        "compiler_verification": {
+          "status": "compiler_verified",
+          "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+          "target": "native",
+          "selected_files": [
+            "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt"
+          ]
+        }
+      }
+    },
+    {
+      "name": "library_changed",
+      "command": [
+        "/data/my/moon-audit/_build/native/debug/build/src/semantic_probe/semantic_probe.exe",
+        "/tmp/moon-audit-native-chain-ph_wwgfa/consumer",
+        "/tmp/moon-audit-upgrade-20260922/toolchain"
+      ],
+      "seconds": 2.858,
+      "exit_code": 2,
+      "stderr": "",
+      "report": {
+        "coverage_status": "restricted_experiment",
+        "schema": "moon-audit.experimental-security-ir.v1",
+        "production_ready": false,
+        "entry_scope": "only two-positional-argument .get literal-route inline-callback declarations; registration invocation and unchanged responder middleware/content-type behavior are preconditions; other registration forms are not covered",
+        "functions": [],
+        "binding_queries": 10,
+        "routes": [],
+        "errors": [
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:8:7",
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:12:7",
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:16:7",
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:21:7",
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:27:7",
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:31:7",
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:36:7",
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:40:7",
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:44:7",
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:48:7"
+        ],
+        "bindings": [
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:8:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:12:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:16:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:21:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:27:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:31:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:36:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:40:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:44:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:48:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          }
+        ],
+        "status": "incomplete",
+        "compiler_verification": {
+          "status": "compiler_verified",
+          "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+          "target": "native",
+          "selected_files": [
+            "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt"
+          ]
+        }
+      }
+    },
+    {
+      "name": "dependency_changed",
+      "command": [
+        "/data/my/moon-audit/_build/native/debug/build/src/semantic_probe/semantic_probe.exe",
+        "/tmp/moon-audit-native-chain-ph_wwgfa/consumer",
+        "/tmp/moon-audit-upgrade-20260922/toolchain"
+      ],
+      "seconds": 3.009,
+      "exit_code": 2,
+      "stderr": "",
+      "report": {
+        "coverage_status": "restricted_experiment",
+        "schema": "moon-audit.experimental-security-ir.v1",
+        "production_ready": false,
+        "entry_scope": "only two-positional-argument .get literal-route inline-callback declarations; registration invocation and unchanged responder middleware/content-type behavior are preconditions; other registration forms are not covered",
+        "functions": [],
+        "binding_queries": 10,
+        "routes": [],
+        "errors": [
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:8:7",
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:12:7",
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:16:7",
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:21:7",
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:27:7",
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:31:7",
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:36:7",
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:40:7",
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:44:7",
+          "unmodeled_registration_or_model_mismatch: /tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:48:7"
+        ],
+        "bindings": [
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:8:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:12:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:16:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:21:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:27:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:31:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:36:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:40:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:44:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          },
+          {
+            "query": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt:48:7",
+            "definition": "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/.mooncakes/oboard/mocket/index.mbt",
+            "range": "152:16-152:19"
+          }
+        ],
+        "status": "incomplete",
+        "compiler_verification": {
+          "status": "compiler_verified",
+          "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+          "target": "native",
+          "selected_files": [
+            "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt"
+          ]
+        }
+      }
+    },
+    {
+      "name": "unsupported_registration_shape",
+      "command": [
+        "/data/my/moon-audit/_build/native/debug/build/src/semantic_probe/semantic_probe.exe",
+        "/tmp/moon-audit-native-chain-ph_wwgfa/consumer",
+        "/tmp/moon-audit-upgrade-20260922/toolchain"
+      ],
+      "seconds": 0.672,
+      "exit_code": 2,
+      "stderr": "",
+      "report": {
+        "coverage_status": "restricted_experiment",
+        "schema": "moon-audit.experimental-security-ir.v1",
+        "production_ready": false,
+        "entry_scope": "only two-positional-argument .get literal-route inline-callback declarations; registration invocation and unchanged responder middleware/content-type behavior are preconditions; other registration forms are not covered",
+        "functions": [],
+        "binding_queries": 0,
+        "routes": [],
+        "errors": [],
+        "bindings": [],
+        "status": "incomplete",
+        "compiler_verification": {
+          "status": "compiler_verified",
+          "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+          "target": "native",
+          "selected_files": [
+            "/tmp/moon-audit-native-chain-ph_wwgfa/consumer/probe.mbt"
+          ]
+        }
+      }
+    }
+  ],
+  "limits": [
+    "Only pinned mocket .get literal-path inline callback declarations are covered.",
+    "Registration execution, middleware and browser exploitability are not proven.",
+    "Whole mocket checkout fails newest compiler in examples/benchmarks; this is a consumer project.",
+    "No production semantic mode, branch/heap analysis or historical-language compatibility claim."
+  ],
+  "status": "passed"
+}

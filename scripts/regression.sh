@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Legacy full-framework gate: requires the pre-redesign analyzer.
+# Current syntax-pattern scans do not satisfy these semantic contracts.
+# See docs/redesign-2026-09-22.md for the recovery point and active gates.
 # Corpus regression harness. Exit 0 on complete measurements, 1 when any
 # project/command/report fails, and 2 for setup errors. Findings alone are
 # not failures: the corpus includes vulnerable projects.

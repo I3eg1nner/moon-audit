@@ -1,6 +1,6 @@
 name = "minie135/moon-audit"
 
-version = "0.4.0"
+version = "0.5.0-dev"
 
 license = "MulanPSL-2.0"
 
@@ -15,9 +15,8 @@ repository = "https://github.com/I3eg1nner/moon-audit"
 preferred_target = "native"
 
 import {
-  "moonbitlang/parser@0.3.18",
-  "moonbitlang/moon_config@0.3.14",
-  "moonbitlang/lexer@0.3.15",
-  "moonbitlang/x@0.5.1",
-  "moonbitlang/quickcheck@0.14.0",
+  "moonbitlang/async@0.21.2",
+  "moonbitlang/parser@0.4.0",
+  "moonbitlang/lexer@0.4.0",
+  "moonbitlang/x@0.5.5",
 }

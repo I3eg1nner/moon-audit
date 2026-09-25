@@ -2,7 +2,7 @@
 
 ///|
 test "Baseline: generate and load round-trip" {
-  let findings : Array[Finding] = [
+  let findings : Array[@src.Finding] = [
     {
       rule_id: { cwe: 116, variant: "replace-escaping", },
       severity: Warning,
@@ -15,16 +15,18 @@ test "Baseline: generate and load round-trip" {
       end_column: 20,
       snippet: "s.replace(old=\"<\", new=\"&lt;\")",
       fingerprint: "12345",
+      evidence: "syntax_hint",
+      dataflow: [],
     },
   ]
-  let json = generate_baseline(findings)
+  let json = @src.generate_baseline(findings)
   let path = test_tmp("moon_audit_test_baseline.json")
   @fs.write_string_to_file(path, json) catch {
     _ => return
   }
-  let baseline = load_baseline(path)
+  let baseline = @src.load_baseline(path)
   assert_true(baseline.length() > 0)
-  inspect(filter_baseline(findings, baseline).length(), content="0")
+  inspect(@src.filter_baseline(findings, baseline).length(), content="0")
   @fs.remove_file(path) catch {
     _ => ()
   }
@@ -32,7 +34,7 @@ test "Baseline: generate and load round-trip" {
 
 ///|
 test "Baseline: filter_baseline removes matched findings" {
-  let f1 : Finding = {
+  let f1 : @src.Finding = {
     rule_id: { cwe: 116, variant: "replace-escaping", },
     severity: Warning,
     confidence: High,
@@ -44,8 +46,10 @@ test "Baseline: filter_baseline removes matched findings" {
     end_column: 20,
     snippet: "s.replace(old=\"<\")",
     fingerprint: "aaa",
+    evidence: "syntax_hint",
+    dataflow: [],
   }
-  let f2 : Finding = {
+  let f2 : @src.Finding = {
     rule_id: { cwe: 79, variant: "cmark-unsafe", },
     severity: Error,
     confidence: High,
@@ -57,17 +61,19 @@ test "Baseline: filter_baseline removes matched findings" {
     end_column: 30,
     snippet: "render(safe=false)",
     fingerprint: "bbb",
+    evidence: "syntax_hint",
+    dataflow: [],
   }
   let baseline : Map[String, Bool] = Map([])
   baseline["CWE-116/replace-escaping:aaa"] = true
-  let result = filter_baseline([f1, f2], baseline)
+  let result = @src.filter_baseline([f1, f2], baseline)
   assert_true(result.length() == 1)
   assert_true(result[0].fingerprint == "bbb")
 }
 
 ///|
 test "Baseline: filter_baseline with empty baseline returns all" {
-  let f : Finding = {
+  let f : @src.Finding = {
     rule_id: { cwe: 116, variant: "replace-escaping", },
     severity: Warning,
     confidence: High,
@@ -79,14 +85,16 @@ test "Baseline: filter_baseline with empty baseline returns all" {
     end_column: 10,
     snippet: "code",
     fingerprint: "fp1",
+    evidence: "syntax_hint",
+    dataflow: [],
   }
-  let result = filter_baseline([f], Map([]))
+  let result = @src.filter_baseline([f], Map([]))
   assert_true(result.length() == 1)
 }
 
 ///|
 test "Baseline: load_baseline handles missing file" {
-  let baseline = load_baseline(test_tmp("no_such_baseline.json"))
+  let baseline = @src.load_baseline(test_tmp("no_such_baseline.json"))
   assert_true(baseline.length() == 0)
 }
 
@@ -96,7 +104,7 @@ test "Baseline: load_baseline handles invalid JSON" {
   @fs.write_string_to_file(path, "not json at all") catch {
     _ => return
   }
-  let baseline = load_baseline(path)
+  let baseline = @src.load_baseline(path)
   assert_true(baseline.length() == 0)
   @fs.remove_file(path) catch {
     _ => ()
@@ -105,7 +113,7 @@ test "Baseline: load_baseline handles invalid JSON" {
 
 ///|
 test "Baseline: generate_baseline handles special chars" {
-  let findings : Array[Finding] = [
+  let findings : Array[@src.Finding] = [
     {
       rule_id: { cwe: 79, variant: "xss", },
       severity: Error,
@@ -118,16 +126,18 @@ test "Baseline: generate_baseline handles special chars" {
       end_column: 10,
       snippet: "html(\"<script>\")",
       fingerprint: "fp",
+      evidence: "syntax_hint",
+      dataflow: [],
     },
   ]
-  let json = generate_baseline(findings)
+  let json = @src.generate_baseline(findings)
   assert_true(json.contains("\\\"quotes\\\""))
   assert_true(json.contains("\\\\backslash"))
 }
 
 ///|
 test "Baseline: same snippet in a different file stays visible" {
-  let known : Finding = {
+  let known : @src.Finding = {
     rule_id: { cwe: 116, variant: "replace-escaping", },
     severity: Warning,
     confidence: High,
@@ -139,13 +149,15 @@ test "Baseline: same snippet in a different file stays visible" {
     end_column: 20,
     snippet: "same snippet",
     fingerprint: "shared",
+    evidence: "syntax_hint",
+    dataflow: [],
   }
   let new_file = { ..known, file: "src/bar.mbt", }
   let moved = { ..known, file: "./src/foo.mbt", line: 20, end_line: 20, }
   let path = test_tmp("moon_audit_baseline_file_scope.json")
-  @fs.write_string_to_file(path, generate_baseline([known]))
-  let baseline = load_baseline(path)
-  let remaining = filter_baseline([new_file, moved], baseline)
+  @fs.write_string_to_file(path, @src.generate_baseline([known]))
+  let baseline = @src.load_baseline(path)
+  let remaining = @src.filter_baseline([new_file, moved], baseline)
   inspect(remaining.length(), content="1")
   inspect(remaining[0].file, content="src/bar.mbt")
   @fs.remove_file(path)
@@ -154,7 +166,7 @@ test "Baseline: same snippet in a different file stays visible" {
 ///|
 test "Baseline: JSON round-trips Unicode and control characters" {
   let message = "emoji 😀, null \u0000, backspace \b, form feed \u000c"
-  let f : Finding = {
+  let f : @src.Finding = {
     rule_id: { cwe: 116, variant: "replace-escaping", },
     severity: Warning,
     confidence: High,
@@ -166,8 +178,10 @@ test "Baseline: JSON round-trips Unicode and control characters" {
     end_column: 20,
     snippet: "test",
     fingerprint: "unicode",
+    evidence: "syntax_hint",
+    dataflow: [],
   }
-  let parsed = @json.parse(generate_baseline([f]))
+  let parsed = @json.parse(@src.generate_baseline([f]))
   match parsed {
     Array([{ "message": String(actual), "file": String(file), .. }]) => {
       inspect(actual == message, content="true")
@@ -186,6 +200,8 @@ fn counted_baseline_source(copies : Int) -> String {
 
 ///|
 test "Baseline: added identical sinks remain visible after generated baseline" {
+  let config = @src.Config::default()
+  config.rules["CWE-113/crlf-injection"] = { enabled: true, severity: None, }
   let root = test_tmp("moon_audit_baseline_occurrences")
   @fs.create_dir(root) catch {
     _ => ()
@@ -202,16 +218,16 @@ test "Baseline: added identical sinks remain visible after generated baseline" {
   let baseline_file = pjoin(root, "baseline.json")
   for counts in [(1, 2, 1), (2, 3, 1), (2, 2, 0), (2, 1, 0)] {
     @fs.write_string_to_file(source_file, counted_baseline_source(counts.0))
-    let before = scan_project(root, Config::default())
+    let before = @src.scan_project(root, config)
     inspect(before.errors.length(), content="0")
     assert_true(before.findings.length() == counts.0)
     @fs.write_string_to_file(
       baseline_file,
-      generate_baseline(before.findings, root~),
+      @src.generate_baseline(before.findings, root~),
     )
-    let baseline = load_baseline(baseline_file)
+    let baseline = @src.load_baseline(baseline_file)
     @fs.write_string_to_file(source_file, counted_baseline_source(counts.1))
-    let after = scan_project(root, Config::default())
+    let after = @src.scan_project(root, config)
     inspect(after.errors.length(), content="0")
     assert_true(after.findings.length() == counts.1)
     assert_true(
@@ -219,38 +235,38 @@ test "Baseline: added identical sinks remain visible after generated baseline" {
         f.fingerprint == before.findings[0].fingerprint
       }),
     )
-    let remaining = filter_baseline(after.findings, baseline, root~)
+    let remaining = @src.filter_baseline(after.findings, baseline, root~)
     assert_eq(remaining.length(), counts.2)
     if counts.2 > 0 {
       assert_true(remaining[0].line == counts.0 + 2)
     }
     // A loaded baseline can be reused without consuming its stored allowance.
     assert_true(
-      filter_baseline(after.findings, baseline, root~).length() == counts.2,
+      @src.filter_baseline(after.findings, baseline, root~).length() == counts.2,
     )
   }
   @fs.write_string_to_file(source_file, counted_baseline_source(1))
-  let before = scan_project(root, Config::default())
+  let before = @src.scan_project(root, config)
   @fs.write_string_to_file(
     baseline_file,
-    generate_baseline(before.findings, root~),
+    @src.generate_baseline(before.findings, root~),
   )
-  let baseline = load_baseline(baseline_file)
+  let baseline = @src.load_baseline(baseline_file)
   @fs.write_string_to_file(source_file, "\n\n" + counted_baseline_source(1))
-  let moved = scan_project(root, Config::default())
+  let moved = @src.scan_project(root, config)
   inspect(moved.findings.length(), content="1")
   inspect(moved.findings[0].line, content="4")
   inspect(
-    filter_baseline(moved.findings, baseline, root~).length(),
+    @src.filter_baseline(moved.findings, baseline, root~).length(),
     content="0",
   )
   @fs.write_string_to_file(
     source_file, "fn f(resp : Response) -> Unit { resp.set_header(\"X\", \"safe\") }\n",
   )
-  let fixed = scan_project(root, Config::default())
+  let fixed = @src.scan_project(root, config)
   inspect(fixed.findings.length(), content="0")
   inspect(
-    filter_baseline(fixed.findings, baseline, root~).length(),
+    @src.filter_baseline(fixed.findings, baseline, root~).length(),
     content="0",
   )
 }
@@ -262,7 +278,7 @@ test "Baseline: duplicate allowances survive project-relative path relocation" {
   let known = { ..mk_finding("shared"), file: old_root + "/src/f.mbt", }
   let second = { ..known, line: 20, end_line: 20, }
   let path = test_tmp("baseline_relative_occurrences.json")
-  let content = generate_baseline([known, second], root=old_root)
+  let content = @src.generate_baseline([known, second], root=old_root)
   let json = @json.parse(content)
   match json {
     Array([{ "file": String(first), .. }, { "file": String(next), .. }]) => {
@@ -272,7 +288,7 @@ test "Baseline: duplicate allowances survive project-relative path relocation" {
     _ => fail("generated baseline must retain each occurrence")
   }
   @fs.write_string_to_file(path, content)
-  let baseline = load_baseline(path)
+  let baseline = @src.load_baseline(path)
   let moved = {
     ..known,
     file: new_root + "/src/./f.mbt",
@@ -284,7 +300,7 @@ test "Baseline: duplicate allowances survive project-relative path relocation" {
     { ..moved, line: 60, end_line: 60, },
     { ..moved, line: 70, end_line: 70, },
   ]
-  let remaining = filter_baseline(current, baseline, root=new_root)
+  let remaining = @src.filter_baseline(current, baseline, root=new_root)
   inspect(remaining.length(), content="1")
   inspect(remaining[0].line, content="70")
   let other_file = { ..moved, file: new_root + "/src/other.mbt", }
@@ -293,7 +309,11 @@ test "Baseline: duplicate allowances survive project-relative path relocation" {
     rule_id: { cwe: 116, variant: "tainted-output", },
   }
   inspect(
-    filter_baseline([other_file, other_rule, moved], baseline, root=new_root).length(),
+    @src.filter_baseline(
+      [other_file, other_rule, moved],
+      baseline,
+      root=new_root,
+    ).length(),
     content="2",
   )
   @fs.remove_file(path)
@@ -305,7 +325,7 @@ test "Baseline: legacy entries without files still suppress all matching occurre
   @fs.write_string_to_file(
     path, "[{\"rule_id\":\"CWE-113/crlf-injection\",\"fingerprint\":\"shared\"}]",
   )
-  let baseline = load_baseline(path)
+  let baseline = @src.load_baseline(path)
   let known = mk_finding("shared")
   let current = [
     known,
@@ -313,7 +333,7 @@ test "Baseline: legacy entries without files still suppress all matching occurre
     { ..known, file: "other.mbt", },
     mk_finding("different"),
   ]
-  let remaining = filter_baseline(current, baseline)
+  let remaining = @src.filter_baseline(current, baseline)
   inspect(remaining.length(), content="1")
   inspect(remaining[0].fingerprint, content="different")
   inspect(baseline.length(), content="1")
@@ -326,21 +346,21 @@ test "Baseline: project paths cannot match a different cwd-relative file" {
   let known = { ..mk_finding("shared"), file: "p/p/f.mbt", }
   let added = { ..known, file: "p/f.mbt", }
   let path = test_tmp("baseline_project_scope_nested.json")
-  let content = generate_baseline([known], root~)
+  let content = @src.generate_baseline([known], root~)
   match @json.parse(content) {
     Array([{ "path_scope": String("project"), "file": String(file), .. }]) =>
       inspect(file, content="p/f.mbt")
     _ => fail("project-relative baselines must identify their path scope")
   }
   @fs.write_string_to_file(path, content)
-  let baseline = load_baseline(path)
+  let baseline = @src.load_baseline(path)
   // An incremental scan contains only the new file. Its cwd-relative path
   // equals the older nested file's project-relative path, but identities differ.
-  let incremental = filter_baseline([added], baseline, root~)
+  let incremental = @src.filter_baseline([added], baseline, root~)
   inspect(incremental.length(), content="1")
   inspect(incremental[0].file, content="p/f.mbt")
-  inspect(filter_baseline([known], baseline, root~).length(), content="0")
-  let full = filter_baseline([added, known], baseline, root~)
+  inspect(@src.filter_baseline([known], baseline, root~).length(), content="0")
+  let full = @src.filter_baseline([added, known], baseline, root~)
   inspect(full.length(), content="1")
   inspect(full[0].file, content="p/f.mbt")
   @fs.remove_file(path)
@@ -354,11 +374,11 @@ test "Baseline: legacy scoped paths keep cwd-relative and absolute compatibility
   let path = test_tmp("baseline_legacy_path_scope.json")
   for file in [finding.file, @path.Path(finding.file).resolve().0] {
     // Omitting root retains the previous JSON shape and path interpretation.
-    let content = generate_baseline([{ ..finding, file, }])
+    let content = @src.generate_baseline([{ ..finding, file, }])
     assert_false(content.contains("path_scope"))
     @fs.write_string_to_file(path, content)
-    let baseline = load_baseline(path)
-    let remaining = filter_baseline([finding, duplicate], baseline, root~)
+    let baseline = @src.load_baseline(path)
+    let remaining = @src.filter_baseline([finding, duplicate], baseline, root~)
     inspect(remaining.length(), content="1")
     inspect(remaining[0].line, content="20")
   }

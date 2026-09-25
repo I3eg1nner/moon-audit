@@ -1,0 +1,10 @@
+import {
+  "moonbitlang/parser",
+  "moonbitlang/x/fs",
+  "moonbitlang/core/builtin",
+  "moonbitlang/x/sys",
+  "moonbitlang/core/env",
+  "moonbitlang/lexer/basic",
+}
+
+pkgtype(kind: "executable")

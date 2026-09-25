@@ -1,0 +1,43 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "minie135/moon-audit/src/project_driver"
+
+// Values
+pub fn absolute(String) -> String
+
+pub async fn definition(String, String, String?, String, Int, Int, Bool) -> Json
+
+pub fn file_plan(String, String) -> (Array[String], Array[String])?
+
+pub fn limit_worker_memory(Int) -> Bool
+
+pub fn memory_budget() -> Json
+
+pub fn plan_words(String) -> Array[String]?
+
+pub async fn semantic_worker(String, String, String?, Int) -> Json
+
+pub fn snapshot(String) -> Map[String, String] raise
+
+pub async fn supervise(Array[String]) -> Int
+
+pub fn unchanged(Map[String, String], String) -> Bool
+
+pub async fn verify(String, String, String?, String, Int) -> Verification
+
+// Errors
+
+// Types and methods
+pub(all) struct Verification {
+  status : String
+  detail : String
+  toolchain : String
+  target : String
+  files : Array[String]
+  unsupported : Array[String]
+  snapshot : Map[String, String]
+}
+pub fn Verification::to_json(Self) -> Json
+
+// Type aliases
+
+// Traits

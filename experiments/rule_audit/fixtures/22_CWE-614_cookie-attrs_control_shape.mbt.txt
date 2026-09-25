@@ -1,0 +1,3 @@
+pub struct Dummy {}
+pub fn Dummy::set_cookie(_self : Dummy, _name : String, _value : String, http_only? : Bool = false, secure? : Bool = false, same_site? : String = "None") -> Unit { ignore((http_only, secure, same_site)) }
+pub fn probe(res : Dummy) -> Unit { res.set_cookie("token", "value", http_only=true, secure=true, same_site="Strict") }

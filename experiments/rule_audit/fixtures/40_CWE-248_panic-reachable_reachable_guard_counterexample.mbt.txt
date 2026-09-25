@@ -1,0 +1,1 @@
+pub fn probe(input : Bool) -> Unit { guard input else { abort("operation failed") }; () }

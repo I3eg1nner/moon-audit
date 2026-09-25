@@ -1,0 +1,209 @@
+{
+  "date": "2026-09-22",
+  "scope": "Infrastructure research and a single compiled IDE probe; no production analyzer validation in this round.",
+  "compiler_public_main": {
+    "url": "https://api.github.com/repos/moonbitlang/moonbit-compiler/commits/main",
+    "sha": "d4ada10d212b5376f7f8bf49cd2fbaa275a395df",
+    "commit_date": "2025-09-29T06:05:47Z",
+    "subject": "add wasm compiler toolchain install script"
+  },
+  "compiler_public_branches": [
+    {
+      "name": "fix-install-guide",
+      "sha": "8ef5fc1d778294d23105e536634ec44c0d663b32"
+    },
+    {
+      "name": "main",
+      "sha": "d4ada10d212b5376f7f8bf49cd2fbaa275a395df"
+    },
+    {
+      "name": "zhiyuan/update",
+      "sha": "651868f69f284285d605c75265fb11a6a73df6ff"
+    }
+  ],
+  "compiler_driver_matches_cached_source": true,
+  "probe_files": {
+    "moon.mod": "name = \"review/semantic_probe\"\nversion = \"0.1.0\"\n",
+    "moon.pkg": "",
+    "probe.mbt": "pub struct Box { mut value : String }\nfn fill(first : Box, second : Box) -> Unit {\n  first.value = \"dirty\"\n  second.value = \"safe\"\n}\npub fn go() -> String {\n  let box = Box::{value: \"initial\"}\n  fill(box, box)\n  box.value\n}\n"
+  },
+  "commands": [
+    {
+      "command": [
+        "moon",
+        "version",
+        "--all"
+      ],
+      "exit_code": 0,
+      "seconds": 0.057,
+      "log": "command-00.log",
+      "stdout": "moon 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) /tmp/moon-audit-upgrade-20260922/toolchain/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "moonc",
+        "build-package",
+        "-help"
+      ],
+      "exit_code": 0,
+      "seconds": 0.047,
+      "log": "command-01.log",
+      "stdout": "moonc build-package [options] <input files>\n  -i dependent .mi files\n  -g save debugging information\n  -stacktrace emit stack-trace metadata (machine only)\n  -O0  turn off optimization\n  -no-dedup turn off dedup-wasm\n  -source-map emit sourcemap\n  -source-map-url set url of source map\n  -dsource debug source\n  -o output file (suffix with .core by convention)\n  -target {wasm-gc|wasm|js|native|llvm|aarch64-apple-darwin|aarch64-unknown-linux-gnu|x86_64-unknown-linux-gnu|x86_64-pc-windows-msvc}set compilation target. available targets: wasm, wasm-gc, js, native, llvm, aarch64-apple-darwin, aarch64-unknown-linux-gnu, x86_64-unknown-linux-gnu, x86_64-pc-windows-msvc\n  -pkg package name\n  -all-pkgs package description file\n  -pkg-sources Tell compiler where the package sources are. format: <package name>:<package source directory>\n  -workspace-path path to the project root directory in file system\n  -std-path path containing standard library .mi files\n  -enable-coverage  Enable code coverage tracking\n  -coverage-package-override Override package name for coverage tracking. use \"@self\" for current package.\n  -is-main main package\n  -pkg-type {executable|library|foreign_library}package type: executable | library | foreign_library (foreign_library enables #export_name)\n  -blackbox-test check blackbox tests\n  -whitebox-test check whitebox tests\n  -error-format {human|json} set format of diagnostics. available formats: human, json\n  -output-json output diagnostics in json format\n  -patch-file patch file\n  -no-mi don't generate .mi file\n  -test-mode enable test mode\n  -check-mi check whether the package implements .mi file\n  -impl-virtual implement virtual package (the virtual package must be specified by -check-mi option)\n  -cfg set a configuration flag. The value format: <flag>=<value>\n  -llvm-opt set llvm optimization level. available levels: 0, 1, 2, 3, s, z. (LLVM backend only)\n  -llvm-target set llvm target triple. unset means current target. (LLVM backend only)\n  -S emit text format of the result instead of binary (LLVM and native backends)\n  -emit-llvm-ir emit LLVM IR or bitcode instead of machine code (LLVM backend only)\n  -include-doctests include doctests in the compilation, for black box tests\n  -doctest-only additionally include only doctests of the provided files for compiling, requires `-include-doctests`\n  -ignore-import-declaration do not report import declarations\n  -warn-help  show description of warning numbers\n  -w  <list>  Enable or disable warnings according to <list>:\n\t+<spec>   enable warnings in <spec>\n\t-<spec>   disable warnings in <spec>\n\t@<spec>   enable warnings in <spec> and treat them as errors\n\t<spec> can be:\n\t<num>             a single warning number\n\t<num1>..<num2>    a range of consecutive warning numbers\n\tdefault setting is +a-31-32@11@15@44-38-39-65-66-69-70-72-73-74-alert_unsafe-54@40@55-75-78-84\n  -alert  <list>  Enable or disable warnings according to <list>:\n\t+<id>   enable alert\n\t-<id>   disable alert\n\t@<id>   enable alert and treat it as error\n\n  -help  Display this list of options\n  --help  Display this list of options\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "moonc",
+        "check",
+        "-help"
+      ],
+      "exit_code": 0,
+      "seconds": 0.047,
+      "log": "command-02.log",
+      "stdout": "moonc check [options] <input files>\n  -i dependent .mi files\n  -o output file (suffix with .mi by convention)\n  -target {wasm-gc|wasm|js|native|llvm|aarch64-apple-darwin|aarch64-unknown-linux-gnu|x86_64-unknown-linux-gnu|x86_64-pc-windows-msvc}set compilation target. available targets: wasm, wasm-gc, js, native, llvm, aarch64-apple-darwin, aarch64-unknown-linux-gnu, x86_64-unknown-linux-gnu, x86_64-pc-windows-msvc\n  -pkg package name\n  -all-pkgs package description file\n  -pkg-sources Tell compiler where the package sources are. format: <package name>:<package source directory>\n  -workspace-path path to the project root directory in file system\n  -std-path path containing standard library .mi files\n  -is-main main package\n  -pkg-type {executable|library|foreign_library}package type: executable | library | foreign_library (foreign_library enables #export_name)\n  -single-file single file mode\n  -blackbox-test check blackbox tests\n  -whitebox-test check whitebox tests\n  -error-format {human|json} set format of diagnostics. available formats: human, json\n  -output-json output diagnostics in json format\n  -patch-file patch file\n  -replace-name source file name to replace during parsing\n  -replace-content replacement source content used with -replace-name\n  -no-mi don't generate .mi file\n  -check-mi check whether the package implements .mi file\n  -cfg set a configuration flag. The value format: <flag>=<value>\n  -include-doctests include doctests in the compilation, for black box tests\n  -doctest-only additionally include only doctests of the provided files for compiling, requires `-include-doctests`\n  -ignore-import-declaration do not report import declarations\n  -warn-help  show description of warning numbers\n  -w  <list>  Enable or disable warnings according to <list>:\n\t+<spec>   enable warnings in <spec>\n\t-<spec>   disable warnings in <spec>\n\t@<spec>   enable warnings in <spec> and treat them as errors\n\t<spec> can be:\n\t<num>             a single warning number\n\t<num1>..<num2>    a range of consecutive warning numbers\n\tdefault setting is +a-31-32@11@15@44-38-39-65-66-69-70-72-73-74-alert_unsafe-54@40@55-75-78-84\n  -alert  <list>  Enable or disable warnings according to <list>:\n\t+<id>   enable alert\n\t-<id>   disable alert\n\t@<id>   enable alert and treat it as error\n\n  -help  Display this list of options\n  --help  Display this list of options\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "moonc",
+        "link-core",
+        "-help"
+      ],
+      "exit_code": 0,
+      "seconds": 0.047,
+      "log": "command-03.log",
+      "stdout": "moonc link-core [options] <input files>\n  -g save debugging information\n  -stacktrace emit stack-trace metadata (machine only)\n  -O0  turn off optimization\n  -no-dedup turn off dedup-wasm\n  -source-map emit sourcemap\n  -source-map-url set url of source map\n  -pkg-sources Tell compiler where the package sources are. format: <package name>:<package source directory>\n  -o output file, suffix with .wat or .wasm\n  -wasm-module-name set the module name in the WebAssembly name section\n  -wat-plain-mode  output plain style wat\n  -target {wasm-gc|wasm|js|native|llvm|aarch64-apple-darwin|aarch64-unknown-linux-gnu|x86_64-unknown-linux-gnu|x86_64-pc-windows-msvc}set compilation target. available targets: wasm, wasm-gc, js, native, llvm, aarch64-apple-darwin, aarch64-unknown-linux-gnu, x86_64-unknown-linux-gnu, x86_64-pc-windows-msvc\n  -wasi  compile to WASI\n  -no-dts Do not emit typescript declaration file\n  -stop-on-main stop on main function\n  -js-format {esm|cjs|iife}set js format\n  -main the \"main\" package in the process of linking, whose public definitions will be exported\n  -dsource debug source\n  -exported_functions exported functions in the package, format: <function1>:<export_name1>,<function2>:<export_name2>,... where the export name can be omitted and the original name will be used.\n  -export-memory-name customize exported memory name in wasm backend\n  -import-memory-module specify the module of the memory to import\n  -import-memory-name specify the name of the memory to import\n  -memory-limits-min specify the minimum size of the memory\n  -memory-limits-max specify the maximum size of the memory\n  -shared-memory specify the memory to be shared\n  -wide-arithmetic emit wasm wide-arithmetic proposal instructions\n  -heap-start-address reserve the memory below the start address\n  -no-block-params not using block params for compatibility with binaryen\n  -test-mode enable test mode\n  -memory-safety-check enable memory safety check\n  -enable-trial-deletion enable trial-deletion cycle collection in the wasm1 backend\n  -use-js-builtin-string use js builtin string\n  -pkg-config-path path to moon.pkg.json\n  -allocator {tlsf|tlsf-mbt} choose a memory allocator (tlsf or tlsf-mbt)\n  -disallow-unaligned-access disallow unaligned memory address access\n  -cfg set a configuration flag. The value format: <flag>=<value>\n  -llvm-opt set llvm optimization level. available levels: 0, 1, 2, 3, s, z. (LLVM backend only)\n  -llvm-target set llvm target triple. unset means current target. (LLVM backend only)\n  -S emit text format of the result instead of binary (LLVM and native backends)\n  -emit-llvm-ir emit LLVM IR or bitcode instead of machine code (LLVM backend only)\n  -help  Display this list of options\n  --help  Display this list of options\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "--help"
+      ],
+      "exit_code": 0,
+      "seconds": 0.028,
+      "log": "command-04.log",
+      "stdout": "Usage: moon ide <command> [<args>]\n\nSemantic IDE tooling for MoonBit codebases. Run inside a MoonBit module or\nworkspace to use compiler-aware navigation instead of text search.\n\nChoose a command by intent:\n  peek-def          resolve definitions and show source context\n  find-references   find usages of a symbol across dependents\n  rename            compute semantic rename edits; use --apply to rewrite files\n  hover             show type and docs at a source position\n  outline           summarize the structure of a file or package\n  analyze           report public API usage counts\n  doc               search exported APIs and documentation\n  workspace-symbols search top-level symbols in the current workspace\n  codelens           show local and global reference CodeLens entries\n  gen-symbols       write ./symbols.jsonl for the current package\n\nCommon argument forms:\n  symbol/query      foo | @pkg.foo | Type::member | @pkg.Type::member\n  --loc             path[:line[:col]]  (1-based; line required for hover)\n\nExamples:\n  moon ide peek-def Array::length\n  moon ide peek-def --loc ./main.mbt:8:7 --json\n  moon ide find-references println --loc ./main.mbt:12\n  moon ide find-references --loc ./main.mbt:12:5 --json\n  moon ide hover map --loc ./main.mbt:8:7\n  moon ide hover --loc ./main.mbt:8:7 --json\n  moon ide rename old_name new_name --loc ./lib.mbt:23\n  moon ide rename old_name new_name --loc ./lib.mbt:23 --apply\n  moon ide doc '@json'\n  moon ide workspace-symbols 'String' --json\n  moon ide codelens ./main.mbt\n\nSee 'moon ide <command> -h' for command-specific details.\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "moon",
+        "check"
+      ],
+      "exit_code": 0,
+      "seconds": 0.129,
+      "log": "command-05.log",
+      "stdout": "",
+      "stderr": "Finished. moon: ran 2 tasks, now up to date\n"
+    },
+    {
+      "command": [
+        "moon",
+        "build",
+        "--dry-run"
+      ],
+      "exit_code": 0,
+      "seconds": 0.018,
+      "log": "command-06.log",
+      "stdout": "moonc build-package ./probe.mbt -o ./_build/wasm/debug/build/semantic_probe.core -pkg review/semantic_probe -pkg-type library -std-path '$MOON_HOME/lib/core/_build/wasm/release/bundle' -i '$MOON_HOME/lib/core/_build/wasm/release/bundle/prelude/prelude.mi:prelude' -pkg-sources review/semantic_probe:. -target wasm -g -O0 -workspace-path . -all-pkgs ./_build/wasm/debug/build/all_pkgs.json\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "hover",
+        "--loc",
+        "probe.mbt:8:8",
+        "--json"
+      ],
+      "exit_code": 0,
+      "seconds": 2.141,
+      "log": "command-07.log",
+      "stdout": "{\"range\":\"8:8-8:11\",\"contents\":[\"```moonbit\\nBox\\n```\"]}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "peek-def",
+        "--loc",
+        "probe.mbt:8:3",
+        "--json"
+      ],
+      "exit_code": 0,
+      "seconds": 0.192,
+      "log": "command-08.log",
+      "stdout": "[{\"path\":\"/tmp/moon-audit-infrastructure-20260922/probe/probe.mbt\",\"range\":\"2:4-2:8\"}]\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "moon",
+        "ide",
+        "find-references",
+        "--loc",
+        "probe.mbt:7:7",
+        "--json"
+      ],
+      "exit_code": 0,
+      "seconds": 0.211,
+      "log": "command-09.log",
+      "stdout": "[{\"path\":\"/tmp/moon-audit-infrastructure-20260922/probe/probe.mbt\",\"range\":\"8:8-8:11\",\"is_test\":false},{\"path\":\"/tmp/moon-audit-infrastructure-20260922/probe/probe.mbt\",\"range\":\"8:13-8:16\",\"is_test\":false},{\"path\":\"/tmp/moon-audit-infrastructure-20260922/probe/probe.mbt\",\"range\":\"9:3-9:6\",\"is_test\":false}]\n",
+      "stderr": ""
+    }
+  ],
+  "dsource_probe": {
+    "command": [
+      "/tmp/moon-audit-upgrade-20260922/with-toolchain",
+      "moonc",
+      "build-package",
+      "probe.mbt",
+      "-pkg",
+      "review/semantic_probe",
+      "-pkg-type",
+      "library",
+      "-std-path",
+      "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/_build/wasm/release/bundle",
+      "-i",
+      "/tmp/moon-audit-upgrade-20260922/toolchain/lib/core/_build/wasm/release/bundle/prelude/prelude.mi:prelude",
+      "-target",
+      "wasm",
+      "-g",
+      "-O0",
+      "-dsource",
+      "-o",
+      "/tmp/moon-audit-infrastructure-20260922/probe/debug.core"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "outputs": [
+      {
+        "path": "debug.mi",
+        "size": 1534,
+        "prefix_hex": "4d494e5446323330353230c3d2320e21"
+      },
+      {
+        "path": "debug.core",
+        "size": 725,
+        "prefix_hex": "4d434f52453234303132338495a6be00"
+      }
+    ]
+  },
+  "limits": [
+    "No current typed IR exporter was implemented or demonstrated.",
+    "IDE results only validate a simple direct call and local references.",
+    "No compiler fork was built.",
+    "No production migration or performance acceptance."
+  ],
+  "download_hashes": {
+    "compiler-driver.ml": "7e6c8b453a4d882ddd5d3b5f7b4afd0322cefb6eab8290d78e514312644c0f13",
+    "compiler-readme.md": "5c59c680aa43e59fc2561cde473de6087d3975c0bc744df3463bd865f62840bc",
+    "taie-solver": "5ccc4fc921a740358e07874c455c17ff466a1daf2865b529cf116d8b9aa941f0"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "schema": "moon-audit.toolchain-lock.v1",
+  "scope": "Linux x86_64 compatibility target; archive identity differs from moon build-tool identity",
+  "install_version": "0.10.13+cbb11c36f",
+  "moon_version": "0.1.20260915",
+  "artifacts": {
+    "linux-x86_64": {
+      "url": "https://cli.moonbitlang.com/binaries/0.10.13%2Bcbb11c36f/moonbit-linux-x86_64.tar.gz",
+      "sha256": "ef643f267d5ee075dbafd54b44b0a26c55116340515dca07294c2a0b83479a8b"
+    }
+  },
+  "core": {
+    "url": "https://cli.moonbitlang.com/cores/core-0.10.13%2Bcbb11c36f.tar.gz",
+    "sha256": "d36b64c42df3019d9da87291e40738e90623c0380d0e200a62156091fb00c176"
+  }
+}

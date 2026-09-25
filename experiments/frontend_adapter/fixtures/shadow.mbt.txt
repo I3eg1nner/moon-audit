@@ -1,0 +1,11 @@
+pub struct Box { mut value : String; safe : String }
+fn source() -> String { "dirty" }
+fn sink(value : String) -> Unit { ignore(value) }
+pub fn go() -> Unit {
+  let box = Box::{value: "clean", safe: "clean"}
+  let old = box
+  let box = Box::{value: "clean", safe: "clean"}
+  box.value = source()
+  sink(old.value)
+  sink(box.value)
+}

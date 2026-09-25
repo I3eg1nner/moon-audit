@@ -1,8 +1,6 @@
 ///|
 pub fn load_config(path : String) -> Config {
-  let content = @fs.read_file_to_string(path) catch {
-    _ => return Config::default()
-  }
+  let content = read_regular_text(path) catch { _ => return Config::default() }
   let json = @json.parse(content) catch { _ => return Config::default() }
   parse_config(json)
 }
