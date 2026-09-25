@@ -1,0 +1,283 @@
+{
+  "schema": "moon-audit.popular-projects.v1",
+  "retrieved_at": "2026-09-25T07:44:55.668502+00:00",
+  "sources": {
+    "downloads": {
+      "url": "https://mooncakes.io",
+      "section": "Most downloaded",
+      "html_sha256": "71d6ca4835ee0545e444e46b12ca01a8538c85dba6e3d18d2b1fd5a86b77cf79",
+      "metric": "official homepage order; counts and time window not exposed, not inferred"
+    },
+    "stars": {
+      "url": "https://api.github.com/search/repositories?q=language%3AMoonBit+archived%3Afalse+fork%3Afalse&sort=stars&order=desc",
+      "total_count": 2790,
+      "metric": "GitHub stargazers_count at retrieval"
+    }
+  },
+  "entries": [
+    {
+      "id": "download-moonbitlang--x",
+      "cohort": "mooncakes_downloads",
+      "rank": 1,
+      "project": "moonbitlang/x",
+      "version": "0.5.5",
+      "download_count": null,
+      "registry_page": "https://mooncakes.io/docs/moonbitlang/x@0.5.5",
+      "archive_url": "https://download.mooncakes.io/user/moonbitlang/x/0.5.5.zip",
+      "archive_type": "zip"
+    },
+    {
+      "id": "download-moonbitlang--async",
+      "cohort": "mooncakes_downloads",
+      "rank": 2,
+      "project": "moonbitlang/async",
+      "version": "0.22.4",
+      "download_count": null,
+      "registry_page": "https://mooncakes.io/docs/moonbitlang/async@0.22.4",
+      "archive_url": "https://download.mooncakes.io/user/moonbitlang/async/0.22.4.zip",
+      "archive_type": "zip"
+    },
+    {
+      "id": "download-mizchi--x",
+      "cohort": "mooncakes_downloads",
+      "rank": 3,
+      "project": "mizchi/x",
+      "version": "0.6.1",
+      "download_count": null,
+      "registry_page": "https://mooncakes.io/docs/mizchi/x@0.6.1",
+      "archive_url": "https://download.mooncakes.io/user/mizchi/x/0.6.1.zip",
+      "archive_type": "zip"
+    },
+    {
+      "id": "download-mizchi--zlib",
+      "cohort": "mooncakes_downloads",
+      "rank": 4,
+      "project": "mizchi/zlib",
+      "version": "0.4.9",
+      "download_count": null,
+      "registry_page": "https://mooncakes.io/docs/mizchi/zlib@0.4.9",
+      "archive_url": "https://download.mooncakes.io/user/mizchi/zlib/0.4.9.zip",
+      "archive_type": "zip"
+    },
+    {
+      "id": "download-moonbitlang--quickcheck",
+      "cohort": "mooncakes_downloads",
+      "rank": 5,
+      "project": "moonbitlang/quickcheck",
+      "version": "0.14.0",
+      "download_count": null,
+      "registry_page": "https://mooncakes.io/docs/moonbitlang/quickcheck@0.14.0",
+      "archive_url": "https://download.mooncakes.io/user/moonbitlang/quickcheck/0.14.0.zip",
+      "archive_type": "zip"
+    },
+    {
+      "id": "download-moonbitlang--parser",
+      "cohort": "mooncakes_downloads",
+      "rank": 6,
+      "project": "moonbitlang/parser",
+      "version": "0.4.0",
+      "download_count": null,
+      "registry_page": "https://mooncakes.io/docs/moonbitlang/parser@0.4.0",
+      "archive_url": "https://download.mooncakes.io/user/moonbitlang/parser/0.4.0.zip",
+      "archive_type": "zip"
+    },
+    {
+      "id": "download-mizchi--bitflow",
+      "cohort": "mooncakes_downloads",
+      "rank": 7,
+      "project": "mizchi/bitflow",
+      "version": "0.4.1",
+      "download_count": null,
+      "registry_page": "https://mooncakes.io/docs/mizchi/bitflow@0.4.1",
+      "archive_url": "https://download.mooncakes.io/user/mizchi/bitflow/0.4.1.zip",
+      "archive_type": "zip"
+    },
+    {
+      "id": "download-mizchi--tempfile",
+      "cohort": "mooncakes_downloads",
+      "rank": 8,
+      "project": "mizchi/tempfile",
+      "version": "0.1.2",
+      "download_count": null,
+      "registry_page": "https://mooncakes.io/docs/mizchi/tempfile@0.1.2",
+      "archive_url": "https://download.mooncakes.io/user/mizchi/tempfile/0.1.2.zip",
+      "archive_type": "zip"
+    },
+    {
+      "id": "download-mizchi--llm",
+      "cohort": "mooncakes_downloads",
+      "rank": 9,
+      "project": "mizchi/llm",
+      "version": "0.3.2",
+      "download_count": null,
+      "registry_page": "https://mooncakes.io/docs/mizchi/llm@0.3.2",
+      "archive_url": "https://download.mooncakes.io/user/mizchi/llm/0.3.2.zip",
+      "archive_type": "zip"
+    },
+    {
+      "id": "download-bobzhang--lexer",
+      "cohort": "mooncakes_downloads",
+      "rank": 10,
+      "project": "bobzhang/lexer",
+      "version": "0.2.2",
+      "download_count": null,
+      "registry_page": "https://mooncakes.io/docs/bobzhang/lexer@0.2.2",
+      "archive_url": "https://download.mooncakes.io/user/bobzhang/lexer/0.2.2.zip",
+      "archive_type": "zip"
+    },
+    {
+      "id": "download-bobzhang--toml",
+      "cohort": "mooncakes_downloads",
+      "rank": 11,
+      "project": "bobzhang/toml",
+      "version": "0.4.3",
+      "download_count": null,
+      "registry_page": "https://mooncakes.io/docs/bobzhang/toml@0.4.3",
+      "archive_url": "https://download.mooncakes.io/user/bobzhang/toml/0.4.3.zip",
+      "archive_type": "zip"
+    },
+    {
+      "id": "download-moonbitlang--yacc",
+      "cohort": "mooncakes_downloads",
+      "rank": 12,
+      "project": "moonbitlang/yacc",
+      "version": "0.7.22",
+      "download_count": null,
+      "registry_page": "https://mooncakes.io/docs/moonbitlang/yacc@0.7.22",
+      "archive_url": "https://download.mooncakes.io/user/moonbitlang/yacc/0.7.22.zip",
+      "archive_type": "zip"
+    },
+    {
+      "id": "star-moonbitlang--moonbit-docs",
+      "cohort": "github_stars",
+      "rank": 1,
+      "project": "moonbitlang/moonbit-docs",
+      "stars": 2440,
+      "repository": "https://github.com/moonbitlang/moonbit-docs",
+      "commit": "8d9f3ba206eb17f80ee1836e4c1139068d1351b5",
+      "archive_url": "https://codeload.github.com/moonbitlang/moonbit-docs/tar.gz/8d9f3ba206eb17f80ee1836e4c1139068d1351b5",
+      "archive_type": "tar"
+    },
+    {
+      "id": "star-moonbitlang--core",
+      "cohort": "github_stars",
+      "rank": 2,
+      "project": "moonbitlang/core",
+      "stars": 1218,
+      "repository": "https://github.com/moonbitlang/core",
+      "commit": "5992620068c0f4729bc0f8ab0f64e9fb4f145843",
+      "archive_url": "https://codeload.github.com/moonbitlang/core/tar.gz/5992620068c0f4729bc0f8ab0f64e9fb4f145843",
+      "archive_type": "tar"
+    },
+    {
+      "id": "star-mizchi--actrun",
+      "cohort": "github_stars",
+      "rank": 3,
+      "project": "mizchi/actrun",
+      "stars": 668,
+      "repository": "https://github.com/mizchi/actrun",
+      "commit": "1db9aff5b364de6eacda68e3f2ce2238f9992272",
+      "archive_url": "https://codeload.github.com/mizchi/actrun/tar.gz/1db9aff5b364de6eacda68e3f2ce2238f9992272",
+      "archive_type": "tar"
+    },
+    {
+      "id": "star-nikivdev--mbt",
+      "cohort": "github_stars",
+      "rank": 4,
+      "project": "nikivdev/mbt",
+      "stars": 488,
+      "repository": "https://github.com/nikivdev/mbt",
+      "commit": "4245f9a2dd676e27c15f9c8e3733ee9e192cb4eb",
+      "archive_url": "https://codeload.github.com/nikivdev/mbt/tar.gz/4245f9a2dd676e27c15f9c8e3733ee9e192cb4eb",
+      "archive_type": "tar"
+    },
+    {
+      "id": "star-moonbitlang--moonbit-course",
+      "cohort": "github_stars",
+      "rank": 5,
+      "project": "moonbitlang/moonbit-course",
+      "stars": 232,
+      "repository": "https://github.com/moonbitlang/moonbit-course",
+      "commit": "8613d5eb78f1451cb3cac040b57571d0782fe927",
+      "archive_url": "https://codeload.github.com/moonbitlang/moonbit-course/tar.gz/8613d5eb78f1451cb3cac040b57571d0782fe927",
+      "archive_type": "tar"
+    },
+    {
+      "id": "star-paipai-Studio--BioSeqs",
+      "cohort": "github_stars",
+      "rank": 6,
+      "project": "paipai-Studio/BioSeqs",
+      "stars": 196,
+      "repository": "https://github.com/paipai-Studio/BioSeqs",
+      "commit": "7dfa3c22ec304fa0b4a97610e097340c371209e4",
+      "archive_url": "https://codeload.github.com/paipai-Studio/BioSeqs/tar.gz/7dfa3c22ec304fa0b4a97610e097340c371209e4",
+      "archive_type": "tar"
+    },
+    {
+      "id": "star-mizchi--luna.mbt",
+      "cohort": "github_stars",
+      "rank": 7,
+      "project": "mizchi/luna.mbt",
+      "stars": 171,
+      "repository": "https://github.com/mizchi/luna.mbt",
+      "commit": "874f0f34e77d6800cd9aab611b0a441d9d8d3ffe",
+      "archive_url": "https://codeload.github.com/mizchi/luna.mbt/tar.gz/874f0f34e77d6800cd9aab611b0a441d9d8d3ffe",
+      "archive_type": "tar"
+    },
+    {
+      "id": "star-trkbt10--indexion",
+      "cohort": "github_stars",
+      "rank": 8,
+      "project": "trkbt10/indexion",
+      "stars": 151,
+      "repository": "https://github.com/trkbt10/indexion",
+      "commit": "9a074ca5ef56fd4414b14ad697318be2281a059e",
+      "archive_url": "https://codeload.github.com/trkbt10/indexion/tar.gz/9a074ca5ef56fd4414b14ad697318be2281a059e",
+      "archive_type": "tar"
+    },
+    {
+      "id": "star-moonbit-community--rabbita",
+      "cohort": "github_stars",
+      "rank": 9,
+      "project": "moonbit-community/rabbita",
+      "stars": 129,
+      "repository": "https://github.com/moonbit-community/rabbita",
+      "commit": "d31819b4b59653550af5fcd3c1bc5c424caae64a",
+      "archive_url": "https://codeload.github.com/moonbit-community/rabbita/tar.gz/d31819b4b59653550af5fcd3c1bc5c424caae64a",
+      "archive_type": "tar"
+    },
+    {
+      "id": "star-mizchi--markdown.mbt",
+      "cohort": "github_stars",
+      "rank": 10,
+      "project": "mizchi/markdown.mbt",
+      "stars": 102,
+      "repository": "https://github.com/mizchi/markdown.mbt",
+      "commit": "8db6cb211a444fa29e76eba634a8c6c8ca6e7f41",
+      "archive_url": "https://codeload.github.com/mizchi/markdown.mbt/tar.gz/8db6cb211a444fa29e76eba634a8c6c8ca6e7f41",
+      "archive_type": "tar"
+    },
+    {
+      "id": "star-oboard--mocket",
+      "cohort": "github_stars",
+      "rank": 11,
+      "project": "oboard/mocket",
+      "stars": 95,
+      "repository": "https://github.com/oboard/mocket",
+      "commit": "d5342bb5400084e612d9125b6948c48c6382777c",
+      "archive_url": "https://codeload.github.com/oboard/mocket/tar.gz/d5342bb5400084e612d9125b6948c48c6382777c",
+      "archive_type": "tar"
+    },
+    {
+      "id": "star-moonbitlang--openseek",
+      "cohort": "github_stars",
+      "rank": 12,
+      "project": "moonbitlang/openseek",
+      "stars": 89,
+      "repository": "https://github.com/moonbitlang/openseek",
+      "commit": "a820948768ac47c0b2c39b2c29e6ff6072e75d3e",
+      "archive_url": "https://codeload.github.com/moonbitlang/openseek/tar.gz/a820948768ac47c0b2c39b2c29e6ff6072e75d3e",
+      "archive_type": "tar"
+    }
+  ]
+}

@@ -36,7 +36,13 @@ moon build --target native --release
 moon run src/main -- --format json /path/to/project
 ```
 
-Linux x86_64、macOS arm64、Windows x86_64 的构建、解包搬迁、项目验证和受限语义入口均已通过[真实 CI](https://github.com/I3eg1nner/moon-audit/actions/runs/36105436648)。平台测试数、提交与归档指纹见[验收记录](docs/metrics/three-platform-acceptance-2026-09-25.json)。开发包可从 CI 的 Artifacts 下载；[草稿 PR #1](https://github.com/I3eg1nner/moon-audit/pull/1) 尚未合并，尚未发布正式版本。
+Linux x86_64、macOS arm64、Windows x86_64 的构建、解包搬迁、项目验证和受限语义入口均已通过[真实 CI](https://github.com/I3eg1nner/moon-audit/actions/runs/36105436648)。平台测试数、提交与归档指纹见[验收记录](docs/metrics/three-platform-acceptance-2026-09-25.json)。开发包可从 CI 的 Artifacts 下载；[PR #1](https://github.com/I3eg1nner/moon-audit/pull/1) 已合并到 main（`075b0f3`）；尚未发布正式版本。
+
+## 可选 LLM 复核与热门项目检查
+
+新增独立 Python 助手，支持自定义 OpenAI 兼容 API：先从 JSON 报告准备有限源码上下文，再核验模型引用、源码指纹和发现 ID。支持标准环境变量及 `Base_URL` / `Model` / `API_KEY`；`.env` 必须显式指定。所有模型意见均为 `llm_unverified`，不改变静态证据或 baseline。原生包附带 `extras/` 助手；仅此可选功能需要 Python 3.12+。[使用与边界](docs/llm-review.md)
+
+已固定 Mooncakes 下载榜和 GitHub stars 榜各 12 个版本进行检查：23 个样本导入成功，15 个完成所请求的语法范围、8 个不完整，另 1 个归档因外部符号链接未导入。默认发现 2 条，全部规则发现 447 条语法线索；这些数量不是漏洞数。[完整结果、LLM 联调及后续优先级](experiments/popular_projects/README.md)
 
 ## 可选语义检测
 

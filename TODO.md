@@ -1,5 +1,18 @@
 # moon-audit TODO 与里程碑（2026-09-25）
 
+
+## 2026-09-25：合并后的热门项目与 LLM 复核
+
+- [x] PR #1 合并 main：`075b0f3`，合并前 9 个 CI job 通过；未发布正式版本。
+- [x] 下载榜/Stars 榜各 12 个固定样本：23 导入，15 语法范围完成、8 不完整、1 归档拒绝；原始压缩报告和编译抽样见[实验报告](experiments/popular_projects/README.md)。
+- [x] 独立 LLM prepare/validate、自定义 OpenAI 兼容 API、配置别名、分页、精确引用、源码变更拒绝和原始报告保护。
+- [x] 用户 `.env` 的真实 API 联调；两条意见为 needs_review，全部 llm_unverified；补充纯函数重复字符复现。
+- [x] 原生包附带可选 Python 助手，离线 HTTP 测试进入打包验收；原生扫描仍无 Python 运行依赖。
+- [ ] P0：QuickCheck/bitflow 历史语法小样本分类与解析适配，不把文档负例列为版本支持失败。
+- [ ] P0：重新界定快照输入范围，解决无关文档符号链接阻断 core/actrun 的问题，保留源码/依赖链接防护。
+- [ ] P1：复核包增加已核实的调用身份、标准库行为和直接调用点附件；不能凭模型判断补绑定。
+- [ ] P1：按项目/规则抽样标注 447 条 opt-in 线索后再评价噪声；不据数量扩大默认规则。
+
 **当前执行清单以本文为准。** 产品面向源码自编译和二进制下载用户，自己项目与第三方源码同等优先。目标是提供范围与证据明确的 MoonBit 安全检测，不追求完整复现 Tai-e。
 
 [架构方案](docs/architecture-plan-2026-09-24.md)说明设计与限制；[suggest.md](suggest.md)保留复核判断；[旧 TODO](docs/legacy/TODO-before-redesign.md)和 [旧 IR TODO](docs/ir/TODO.md)不是当前承诺。

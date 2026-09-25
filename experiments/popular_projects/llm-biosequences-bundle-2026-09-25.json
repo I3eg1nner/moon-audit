@@ -1,0 +1,103 @@
+{
+  "bundle_id": "62e57bb588c689a38219acfd660007e785b7dfddd27973059c3ef9f7372d1bad",
+  "disclosures": [],
+  "findings": [
+    {
+      "column": 3,
+      "confidence": "high",
+      "dataflow": [],
+      "end_column": 34,
+      "end_line": 424,
+      "evidence": "syntax_hint",
+      "file": "src/seqxml_io.mbt",
+      "finding_id": "6d055a88b9db84f5f530aff9f91e8a22",
+      "fingerprint": "287218656",
+      "line": 419,
+      "message": "Call named replace with an escaping-shaped replacement. If this resolves to builtin String::replace, only the first occurrence is replaced; review receiver identity and output context.",
+      "reported_file": "/tmp/moon-audit-popular-20260925/sources/star-paipai-Studio--BioSeqs/src/seqxml_io.mbt",
+      "rule_id": "CWE-116/replace-escaping",
+      "severity": "error",
+      "snippet": "  s",
+      "source_bytes": 25586,
+      "source_sha256": "3b2646c1b0c422bb8e7aae319ca7dda0cfb3ef96a448d5f9fe8092cbc6dbdb68",
+      "status": "context_ready",
+      "status_reason": "",
+      "window_end_line": 431,
+      "window_start_line": 407,
+      "window_text": "/// Extract an attribute value and XML-unescape it, returning `default`\n/// when the attribute is absent.\nfn seqxml_attr_or(tag : String, attr : String, default : String) -> String {\n  match seqxml_extract_attr_value(tag, attr) {\n    Some(v) => seqxml_unescape(v)\n    None => default\n  }\n}\n\n///|\n/// Escape a string for use inside an XML attribute value.\nfn seqxml_escape_attr(s : String) -> String {\n  s\n  .replace(old=\"&\", new=\"&amp;\")\n  .replace(old=\"<\", new=\"&lt;\")\n  .replace(old=\">\", new=\"&gt;\")\n  .replace(old=\"\\\"\", new=\"&quot;\")\n  .replace(old=\"'\", new=\"&apos;\")\n}\n\n///|\n/// Escape a string for use as XML text content.\nfn seqxml_escape_text(s : String) -> String {\n  s\n  .replace(old=\"&\", new=\"&amp;\")"
+    },
+    {
+      "column": 3,
+      "confidence": "high",
+      "dataflow": [],
+      "end_column": 32,
+      "end_line": 433,
+      "evidence": "syntax_hint",
+      "file": "src/seqxml_io.mbt",
+      "finding_id": "6ddfdeda2269f1f6efbf1597b2a9727c",
+      "fingerprint": "287218656",
+      "line": 430,
+      "message": "Call named replace with an escaping-shaped replacement. If this resolves to builtin String::replace, only the first occurrence is replaced; review receiver identity and output context.",
+      "reported_file": "/tmp/moon-audit-popular-20260925/sources/star-paipai-Studio--BioSeqs/src/seqxml_io.mbt",
+      "rule_id": "CWE-116/replace-escaping",
+      "severity": "error",
+      "snippet": "  s",
+      "source_bytes": 25586,
+      "source_sha256": "3b2646c1b0c422bb8e7aae319ca7dda0cfb3ef96a448d5f9fe8092cbc6dbdb68",
+      "status": "context_ready",
+      "status_reason": "",
+      "window_end_line": 442,
+      "window_start_line": 418,
+      "window_text": "fn seqxml_escape_attr(s : String) -> String {\n  s\n  .replace(old=\"&\", new=\"&amp;\")\n  .replace(old=\"<\", new=\"&lt;\")\n  .replace(old=\">\", new=\"&gt;\")\n  .replace(old=\"\\\"\", new=\"&quot;\")\n  .replace(old=\"'\", new=\"&apos;\")\n}\n\n///|\n/// Escape a string for use as XML text content.\nfn seqxml_escape_text(s : String) -> String {\n  s\n  .replace(old=\"&\", new=\"&amp;\")\n  .replace(old=\"<\", new=\"&lt;\")\n  .replace(old=\">\", new=\"&gt;\")\n}\n\n///|\n/// Decode XML entities (&amp; &lt; &gt; &quot; &apos;) back to characters.\n/// &amp; is decoded last to avoid double-decoding.\nfn seqxml_unescape(s : String) -> String {\n  s\n  .replace(old=\"&lt;\", new=\"<\")\n  .replace(old=\"&gt;\", new=\">\")"
+    }
+  ],
+  "generator": {
+    "contract": 1,
+    "mode": "offline-prepare-validate",
+    "tool": "moon-audit-llm-review"
+  },
+  "limitations": [
+    "llm_review_is_advisory_and_unverified",
+    "zero_findings_or_completed_reviews_do_not_prove_safety",
+    "excluded_unparsed_and_omitted_content_is_not_analyzed_and_not_safe",
+    "llm_opinions_cannot_upgrade_static_evidence_or_verify_dataflow",
+    "this_layer_never_modifies_the_original_report_or_baseline"
+  ],
+  "limits": {
+    "context_chars": 80000,
+    "context_truncated": false,
+    "max_findings": 2,
+    "offset": 0,
+    "source_bytes_max": 2097152,
+    "total_findings": 2,
+    "window_radius_requested": 12,
+    "window_radius_used": 12
+  },
+  "omitted_findings": [],
+  "project": {
+    "root": "/tmp/moon-audit-popular-20260925/sources/star-paipai-Studio--BioSeqs"
+  },
+  "report_fingerprint": "ad7aee4ff52655ae61ac5c6fa70039edd61150f6f98f892dc3fe7d9d7ffd33c0",
+  "report_path": "/tmp/moon-audit-popular-20260925/biosequences-default.json",
+  "safety": {
+    "confirms_vulnerability": false,
+    "declares_project_safe": false,
+    "llm_opinions_are_verified": false,
+    "modifies_report_or_baseline": false,
+    "unverified_exclusions_are_not_safe": true
+  },
+  "scan_state": {
+    "analysis_scope": "analyzer=moon-audit 0.5.0-dev (moonbitlang/parser 0.4.0); engine=syntax-pattern; interprocedural=false; type-resolution=false; sanitizer-resolution=false; cache=none; excludes=[_build,.mooncakes,examples,benchmarks]; implicit-excludes=[dotdirs,_build,*_test.mbt,*_wbtest.mbt]; selected=443; parsed=443; parse-failures=0; incremental=false; unanalyzed-is-not-safe",
+    "errors": [],
+    "files_parsed": 443,
+    "files_scanned": 443,
+    "files_selected": 443,
+    "project_verification": null,
+    "semantic_analysis": null,
+    "static_incomplete": true,
+    "static_incomplete_reasons": [
+      "target_toolchain_not_verified"
+    ]
+  },
+  "schema": "moon-audit.llm-review-bundle.v1"
+}

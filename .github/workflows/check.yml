@@ -39,7 +39,7 @@ jobs:
 
       - name: Harness regression tests
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: python3 tests/harness/test_harnesses.py
+        run: python3 -m unittest discover -s tests/harness -p 'test_*.py'
 
       - name: moon check
         run: moon check --target all --deny-warn
