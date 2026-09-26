@@ -1,0 +1,342 @@
+{
+  "schema": "moon-audit.compilation-context-compatibility.v1",
+  "date": "2026-09-26",
+  "platform": "linux",
+  "scanner_sha256": "e3f02d51de093a7100fe05244d5fa892702f93266f833600b3417ccedc2e843c",
+  "matrix": {
+    "cases": [
+      {
+        "toolchain": "moon 0.1.20260904 (94521db 2026-09-04)\nmoonc v0.10.12+1634b282e (2026-09-07)\nmoonrun 0.1.20260904 (94521db 2026-09-04)\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+        "target": "native",
+        "seconds": 0.1769,
+        "passed": true,
+        "exit_code": 0,
+        "compiler_files": [
+          "common.mbt",
+          "native_only.mbt"
+        ],
+        "parsed_files": [
+          "common.mbt",
+          "native_only.mbt"
+        ],
+        "findings": [],
+        "errors": []
+      },
+      {
+        "toolchain": "moon 0.1.20260904 (94521db 2026-09-04)\nmoonc v0.10.12+1634b282e (2026-09-07)\nmoonrun 0.1.20260904 (94521db 2026-09-04)\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+        "target": "js",
+        "seconds": 0.2063,
+        "passed": true,
+        "exit_code": 0,
+        "compiler_files": [
+          "common.mbt",
+          "js_only.mbt"
+        ],
+        "parsed_files": [
+          "common.mbt",
+          "js_only.mbt"
+        ],
+        "findings": [
+          "js_only.mbt"
+        ],
+        "errors": []
+      },
+      {
+        "toolchain": "moon 0.1.20260904 (94521db 2026-09-04)\nmoonc v0.10.12+1634b282e (2026-09-07)\nmoonrun 0.1.20260904 (94521db 2026-09-04)\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+        "target": "wasm",
+        "seconds": 0.1717,
+        "passed": true,
+        "exit_code": 0,
+        "compiler_files": [
+          "common.mbt"
+        ],
+        "parsed_files": [
+          "common.mbt"
+        ],
+        "findings": [],
+        "errors": []
+      },
+      {
+        "toolchain": "moon 0.1.20260904 (94521db 2026-09-04)\nmoonc v0.10.12+1634b282e (2026-09-07)\nmoonrun 0.1.20260904 (94521db 2026-09-04)\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+        "target": "wasm-gc",
+        "seconds": 0.1863,
+        "passed": true,
+        "exit_code": 0,
+        "compiler_files": [
+          "common.mbt"
+        ],
+        "parsed_files": [
+          "common.mbt"
+        ],
+        "findings": [],
+        "errors": []
+      },
+      {
+        "toolchain": "moon 0.1.20260915 (2e1a46d 2026-09-15)\nmoonc v0.10.13+cbb11c36f (2026-09-15)\nmoonrun 0.1.20260915 (2e1a46d 2026-09-15)\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+        "target": "native",
+        "seconds": 0.1789,
+        "passed": true,
+        "exit_code": 0,
+        "compiler_files": [
+          "common.mbt",
+          "native_only.mbt"
+        ],
+        "parsed_files": [
+          "common.mbt",
+          "native_only.mbt"
+        ],
+        "findings": [],
+        "errors": []
+      },
+      {
+        "toolchain": "moon 0.1.20260915 (2e1a46d 2026-09-15)\nmoonc v0.10.13+cbb11c36f (2026-09-15)\nmoonrun 0.1.20260915 (2e1a46d 2026-09-15)\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+        "target": "js",
+        "seconds": 0.2311,
+        "passed": true,
+        "exit_code": 0,
+        "compiler_files": [
+          "common.mbt",
+          "js_only.mbt"
+        ],
+        "parsed_files": [
+          "common.mbt",
+          "js_only.mbt"
+        ],
+        "findings": [
+          "js_only.mbt"
+        ],
+        "errors": []
+      },
+      {
+        "toolchain": "moon 0.1.20260915 (2e1a46d 2026-09-15)\nmoonc v0.10.13+cbb11c36f (2026-09-15)\nmoonrun 0.1.20260915 (2e1a46d 2026-09-15)\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+        "target": "wasm",
+        "seconds": 0.2281,
+        "passed": true,
+        "exit_code": 0,
+        "compiler_files": [
+          "common.mbt"
+        ],
+        "parsed_files": [
+          "common.mbt"
+        ],
+        "findings": [],
+        "errors": []
+      },
+      {
+        "toolchain": "moon 0.1.20260915 (2e1a46d 2026-09-15)\nmoonc v0.10.13+cbb11c36f (2026-09-15)\nmoonrun 0.1.20260915 (2e1a46d 2026-09-15)\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+        "target": "wasm-gc",
+        "seconds": 0.222,
+        "passed": true,
+        "exit_code": 0,
+        "compiler_files": [
+          "common.mbt"
+        ],
+        "parsed_files": [
+          "common.mbt"
+        ],
+        "findings": [],
+        "errors": []
+      },
+      {
+        "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20)\nmoonc v0.10.14+7d59c7ec9 (2026-09-18)\nmoonrun 0.1.20260920 (914d7da 2026-09-20)\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+        "target": "native",
+        "seconds": 0.1849,
+        "passed": true,
+        "exit_code": 0,
+        "compiler_files": [
+          "common.mbt",
+          "native_only.mbt"
+        ],
+        "parsed_files": [
+          "common.mbt",
+          "native_only.mbt"
+        ],
+        "findings": [],
+        "errors": []
+      },
+      {
+        "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20)\nmoonc v0.10.14+7d59c7ec9 (2026-09-18)\nmoonrun 0.1.20260920 (914d7da 2026-09-20)\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+        "target": "js",
+        "seconds": 0.2205,
+        "passed": true,
+        "exit_code": 0,
+        "compiler_files": [
+          "common.mbt",
+          "js_only.mbt"
+        ],
+        "parsed_files": [
+          "common.mbt",
+          "js_only.mbt"
+        ],
+        "findings": [
+          "js_only.mbt"
+        ],
+        "errors": []
+      },
+      {
+        "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20)\nmoonc v0.10.14+7d59c7ec9 (2026-09-18)\nmoonrun 0.1.20260920 (914d7da 2026-09-20)\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+        "target": "wasm",
+        "seconds": 0.218,
+        "passed": true,
+        "exit_code": 0,
+        "compiler_files": [
+          "common.mbt"
+        ],
+        "parsed_files": [
+          "common.mbt"
+        ],
+        "findings": [],
+        "errors": []
+      },
+      {
+        "toolchain": "moon 0.1.20260920 (914d7da 2026-09-20)\nmoonc v0.10.14+7d59c7ec9 (2026-09-18)\nmoonrun 0.1.20260920 (914d7da 2026-09-20)\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+        "target": "wasm-gc",
+        "seconds": 0.2178,
+        "passed": true,
+        "exit_code": 0,
+        "compiler_files": [
+          "common.mbt"
+        ],
+        "parsed_files": [
+          "common.mbt"
+        ],
+        "findings": [],
+        "errors": []
+      }
+    ],
+    "passed": 12
+  },
+  "historical_project": {
+    "repository": "https://github.com/moonbitlang/quickcheck",
+    "commit": "04e4d54c0b3cb5a53f2c2530f7eadf546a903f60",
+    "unchanged_archive_files": 55,
+    "toolchain": "moon 0.1.20251030 (cf54fca 2025-10-30)\nmoonc v0.6.30+07d9d2445 (2025-10-30)\nmoonrun 0.1.20251030 (cf54fca 2025-10-30)\nmoon-pilot 0.0.1-df92511 (2025-10-31)",
+    "status": "scope_incomplete",
+    "selected": 30,
+    "parsed": 22,
+    "parse_failed": 8,
+    "identity_matches_official_plan": true,
+    "unit_roles": {
+      "production": 9,
+      "blackbox_test": 9
+    }
+  },
+  "scope_cases": [
+    {
+      "case": "historical-empty",
+      "identity_matches_official_plan": true,
+      "status": "scope_incomplete",
+      "selected": 0,
+      "parsed": 0,
+      "unit_roles": {},
+      "input_modes": {}
+    },
+    {
+      "case": "historical-backend_package",
+      "identity_matches_official_plan": true,
+      "status": "compiler_verified",
+      "selected": 2,
+      "parsed": 2,
+      "unit_roles": {
+        "production": 2,
+        "blackbox_test": 2
+      },
+      "input_modes": {
+        "source": 2,
+        "doctest_only": 2
+      }
+    },
+    {
+      "case": "historical-test_files",
+      "identity_matches_official_plan": true,
+      "status": "compiler_verified",
+      "selected": 1,
+      "parsed": 1,
+      "unit_roles": {
+        "blackbox_test": 1,
+        "production": 1,
+        "whitebox_test": 1
+      },
+      "input_modes": {
+        "source": 4,
+        "doctest_only": 1
+      }
+    },
+    {
+      "case": "historical-policy_excluded",
+      "identity_matches_official_plan": true,
+      "status": "compiler_verified",
+      "selected": 1,
+      "parsed": 1,
+      "unit_roles": {
+        "blackbox_test": 2,
+        "production": 2
+      },
+      "input_modes": {
+        "doctest_only": 2,
+        "source": 2
+      }
+    },
+    {
+      "case": "current-empty",
+      "identity_matches_official_plan": true,
+      "status": "scope_incomplete",
+      "selected": 0,
+      "parsed": 0,
+      "unit_roles": {},
+      "input_modes": {}
+    },
+    {
+      "case": "current-backend_package",
+      "identity_matches_official_plan": true,
+      "status": "compiler_verified",
+      "selected": 1,
+      "parsed": 1,
+      "unit_roles": {
+        "production": 1,
+        "blackbox_test": 1
+      },
+      "input_modes": {
+        "source": 1,
+        "doctest_only": 1
+      }
+    },
+    {
+      "case": "current-test_files",
+      "identity_matches_official_plan": true,
+      "status": "compiler_verified",
+      "selected": 1,
+      "parsed": 1,
+      "unit_roles": {
+        "blackbox_test": 1,
+        "production": 1,
+        "whitebox_test": 1
+      },
+      "input_modes": {
+        "source": 4,
+        "doctest_only": 1
+      }
+    },
+    {
+      "case": "current-policy_excluded",
+      "identity_matches_official_plan": true,
+      "status": "compiler_verified",
+      "selected": 1,
+      "parsed": 1,
+      "unit_roles": {
+        "blackbox_test": 2,
+        "production": 2
+      },
+      "input_modes": {
+        "doctest_only": 2,
+        "source": 2
+      }
+    }
+  ],
+  "limitations": [
+    "Twelve matrix cases are three toolchains times four backends, not twelve toolchain versions.",
+    "Historical project retains eight explicitly reported parser failures; acceptance means no false clean result.",
+    "Semantic exact-location binding support is not asserted for historical toolchains.",
+    "Compilation identity oracle checks module, package, source root, package kind, target, role and each input mode against actual official plan."
+  ]
+}

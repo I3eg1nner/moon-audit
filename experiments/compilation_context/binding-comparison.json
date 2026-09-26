@@ -1,0 +1,22 @@
+{
+  "schema": "moon-audit.compilation-context-binding-comparison.v1",
+  "case": "unsupported_if_260_calls",
+  "source_sha256": "678a5c636f2edaae05df867aa567b4e8cd1c5777209017c721a3d9823b067016",
+  "before": {
+    "analyzer_sha256": "1e2db4cd4b2574b207862f1fc48d65bc599bbf878fa5351ae4c28f38435f8a50",
+    "seconds": 59.751,
+    "binding_queries": 256,
+    "compiler_status": "compiler_verified"
+  },
+  "after": {
+    "analyzer_sha256": "e3f02d51de093a7100fe05244d5fa892702f93266f833600b3417ccedc2e843c",
+    "seconds": 1.449,
+    "binding_queries": 1,
+    "compiler_status": "compiler_verified"
+  },
+  "limits": [
+    "Same source generated from the acceptance test expression; projects use different isolated paths.",
+    "Single Linux-host observations, with different initial project build caches; timings are not a cross-platform performance guarantee.",
+    "Both results explicitly reject the unsupported If body and export no completed dataflow; query reduction is the acceptance criterion."
+  ]
+}

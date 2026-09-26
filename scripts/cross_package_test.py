@@ -212,7 +212,7 @@ pub fn broken_wrapper(value : String) -> String { broken(value) }
         code, report, _ = self.cli('real_luna_unknown_sanitizer', project=project)
         require(code == 2 and report['project_verification']['status']=='compiler_verified', 'real unsupported helper was accepted')
         require(not [f for f in report['findings'] if f['rule_id']==SEMANTIC_ID], 'unknown sanitizer fabricated a verified path')
-        require(any('binding_not_unique' in r.get('reason','') for r in report['semantic_analysis']['routes']), 'unknown helper reason missing')
+        require(any('unsupported_semantics' in r.get('reason','') for r in report['semantic_analysis']['routes']), 'unknown helper reason missing')
         require(hashes(original) == pin['files'] and hashes(copied) == pin['files'], 'original/copied package mutated')
         self.record['real_package'] = pin
 

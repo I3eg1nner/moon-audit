@@ -1,0 +1,121 @@
+{
+  "schema": "moon-audit.binding-transport-observations.v1",
+  "date": "2026-09-26",
+  "platform": "linux",
+  "warm_median_ms": {
+    "moon_no_check": 182.643,
+    "moon_ide_no_check": 182.055
+  },
+  "queries_per_median": {
+    "moon_no_check": 12,
+    "moon_ide_no_check": 12
+  },
+  "bounded_concurrency": [
+    {
+      "workers": 1,
+      "queries": 24,
+      "elapsed": 4.410605593584478,
+      "all_same": true,
+      "all_success": true
+    },
+    {
+      "workers": 2,
+      "queries": 24,
+      "elapsed": 2.3652898939326406,
+      "all_same": true,
+      "all_success": true
+    },
+    {
+      "workers": 4,
+      "queries": 24,
+      "elapsed": 2.3567537013441324,
+      "all_same": true,
+      "all_success": true
+    },
+    {
+      "workers": 8,
+      "queries": 24,
+      "elapsed": 2.4227938568219543,
+      "all_same": true,
+      "all_success": true
+    }
+  ],
+  "probes": [
+    {
+      "label": "bootstrap",
+      "args": [
+        "ide",
+        "peek-def",
+        "--json",
+        "--target",
+        "native",
+        "--loc",
+        "src/consumer.mbt:2:4"
+      ],
+      "returncode": 0,
+      "stdout": "[{\"path\":\"<BINDING_FIXTURE>/src/internal/page_shell/page_shell.mbt\",\"range\":\"5:8-5:21\"}]\n",
+      "stderr": ""
+    },
+    {
+      "label": "duplicate_loc",
+      "args": [
+        "ide",
+        "peek-def",
+        "--json",
+        "--target",
+        "native",
+        "--loc",
+        "src/consumer.mbt:2:4",
+        "--loc",
+        "src/consumer.mbt:6:4",
+        "--no-check"
+      ],
+      "returncode": 0,
+      "stdout": "[{\"path\":\"<BINDING_FIXTURE>/src/internal/page_shell/page_shell.mbt\",\"range\":\"96:8-96:31\"}]\n",
+      "stderr": ""
+    },
+    {
+      "label": "comma_loc",
+      "args": [
+        "ide",
+        "peek-def",
+        "--json",
+        "--target",
+        "native",
+        "--loc",
+        "src/consumer.mbt:2:4,src/consumer.mbt:6:4",
+        "--no-check"
+      ],
+      "returncode": 1,
+      "stdout": "Error: could not get package of loc src/consumer.mbt:2:4,src/consumer.mbt:6:4\n",
+      "stderr": ""
+    },
+    {
+      "label": "stdin_lines",
+      "args": [
+        "--stdio"
+      ],
+      "returncode": 1,
+      "stdout": "",
+      "stderr": "Unknown subcommand: --stdio\n"
+    },
+    {
+      "label": "old_help",
+      "args": [
+        "ide",
+        "goto-definition",
+        "--help"
+      ],
+      "returncode": 0,
+      "stdout": "moon-ide goto-definition\n  -query <query>\n  Fuzzy search for symbol names. Query format:\n\n    <pkg-queries> <name-query>\n\n  Where:\n    <pkg-queries>   Space-separated package name patterns (e.g. '@username/module')\n    <name-query>    Symbol or method search pattern\n\n  Examples:\n    - \"@moonbitlang/async run\"          Find any symbol named 'run' in package 'moonbitlang/async'\n    - \"@list @array fold_left\"          Find any symbol named 'fold_left' in package 'list' or 'array'\n\n  Name query patterns:\n    symbol                Find any symbol named 'symbol'\n    Type::method          Find methods of a specific type\n    Trait for Type with method  Find trait method implementations\n\n  -tags <tag-query>\n    Pre-filter symbols by characteristics before name matching:\n\n    Visibility tags:\n      'pub': Public symbols\n      'pub all': Public structs with all public fields\n      'pub open': Public traits with all methods public\n      'priv': Private symbols\n\n    Symbol type tags:\n      'type': Type definitions (struct, enum, typealias, abstract)\n      'error': Error type definitions\n      'enum': Enum definitions and variants\n      'struct': Struct definitions\n      'alias': Type/function/trait aliases\n      'let': Top-level let bindings\n      'const': Constant definitions\n      'fn': Function definitions\n      'trait': Trait definitions\n      'impl': Trait implementations\n      'test': Named test functions\n\n    Combine tags with logical operators:\n      'pub fn': Public functions only\n      'fn | const': Functions or constants\n      'pub (fn | const)': Public functions or constants\n      'pub (type | trait)': Public type or trait definitions (struct, enum, typealias, abstract type, trait)\n\n  -no-check skip moon check\n  -format {human|json} Set output format, default format is human\n  -help  Display this list of options\n  --help  Display this list of options\n\n",
+      "stderr": ""
+    }
+  ],
+  "limits": [
+    "Measurements concern this Linux host and the two explicitly pinned toolchains.",
+    "No portable Windows speedup is inferred.",
+    "Repeated --loc is not a batching API.",
+    "Historical goto-definition is not an exact-location semantic binding fallback.",
+    "strace observation: --no-check skips project check but still starts a core check; raw machine argv trace intentionally omitted."
+  ]
+}

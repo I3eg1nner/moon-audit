@@ -6,6 +6,7 @@ priv struct Declaration {
   file : String
   function : @syntax.FunDecl
   body : @syntax.Expr
+  conditional : Bool
 }
 
 ///|
@@ -13,6 +14,7 @@ priv struct Candidate {
   file : String
   method_label : @syntax.Label
   arguments : @list.List[@syntax.Argument]
+  conditional : Bool
 }
 
 ///|
@@ -20,6 +22,7 @@ priv struct Collector {
   file : String
   candidates : Array[Candidate]
   unsupported_registrations : Array[String]
+  conditional : Bool
 }
 
 ///|
@@ -36,6 +39,7 @@ impl @syntax.IterVisitor for Collector with fn visit_Expr_DotApply(
       file: env.file,
       method_label: method_name,
       arguments: args,
+      conditional: env.conditional,
     })
   }
   @syntax.IterVisitor::visit_Expr_DotApply(
@@ -57,7 +61,11 @@ impl @syntax.IterVisitor for Collector with fn visit_Expr_Apply(
 ) {
   if func is Method(method_name~, ..) && method_name.name == "get" {
     env.unsupported_registrations.push(
-      "unsupported_static_registration_candidate: " +
+      (if env.conditional {
+        "unsupported_conditional_compilation: "
+      } else {
+        "unsupported_static_registration_candidate: "
+      }) +
       site(env.file, method_name.loc),
     )
   }
@@ -70,81 +78,13 @@ impl @syntax.IterVisitor for Collector with fn visit_Expr_Apply(
 }
 
 ///|
-priv struct BindingCollector {
-  sites : Map[String, @basic.Location]
-  file : String
-}
-
-///|
-impl @syntax.IterVisitor for BindingCollector with fn visit_Expr_DotApply(
-  env,
-  self~,
-  method_name~,
-  args~,
-  return_self~,
-  loc~,
-) {
-  env.sites[site(env.file, method_name.loc)] = method_name.loc
-  @syntax.IterVisitor::visit_Expr_DotApply(
-    @syntax.IterVisitor::base(env),
-    self~,
-    method_name~,
-    args~,
-    return_self~,
-    loc~,
-  )
-}
-
-///|
-impl @syntax.IterVisitor for BindingCollector with fn visit_Expr_Apply(
-  env,
-  func~,
-  args~,
-  loc~,
-) {
-  env.sites[site(env.file, func.loc())] = func.loc()
-  @syntax.IterVisitor::visit_Expr_Apply(
-    @syntax.IterVisitor::base(env),
-    func~,
-    args~,
-    loc~,
-  )
-}
-
-///|
-impl @syntax.IterVisitor for BindingCollector with fn visit_Expr_Field(
-  env,
-  record~,
-  accessor~,
-  loc~,
-) {
-  if accessor is Label(label) {
-    env.sites[site(env.file, label.loc)] = label.loc
-  }
-  @syntax.IterVisitor::visit_Expr_Field(
-    @syntax.IterVisitor::base(env),
-    record~,
-    accessor~,
-    loc~,
-  )
-}
-
-///|
-impl @syntax.IterVisitor for BindingCollector with fn visit_Expr_Infix(
-  env,
-  op~,
-  lhs~,
-  rhs~,
-  loc~,
-) {
-  env.sites[site(env.file, op.loc)] = op.loc
-  @syntax.IterVisitor::visit_Expr_Infix(
-    @syntax.IterVisitor::base(env),
-    op~,
-    lhs~,
-    rhs~,
-    loc~,
-  )
+// Structural lowering records only operations that it can fully represent.
+// Official definitions are queried after the whole body has passed this phase.
+priv enum PendingOp {
+  Ready(@ir.Op)
+  PendingCall(Int, @basic.Location, @basic.Location, Array[Int])
+  PendingField(Int, Int, @basic.Location)
+  PendingMarkdown(Int, Int, Bool, @basic.Location, @basic.Location)
 }
 
 ///|
@@ -227,16 +167,24 @@ async fn bind(
 async fn prefetch_bindings(
   ctx : Lowerer,
   file : String,
-  body : @syntax.Expr,
+  pending : Array[PendingOp],
 ) -> Unit {
-  let visitor = BindingCollector::{ sites: Map([]), file, }
-  @syntax.IterVisitor::visit_Expr(visitor, body)
-  let keys = visitor.sites.keys().to_array()
+  let locations : Map[String, @basic.Location] = Map([])
+  for operation in pending {
+    let location = match operation {
+      Ready(_) => continue
+      PendingCall(_, _, callable, _) => callable
+      PendingField(_, _, location) => location
+      PendingMarkdown(_, _, _, _, callable) => callable
+    }
+    locations[site(file, location)] = location
+  }
+  let keys = locations.keys().to_array()
   keys.sort_by(String::lexical_compare)
   let sites : Array[@basic.Location] = []
   for key in keys {
     if !ctx.bindings.contains(key) && !ctx.failed_bindings.contains(key) {
-      sites.push(visitor.sites[key])
+      sites.push(locations[key])
     }
   }
   let mut offset = 0
@@ -316,6 +264,9 @@ async fn lower_function(ctx : Lowerer, id : String) -> Unit {
     Some(decl) => decl
     None => fail("unmodeled_external_call: " + id)
   }
+  if decl.conditional {
+    fail("unsupported_conditional_compilation: " + id)
+  }
   if decl.function.is_async is Some(_) ||
     !decl.function.quantifiers.is_empty() ||
     decl.function.type_name is Some(_) {
@@ -337,11 +288,12 @@ async fn lower_function(ctx : Lowerer, id : String) -> Unit {
       _ => fail("unsupported_helper_parameter")
     }
   }
+  let pending : Array[PendingOp] = []
+  let result = lower(ctx, decl.file, decl.body, env, pending)
+  pending.push(Ready(Return(result)))
   let operations : Array[@ir.Op] = []
   ctx.functions[id] = { id, parameters: params, operations, }
-  prefetch_bindings(ctx, decl.file, decl.body)
-  let result = lower(ctx, decl.file, decl.body, env, operations)
-  operations.push(Return(result))
+  resolve_operations(ctx, decl.file, pending, operations)
 }
 
 ///|
@@ -351,11 +303,11 @@ async fn call(
   loc : @basic.Location,
   callable : @basic.Location,
   arguments : Array[Int],
+  dest : Int,
   operations : Array[@ir.Op],
-) -> Int {
+) -> Unit {
   let binding = bind(ctx, file, callable)
   let kind = model(ctx, binding)
-  let dest = fresh(ctx)
   let where_ = site(file, loc)
   match (kind, arguments) {
     ("model_mismatch", _) => fail("model_mismatch: " + where_)
@@ -376,17 +328,60 @@ async fn call(
     }
     _ => fail("unsupported_model_arguments: " + where_)
   }
+}
+
+///|
+async fn resolve_operations(
+  ctx : Lowerer,
+  file : String,
+  pending : Array[PendingOp],
+  operations : Array[@ir.Op],
+) -> Unit {
+  prefetch_bindings(ctx, file, pending)
+  for operation in pending {
+    match operation {
+      Ready(operation) => operations.push(operation)
+      PendingCall(dest, location, callable, arguments) =>
+        call(ctx, file, location, callable, arguments, dest, operations)
+      PendingField(dest, source, location) => {
+        let binding = bind(ctx, file, location)
+        if model(ctx, binding) != "request" {
+          fail("unsupported_field")
+        }
+        operations.push(Request(dest, source))
+      }
+      PendingMarkdown(dest, input, safe, location, callable) => {
+        let binding = bind(ctx, file, callable)
+        if model(ctx, binding) != "markdown" {
+          fail("unsupported_terminating_call")
+        }
+        operations.push(RenderMarkdown(dest, input, safe, site(file, location)))
+      }
+    }
+  }
+}
+
+///|
+fn plan_call(
+  ctx : Lowerer,
+  loc : @basic.Location,
+  callable : @basic.Location,
+  arguments : Array[Int],
+  operations : Array[PendingOp],
+) -> Int {
+  let dest = fresh(ctx)
+  operations.push(PendingCall(dest, loc, callable, arguments))
   dest
 }
 
 ///|
-async fn lower(
+fn lower(
   ctx : Lowerer,
   file : String,
   expr : @syntax.Expr,
   env : Map[String, Int],
-  operations : Array[@ir.Op],
-) -> Int {
+  operations : Array[PendingOp],
+) -> Int raise {
   if ctx.next > 10000 {
     fail("lowering_budget_exhausted")
   }
@@ -397,7 +392,7 @@ async fn lower(
         Some(value) => value
         None => fail("unsupported_literal_escape: " + site(file, expr.loc()))
       }
-      operations.push(Literal(dest, value))
+      operations.push(Ready(Literal(dest, value)))
       dest
     }
     Ident(..) => {
@@ -407,13 +402,13 @@ async fn lower(
         None => fail("unknown_or_captured_value: " + name)
       }
       let dest = fresh(ctx)
-      operations.push(Copy(dest, source))
+      operations.push(Ready(Copy(dest, source)))
       dest
     }
     Infix(op~, lhs~, rhs~, loc~) => {
       let lhs = lower(ctx, file, lhs, env, operations)
       let rhs = lower(ctx, file, rhs, env, operations)
-      call(ctx, file, loc, op.loc, [lhs, rhs], operations)
+      plan_call(ctx, loc, op.loc, [lhs, rhs], operations)
     }
     Group(expr~, ..) | Constraint(expr~, ..) =>
       lower(ctx, file, expr, env, operations)
@@ -452,17 +447,13 @@ async fn lower(
         Some(slot) => slot
         None => fail("assignment_binding_missing")
       }
-      operations.push(Copy(slot, value))
+      operations.push(Ready(Copy(slot, value)))
       value
     }
     Field(record~, accessor=Label(label), ..) => {
       let source = lower(ctx, file, record, env, operations)
-      let target = bind(ctx, file, label.loc)
-      if model(ctx, target) != "request" {
-        fail("unsupported_field")
-      }
       let dest = fresh(ctx)
-      operations.push(Request(dest, source))
+      operations.push(PendingField(dest, source, label.loc))
       dest
     }
     DotApply(self=receiver, method_name~, args~, return_self=false, loc~) => {
@@ -473,7 +464,7 @@ async fn lower(
         }
         values.push(lower(ctx, file, arg.value, env, operations))
       }
-      call(ctx, file, loc, method_name.loc, values, operations)
+      plan_call(ctx, loc, method_name.loc, values, operations)
     }
     Apply(func~, args~, loc~) => {
       let values : Array[Int] = []
@@ -483,13 +474,9 @@ async fn lower(
         }
         values.push(lower(ctx, file, arg.value, env, operations))
       }
-      call(ctx, file, loc, func.loc(), values, operations)
+      plan_call(ctx, loc, func.loc(), values, operations)
     }
     TryOperator(body=Apply(func~, args~, ..), kind=Exclamation, loc~, ..) => {
-      let binding = bind(ctx, file, func.loc())
-      if model(ctx, binding) != "markdown" {
-        fail("unsupported_terminating_call")
-      }
       let mut safe = true
       let mut input : Int? = None
       for arg in args {
@@ -515,7 +502,7 @@ async fn lower(
         None => fail("missing_markdown_input")
       }
       let dest = fresh(ctx)
-      operations.push(RenderMarkdown(dest, input, safe, site(file, loc)))
+      operations.push(PendingMarkdown(dest, input, safe, loc, func.loc()))
       dest
     }
     Interp(elems~, ..) => {
@@ -527,7 +514,7 @@ async fn lower(
               fail("unsupported_escaped_interpolation_literal")
             }
             let dest = fresh(ctx)
-            operations.push(Literal(dest, repr))
+            operations.push(Ready(Literal(dest, repr)))
             parts.push(dest)
           }
           Expr(expr~, ..) => parts.push(lower(ctx, file, expr, env, operations))
@@ -535,12 +522,12 @@ async fn lower(
         }
       }
       let dest = fresh(ctx)
-      operations.push(Concat(dest, parts))
+      operations.push(Ready(Concat(dest, parts)))
       dest
     }
     Return(return_value=Some(value), ..) => {
       let id = lower(ctx, file, value, env, operations)
-      operations.push(Return(id))
+      operations.push(Ready(Return(id)))
       id
     }
     Loop(..) => fail("unsupported_legacy_loop: " + site(file, expr.loc()))
@@ -555,13 +542,60 @@ pub async fn analyze(
   root : String,
   executable : String,
   home : String?,
-  files : Array[String],
+  units : Array[@project.CompilationUnit],
 ) -> Json {
   let declarations : Map[String, Declaration] = Map([])
   let candidates : Array[Candidate] = []
   let errors : Array[String] = []
+  let production_units : Map[String, @project.CompilationUnit] = Map([])
+  let source_units : Map[String, @project.CompilationUnit] = Map([])
+  let invalid_sources : Map[String, Bool] = Map([])
+  let invalid_units : Map[String, Bool] = Map([])
+  let function_files : Map[String, String] = Map([])
+  for unit in units {
+    if !(unit.role is Production) {
+      continue
+    }
+    if unit.module_root != root ||
+      unit.target != "native" ||
+      (unit.package_root != root && !unit.package_root.has_prefix(root + "/")) {
+      errors.push("unsupported_compilation_unit: " + unit.id)
+      invalid_units[unit.id] = true
+    }
+    match production_units.get(unit.id) {
+      Some(previous) =>
+        if previous != unit {
+          errors.push("compilation_unit_identity_conflict: " + unit.id)
+          invalid_units[unit.id] = true
+        }
+      None => production_units[unit.id] = unit
+    }
+    for input in unit.inputs {
+      if !(input.mode is Source) {
+        continue
+      }
+      let file = input.path
+      if !file.has_prefix(unit.package_root + "/") ||
+        !file.has_prefix(root + "/") ||
+        @project.absolute(file) != file {
+        errors.push("invalid_compilation_source: " + file)
+        invalid_sources[file] = true
+      }
+      match source_units.get(file) {
+        Some(previous) =>
+          if previous.id != unit.id || previous != unit {
+            errors.push("compilation_source_identity_conflict: " + file)
+            invalid_sources[file] = true
+          }
+        None => source_units[file] = unit
+      }
+    }
+  }
+  let files = source_units.keys().to_array()
+  files.sort_by(String::lexical_compare)
   for file in files {
-    if file.has_suffix("_test.mbt") || file.has_suffix("_wbtest.mbt") {
+    if invalid_sources.contains(file) ||
+      invalid_units.contains(source_units[file].id) {
       continue
     }
     let source = @fs.read_file_to_string(file) catch {
@@ -575,19 +609,34 @@ pub async fn analyze(
       errors.push("parser_rejected: " + file)
       continue
     }
-    let visitor = Collector::{
-      file,
-      candidates,
-      unsupported_registrations: errors,
-    }
     for item in items {
+      if item is TopTest(..) {
+        continue
+      }
+      let conditional = match item {
+        TopFuncDef(fun_decl~, ..) =>
+          fun_decl.attrs.iter().any(fn(attr) { attr.name() == Some("cfg") })
+        TopLetDef(attrs~, ..) | TopImpl(attrs~, ..) | TopView(attrs~, ..) =>
+          attrs.iter().any(fn(attr) { attr.name() == Some("cfg") })
+        _ => false
+      }
+      let visitor = Collector::{
+        file,
+        candidates,
+        unsupported_registrations: errors,
+        conditional,
+      }
       match item {
-        TopFuncDef(fun_decl~, decl_body=DeclBody(expr~), where_clause=None, ..) =>
-          declarations[site(file, fun_decl.name.loc)] = {
+        TopFuncDef(fun_decl~, decl_body=DeclBody(expr~), where_clause=None, ..) => {
+          let id = site(file, fun_decl.name.loc)
+          function_files[id] = file
+          declarations[id] = {
             file,
             function: fun_decl,
             body: expr,
+            conditional,
           }
+        }
         _ => ()
       }
       @syntax.IterVisitor::visit_Impl(visitor, item)
@@ -609,6 +658,15 @@ pub async fn analyze(
   let routes : Array[Json] = []
   for candidate in candidates {
     let id = site(candidate.file, candidate.method_label.loc)
+    function_files[id] = candidate.file
+    if candidate.conditional {
+      routes.push({
+        "entry": Json::string(id),
+        "status": Json::string("incomplete"),
+        "reason": Json::string("unsupported_conditional_compilation: " + id),
+      })
+      continue
+    }
     let binding = bind(ctx, candidate.file, candidate.method_label.loc) catch {
       e => {
         errors.push("binding_unavailable: " + id + ": " + e.to_string())
@@ -636,12 +694,13 @@ pub async fn analyze(
       guard func.parameters.to_array() is [Positional(binder~, ..)] else {
         fail("unsupported_route_parameters")
       }
-      prefetch_bindings(ctx, candidate.file, func.body)
       let parameter = fresh(ctx)
-      let operations : Array[@ir.Op] = []
+      let pending : Array[PendingOp] = []
       let env : Map[String, Int] = Map([(binder.name, parameter)])
-      let returned = lower(ctx, candidate.file, func.body, env, operations)
-      operations.push(Return(returned))
+      let returned = lower(ctx, candidate.file, func.body, env, pending)
+      pending.push(Ready(Return(returned)))
+      let operations : Array[@ir.Op] = []
+      resolve_operations(ctx, candidate.file, pending, operations)
       ctx.functions[id] = { id, parameters: [parameter], operations, }
       let functions = ctx.functions.values().to_array()
       let result = @ir.analyze(functions, id)
@@ -677,7 +736,35 @@ pub async fn analyze(
       "range": Json::string(binding.1),
     })
   }
+  let unit_ids = production_units.keys().to_array()
+  unit_ids.sort_by(String::lexical_compare)
+  let source_metadata : Array[Json] = []
+  for file in files {
+    let unit = source_units[file]
+    if !invalid_sources.contains(file) && !invalid_units.contains(unit.id) {
+      source_metadata.push({
+        "source": Json::string(file),
+        "unit": Json::string(unit.id),
+      })
+    }
+  }
+  let function_metadata : Array[Json] = []
+  let function_ids = ctx.functions.keys().to_array()
+  function_ids.sort_by(String::lexical_compare)
+  for id in function_ids {
+    let file = function_files[id]
+    function_metadata.push({
+      "function": Json::string(id),
+      "source": Json::string(file),
+      "unit": Json::string(source_units[file].id),
+    })
+  }
   {
+    "compilation_units": Json::array(
+      unit_ids.map(fn(id) { production_units[id].to_json() }),
+    ),
+    "source_units": Json::array(source_metadata),
+    "function_units": Json::array(function_metadata),
     "models": model_manifest(),
     "coverage_status": Json::string("restricted_experiment"),
     "schema": Json::string("moon-audit.experimental-security-ir.v1"),

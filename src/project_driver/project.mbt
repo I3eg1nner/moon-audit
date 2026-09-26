@@ -5,6 +5,7 @@ pub(all) struct Verification {
   toolchain : String
   target : String
   files : Array[String]
+  units : Array[CompilationUnit]
   unsupported : Array[String]
   snapshot : Map[String, String]
 }
@@ -17,6 +18,7 @@ fn failed(status : String, detail : String, target : String) -> Verification {
     target,
     toolchain: "",
     files: [],
+    units: [],
     unsupported: [],
     snapshot: Map([]),
   }
@@ -40,7 +42,11 @@ extern "C" fn path_identity(path : Bytes) -> Bytes = "audit_path_identity"
 
 ///|
 fn join(root : String, path : String) -> String {
-  absolute(@path.Path(root).join(@path.Path(path)).0)
+  if @path.Path(path).is_absolute() {
+    absolute(path)
+  } else {
+    absolute(@path.Path(root).join(@path.Path(path)).0)
+  }
 }
 
 ///|
@@ -395,15 +401,37 @@ pub async fn verify(
         toolchain: identity,
       }
   }
+  let mut unit_error = ""
+  let unit_result = match module_name_at(root) {
+    Some(name) => compilation_units(plan.1, root, name, target)
+    None => Err("module_identity_unavailable_at_requested_root")
+  }
+  let units = match unit_result {
+    Ok(units) => units
+    Err(reason) => {
+      unit_error = reason
+      []
+    }
+  }
+  for unit in units {
+    for input in unit.inputs {
+      if !initial.contains(input.path) {
+        unit_error = "compiler_input_outside_snapshot: " + input.path
+      }
+    }
+  }
   let status = if !unchanged(initial, root) {
     "project_changed"
-  } else if files.is_empty() || !unsupported.is_empty() {
+  } else if files.is_empty() || !unsupported.is_empty() || unit_error != "" {
     "scope_incomplete"
   } else {
     "compiler_verified"
   }
   let detail = if status == "project_changed" {
     "Source, dependency or configuration inputs changed during compiler verification"
+  } else if unit_error != "" {
+    "Compiler file plan is available, but compilation unit identity is unsupported: " +
+    unit_error
   } else if !unsupported.is_empty() {
     "Compiler check passed, but " +
     unsupported.length().to_string() +
@@ -419,6 +447,7 @@ pub async fn verify(
     toolchain: identity,
     target,
     files,
+    units,
     unsupported,
     snapshot: initial,
   }
@@ -436,6 +465,8 @@ pub fn Verification::to_json(self : Verification) -> Json {
     "toolchain": Json::string(self.toolchain),
     "target": Json::string(self.target),
     "compiler_files": Json::array(self.files.map(Json::string)),
+    "compilation_unit_schema": Json::string("moon-audit.compilation-units.v1"),
+    "compilation_units": self.units.map(CompilationUnit::to_json).to_json(),
     "unsupported_files": Json::array(self.unsupported.map(Json::string)),
     "snapshot_sha256": Json::object(hashes),
   }
