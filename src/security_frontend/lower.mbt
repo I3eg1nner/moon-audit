@@ -19,7 +19,6 @@ priv struct Candidate {
 priv struct Collector {
   file : String
   candidates : Array[Candidate]
-  query_sites : Array[(String, @basic.Location)]
   unsupported_registrations : Array[String]
 }
 
@@ -32,7 +31,6 @@ impl @syntax.IterVisitor for Collector with fn visit_Expr_DotApply(
   return_self~,
   loc~,
 ) {
-  env.query_sites.push((env.file, method_name.loc))
   if method_name.name == "get" && args.length() == 2 {
     env.candidates.push({
       file: env.file,
@@ -57,7 +55,6 @@ impl @syntax.IterVisitor for Collector with fn visit_Expr_Apply(
   args~,
   loc~,
 ) {
-  env.query_sites.push((env.file, func.loc()))
   if func is Method(method_name~, ..) && method_name.name == "get" {
     env.unsupported_registrations.push(
       "unsupported_static_registration_candidate: " +
@@ -73,19 +70,79 @@ impl @syntax.IterVisitor for Collector with fn visit_Expr_Apply(
 }
 
 ///|
-impl @syntax.IterVisitor for Collector with fn visit_Expr_Field(
+priv struct BindingCollector {
+  sites : Map[String, @basic.Location]
+  file : String
+}
+
+///|
+impl @syntax.IterVisitor for BindingCollector with fn visit_Expr_DotApply(
+  env,
+  self~,
+  method_name~,
+  args~,
+  return_self~,
+  loc~,
+) {
+  env.sites[site(env.file, method_name.loc)] = method_name.loc
+  @syntax.IterVisitor::visit_Expr_DotApply(
+    @syntax.IterVisitor::base(env),
+    self~,
+    method_name~,
+    args~,
+    return_self~,
+    loc~,
+  )
+}
+
+///|
+impl @syntax.IterVisitor for BindingCollector with fn visit_Expr_Apply(
+  env,
+  func~,
+  args~,
+  loc~,
+) {
+  env.sites[site(env.file, func.loc())] = func.loc()
+  @syntax.IterVisitor::visit_Expr_Apply(
+    @syntax.IterVisitor::base(env),
+    func~,
+    args~,
+    loc~,
+  )
+}
+
+///|
+impl @syntax.IterVisitor for BindingCollector with fn visit_Expr_Field(
   env,
   record~,
   accessor~,
   loc~,
 ) {
   if accessor is Label(label) {
-    env.query_sites.push((env.file, label.loc))
+    env.sites[site(env.file, label.loc)] = label.loc
   }
   @syntax.IterVisitor::visit_Expr_Field(
     @syntax.IterVisitor::base(env),
     record~,
     accessor~,
+    loc~,
+  )
+}
+
+///|
+impl @syntax.IterVisitor for BindingCollector with fn visit_Expr_Infix(
+  env,
+  op~,
+  lhs~,
+  rhs~,
+  loc~,
+) {
+  env.sites[site(env.file, op.loc)] = op.loc
+  @syntax.IterVisitor::visit_Expr_Infix(
+    @syntax.IterVisitor::base(env),
+    op~,
+    lhs~,
+    rhs~,
     loc~,
   )
 }
@@ -129,10 +186,11 @@ async fn bind(
   if ctx.failed_bindings.get(key) is Some(reason) {
     fail(reason)
   }
-  ctx.queries += 1
-  if ctx.queries > 256 {
+  if ctx.queries >= 256 {
+    ctx.failed_bindings[key] = "binding_budget_exhausted"
     fail("binding_budget_exhausted")
   }
+  ctx.queries += 1
   let value = @project.definition(
     ctx.root,
     ctx.executable,
@@ -141,7 +199,13 @@ async fn bind(
     loc.start.lnum,
     loc.start.column(),
     ctx.first_query,
-  )
+  ) catch {
+    e => {
+      let reason = e.to_string()
+      ctx.failed_bindings[key] = reason
+      fail(reason)
+    }
+  }
   ctx.first_query = false
   match value {
     [{ "path": String(path), "range": String(range), .. }] => {
@@ -149,7 +213,46 @@ async fn bind(
       ctx.bindings[key] = result
       result
     }
-    _ => fail("binding_not_unique: " + key)
+    _ => {
+      let reason = "binding_not_unique: " + key
+      ctx.failed_bindings[key] = reason
+      fail(reason)
+    }
+  }
+}
+
+///|
+// Only reached callback/helper bodies enter this bounded prefetch. The route
+// binding has already prepared official metadata before any parallel lookup.
+async fn prefetch_bindings(
+  ctx : Lowerer,
+  file : String,
+  body : @syntax.Expr,
+) -> Unit {
+  let visitor = BindingCollector::{ sites: Map([]), file, }
+  @syntax.IterVisitor::visit_Expr(visitor, body)
+  let keys = visitor.sites.keys().to_array()
+  keys.sort_by(String::lexical_compare)
+  let sites : Array[@basic.Location] = []
+  for key in keys {
+    if !ctx.bindings.contains(key) && !ctx.failed_bindings.contains(key) {
+      sites.push(visitor.sites[key])
+    }
+  }
+  let mut offset = 0
+  while offset < sites.length() {
+    let end = Int::min(offset + 4, sites.length())
+    @async.with_task_group(group => {
+      let tasks = sites[offset:end]
+        .to_owned()
+        .map(fn(loc) {
+          group.spawn(() => ignore(bind(ctx, file, loc) catch { _ => ("", "") }))
+        })
+      for task in tasks {
+        task.wait()
+      }
+    })
+    offset = end
   }
 }
 
@@ -168,7 +271,7 @@ fn model(ctx : Lowerer, binding : (String, String)) -> String {
       if (hash(path) catch { _ => "" }) != digest {
         return "model_mismatch"
       }
-      if kind == "lookup" || kind == "default" {
+      if kind == "lookup" || kind == "default" || kind == "string_concat" {
         if !path.contains("/lib/core/builtin/") {
           return ""
         }
@@ -236,6 +339,7 @@ async fn lower_function(ctx : Lowerer, id : String) -> Unit {
   }
   let operations : Array[@ir.Op] = []
   ctx.functions[id] = { id, parameters: params, operations, }
+  prefetch_bindings(ctx, decl.file, decl.body)
   let result = lower(ctx, decl.file, decl.body, env, operations)
   operations.push(Return(result))
 }
@@ -260,6 +364,7 @@ async fn call(
       operations.push(Lookup(dest, container, key))
     ("default", [optional, fallback]) =>
       operations.push(Default(dest, optional, fallback))
+    ("string_concat", [lhs, rhs]) => operations.push(Concat(dest, [lhs, rhs]))
     ("escape", [value]) => operations.push(EscapeHtmlText(dest, value))
     ("html", [value]) => operations.push(Response(dest, value, true, where_))
     ("text", [value]) => operations.push(Response(dest, value, false, where_))
@@ -288,6 +393,10 @@ async fn lower(
   match expr {
     Constant(c=String(value), ..) => {
       let dest = fresh(ctx)
+      let value = match literal_value(value) {
+        Some(value) => value
+        None => fail("unsupported_literal_escape: " + site(file, expr.loc()))
+      }
       operations.push(Literal(dest, value))
       dest
     }
@@ -300,6 +409,11 @@ async fn lower(
       let dest = fresh(ctx)
       operations.push(Copy(dest, source))
       dest
+    }
+    Infix(op~, lhs~, rhs~, loc~) => {
+      let lhs = lower(ctx, file, lhs, env, operations)
+      let rhs = lower(ctx, file, rhs, env, operations)
+      call(ctx, file, loc, op.loc, [lhs, rhs], operations)
     }
     Group(expr~, ..) | Constraint(expr~, ..) =>
       lower(ctx, file, expr, env, operations)
@@ -445,7 +559,6 @@ pub async fn analyze(
 ) -> Json {
   let declarations : Map[String, Declaration] = Map([])
   let candidates : Array[Candidate] = []
-  let query_sites : Array[(String, @basic.Location)] = []
   let errors : Array[String] = []
   for file in files {
     if file.has_suffix("_test.mbt") || file.has_suffix("_wbtest.mbt") {
@@ -465,7 +578,6 @@ pub async fn analyze(
     let visitor = Collector::{
       file,
       candidates,
-      query_sites,
       unsupported_registrations: errors,
     }
     for item in items {
@@ -494,48 +606,6 @@ pub async fn analyze(
     queries: 0,
     next: 0,
   }
-  // The first query prepares official metadata. Subsequent independent lookups
-  // read the same frozen metadata, with at most four compiler clients in flight.
-  if !candidates.is_empty() {
-    let candidate = candidates[0]
-    let first_binding = bind(ctx, candidate.file, candidate.method_label.loc) catch {
-      _ => ("", "")
-    }
-    ctx.first_query = false
-    let unique : Map[String, (String, @basic.Location)] = Map([])
-    for (file, loc) in query_sites {
-      unique[site(file, loc)] = (file, loc)
-    }
-    let sites = unique.values().to_array()
-    if sites.length() > 256 {
-      errors.push("binding_budget_exhausted")
-    } else if model(ctx, first_binding) == "route" {
-      let mut offset = 0
-      while offset < sites.length() {
-        let end = Int::min(offset + 4, sites.length())
-        @async.with_task_group(group => {
-          let tasks = sites[offset:end]
-            .to_owned()
-            .map(fn(pair) {
-              group.spawn(() => {
-                ignore(
-                  bind(ctx, pair.0, pair.1) catch {
-                    e => {
-                      ctx.failed_bindings[site(pair.0, pair.1)] = e.to_string()
-                      ("", "")
-                    }
-                  },
-                )
-              })
-            })
-          for task in tasks {
-            task.wait()
-          }
-        })
-        offset = end
-      }
-    }
-  }
   let routes : Array[Json] = []
   for candidate in candidates {
     let id = site(candidate.file, candidate.method_label.loc)
@@ -550,6 +620,12 @@ pub async fn analyze(
       continue
     }
     let arguments = candidate.arguments.to_array()
+    // Lowering may install recursive placeholders and transitive helpers. If
+    // this callback fails, none of those partial IR functions may be reused.
+    let previous_functions : Map[String, Bool] = Map([])
+    for function_id in ctx.functions.keys() {
+      previous_functions[function_id] = true
+    }
     let result : Json = try {
       guard arguments[0].value is Constant(c=String(route_path), ..) else {
         fail("dynamic_route_path")
@@ -560,6 +636,7 @@ pub async fn analyze(
       guard func.parameters.to_array() is [Positional(binder~, ..)] else {
         fail("unsupported_route_parameters")
       }
+      prefetch_bindings(ctx, candidate.file, func.body)
       let parameter = fresh(ctx)
       let operations : Array[@ir.Op] = []
       let env : Map[String, Int] = Map([(binder.name, parameter)])
@@ -574,12 +651,18 @@ pub async fn analyze(
         "route": Json::string(route_path),
       }
     } catch {
-      e =>
+      e => {
+        for function_id in ctx.functions.keys().to_array() {
+          if !previous_functions.contains(function_id) {
+            ctx.functions.remove(function_id)
+          }
+        }
         {
           "entry": Json::string(id),
           "status": Json::string("incomplete"),
           "reason": Json::string(e.to_string()),
         }
+      }
     }
     routes.push(result)
   }

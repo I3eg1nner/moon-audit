@@ -60,5 +60,21 @@ def main():
             extract_zip(fetch(f'https://download.mooncakes.io/user/{module}/{version}.zip'),modules/module)
             if fingerprint(modules/module)['files'] != expected:raise RuntimeError(module+': reviewed dependency fingerprints differ')
         print(name+': pinned source and dependencies verified')
+    # A real production package for cross-package lowering acceptance.
+    pin=json.loads((ROOT/'experiments/cross_package/source-pin.json').read_text())
+    data=fetch(pin['archive_url'])
+    if hashlib.sha256(data).hexdigest()!=pin['archive_sha256']:
+        raise RuntimeError('Luna archive fingerprint differs')
+    with tempfile.TemporaryDirectory(prefix='moon-audit-luna-download-') as temp:
+        with tarfile.open(fileobj=io.BytesIO(data)) as archive:
+            archive.extractall(temp,filter='data')
+        roots=list(Path(temp).iterdir())
+        if len(roots)!=1:raise RuntimeError('unexpected Luna archive layout')
+        package=roots[0]/pin['package']
+        actual={f.name:hashlib.sha256(f.read_bytes()).hexdigest() for f in package.iterdir() if f.is_file()}
+        if actual!=pin['files']:raise RuntimeError('Luna production package differs')
+        shutil.copytree(package,dest/'luna'/pin['package'])
+    print('Luna: pinned production package verified')
+
 
 if __name__=='__main__':main()
