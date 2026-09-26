@@ -13,6 +13,7 @@ priv struct Declaration {
 priv struct Candidate {
   file : String
   method_label : @syntax.Label
+  location : @basic.Location
   arguments : @list.List[@syntax.Argument]
   conditional : Bool
 }
@@ -38,6 +39,7 @@ impl @syntax.IterVisitor for Collector with fn visit_Expr_DotApply(
     env.candidates.push({
       file: env.file,
       method_label: method_name,
+      location: loc,
       arguments: args,
       conditional: env.conditional,
     })
@@ -552,6 +554,7 @@ pub async fn analyze(
   let invalid_sources : Map[String, Bool] = Map([])
   let invalid_units : Map[String, Bool] = Map([])
   let function_files : Map[String, String] = Map([])
+  let function_ranges : Map[String, @basic.Location] = Map([])
   for unit in units {
     if !(unit.role is Production) {
       continue
@@ -630,6 +633,7 @@ pub async fn analyze(
         TopFuncDef(fun_decl~, decl_body=DeclBody(expr~), where_clause=None, ..) => {
           let id = site(file, fun_decl.name.loc)
           function_files[id] = file
+          function_ranges[id] = item.loc()
           declarations[id] = {
             file,
             function: fun_decl,
@@ -659,6 +663,7 @@ pub async fn analyze(
   for candidate in candidates {
     let id = site(candidate.file, candidate.method_label.loc)
     function_files[id] = candidate.file
+    function_ranges[id] = candidate.location
     if candidate.conditional {
       routes.push({
         "entry": Json::string(id),
@@ -756,6 +761,12 @@ pub async fn analyze(
     function_metadata.push({
       "function": Json::string(id),
       "source": Json::string(file),
+      "source_range": {
+        "start_line": function_ranges[id].start.lnum.to_json(),
+        "start_column": function_ranges[id].start.column().to_json(),
+        "end_line": function_ranges[id].end.lnum.to_json(),
+        "end_column": function_ranges[id].end.column().to_json(),
+      },
       "unit": Json::string(source_units[file].id),
     })
   }

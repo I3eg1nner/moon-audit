@@ -76,6 +76,58 @@ class ApiTests(unittest.TestCase):
         self.assertNotIn(self.secret, result.stdout + result.stderr)
         return result
 
+    def semantic_fixture(self):
+        from test_llm_evidence import EvidenceTests
+        evidence = EvidenceTests()
+        evidence.setUp()
+        self.addCleanup(evidence.doCleanups)
+        self.fixture = evidence.fx
+        self.bundle = evidence.prepare()
+        return evidence
+
+    def test_compiler_linked_context_reaches_api_and_cross_file_quote_validates(self):
+        evidence = self.semantic_fixture()
+        finding = self.bundle['findings'][0]
+        attachment = next(a for a in finding['semantic_context']['attachments'] if a['file'] == 'bridge/helper.mbt')
+        response = self.valid()
+        response['reviews'][0]['evidence'] = [{'attachment_id': attachment['attachment_id'],
+            'file': attachment['file'], 'start_line': 34, 'end_line': 35, 'quote': '  value\n}'}]
+        with server(lambda *_: (200, {}, self.envelope(response))) as (url, calls):
+            self.invoke(url)
+        prompt = calls[0][2]['messages'][1]['content']
+        for content in ('declared_models', 'compilation_units', evidence.callee, '常量31'):
+            self.assertIn(content, prompt)
+        result = json.loads(self.fixture.result.read_text(encoding='utf-8'))
+        self.assertEqual(result['reviews'][0]['evidence'][0]['attachment_id'], attachment['attachment_id'])
+        self.assertEqual(result['reviews'][0]['static_evidence'], 'verified_dataflow')
+        self.assertEqual(result['origin'], 'llm_unverified')
+
+    def test_semantic_snapshot_changes_before_or_during_request_preserve_old_result(self):
+        evidence = self.semantic_fixture()
+        changed = evidence.project / 'moon.mod'
+        original = changed.read_bytes()
+        for timing in ('before', 'during'):
+            with self.subTest(timing=timing):
+                self.fixture.result.write_text('existing result')
+                if timing == 'before':
+                    changed.write_bytes(original + b'\n// changed\n')
+                def respond(*_):
+                    changed.write_bytes(original + b'\n// changed\n')
+                    return 200, {}, self.envelope()
+                with server(respond) as (url, calls):
+                    self.invoke(url, expect=2)
+                self.assertEqual(len(calls), 0 if timing == 'before' else 1)
+                self.assertEqual(self.fixture.result.read_text(), 'existing result')
+                changed.write_bytes(original)
+        added = evidence.project / 'new.mbt'
+        def add_input(*_):
+            added.write_text('pub fn added() -> Int { 1 }')
+            return 200, {}, self.envelope()
+        with server(add_input) as (url, calls):
+            self.invoke(url, expect=2)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(self.fixture.result.read_text(), 'existing result')
+
     def test_actual_http_contract_and_env_aliases(self):
         with server(lambda *_: (200, {}, self.envelope())) as (url, calls):
             self.invoke(url, '--json-mode', '--token-parameter', 'max_completion_tokens', '--max-output-tokens', '800')

@@ -1,0 +1,17 @@
+{
+  "schema": "moon-audit.llm-evidence-local-acceptance.v1",
+  "date": "2026-09-26",
+  "binary_sha256": "d824ffdac1bac54d7102b678e6da1421a76e3ba3153c198921be99edf1b3272e",
+  "llm_review_script_sha256": "9ee892542a94137533cc557d0598f58e66a822796bd4633501621d99719ce6c8",
+  "native_units": 103,
+  "llm_tests": {
+    "review_contract": 45,
+    "compiler_linked_evidence": 10,
+    "http_client": 16,
+    "total": 71
+  },
+  "extracted_api_tests": 16,
+  "compiler_context_cases": 7,
+  "real_compiler_llm_context_cases": 4,
+  "scope": "same-module scoped semantic findings; report consistency and current project snapshot; does not independently recompute bindings or prove accuracy"
+}

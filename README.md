@@ -44,7 +44,7 @@ Linux x86_64、macOS arm64、Windows x86_64 的原生开发包可从[原生交�
 
 ## 可选 LLM 复核与热门项目检查
 
-新增独立 Python 助手，支持自定义 OpenAI 兼容 API：先从 JSON 报告准备有限源码上下文，再核验模型引用、源码指纹和发现 ID。支持标准环境变量及 `Base_URL` / `Model` / `API_KEY`；`.env` 必须显式指定。所有模型意见均为 `llm_unverified`，不改变静态证据或 baseline。原生包附带 `extras/` 助手；仅此可选功能需要 Python 3.12+。[使用与边界](docs/llm-review.md)
+新增独立 Python 助手，支持自定义 OpenAI 兼容 API：先从 JSON 报告准备有限源码上下文，再核验模型引用、源码指纹和发现 ID。支持标准环境变量及 `Base_URL` / `Model` / `API_KEY`；`.env` 必须显式指定。所有模型意见均为 `llm_unverified`，不改变静态证据或 baseline。原生包附带 `extras/` 助手；仅此可选功能需要 Python 3.12+。[使用与边界](docs/llm-review.md) 编译器关联的数据流告警现在可附完整相关函数、IR 和编译单位证据，支持带附件 ID 的跨文件引用，并在请求前后复验配置、依赖和源码集合；证据不足仍明确保留未知。 [真实模型对照与成本](experiments/llm_evidence/README.md)。
 
 已固定 Mooncakes 下载榜和 GitHub stars 榜各 12 个版本进行检查：23 个样本导入成功，15 个完成所请求的语法范围、8 个不完整，另 1 个归档因外部符号链接未导入。默认发现 2 条，全部规则发现 447 条语法线索；这些数量不是漏洞数。[完整结果、LLM 联调及后续优先级](experiments/popular_projects/README.md)
 
