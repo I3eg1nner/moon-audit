@@ -65,6 +65,10 @@ moon-audit --analysis semantic --verify-project \
 
 同一模块内、由目标编译器选中的生产包可跨包绑定和传递 String 参数/返回值，支持导入别名、同名函数区分及核实到固定 core 声明的 String `+`。只查询到达的回调/辅助函数体；失败分析生成的 IR 不会被其他回调复用。未建模外部依赖、泛型/方法/分支/循环等仍不完整；这不是任意依赖或整个工作区分析。字符串常量只解码已验证的简单转义，数值转义保持不支持。[跨包验收与真实包边界](experiments/cross_package/README.md)
 
+项目验证另行披露 `compilation_units`：模块、包、包类型、目标后端、生产/白盒/黑盒角色及各输入的 source/doctest 模式。语义入口只使用生产 source，跳过内联 `test`；IR 函数可通过 `function_units` 追溯到单位和源码。普通语法扫描仍遵循自己的选源策略。涉及 `#cfg` 的注册或辅助函数明确不完整；未知编译参数、源码替换和快照未覆盖的输入也不冒充已验证上下文。
+
+回调和辅助函数先做结构转换，整个函数体可表示后才查询官方绑定。不支持的结构不会先消耗大量查询；预算保持 256 次、4 并发、60 秒，支持语法较多的项目仍可能耗尽预算。这些措施没有增加分支、堆或任意外部依赖分析能力。[编译上下文及性能实验](experiments/compilation_context/README.md)
+
 固定 cmark `0.4.8` 的 `try! render(...)` 复用同一 IR：核实的默认/显式 `safe=true` 可作为 HTML 正文片段处理；它不是通用字符串编码器。`safe=false`、编码后再 unsafe 渲染或脚本上下文保留已知路径为 `partial_dataflow`，并返回 **2**。动态安全标志、非默认配置、模型/依赖指纹变化和未支持构造都不会被当成安全结果。[cmark 生产入口证据](experiments/cmark_chain/production-ir-2026-09-25.json)覆盖 14 项对照。
 
 JSON 顶层与 SARIF run properties 的 `semantic_analysis` 保存声明范围、绑定、模型、路径和不完整原因。完整受限路径使用 `verified_dataflow`，部分路径使用 `partial_dataflow`；它们都不是已证实漏洞。生产报告 schema 为 `moon-audit.scoped-dataflow.v1`，`support=validated_callback_subset`；是否完成请求以 `status` 和显式 scope 为准。独立实验 probe 仍使用实验 schema。

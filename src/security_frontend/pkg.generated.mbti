@@ -1,8 +1,12 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "minie135/moon-audit/src/security_frontend"
 
+import {
+  "minie135/moon-audit/src/project_driver",
+}
+
 // Values
-pub async fn analyze(String, String, String?, Array[String]) -> Json
+pub async fn analyze(String, String, String?, Array[@project_driver.CompilationUnit]) -> Json
 
 // Errors
 

@@ -1,0 +1,17 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "minie135/moon-audit/src/project_config"
+
+// Values
+pub fn module_name(String, Bool) -> String?
+
+pub fn parse_json(String) -> Json?
+
+pub fn parse_module(String, Bool, name? : String) -> Json?
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

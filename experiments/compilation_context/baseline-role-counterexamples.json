@@ -1,0 +1,64 @@
+{
+  "schema": "moon-audit.compilation-context-baseline.v1",
+  "date": "2026-09-26",
+  "status": "before_change_only",
+  "analyzer_sha256": "1e2db4cd4b2574b207862f1fc48d65bc599bbf878fa5351ae4c28f38435f8a50",
+  "model_source_fingerprint": "e36c3a0d905f1d4f967bf46fd552a206980332917dacc9da2b99f45032326e0a",
+  "dependency_fingerprints": {
+    "moonbitlang/async": "a1c17674a7ae69c7433b5cfddbfbed7a519bcad93a055bcb760d5a10ec2dc10a",
+    "moonbitlang/x": "c8af6344a3508a5c76627a528281a348eb503fafc67b9cb8f5296eaf555e7a2b",
+    "oboard/mimetype": "d8f2673c2adb7ad26e3e9fd64982a16b958efacd6056aa8b12aafc02b2d76d58"
+  },
+  "fixture_sources": {
+    "inline_test": "test \"test-only\" {\n let app = @mocket.new()\n  app.get(\"/test-only\", event => {\n    let value = event.req.query().get(\"q\").unwrap_or(\"\")\n    @mocket.html(value)\n  })\n}\n",
+    "cfg_false": "#cfg(false)\npub fn inactive(app : @mocket.Mocket) -> Unit {\n  app.get(\"/test-only\", event => {\n    let value = event.req.query().get(\"q\").unwrap_or(\"\")\n    @mocket.html(value)\n  })\n}\n",
+    "cfg_js": "#cfg(target=\"js\")\npub fn inactive(app : @mocket.Mocket) -> Unit {\n  app.get(\"/test-only\", event => {\n    let value = event.req.query().get(\"q\").unwrap_or(\"\")\n    @mocket.html(value)\n  })\n}\n"
+  },
+  "cases": [
+    {
+      "name": "inline_test",
+      "exit_code": 0,
+      "compiler_status": "compiler_verified",
+      "semantic_status": "complete_within_declared_scope",
+      "binding_queries": 6,
+      "route_count": 1,
+      "semantic_findings": [
+        {
+          "rule_id": "CWE-79/mocket-query-html",
+          "file": "<PROJECT>/probe.mbt",
+          "line": 5
+        }
+      ],
+      "semantic_errors": []
+    },
+    {
+      "name": "cfg_false",
+      "exit_code": 2,
+      "compiler_status": "compiler_verified",
+      "semantic_status": "incomplete",
+      "binding_queries": 1,
+      "route_count": 0,
+      "semantic_findings": [],
+      "semantic_errors": [
+        "binding_unavailable: <PROJECT>/probe.mbt:3:7: Failure(src/security_frontend/lower.mbt:206:7-206:19@minie135/moon-audit FAILED: Failure(src/project_driver/project.mbt:498:5-498:45@minie135/moon-audit FAILED: binding_unavailable: ))"
+      ]
+    },
+    {
+      "name": "cfg_js",
+      "exit_code": 2,
+      "compiler_status": "compiler_verified",
+      "semantic_status": "incomplete",
+      "binding_queries": 1,
+      "route_count": 0,
+      "semantic_findings": [],
+      "semantic_errors": [
+        "binding_unavailable: <PROJECT>/probe.mbt:3:7: Failure(src/security_frontend/lower.mbt:206:7-206:19@minie135/moon-audit FAILED: Failure(src/project_driver/project.mbt:498:5-498:45@minie135/moon-audit FAILED: binding_unavailable: ))"
+      ]
+    }
+  ],
+  "interpretation": [
+    "inline_test incorrectly produces a production semantic finding for a test-only callback.",
+    "Disabled #cfg callbacks produce incomplete binding errors, not semantic findings.",
+    "These are baseline counterexamples and do not assert any new implementation result."
+  ]
+}

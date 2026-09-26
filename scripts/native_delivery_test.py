@@ -449,6 +449,23 @@ class NativeDelivery(unittest.TestCase):
         self.assertEqual(Path(report["findings"][0]["file"]).resolve(),
                          (self.project / "danger.mbt").resolve())
 
+    def test_compiler_selected_source_must_be_in_snapshot(self):
+        # The actual compiler accepts an explicit source root inside _build,
+        # while the audit snapshot intentionally skips build output directories.
+        (self.project / "moon.mod").write_text(
+            'name = "fixture/delivery"\nsource = "_build/source"\n', encoding="utf-8")
+        source = self.project / "_build/source"
+        source.mkdir(parents=True)
+        (source / "moon.pkg").write_text("", encoding="utf-8")
+        (source / "untracked.mbt").write_text(SOURCE, encoding="utf-8")
+        report = self.json_report("--verify-project", *self.compiler_arguments(),
+                                  code=2, isolated=False, timeout=90)
+        verification = self.assert_verification(report, "scope_incomplete")
+        self.assertIn("compiler_input_outside_snapshot", verification["detail"])
+        self.assertTrue(verification["compilation_units"])
+        self.assertTrue(any(p.endswith("/untracked.mbt") for p in verification["compiler_files"]))
+        self.assertFalse(any(p.endswith("/untracked.mbt") for p in verification["snapshot_sha256"]))
+
     def test_real_project_toolchain_and_findings_exit_policy(self):
         args = ["--verify-project", *self.compiler_arguments(), "--target", "native",
                 "--analysis", "syntax", "--timeout-seconds", "60"]

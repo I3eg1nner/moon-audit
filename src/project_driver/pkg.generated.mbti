@@ -1,8 +1,14 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "minie135/moon-audit/src/project_driver"
 
+import {
+  "moonbitlang/core/debug",
+}
+
 // Values
 pub fn absolute(String) -> String
+
+pub fn compilation_units(String, String, String, String) -> Result[Array[CompilationUnit], String]
 
 pub async fn definition(String, String, String?, String, Int, Int, Bool) -> Json
 
@@ -27,12 +33,57 @@ pub async fn verify(String, String, String?, String, Int) -> Verification
 // Errors
 
 // Types and methods
+pub(all) struct CompilationUnit {
+  id : String
+  module_root : String
+  module_name : String
+  package_name : String
+  package_root : String
+  package_kind : String
+  target : String
+  role : CompileRole
+  inputs : Array[SourceInput]
+} derive(Eq, @debug.Debug)
+pub fn CompilationUnit::equal(Self, Self) -> Bool
+pub fn CompilationUnit::not_equal(Self, Self) -> Bool
+pub fn CompilationUnit::to_json(Self) -> Json
+pub fn CompilationUnit::to_repr(Self) -> @debug.Repr
+
+pub(all) enum CompileRole {
+  Production
+  WhiteboxTest
+  BlackboxTest
+} derive(Eq, @debug.Debug)
+pub fn CompileRole::equal(Self, Self) -> Bool
+pub fn CompileRole::label(Self) -> String
+pub fn CompileRole::not_equal(Self, Self) -> Bool
+pub fn CompileRole::to_repr(Self) -> @debug.Repr
+
+pub(all) enum InputMode {
+  Source
+  DoctestOnly
+} derive(Eq, @debug.Debug)
+pub fn InputMode::equal(Self, Self) -> Bool
+pub fn InputMode::label(Self) -> String
+pub fn InputMode::not_equal(Self, Self) -> Bool
+pub fn InputMode::to_repr(Self) -> @debug.Repr
+
+pub(all) struct SourceInput {
+  path : String
+  mode : InputMode
+} derive(Eq, @debug.Debug)
+pub fn SourceInput::equal(Self, Self) -> Bool
+pub fn SourceInput::not_equal(Self, Self) -> Bool
+pub fn SourceInput::to_json(Self) -> Json
+pub fn SourceInput::to_repr(Self) -> @debug.Repr
+
 pub(all) struct Verification {
   status : String
   detail : String
   toolchain : String
   target : String
   files : Array[String]
+  units : Array[CompilationUnit]
   unsupported : Array[String]
   snapshot : Map[String, String]
 }

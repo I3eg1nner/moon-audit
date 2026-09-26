@@ -1,0 +1,161 @@
+{
+  "schema": "moon-audit.compilation-context-observations.v1",
+  "date": "2026-09-26",
+  "status": "official_cli_observations_not_new_analyzer_acceptance",
+  "toolchains": {
+    "current": "moon 0.1.20260920 (914d7da 2026-09-20) <CURRENT_TOOLCHAIN>/bin/moon\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) <CURRENT_TOOLCHAIN>/bin/moonc\nmoonrun 0.1.20260920 (914d7da 2026-09-20) <CURRENT_TOOLCHAIN>/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg\n",
+    "historical": "moon 0.1.20251030 (cf54fca 2025-10-30) <HISTORICAL_TOOLCHAIN>/bin/moon\nmoonc v0.6.30+07d9d2445 (2025-10-30) <HISTORICAL_TOOLCHAIN>/bin/moonc\nmoonrun 0.1.20251030 (cf54fca 2025-10-30) <HISTORICAL_TOOLCHAIN>/bin/moonrun\nmoon-pilot 0.0.1-df92511 (2025-10-31) <HISTORICAL_TOOLCHAIN>/bin/moon-pilot\n"
+  },
+  "argument_arity": {
+    "current": {
+      "value": [
+        "-i",
+        "-o",
+        "-target",
+        "-pkg",
+        "-all-pkgs",
+        "-pkg-sources",
+        "-workspace-path",
+        "-std-path",
+        "-pkg-type",
+        "-error-format",
+        "-patch-file",
+        "-replace-name",
+        "-replace-content",
+        "-check-mi",
+        "-cfg",
+        "-doctest-only",
+        "-w",
+        "-alert"
+      ],
+      "noarg": [
+        "-is-main",
+        "-single-file",
+        "-blackbox-test",
+        "-whitebox-test",
+        "-output-json",
+        "-no-mi",
+        "-include-doctests",
+        "-ignore-import-declaration",
+        "-warn-help",
+        "-help",
+        "--help"
+      ],
+      "other": {}
+    },
+    "historical": {
+      "value": [
+        "-i",
+        "-o",
+        "-target",
+        "-pkg",
+        "-pkg-sources",
+        "-workspace-path",
+        "-std-path",
+        "-error-format",
+        "-patch-file",
+        "-check-mi",
+        "-cfg",
+        "-doctest-only",
+        "-w",
+        "-alert"
+      ],
+      "noarg": [
+        "-is-main",
+        "-single-file",
+        "-blackbox-test",
+        "-whitebox-test",
+        "-no-mi",
+        "-include-doctests",
+        "-warn-help",
+        "-help",
+        "--help"
+      ],
+      "other": {}
+    }
+  },
+  "observed_projects": {
+    "current-root": {
+      "exit_code": 0,
+      "command_count": 69,
+      "role_counts": {
+        "production": 53,
+        "whitebox": 2,
+        "blackbox": 14
+      },
+      "raw_plan_sha256": "63377644ba61066ef4313f89c7c3bfbfeb1414b145d2f8c4e8b44258e9eb95b4"
+    },
+    "current-mocket": {
+      "exit_code": 0,
+      "command_count": 64,
+      "role_counts": {
+        "production": 46,
+        "whitebox": 1,
+        "blackbox": 17
+      },
+      "raw_plan_sha256": "29dc6a1996b77fb96d1addeb465faae5161015a470e450838970d26e6219f37d"
+    },
+    "historical-quickcheck": {
+      "exit_code": 0,
+      "command_count": 18,
+      "role_counts": {
+        "production": 9,
+        "whitebox": 0,
+        "blackbox": 9
+      },
+      "raw_plan_sha256": "051032bd647ceb3aa956a9b09117a2b685be49bf3045a53c67a63863f38ff10b"
+    },
+    "historical-testfiles": {
+      "exit_code": 0,
+      "command_count": 3,
+      "role_counts": {
+        "production": 1,
+        "whitebox": 1,
+        "blackbox": 1
+      },
+      "raw_plan_sha256": "1322a3555820e57bf3a31fd96b8110f9b07a6e16b0d15401d264ad112b3551a7"
+    }
+  },
+  "module_fixture": {
+    "moon.mod": "name = \"audit/identity_probe\"\nversion = \"0.1.0\"\nsource = \"src\"\n",
+    "src/lib/moon.pkg.json": {
+      "targets": {
+        "backend_native.mbt": [
+          "native"
+        ],
+        "backend_js.mbt": [
+          "js"
+        ]
+      }
+    },
+    "src/lib/lib.mbt": "pub fn identity(value : String) -> String { value }\n",
+    "src/lib/lib_test.mbt": "test \"blackbox\" { assert_eq(@lib.identity(\"ok\"), \"ok\") }\n",
+    "src/lib/lib_wbtest.mbt": "test \"whitebox\" { assert_eq(identity(\"ok\"), \"ok\") }\n",
+    "src/lib/backend_native.mbt": "pub fn selected() -> String { \"native\" }\n",
+    "src/lib/backend_js.mbt": "pub fn selected() -> String { \"js\" }\n"
+  },
+  "backend_checks": {
+    "native-check": {
+      "exit_code": 0
+    },
+    "js-check": {
+      "exit_code": 0
+    }
+  },
+  "native_plan": [
+    "moonc check ./src/lib/backend_native.mbt ./src/lib/lib.mbt ./src/lib/lib_wbtest.mbt -o ./_build/native/debug/check/lib/lib.whitebox_test.mi -pkg audit/identity_probe/lib -pkg-type library -std-path '$MOON_HOME/lib/core/_build/native/release/bundle' -i '$MOON_HOME/lib/core/_build/native/release/bundle/prelude/prelude.mi:prelude' -pkg-sources audit/identity_probe/lib:./src/lib -target native -whitebox-test -workspace-path . -all-pkgs ./_build/native/debug/check/all_pkgs.json",
+    "moonc check ./src/lib/backend_native.mbt ./src/lib/lib.mbt -o ./_build/native/debug/check/lib/lib.mi -pkg audit/identity_probe/lib -pkg-type library -std-path '$MOON_HOME/lib/core/_build/native/release/bundle' -i '$MOON_HOME/lib/core/_build/native/release/bundle/prelude/prelude.mi:prelude' -pkg-sources audit/identity_probe/lib:./src/lib -target native -workspace-path . -all-pkgs ./_build/native/debug/check/all_pkgs.json",
+    "moonc check ./src/lib/lib_test.mbt -doctest-only ./src/lib/backend_native.mbt -doctest-only ./src/lib/lib.mbt -include-doctests -o ./_build/native/debug/check/lib/lib.blackbox_test.mi -pkg audit/identity_probe/lib_blackbox_test -pkg-type library -std-path '$MOON_HOME/lib/core/_build/native/release/bundle' -i ./_build/native/debug/check/lib/lib.mi:lib -i '$MOON_HOME/lib/core/_build/native/release/bundle/prelude/prelude.mi:prelude' -pkg-sources audit/identity_probe/lib_blackbox_test:./src/lib -target native -blackbox-test -workspace-path . -all-pkgs ./_build/native/debug/check/all_pkgs.json"
+  ],
+  "js_plan": [
+    "moonc check ./src/lib/backend_js.mbt ./src/lib/lib.mbt ./src/lib/lib_wbtest.mbt -o ./_build/js/debug/check/lib/lib.whitebox_test.mi -pkg audit/identity_probe/lib -pkg-type library -std-path '$MOON_HOME/lib/core/_build/js/release/bundle' -i '$MOON_HOME/lib/core/_build/js/release/bundle/prelude/prelude.mi:prelude' -pkg-sources audit/identity_probe/lib:./src/lib -target js -whitebox-test -workspace-path . -all-pkgs ./_build/js/debug/check/all_pkgs.json",
+    "moonc check ./src/lib/backend_js.mbt ./src/lib/lib.mbt -o ./_build/js/debug/check/lib/lib.mi -pkg audit/identity_probe/lib -pkg-type library -std-path '$MOON_HOME/lib/core/_build/js/release/bundle' -i '$MOON_HOME/lib/core/_build/js/release/bundle/prelude/prelude.mi:prelude' -pkg-sources audit/identity_probe/lib:./src/lib -target js -workspace-path . -all-pkgs ./_build/js/debug/check/all_pkgs.json",
+    "moonc check ./src/lib/lib_test.mbt -doctest-only ./src/lib/backend_js.mbt -doctest-only ./src/lib/lib.mbt -include-doctests -o ./_build/js/debug/check/lib/lib.blackbox_test.mi -pkg audit/identity_probe/lib_blackbox_test -pkg-type library -std-path '$MOON_HOME/lib/core/_build/js/release/bundle' -i ./_build/js/debug/check/lib/lib.mi:lib -i '$MOON_HOME/lib/core/_build/js/release/bundle/prelude/prelude.mi:prelude' -pkg-sources audit/identity_probe/lib_blackbox_test:./src/lib -target js -blackbox-test -workspace-path . -all-pkgs ./_build/js/debug/check/all_pkgs.json"
+  ],
+  "identity_facts": [
+    "Package is audit/identity_probe/lib despite source directory src/lib.",
+    "Ordinary lib.mbt occurs in production and whitebox source inputs, and blackbox doctest-only inputs.",
+    "Role comes from explicit test flags, not package-name suffix.",
+    "File selection does not select individual #cfg declarations."
+  ]
+}

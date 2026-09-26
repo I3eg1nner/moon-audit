@@ -42,21 +42,18 @@ fn read_module_identity(
       return ImportContext::empty()
     }
   }
-  let json = if modern {
-    let (ast, reports) = @moon_config.parse_moon_mod(source, name=file)
-    let validation = @moon_config.validate_moon_mod(ast)
-    if !reports.is_empty() || !validation.is_empty() {
-      errors.push("Invalid module configuration: " + file)
+  let json = match @project_config.parse_module(source, modern, name=file) {
+    Some(json) => json
+    None => {
+      errors.push(
+        (if modern {
+          "Invalid module configuration: "
+        } else {
+          "Invalid or duplicate module JSON: "
+        }) +
+        file,
+      )
       return ImportContext::empty()
-    }
-    ToJson::to_json(ast)
-  } else {
-    match parse_project_json(source) {
-      Some(parsed) => parsed
-      None => {
-        errors.push("Invalid or duplicate module JSON: " + file)
-        return ImportContext::empty()
-      }
     }
   }
   match json {

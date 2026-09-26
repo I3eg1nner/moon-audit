@@ -78,6 +78,12 @@ jobs:
           export ANALYZER="$PWD/dist/extracted/moon-audit"
           if [ "${{ runner.os }}" = Windows ]; then export ANALYZER="$ANALYZER.exe"; fi
           python scripts/cross_package_test.py --corpus "${{ runner.temp }}/moon-audit-models/mocket" --luna-source "${{ runner.temp }}/moon-audit-models/luna" --output dist/cross-package-acceptance.json
+      - name: Accept compiler contexts and planned bindings
+        shell: bash
+        run: |
+          export ANALYZER="$PWD/dist/extracted/moon-audit"
+          if [ "${{ runner.os }}" = Windows ]; then export ANALYZER="$ANALYZER.exe"; fi
+          python scripts/compilation_context_test.py --corpus "${{ runner.temp }}/moon-audit-models/mocket" --output dist/compilation-context-acceptance.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:

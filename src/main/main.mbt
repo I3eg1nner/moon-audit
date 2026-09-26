@@ -27,7 +27,7 @@ async fn main {
       @sys.exit(2)
       return
     }
-    let report = @semantic.analyze(raw[2], raw[3], home, verified.files)
+    let report = @semantic.analyze(raw[2], raw[3], home, verified.units)
     let complete = @audit.semantic_complete(report) &&
       @project.unchanged(verified.snapshot, raw[2])
     if report is Object(fields) {

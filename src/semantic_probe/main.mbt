@@ -32,7 +32,7 @@ async fn main {
     root,
     executable,
     Some(home),
-    verification.files,
+    verification.units,
   )
   if !@project.unchanged(verification.snapshot, root) {
     println("project_changed")

@@ -1,0 +1,46 @@
+{
+  "schema": "moon-audit.compilation-context-delivery.v1",
+  "platform": "linux",
+  "analyzer_sha256": "e3f02d51de093a7100fe05244d5fa892702f93266f833600b3417ccedc2e843c",
+  "units": {
+    "wasm": 93,
+    "wasm-gc": 93,
+    "js": 93,
+    "native": 103
+  },
+  "native_delivery": 37,
+  "process_supervision": 4,
+  "cli_regression": 22,
+  "suites": {
+    "context": {
+      "status": "passed",
+      "cases": 7,
+      "analyzer_sha256": "e3f02d51de093a7100fe05244d5fa892702f93266f833600b3417ccedc2e843c",
+      "report": "context-acceptance.json.gz",
+      "sha256": "0ae1528ce71a9ade4d8dc29662447b08f9909902e53b45f69b764ca60bd48009"
+    },
+    "cross-package": {
+      "status": "passed",
+      "cases": 9,
+      "analyzer_sha256": "e3f02d51de093a7100fe05244d5fa892702f93266f833600b3417ccedc2e843c",
+      "report": "cross-package-acceptance.json.gz",
+      "sha256": "bf89fb60594f5756d5fc7b9a0a4988e49b0bd836a16297af580958f13793f5a7"
+    },
+    "semantic": {
+      "status": "passed",
+      "cases": 16,
+      "analyzer_sha256": "e3f02d51de093a7100fe05244d5fa892702f93266f833600b3417ccedc2e843c",
+      "report": "semantic-acceptance.json.gz",
+      "sha256": "0ec6d3150e13441cc2f1b55e2d713ae7d745da68e825f8fed19991b9f6ff4999"
+    },
+    "cmark": {
+      "status": "passed",
+      "cases": 14,
+      "analyzer_sha256": "e3f02d51de093a7100fe05244d5fa892702f93266f833600b3417ccedc2e843c",
+      "report": "cmark-acceptance.json.gz",
+      "sha256": "99c5734449556afc31d625984dbc84498c5b6dd477e02f0ce108edd98ac4e3f1"
+    }
+  },
+  "independent_static_review": "no remaining blocking findings; generated interfaces and dependency parameter tests subsequently synchronized",
+  "three_platform_ci": "pending"
+}

@@ -1,9 +1,9 @@
 import {
+  "minie135/moon-audit/src/project_config",
   "moonbitlang/core/string",
   "minie135/moon-audit/src/source_parser",
   "minie135/moon-audit/src/vendor/parser_compat/syntax",
   "moonbitlang/lexer/basic",
-  "moonbitlang/moon_config",
   "moonbitlang/x/fs",
   "moonbitlang/x/path",
   "moonbitlang/core/json",
