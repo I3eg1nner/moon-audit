@@ -29,4 +29,16 @@ python scripts/cross_package_test.py --analyzer /path/to/moon-audit \
 
 测试同时覆盖未建模外部调用/运算符、未支持转义、300 个无关调用、实际到达的绑定预算，以及失败辅助函数通过中间函数后被第二个回调再次调用。CI 从提取的交付包运行，保存 `cross-package-acceptance.json`。
 
-最终本地结果、回归与三平台交付证据在本轮验收完成后登记。
+## 本地结果
+
+最终 Linux 二进制 SHA `1e2db4cd4b2574b207862f1fc48d65bc599bbf878fa5351ae4c28f38435f8a50` 的 9 组跨包验收通过，原包及附加运行断言 15 项通过。全目标单测 wasm/wasm-gc/JS 各 93、native 97 通过。
+
+- 冷/热分别约 8.4/7.3 秒，均 41 次绑定；加入 300 个无关调用约 7.6 秒，仍 41 次。
+- 真正到达的 260 个调用在 256 次绑定上限处明确不完整，约 34.6 秒。
+- Luna 包约 5.5 秒、24 次绑定，保持预期的部分路径与未知 HTML 上下文。
+
+以上仅单次本地观测，不是跨机器性能承诺。完整记录见 [linux-acceptance.json.gz](linux-acceptance.json.gz)、[summary.json](summary.json)。修复前证据：[无关调用耗尽预算](baseline-budget.json.gz)、[失败函数被后续回调复用](baseline-failed-helper.json.gz)。前测用插值转发，后测增加了 String `+`，不把两者查询数差异当作优化幅度。
+
+最终二进制回归：原生交付 36、进程监督 4、CLI 22、[受限语义 16](linux-semantic-regression.json.gz)、[cmark 14](linux-cmark-regression.json.gz) 通过。
+
+独立 subagent 源码及边界复核未发现阻断项；[PR #6](https://github.com/I3eg1nner/moon-audit/pull/6) 提供三平台检查状态和提取产物的验收报告。

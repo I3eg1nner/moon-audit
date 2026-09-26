@@ -7,7 +7,7 @@
 - [x] 修复无关函数耗尽绑定预算、失败辅助函数 IR 被后续回调复用两个问题。
 - [x] String `+` 以官方声明身份和文件指纹建模；源字符串简单转义解码，未核实数值转义明确拒绝。
 - [x] 固定 Luna 原生产包作为受控调用方实验；未知 HTML 属性上下文保留 partial，不宣称 Luna 漏洞或完整应用分析。
-- [ ] 本轮最终本地验收、独立复核和三平台 CI 完成后合并；记录见[跨包实验](experiments/cross_package/README.md)。
+- [x] 最终本地 9 组跨包验收、独立复核、原包 15 项运行测试通过；三平台提取产物验收已接入 CI，状态见 [PR #6](https://github.com/I3eg1nner/moon-audit/pull/6) 与[跨包实验](experiments/cross_package/README.md)。
 
 ## 2026-09-26：以项目通用性为先
 
