@@ -216,7 +216,8 @@ def main():
     record = None
     try:
         with tempfile.TemporaryDirectory(prefix='moon-audit-cross-package-') as directory:
-            suite = CrossPackage(args, Path(directory))
+            # Match compiler canonical paths (macOS /var -> /private/var).
+            suite = CrossPackage(args, Path(directory).resolve())
             record = suite.record
             record['schema'] = 'moon-audit.cross-package-acceptance.v1'
             suite.run()
