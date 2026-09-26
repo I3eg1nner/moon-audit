@@ -27,7 +27,9 @@ python scripts/cross_package_test.py --analyzer /path/to/moon-audit \
   --output /tmp/cross-package-acceptance.json
 ```
 
-测试同时覆盖未建模外部调用/运算符、未支持转义、300 个无关调用、实际到达的绑定预算，以及失败辅助函数通过中间函数后被第二个回调再次调用。CI 从提取的交付包运行，保存 `cross-package-acceptance.json`。
+测试同时覆盖未建模外部调用/运算符、未支持转义、300 个无关调用、实际到达的绑定预算，以及失败辅助函数通过中间函数后被第二个回调再次调用。CI 从提取的交付包运行，保存 `cross-package-acceptance.json`。临时根解析为真实路径，兼容 macOS `/var` 别名与 Windows 短路径，仍严格匹配完整声明身份。
+
+资源验收区分两种限制：Linux/macOS 必须观察到 256 次绑定及明确拒绝；Windows 实测可能先达到 60 秒 worker 上限，此时必须返回 2、保留语法线索、报告精确的 TimeoutError 且不能产生已完成语义路径。`reached_body_limit` 记录实际触发项，不能把 Windows 超时写成实测 256 次；生产预算没有提高。
 
 ## 本地结果
 
