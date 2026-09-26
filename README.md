@@ -14,6 +14,8 @@
 
 前端使用固定官方 parser 0.4.0 加窄范围兼容补丁，已支持旧 `try?`、`loop` 的语法扫描；报告显示 `0.4.0+moon-audit-legacy.1`。未建模的旧构造在语义模式仍报不完整。[真实新版/2025 项目对照与边界](experiments/frontend_compat/README.md)
 
+普通目录扫描识别 `.mbt`、`.mbt.md`、`.mbtx` 输入；目前仅解析 `.mbt`，其余逐文件记录为 `unsupported` 并返回 2，已有发现保留。增量列表、排除策略和已识别的编译计划同样约束这些输入。嵌套模块以各自最近的 `moon.mod` / `moon.mod.json` 判断模块身份，止于扫描根；包导入仍只取本包配置。这不等于自动编译整个工作区。[输入契约与复测](experiments/project_inputs/README.md)
+
 ## 本地使用与构建
 
 用户运行原生二进制无需 Python。默认源码扫描也无需目标项目工具链；项目验证和语义模式需要项目工具链及已准备的依赖。
@@ -45,6 +47,8 @@ Linux x86_64、macOS arm64、Windows x86_64 的原生开发包可从[原生交�
 新增独立 Python 助手，支持自定义 OpenAI 兼容 API：先从 JSON 报告准备有限源码上下文，再核验模型引用、源码指纹和发现 ID。支持标准环境变量及 `Base_URL` / `Model` / `API_KEY`；`.env` 必须显式指定。所有模型意见均为 `llm_unverified`，不改变静态证据或 baseline。原生包附带 `extras/` 助手；仅此可选功能需要 Python 3.12+。[使用与边界](docs/llm-review.md)
 
 已固定 Mooncakes 下载榜和 GitHub stars 榜各 12 个版本进行检查：23 个样本导入成功，15 个完成所请求的语法范围、8 个不完整，另 1 个归档因外部符号链接未导入。默认发现 2 条，全部规则发现 447 条语法线索；这些数量不是漏洞数。[完整结果、LLM 联调及后续优先级](experiments/popular_projects/README.md)
+
+2026-09-26 重测相同 23 个已导入样本：4,541 个此前可解析 `.mbt` 和 2 条默认发现保持不变，18 个项目新披露 306 个未支持输入；4 项完成、19 项不完整。这是输入范围披露的修正，不代表解析退步或漏洞增加。[重测](experiments/project_inputs/README.md)
 
 后续已修复 core/actrun 的文档链接验证阻断，并使不完整报告继续遵守编译器文件计划；两者的 `.mbt.md` 缺口仍明确报不完整。[优化实测](experiments/popular_projects/optimization-2026-09-25/README.md)
 
@@ -90,7 +94,7 @@ moon-audit generate-baseline --verify-project \
 
 baseline 只抑制记录的发现，不能清除不完整状态；不完整扫描不会覆盖 baseline。
 
-`analysis_manifest` 记录逐文件 `parsed`、`parse_failed`、`read_failed`、`skipped`，及逐规则 `evaluated`、`disabled`、`gated_out`。语法 `evaluated` 仅表示规则执行，`gated_out` 依据导入提示而非 API 身份。`files_selected` 与 `files_parsed` 分开计数；旧 `files_scanned` 表示已读取并尝试解析。排除目录与测试文件在选择策略中披露，不计为已检查内容。
+`analysis_manifest` 记录逐文件 `parsed`、`parse_failed`、`read_failed`、`unsupported`、`skipped`，及逐规则 `evaluated`、`disabled`、`gated_out`。语法 `evaluated` 仅表示规则执行，`gated_out` 依据导入提示而非 API 身份。`files_selected` 与 `files_parsed` 分开计数；旧 `files_scanned` 表示已读取并尝试解析。排除目录与测试文件在选择策略中披露，不计为已检查内容。
 
 `project_verification` 记录工具链、后端、编译选源、策略排除/缺失文件和 SHA-256 快照账本指纹。验证执行 `moon check --frozen` 及同工具链文件计划，可能写入构建缓存。默认 `--timeout-seconds 300` 限制每次外部命令，不是全项目总预算；stdout/stderr 各限 16 MiB。快照最多 100000 个相关文件、单文件 16 MiB、累计 256 MiB，遍历检查 30 秒；特殊路径、源码或依赖变化使验证失效。
 
@@ -98,7 +102,7 @@ baseline 只抑制记录的发现，不能清除不完整状态；不完整扫�
 
 目标工具链负责判断项目是否能编译，打包的 parser 负责解析供分析使用，两者的兼容性分别报告。`moon.mod` 的版本是模块版本，不用来推断编译器版本。新 `moon.pkg` 与旧 `moon.pkg.json` 均可提供包导入提示。
 
-[三套 2026 工具链 × 四后端矩阵](docs/metrics/native-version-matrix-2026-09-25.json)通过便携语法的选源和规则对照，但不代表完整语言支持。真实 2025 QuickCheck 项目在对应 moon `0.1.20251030` / moonc `v0.6.30` 下可编译；30 个文件选择一致，当前 parser 仅解析 **16 个，14 个失败**，扫描返回 `scope_incomplete` / **2**。这是旧工具链接入的通过证据，也是旧语法覆盖不完整的证据，不能承诺任意老项目兼容。[历史项目验收](experiments/historical_project/README.md)
+[三套 2026 工具链 × 四后端矩阵](docs/metrics/native-version-matrix-2026-09-25.json)通过便携语法的选源和规则对照，但不代表完整语言支持。真实 2025 QuickCheck 项目在对应 moon `0.1.20251030` / moonc `v0.6.30` 下可编译；30 个文件选择一致，初次实验 parser 仅解析 **16 个，14 个失败**，扫描返回 `scope_incomplete` / **2**。后续有限兼容补丁已提升至 22/30（见上方前端对照）。这是旧工具链接入的通过证据，也是旧语法覆盖不完整的证据，不能承诺任意老项目兼容。[历史项目验收](experiments/historical_project/README.md)
 
 已知新语法 `for (x, y) in ...` 也存在编译器接受而 parser `0.4.0` 拒绝的差异。工具保留已解析文件的发现和明确错误，不把部分 AST 或零告警当成全项目完成。
 

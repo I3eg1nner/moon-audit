@@ -68,7 +68,7 @@ pub(all) struct RuleCoverage {
 ///|
 pub(all) struct FileCoverage {
   path : String
-  status : String // parsed, parse_failed, read_failed, or skipped
+  status : String // parsed, parse_failed, read_failed, unsupported, or skipped
   reason : String
   rules : Array[RuleCoverage]
 }

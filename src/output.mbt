@@ -153,6 +153,9 @@ fn analysis_manifest_json(result : ScanResult) -> Json {
       Json::string("backend_file_selection_not_verified"),
     ]
   }
+  if result.file_coverage.any(fn(file) { file.status == "unsupported" }) {
+    incomplete.push(Json::string("unsupported_source_inputs"))
+  }
   if !result.errors.is_empty() {
     incomplete.push(Json::string("scan_errors"))
   }
@@ -167,8 +170,10 @@ fn analysis_manifest_json(result : ScanResult) -> Json {
     ),
     "selection": {
       "enumerated_scope": Json::string(
-        "eligible_mbt_files_after_directory_exclusions",
+        "eligible_mbt_mbt_md_mbtx_files_after_directory_exclusions",
       ),
+      "supported_formats": [".mbt"],
+      "unsupported_formats": [".mbt.md", ".mbtx"],
       "implicit_excludes": Json::array([
         Json::string("dot_directories_and_files"),
         Json::string("_build"),

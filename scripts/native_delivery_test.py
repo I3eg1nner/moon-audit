@@ -141,6 +141,89 @@ class NativeDelivery(unittest.TestCase):
         self.assertEqual(report["files_parsed"], 1)
         self.assertTrue(report["errors"])
 
+    def test_unverified_scan_discloses_every_known_unsupported_format(self):
+        (self.project / "说明.mbt.md").write_text("```mbt check\n" + SOURCE + "```\n", encoding="utf-8")
+        (self.project / "tool.mbtx").write_text(SOURCE, encoding="utf-8")
+        (self.project / "README.md").write_text("```mbt\n" + SOURCE + "```\n", encoding="utf-8")
+        report = self.json_report(code=2)
+        self.assert_base_finding(report)
+        self.assertEqual((report["files_selected"], report["files_parsed"], report["files_scanned"]), (3, 1, 1))
+        entries = {Path(f["path"]).name: f for f in report["analysis_manifest"]["files"]}
+        self.assertEqual(set(entries), {"danger.mbt", "说明.mbt.md", "tool.mbtx"})
+        for name, reason in (("说明.mbt.md", "literate_input_requires_versioned_adapter"),
+                             ("tool.mbtx", "script_input_not_supported")):
+            self.assertEqual((entries[name]["status"], entries[name]["reason"], entries[name]["rules"]),
+                             ("unsupported", reason, []))
+        sarif = json.loads(self.run_cli("--format", "sarif", code=2).stdout)["runs"][0]
+        self.assertFalse(sarif["invocations"][0]["executionSuccessful"])
+        self.assertEqual([r["ruleId"] for r in sarif["results"]], [RULE])
+
+    def test_unsupported_only_directory_is_not_an_empty_success(self):
+        (self.project / "danger.mbt").unlink()
+        (self.project / "README.mbt.md").write_text("# 文档\n", encoding="utf-8")
+        report = self.json_report(code=2)
+        self.assertEqual((report["files_selected"], report["files_parsed"]), (1, 0))
+        self.assertEqual(report["findings"], [])
+        self.assertTrue(report["errors"])
+
+    def test_unsupported_inputs_follow_incremental_and_exclusion_selection(self):
+        for name in ("README.mbt.md", "tool.mbtx"):
+            (self.project / name).write_text("unsupported input", encoding="utf-8")
+        changed = self.work / "changed.txt"
+        changed.write_text("README.mbt.md\ntool.mbtx\n", encoding="utf-8")
+        report = self.json_report("--changed-files", changed, code=2)
+        self.assertEqual((report["files_selected"], report["files_parsed"]), (2, 0))
+        self.assertEqual(report["findings"], [])
+        changed.write_text("danger.mbt\n", encoding="utf-8")
+        report = self.json_report("--changed-files", changed)
+        self.assert_base_finding(report)
+        self.assertEqual(report["files_selected"], 1)
+        config = self.work / "config.json"
+        config.write_text(json.dumps({"exclude": ["*.mbt.md", "*.mbtx"]}), encoding="utf-8")
+        report = self.json_report("--config", config)
+        self.assert_base_finding(report)
+        self.assertEqual(report["files_selected"], 1)
+        self.assertEqual(report["analysis_manifest"]["selection"]["configured_excludes"], ["*.mbt.md", "*.mbtx"])
+
+    def test_nested_modules_do_not_inherit_stdlib_rule_exemption(self):
+        (self.project / "danger.mbt").write_text('fn f() { unsafe_from_int(42) }\n', encoding="utf-8")
+        (self.project / "moon.mod").write_text('name = "moonbitlang/core"\n', encoding="utf-8")
+        nested = self.project / "modules" / "nested"
+        nested.mkdir(parents=True)
+        (nested / "moon.mod.json").write_text(json.dumps({"name": "consumer/app"}), encoding="utf-8")
+        (nested / "moon.pkg.json").write_text("{}", encoding="utf-8")
+        (nested / "app.mbt").write_text('fn f() { unsafe_from_int(42) }\n', encoding="utf-8")
+        report = self.json_report("--rule", "CWE-676/unsafe-call")
+        self.assertEqual([Path(f["file"]).name for f in report["findings"]], ["app.mbt"])
+        self.assertEqual(report["files_parsed"], 2)
+        # Reversing module identities must also reverse the rule gate.
+        (self.project / "moon.mod").write_text('name = "consumer/root"\n', encoding="utf-8")
+        (nested / "moon.mod.json").write_text(json.dumps({"name": "moonbitlang/core"}), encoding="utf-8")
+        report = self.json_report("--rule", "CWE-676/unsafe-call")
+        self.assertEqual([Path(f["file"]).name for f in report["findings"]], ["danger.mbt"])
+
+    def test_invalid_nested_module_is_visible_without_dropping_findings(self):
+        nested = self.project / "nested"
+        nested.mkdir()
+        (nested / "moon.mod.json").write_text('{"name":', encoding="utf-8")
+        (nested / "app.mbt").write_text(SOURCE, encoding="utf-8")
+        report = self.json_report(code=2)
+        self.assertEqual({Path(f["file"]).name for f in report["findings"]}, {"danger.mbt", "app.mbt"})
+        self.assertTrue(any("moon.mod.json" in error for error in report["errors"]))
+
+    def test_legacy_jsonc_metadata_matches_real_compiler(self):
+        (self.project / "moon.mod").unlink()
+        (self.project / "moon.pkg").unlink()
+        (self.project / "moon.pkg.json").write_text('{ /* package */ "import": [], }', encoding="utf-8")
+        for content in ('{ // module\n "name": "fixture/delivery" }',
+                        '{ /* module */ "name": "fixture/delivery" }',
+                        '{ "name": "fixture/delivery", }'):
+            (self.project / "moon.mod.json").write_text(content, encoding="utf-8")
+            with self.subTest(content=content):
+                report = self.json_report("--verify-project", *self.compiler_arguments(), isolated=False, timeout=90)
+                self.assert_base_finding(report)
+                self.assert_verification(report, "compiler_verified")
+
     def test_semantic_and_unknown_analysis_are_rejected(self):
         for mode in ("semantic", "unknown"):
             with self.subTest(mode=mode):
@@ -318,9 +401,11 @@ class NativeDelivery(unittest.TestCase):
         self.assertIn("unsupported", verification["detail"])
         self.assertTrue(any(p.endswith("/README.mbt.md") for p in verification["unsupported_files"]))
         self.assertTrue(any("unsupported" in e for e in report["errors"]))
-        self.assertEqual(report["files_selected"], 1)
+        self.assertEqual(report["files_selected"], 2)
         self.assertEqual(report["files_parsed"], 1)
         self.assert_base_finding(report)
+        unsupported = [f for f in report["analysis_manifest"]["files"] if f["status"] == "unsupported"]
+        self.assertEqual([Path(f["path"]).name for f in unsupported], ["README.mbt.md"])
         self.assertFalse(any(p.endswith("/js_only.mbt") for p in verification["compiler_files"]))
 
     def test_literate_only_plan_does_not_scan_other_backend_sources(self):
@@ -336,9 +421,11 @@ class NativeDelivery(unittest.TestCase):
         verification = self.assert_verification(report, "scope_incomplete")
         self.assertEqual(verification["compiler_files"], [])
         self.assertTrue(verification["unsupported_files"])
-        self.assertEqual(report["files_selected"], 0)
+        self.assertEqual(report["files_selected"], 1)
         self.assertEqual(report["files_parsed"], 0)
         self.assertEqual(report["findings"], [])
+        self.assertEqual([Path(f["path"]).name for f in report["analysis_manifest"]["files"]
+                          if f["status"] == "unsupported"], ["README.mbt.md"])
 
     def test_real_document_named_directory_keeps_source_in_snapshot(self):
         directory = self.project / "README.md"

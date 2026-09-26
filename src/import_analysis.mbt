@@ -23,8 +23,9 @@ fn analyze_imports_checked(pkg_dir : String) -> (ImportContext, String?) {
   let content = read_regular_text(legacy_path) catch {
     _ => return (ImportContext::empty(), Some("Failed to read " + legacy_path))
   }
-  let json = @json.parse(content) catch {
-    _ =>
+  let json = match parse_project_json(content) {
+    Some(parsed) => parsed
+    None =>
       return (
         ImportContext::empty(),
         Some("Invalid package JSON: " + legacy_path),
