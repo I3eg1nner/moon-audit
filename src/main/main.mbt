@@ -451,7 +451,8 @@ async fn scan(matches : @argparse.Matches, baseline : Bool) -> Unit {
   let selected = match verification {
     Some(v) =>
       if v.status == "compiler_verified" || v.status == "scope_incomplete" {
-        Some(v.files)
+        // Include unsupported inputs in the manifest without broadening the plan.
+        Some(v.files + v.unsupported)
       } else {
         None
       }

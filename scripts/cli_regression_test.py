@@ -195,7 +195,7 @@ class CliRegression(unittest.TestCase):
         self.assertEqual(manifest['schema'], 'moon-audit.analysis-manifest.v1')
         self.assertEqual(manifest['verification'], 'syntax_only')
         self.assertEqual(manifest['selection']['incremental'], True)
-        self.assertEqual(manifest['selection']['enumerated_scope'], 'eligible_mbt_files_after_directory_exclusions')
+        self.assertEqual(manifest['selection']['enumerated_scope'], 'eligible_mbt_mbt_md_mbtx_files_after_directory_exclusions')
         files = {Path(f['path']).name: f for f in manifest['files']}
         self.assertEqual(files['foo.mbt']['status'], 'parsed')
         self.assertEqual(files['broken.mbt']['status'], 'parse_failed')

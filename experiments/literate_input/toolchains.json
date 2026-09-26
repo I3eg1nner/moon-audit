@@ -1,0 +1,12 @@
+{
+  "current": {
+    "home": "/tmp/moon-audit-upgrade-20260922/toolchain",
+    "moonc_sha256": "d163b2c4c878ca584870764b75e633d73e8b9c178dcc6b00c692f6b2a6b1b2dc",
+    "version": "v0.10.14+7d59c7ec9 (2026-09-18)"
+  },
+  "historical": {
+    "home": "/tmp/moon-audit-historical-2025/toolchain",
+    "moonc_sha256": "0c608dbdc8cb5b62a10a5f77ee8ff25c8bb27d2f9ac9aa27f20529a4cd1566da",
+    "version": "v0.6.30+07d9d2445 (2025-10-30)"
+  }
+}

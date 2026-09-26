@@ -39,7 +39,7 @@ def main():
     if not core_license.is_file():
         parser.error(f'core license missing from build toolchain: {core_license}')
     dependencies = {}
-    for dependency in ('parser', 'lexer', 'x', 'async'):
+    for dependency in ('parser', 'lexer', 'moon_config', 'x', 'async'):
         manifest = ROOT / '.mooncakes/moonbitlang' / dependency / 'moon.mod'
         dependencies[dependency] = hashlib.sha256(manifest.read_bytes()).hexdigest()
     info = {'version': version, 'toolchain': toolchain, 'host': platform.platform(),
@@ -70,7 +70,7 @@ def main():
         package.write(metadata, 'build-info.json')
         notices = ['moon-audit parser compatibility frontend: modified Apache-2.0 sources; see licenses/parser-compat/NOTICE and compat.patch']
         apache_text = ROOT / '.mooncakes/moonbitlang/parser/LICENSE'
-        for dependency in ('parser', 'lexer', 'x', 'async'):
+        for dependency in ('parser', 'lexer', 'moon_config', 'x', 'async'):
             module = ROOT / '.mooncakes/moonbitlang' / dependency
             manifest = module / 'moon.mod'
             metadata_text = manifest.read_text(encoding='utf-8')

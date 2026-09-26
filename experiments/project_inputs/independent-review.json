@@ -1,0 +1,116 @@
+{
+  "analyzer_sha256": "1fd20be6421298f9ffcb5093a49f423b6a84b27695a01c92109b8149a5e6ac6a",
+  "status": "passed",
+  "cases": [
+    {
+      "case": "line-comment",
+      "exit": 0,
+      "findings": 1,
+      "selected": 1,
+      "parsed": 1,
+      "errors": []
+    },
+    {
+      "case": "block-comment",
+      "exit": 0,
+      "findings": 1,
+      "selected": 1,
+      "parsed": 1,
+      "errors": []
+    },
+    {
+      "case": "trailing-comma",
+      "exit": 0,
+      "findings": 1,
+      "selected": 1,
+      "parsed": 1,
+      "errors": []
+    },
+    {
+      "case": "duplicate-name",
+      "exit": 2,
+      "findings": 1,
+      "selected": 1,
+      "parsed": 1,
+      "errors": [
+        "Invalid or duplicate module JSON: /tmp/moon-audit-review-final-config-cxj91fti/duplicate-name/moon.mod.json"
+      ]
+    },
+    {
+      "case": "escaped-duplicate-name",
+      "exit": 2,
+      "findings": 1,
+      "selected": 1,
+      "parsed": 1,
+      "errors": [
+        "Invalid or duplicate module JSON: /tmp/moon-audit-review-final-config-cxj91fti/escaped-duplicate-name/moon.mod.json"
+      ]
+    },
+    {
+      "case": "exact-stdlib-jsonc",
+      "exit": 0,
+      "findings": 0,
+      "selected": 1,
+      "parsed": 1,
+      "errors": []
+    },
+    {
+      "case": "string-marker",
+      "exit": 0,
+      "findings": 1,
+      "selected": 1,
+      "parsed": 1,
+      "errors": []
+    },
+    {
+      "case": "json5-unquoted",
+      "exit": 2,
+      "findings": 1,
+      "selected": 1,
+      "parsed": 1,
+      "errors": [
+        "Invalid or duplicate module JSON: /tmp/moon-audit-review-final-config-cxj91fti/json5-unquoted/moon.mod.json"
+      ]
+    },
+    {
+      "case": "json5-single-quoted",
+      "exit": 2,
+      "findings": 1,
+      "selected": 1,
+      "parsed": 1,
+      "errors": [
+        "Invalid or duplicate module JSON: /tmp/moon-audit-review-final-config-cxj91fti/json5-single-quoted/moon.mod.json"
+      ]
+    },
+    {
+      "case": "empty-comma",
+      "exit": 2,
+      "findings": 1,
+      "selected": 1,
+      "parsed": 1,
+      "errors": [
+        "Invalid or duplicate module JSON: /tmp/moon-audit-review-final-config-cxj91fti/empty-comma/moon.mod.json"
+      ]
+    },
+    {
+      "case": "missing-value",
+      "exit": 2,
+      "findings": 1,
+      "selected": 1,
+      "parsed": 1,
+      "errors": [
+        "Invalid or duplicate module JSON: /tmp/moon-audit-review-final-config-cxj91fti/missing-value/moon.mod.json"
+      ]
+    },
+    {
+      "case": "broken-comment",
+      "exit": 2,
+      "findings": 1,
+      "selected": 1,
+      "parsed": 1,
+      "errors": [
+        "Invalid or duplicate module JSON: /tmp/moon-audit-review-final-config-cxj91fti/broken-comment/moon.mod.json"
+      ]
+    }
+  ]
+}

@@ -29,7 +29,8 @@ pub fn scan_project(
       errors.push("Not a readable regular module file: " + file)
     }
   }
-  let mod_imports = analyze_mod_imports(root)
+  let module_contexts : Map[String, ImportContext] = Map([])
+  ignore(module_context_for_directory(root, root, module_contexts, errors))
   let package_imports : Map[String, ImportContext] = Map([])
   let mut parse_failures = 0
   walk_pattern_files(root, config, errors, 0, fn(dir, file) {
@@ -54,6 +55,21 @@ pub fn scan_project(
       return
     }
     files_selected += 1
+    if !file.has_suffix(".mbt") {
+      let reason = if file.has_suffix(".mbt.md") {
+        "literate_input_requires_versioned_adapter"
+      } else {
+        "script_input_not_supported"
+      }
+      file_coverage.push({
+        path: file,
+        status: "unsupported",
+        reason,
+        rules: [],
+      })
+      errors.push("Unsupported source input: " + file + ": " + reason)
+      return
+    }
     if !(@fs.is_file(file) catch { _ => false }) {
       errors.push("Not a readable regular source file: " + file)
       file_coverage.push({
@@ -106,6 +122,9 @@ pub fn scan_project(
     }
     // Module dependencies only make packages available. Rule gates require
     // imports declared by this package; the module name still marks stdlib.
+    let mod_imports = module_context_for_directory(
+      dir, root, module_contexts, errors,
+    )
     let imports = {
       ..pkg_imports,
       is_stdlib: mod_imports.is_stdlib || pkg_imports.is_stdlib,
@@ -129,7 +148,7 @@ pub fn scan_project(
     ANALYZER_VERSION +
     " (moonbitlang/parser " +
     PARSER_SPEC_VERSION +
-    "); engine=syntax-pattern; interprocedural=false; type-resolution=false; sanitizer-resolution=false; cache=none; excludes=[" +
+    "); engine=syntax-pattern; supported-formats=[.mbt]; unsupported-formats=[.mbt.md,.mbtx]; interprocedural=false; type-resolution=false; sanitizer-resolution=false; cache=none; excludes=[" +
     config.exclude.join(",") +
     "]; implicit-excludes=[dotdirs,_build,*_test.mbt,*_wbtest.mbt]; selected=" +
     files_selected.to_string() +
@@ -174,7 +193,7 @@ fn walk_pattern_files(
     }
     if is_dir {
       walk_pattern_files(full, config, errors, depth + 1, visit)
-    } else if name.has_suffix(".mbt") &&
+    } else if is_source_input(name) &&
       !name.has_suffix("_test.mbt") &&
       !name.has_suffix("_wbtest.mbt") {
       let excluded = config.exclude.any(fn(pattern) {
@@ -197,7 +216,7 @@ pub fn parse_changed_files(content : String) -> Array[String] {
   let files : Array[String] = []
   for line in content.split("\n") {
     let file = line.to_owned().trim().to_owned()
-    if file.has_suffix(".mbt") {
+    if is_source_input(file) {
       files.push(file)
     }
   }
@@ -327,4 +346,11 @@ pub fn excluded_by_policy(
   config.exclude.any(fn(pattern) {
     pattern.has_prefix("*") && name.has_suffix(pattern[1:].to_owned())
   })
+}
+
+///|
+fn is_source_input(name : String) -> Bool {
+  name.has_suffix(".mbt") ||
+  name.has_suffix(".mbt.md") ||
+  name.has_suffix(".mbtx")
 }

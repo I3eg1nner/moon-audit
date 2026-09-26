@@ -1,0 +1,50 @@
+{
+  "projects": [
+    {
+      "id": "star-moonbitlang--core",
+      "command": [
+        "/data/my/moon-audit/dist/extracted/moon-audit",
+        "--format",
+        "json",
+        "--verify-project",
+        "--project-toolchain",
+        "/tmp/moon-audit-upgrade-20260922/toolchain",
+        "/tmp/moon-audit-popular-20260925/sources/star-moonbitlang--core"
+      ],
+      "seconds": 3.087,
+      "exit_code": 2,
+      "stderr": "",
+      "status": "incomplete",
+      "report": "star-moonbitlang--core-verified.json.gz",
+      "files_selected": 515,
+      "files_parsed": 449,
+      "findings": 0,
+      "errors": 67,
+      "rules": {},
+      "verification": "scope_incomplete"
+    },
+    {
+      "id": "star-mizchi--actrun",
+      "command": [
+        "/data/my/moon-audit/dist/extracted/moon-audit",
+        "--format",
+        "json",
+        "--verify-project",
+        "--project-toolchain",
+        "/tmp/moon-audit-upgrade-20260922/toolchain",
+        "/tmp/moon-audit-popular-20260925/sources/star-mizchi--actrun"
+      ],
+      "seconds": 4.195,
+      "exit_code": 2,
+      "stderr": "",
+      "status": "incomplete",
+      "report": "star-mizchi--actrun-verified.json.gz",
+      "files_selected": 57,
+      "files_parsed": 56,
+      "findings": 0,
+      "errors": 2,
+      "rules": {},
+      "verification": "scope_incomplete"
+    }
+  ]
+}
