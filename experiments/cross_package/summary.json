@@ -1,0 +1,98 @@
+{
+  "schema": "moon-audit.cross-package-summary.v1",
+  "date": "2026-09-26",
+  "status": "local_cross_package_passed",
+  "scope": "same-module compiler-selected production packages; mocket-get-callbacks native",
+  "binary_sha256": "1e2db4cd4b2574b207862f1fc48d65bc599bbf878fa5351ae4c28f38435f8a50",
+  "cases": [
+    {
+      "name": "aliases_two_hops_same_names_and_parameter_order",
+      "passed": true
+    },
+    {
+      "name": "import_alias_rename_preserves_targets",
+      "passed": true
+    },
+    {
+      "name": "unrelated_package_does_not_consume_binding_budget",
+      "passed": true
+    },
+    {
+      "name": "failed_helper_is_not_reused_by_later_routes",
+      "passed": true
+    },
+    {
+      "name": "unmodeled_external_dependency_remains_incomplete",
+      "passed": true
+    },
+    {
+      "name": "unmodeled_operator_is_not_string_concatenation",
+      "passed": true
+    },
+    {
+      "name": "unreviewed_escape_cannot_hide_markup",
+      "passed": true
+    },
+    {
+      "name": "unchanged_luna_production_package",
+      "passed": true
+    },
+    {
+      "name": "reached_body_binding_budget_remains_conservative",
+      "passed": true
+    }
+  ],
+  "performance": [
+    {
+      "name": "cross_package_cold",
+      "seconds": 8.428,
+      "binding_queries": 41
+    },
+    {
+      "name": "cross_package_hot",
+      "seconds": 7.292,
+      "binding_queries": 41
+    },
+    {
+      "name": "unrelated_package_300_calls",
+      "seconds": 7.559,
+      "binding_queries": 41
+    },
+    {
+      "name": "real_luna_package",
+      "seconds": 5.451,
+      "binding_queries": 24
+    },
+    {
+      "name": "reached_binding_budget",
+      "seconds": 34.636,
+      "binding_queries": 256
+    }
+  ],
+  "real_package_runtime": "Total tests: 15, passed: 15, failed: 0.",
+  "unit_tests": {
+    "wasm": 93,
+    "wasm-gc": 93,
+    "js": 93,
+    "native": 97
+  },
+  "limitations": [
+    "Existing cross-package binding was already present; this change validates and hardens it.",
+    "Luna attributed HTML context remains incomplete with two partial paths, including encoded input.",
+    "Whole-workspace and arbitrary external dependency analysis remain unsupported.",
+    "Timing is a single local observation, not a performance guarantee."
+  ],
+  "independent_review": {
+    "status": "implementation_review_passed",
+    "reviewer": "review_cross_package_final",
+    "platform_acceptance": "See PR #6 checks and uploaded extracted-artifact acceptance reports."
+  },
+  "pull_request": "https://github.com/I3eg1nner/moon-audit/pull/6",
+  "regression_tests": {
+    "native_delivery": 36,
+    "process_supervision": 4,
+    "cli": 22,
+    "scoped_semantic": 16,
+    "cmark": 14
+  }
+}

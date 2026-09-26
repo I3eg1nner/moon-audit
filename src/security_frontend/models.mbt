@@ -2,6 +2,10 @@
 fn model_declarations() -> Array[(String, String, String, String)] {
   [
     (
+      "intrinsics.mbt", "1887:33-1887:36", "54b050d9ae60b256174d74521e8fc7835550dedb4bf94cde5fcfbccbcbe2ceb0",
+      "string_concat",
+    ),
+    (
       "html.mbt", "1032:8-1032:14", "0af18ff6ff3e4c14eab41f85127389ef598086020035dfe59e61713b4d0950dd",
       "markdown",
     ),

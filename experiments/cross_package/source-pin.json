@@ -1,0 +1,14 @@
+{
+  "repository": "https://github.com/mizchi/luna.mbt",
+  "commit": "874f0f34e77d6800cd9aab611b0a441d9d8d3ffe",
+  "archive_url": "https://codeload.github.com/mizchi/luna.mbt/tar.gz/874f0f34e77d6800cd9aab611b0a441d9d8d3ffe",
+  "archive_sha256": "620ac1d9b087334f1b157a78d5306ca3944413a769fee0b94bf76114a76dded9",
+  "package": "sol/src/internal/page_shell",
+  "files": {
+    "moon.pkg": "59a3c100defa756cb12f210d533c5b309991555dccec2d9404215d25bb2f9fa2",
+    "page_shell.mbt": "1b5f32e990b337d566a0ff7571ae54e32627b59e123e8358187d1372da6b8ad3",
+    "page_shell_test.mbt": "4610489bea763f09b0d0dba37783fe9ce768156eb91523f69aa91c357fad3147",
+    "pkg.generated.mbti": "5aa8e54ad605778cddeefecd7c585b4c8e23eb8c70bf377ccd9a3356e854a009"
+  },
+  "scope": "Original production package copied unchanged into an isolated consumer with the same mizchi/sol/internal/page_shell identity; not an exploit or full application analysis"
+}
