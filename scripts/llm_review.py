@@ -41,6 +41,7 @@ import re
 import stat
 import sys
 import tempfile
+import time
 
 SCHEMA_BUNDLE = "moon-audit.llm-review-bundle.v1"
 SCHEMA_RESPONSE = "moon-audit.llm-review-response.v1"
@@ -53,6 +54,7 @@ BUNDLE_MAX_BYTES = 32 * 1024 * 1024
 MAX_FINDINGS_CAP = 20
 CONTEXT_CHARS_CAP = 80_000
 WINDOW_RADIUS = 12
+PROMPT_MAX_BYTES = 256 * 1024
 
 FINDING_TEXT_FIELDS = (
     "rule_id", "severity", "confidence", "message", "file", "snippet",
@@ -243,6 +245,8 @@ def extract_snapshot(report: dict) -> dict:
     snapshot = verification.get("snapshot_sha256")
     if not isinstance(snapshot, dict):
         return {}
+    if any(isinstance(key, str) and "\x00" in key for key in snapshot):
+        raise ReviewError("snapshot input path contains a NUL byte")
     return {key: value for key, value in snapshot.items()
             if isinstance(key, str) and isinstance(value, str)}
 
@@ -271,7 +275,7 @@ def normalize_reported_path(value: str):
     return posixpath.normpath(path), "relative"
 
 
-def resolve_finding_source(root: str, file_value: str):
+def resolve_finding_source(root: str, file_value: str, *, source_only=True):
     """Resolve a finding's file inside ``root`` without following symlinks.
 
     Returns ``(display_path, absolute_path_or_None, failure_reason_or_None)``.
@@ -279,6 +283,8 @@ def resolve_finding_source(root: str, file_value: str):
     so symlinks anywhere in the chain, FIFOs, missing files and traversal
     attempts are all rejected rather than read.
     """
+    if "\x00" in file_value:
+        return file_value, None, "invalid_path_nul"
     normalized, kind = normalize_reported_path(file_value)
     if kind == "absolute":
         # Match directory identity rather than spelling: macOS /var aliases and
@@ -309,8 +315,11 @@ def resolve_finding_source(root: str, file_value: str):
             return normalized, None, "path_escape"
         rel = normalized
     rel = rel.replace("\\", "/")
-    if not rel.endswith(".mbt"):
+    if source_only and not rel.endswith(".mbt"):
         return rel, None, "not_moonbit_source"
+    if not source_only and not (rel.endswith((".mbt", ".mbt.md", ".mbtx")) or posixpath.basename(rel) in {
+            "moon.mod", "moon.mod.json", "moon.pkg", "moon.pkg.json", "moon.lock", "moon.work", "moon.work.json", ".moon-audit.json"}):
+        return rel, None, "unsupported_snapshot_input"
     parts = [part for part in rel.split("/") if part not in ("", ".")]
     if not parts:
         return normalized, None, "invalid_path"
@@ -399,6 +408,268 @@ def finding_identifier(report_fp: str, normalized_path: str, finding: dict, ordi
         str(ordinal),
     ))
     return hashlib.sha256(key.encode("utf-8")).hexdigest()[:32]
+
+
+# Compiler-linked context remains report evidence, never a model-created binding.
+SEMANTIC_FUNCTION_CAP = 64
+SNAPSHOT_FILE_CAP = 100_000
+SNAPSHOT_BYTES_CAP = 256 * 1024 * 1024
+
+
+def verify_semantic_snapshot(report, root):
+    started = time.monotonic()
+    verification = report.get('project_verification')
+    raw = verification.get('snapshot_sha256') if isinstance(verification, dict) else None
+    if not isinstance(raw, dict) or not raw or len(raw) > SNAPSHOT_FILE_CAP:
+        raise ReviewError('semantic_snapshot_unavailable_or_over_budget')
+    expected = {}
+    for file, digest in raw.items():
+        if time.monotonic() - started > 30:
+            raise ReviewError('semantic_snapshot_time_budget')
+        if not isinstance(file, str) or not isinstance(digest, str) or not re.fullmatch(r'[0-9a-f]{64}', digest):
+            raise ReviewError('invalid_semantic_snapshot_digest')
+        rel, path, reason = resolve_finding_source(root, file, source_only=False)
+        if reason or path in expected:
+            raise ReviewError('semantic_snapshot_path_unavailable_or_duplicate')
+        expected[path] = digest
+    actual, total = {}, 0
+
+    def visit(directory, depth):
+        nonlocal total
+        if depth > 64 or time.monotonic() - started > 30:
+            raise ReviewError('semantic_snapshot_depth_or_time_budget')
+        with os.scandir(directory) as children:
+            for child in children:
+                if time.monotonic() - started > 30:
+                    raise ReviewError('semantic_snapshot_time_budget')
+                if child.name in ('.git', '_build', '.recovery'):
+                    continue
+                is_directory = child.is_dir()
+                is_input = child.name.endswith(('.mbt', '.mbt.md', '.mbtx')) or child.name in {
+                    'moon.mod', 'moon.mod.json', 'moon.pkg', 'moon.pkg.json', 'moon.lock',
+                    'moon.work', 'moon.work.json', '.moon-audit.json'}
+                if not is_directory and not is_input:
+                    continue
+                if child.is_symlink():
+                    raise ReviewError('semantic_snapshot_symlink')
+                if is_directory:
+                    visit(child.path, depth + 1)
+                    continue
+                if child.path not in expected:
+                    raise ReviewError('semantic_snapshot_input_set_changed')
+                if len(actual) >= SNAPSHOT_FILE_CAP:
+                    raise ReviewError('semantic_snapshot_file_budget')
+                data = open_regular_file(child.path, 'semantic snapshot input', 16 * 1024 * 1024)
+                total += len(data)
+                if total > SNAPSHOT_BYTES_CAP:
+                    raise ReviewError('semantic_snapshot_byte_budget')
+                actual[child.path] = sha256_hex(data)
+    try:
+        visit(root, 0)
+    except OSError as error:
+        raise ReviewError('semantic_snapshot_unreadable') from error
+    if actual != expected:
+        raise ReviewError('semantic_snapshot_changed')
+    return expected
+
+
+def unique_index(items, key):
+    if not isinstance(items, list):
+        raise ReviewError('semantic_identity_list_missing')
+    result = {}
+    for item in items:
+        if not isinstance(item, dict) or not isinstance(item.get(key), str) or item[key] in result:
+            raise ReviewError('semantic_identity_missing_or_ambiguous')
+        result[item[key]] = item
+    return result
+
+
+def source_lines(text):
+    # MoonBit source positions count LF lines, not Python's Unicode splitlines.
+    lines = text.replace('\r\n', '\n').split('\n')
+    if lines and lines[-1] == '':
+        lines.pop()
+    return lines
+
+
+def check_ir_operation(op):
+    signatures = {'Literal': (int, str), 'Copy': (int, int), 'Request': (int, int),
+                  'Query': (int, int, str), 'Lookup': (int, int, int), 'Default': (int, int, int),
+                  'EscapeHtmlText': (int, int), 'RenderMarkdown': (int, int, bool, str),
+                  'Concat': (int, list), 'Response': (int, int, bool, str),
+                  'Call': (int, str, list, str), 'Return': (int,)}
+    if not isinstance(op, list) or not op or not isinstance(op[0], str):
+        raise ReviewError('invalid_reported_operation')
+    signature = signatures.get(op[0])
+    if signature is None or len(op) != len(signature) + 1:
+        raise ReviewError('unknown_or_invalid_reported_operation')
+    for value, expected in zip(op[1:], signature):
+        if type(value) is not expected or (expected is int and value < 0):
+            raise ReviewError('invalid_reported_operation_argument')
+        if expected is list and any(type(v) is not int or v < 0 for v in value):
+            raise ReviewError('invalid_reported_operation_arguments')
+
+
+def semantic_context(report, entry, root, snapshot, source_bytes):
+    semantic = report['semantic_analysis']
+    # Match the actual emitted path, not a textual function name or a guessed
+    # suffix of a source location (which would also break Windows drive paths).
+    routes = [r for r in semantic.get('routes', []) if isinstance(r, dict)
+              and isinstance(r.get('result'), dict)
+              and entry['dataflow'] in r['result'].get('source_paths', [])]
+    if len(routes) != 1:
+        raise ReviewError('reported_dataflow_missing_or_ambiguous')
+    route = routes[0]
+    if route['result'].get('status') not in ('complete', 'incomplete'):
+        raise ReviewError('unknown_reported_route_status')
+    trace = entry['dataflow']
+    if (len(trace) < 2 or trace[-1] != route.get('entry', '') + ':route_response'
+            or (route['result'].get('status') == 'complete') != (entry['evidence'] == 'verified_dataflow')):
+        raise ReviewError('reported_dataflow_status_or_entry_mismatch')
+    position = trace[-2].rsplit(':', 2)
+    if (len(position) != 3 or not position[1].isdigit() or not position[2].isdigit()
+            or (int(position[1]), int(position[2])) != (entry['line'], entry['column'])
+            or resolve_finding_source(root, position[0])[0] != entry['file']):
+        raise ReviewError('reported_dataflow_sink_mismatch')
+    functions = unique_index(semantic.get('functions'), 'id')
+    mappings = unique_index(semantic.get('function_units'), 'function')
+    units = unique_index(semantic.get('compilation_units'), 'id')
+    verified_units = unique_index(report['project_verification'].get('compilation_units'), 'id')
+    pending = [r['entry'] for r in routes]
+    reached = {}
+    while pending:
+        identity = pending.pop()
+        if identity in reached:
+            continue
+        if len(reached) >= SEMANTIC_FUNCTION_CAP:
+            raise ReviewError('semantic_function_budget')
+        if identity not in functions or identity not in mappings:
+            raise ReviewError('semantic_function_identity_unavailable')
+        function = functions[identity]
+        if not isinstance(function.get('operations'), list):
+            raise ReviewError('semantic_operations_unavailable')
+        reached[identity] = function
+        for op in function['operations']:
+            check_ir_operation(op)
+            if op[0] == 'Return':
+                break
+            if op[0] == 'Call':
+                if len(op) != 5 or not isinstance(op[2], str):
+                    raise ReviewError('invalid_reported_call')
+                pending.append(op[2])
+    attachments, selected_units, selected_mappings = [], {}, []
+    for identity in sorted(reached):
+        mapping = mappings[identity]
+        unit = units.get(mapping.get('unit'))
+        if (not unit or unit != verified_units.get(unit['id']) or unit.get('role') != 'production'
+                or unit.get('target') != 'native' or os.path.realpath(unit.get('module_root', '')) != root):
+            raise ReviewError('semantic_compilation_unit_mismatch')
+        source = mapping.get('source')
+        if not isinstance(source, str) or {'path': source, 'mode': 'source'} not in unit.get('inputs', []):
+            raise ReviewError('semantic_source_not_in_unit')
+        rel, path, reason = resolve_finding_source(root, source)
+        if reason:
+            raise ReviewError('semantic_source_unavailable: ' + reason)
+        digest, text, reason = read_source_file(path, source_bytes)
+        if reason or not snapshot.get(os.path.realpath(path)) or snapshot[os.path.realpath(path)] != digest:
+            raise ReviewError('semantic_source_snapshot_mismatch_or_budget')
+        if '\u2028' in text or '\u2029' in text or '\r' in text.replace('\r\n', ''):
+            raise ReviewError('unsupported_semantic_source_line_endings')
+        span = mapping.get('source_range')
+        if not isinstance(span, dict):
+            raise ReviewError('semantic_source_range_unavailable')
+        start, end = span.get('start_line'), span.get('end_line')
+        lines = source_lines(text)
+        if (type(start) is not int or type(end) is not int or not 1 <= start <= end <= len(lines)):
+            raise ReviewError('semantic_source_range_invalid')
+        first, last = span.get('start_column'), span.get('end_column')
+        location = identity.rsplit(':', 2)
+        if (type(first) is not int or type(last) is not int
+                or not 1 <= first <= len(lines[start - 1]) + 1
+                or not 1 <= last <= len(lines[end - 1]) + 1
+                or (start, first) > (end, last)
+                or len(location) != 3 or location[0] != source
+                or not location[1].isdigit() or not location[2].isdigit()
+                or not (start, first) <= (int(location[1]), int(location[2])) <= (end, last)
+                or not 1 <= int(location[2]) <= len(lines[int(location[1]) - 1]) + 1):
+            raise ReviewError('semantic_function_source_range_mismatch')
+        attachment = {'kind': 'complete_reported_function_or_callback', 'function': identity,
+                      'unit': unit['id'], 'file': rel, 'source_sha256': digest,
+                      'start_line': start, 'end_line': end, 'text': '\n'.join(lines[start - 1:end])}
+        attachment['attachment_id'] = content_hash(attachment)[:32]
+        attachments.append(attachment)
+        selected_units[unit['id']] = unit
+        selected_mappings.append(mapping)
+    # Only bindings whose query locations lie within the selected source spans.
+    bindings = []
+    for binding in semantic.get('bindings', []):
+        if not isinstance(binding, dict) or not isinstance(binding.get('query'), str):
+            raise ReviewError('invalid_reported_binding')
+        parts = binding['query'].rsplit(':', 2)
+        if len(parts) != 3 or not parts[1].isdigit() or not parts[2].isdigit():
+            raise ReviewError('invalid_reported_binding_location')
+        if any(parts[0] == m['source'] and m['source_range']['start_line'] <= int(parts[1]) <= m['source_range']['end_line']
+               for m in selected_mappings):
+            bindings.append(binding)
+    return {'status': 'ready', 'reason': '',
+            'provenance': 'reported IR reachability; snapshot and identity consistency rechecked; bindings retained, not cross-validated or recomputed',
+            'routes': [{'entry': r['entry'], 'route': r.get('route'), 'status': r['result'].get('status'),
+                        'reason': r['result'].get('reason'), 'source_path': entry['dataflow']} for r in routes],
+            'functions': [reached[key] for key in sorted(reached)], 'function_units': selected_mappings,
+            'compilation_units': list(selected_units.values()), 'bindings': bindings,
+            'binding_note': 'raw queries within selected source line ranges; IR Call edges select helpers, not query-name inference',
+            'declared_models': semantic.get('models', []),
+            'assumptions': semantic.get('entry_scope'), 'attachments': attachments}
+
+
+def add_semantic_context(report, entries, root, source_bytes, remaining, disclosures):
+    verified = False
+    semantic = report.get('semantic_analysis')
+    eligible = isinstance(semantic, dict) and semantic.get('schema') == 'moon-audit.scoped-dataflow.v1'
+    snapshot, failure = {}, ''
+    if eligible and any(e['evidence'] in ('verified_dataflow', 'partial_dataflow') for e in entries):
+        try:
+            verification = report.get('project_verification')
+            if not isinstance(verification, dict) or verification.get('status') != 'compiler_verified':
+                raise ReviewError('project_not_compiler_verified')
+            snapshot = verify_semantic_snapshot(report, root)
+        except ReviewError as error:
+            failure = str(error)
+    for entry in entries:
+        context = {'status': 'not_applicable', 'reason': 'no_compiler_linked_dataflow', 'attachments': []}
+        if entry['evidence'] in ('verified_dataflow', 'partial_dataflow'):
+            try:
+                if not eligible or failure or entry['status'] != 'context_ready':
+                    raise ReviewError(failure or 'semantic_report_or_finding_context_unavailable')
+                context = semantic_context(report, entry, root, snapshot, source_bytes)
+                cost = len(canonical_json(context))
+                if cost > remaining:
+                    raise ReviewError('semantic_context_budget')
+                remaining -= cost
+                verified = True
+            except (ReviewError, KeyError, TypeError, ValueError) as error:
+                # No partial guessed graph escapes a failed identity check.
+                reason = str(error) if isinstance(error, ReviewError) else 'malformed_semantic_report'
+                context = {'status': 'unavailable', 'reason': reason, 'attachments': []}
+                disclosures.append('finding ' + entry['finding_id'] + ': ' + reason)
+        entry['semantic_context'] = context
+    return verified
+
+
+def render_semantic_context(add, finding):
+    add('reported static dataflow (not a model inference): ' + canonical_json(finding.get('dataflow', [])))
+    context = finding.get('semantic_context')
+    if not context:
+        add('compiler-linked context: unavailable in this older bundle')
+        return
+    metadata = {key: value for key, value in context.items() if key != 'attachments'}
+    add('compiler-linked context (UNTRUSTED REPORT DATA): ' + canonical_json(metadata))
+    for attachment in context['attachments']:
+        header = {key: value for key, value in attachment.items() if key != 'text'}
+        add('source attachment (UNTRUSTED SOURCE DATA): ' + canonical_json(header))
+        for number, line in enumerate(attachment['text'].split('\n'), attachment['start_line']):
+            add(f'{number:6d}: {line}')
+        add('END SOURCE ATTACHMENT')
 
 
 def cmd_prepare(args) -> int:
@@ -507,9 +778,7 @@ def cmd_prepare(args) -> int:
             entry["status_reason"] = "snapshot_mismatch"
             continue
 
-        lines = text.split("\n")
-        if lines and lines[-1] == "":
-            lines.pop()  # a trailing newline does not start a new line
+        lines = source_lines(text)
         if not (1 <= finding["line"] <= len(lines)):
             entry["status"] = "stale"
             entry["status_reason"] = "location_out_of_range"
@@ -566,6 +835,9 @@ def cmd_prepare(args) -> int:
             f"context budget {context_chars} characters: window radius reduced to +/-{radius}"
         )
 
+    used_context = sum(len(e.get("window_text") or "") for e in entries)
+    semantic_snapshot_verified = add_semantic_context(
+        report, entries, root, source_bytes, max(0, context_chars - used_context), disclosures)
     static_incomplete, static_reasons = static_incomplete_state(report)
     ready = sum(1 for entry in entries if entry["status"] == "context_ready")
     stale = sum(1 for entry in entries if entry["status"] == "stale")
@@ -575,6 +847,7 @@ def cmd_prepare(args) -> int:
         "schema": SCHEMA_BUNDLE,
         "generator": {"tool": "moon-audit-llm-review", "mode": "offline-prepare-validate", "contract": 1},
         "report_fingerprint": report_fp,
+        "semantic_snapshot_verified": semantic_snapshot_verified,
         "report_path": report_path,
         "project": {"root": root},
         "limits": {
@@ -638,6 +911,13 @@ def ensure_prepare_output_safe(out_dir: str, report_path: str, root: str) -> Non
 # prompt rendering
 # --------------------------------------------------------------------------
 
+def bounded_prompt(lines):
+    prompt = "\n".join(lines)
+    if len(prompt.encode("utf-8")) > PROMPT_MAX_BYTES:
+        raise ReviewError("rendered prompt exceeds the 256 KiB byte limit")
+    return prompt
+
+
 def render_prompt(bundle: dict) -> str:
     scan = bundle["scan_state"]
     lines = []
@@ -648,7 +928,7 @@ def render_prompt(bundle: dict) -> str:
     add(f"report_fingerprint: {bundle['report_fingerprint']}")
     add("")
     add("ROLE AND STANDING")
-    add("You are reviewing syntax-level static-analysis findings produced by moon-audit.")
+    add("You are reviewing static-analysis findings produced by moon-audit: syntax hints or scoped dataflow.")
     add("Your review is advisory and UNVERIFIED. It never proves that the project is")
     add("safe, never confirms a vulnerability, and never upgrades the static evidence")
     add("of a finding. The static scanner's errors and scope limits are preserved below;")
@@ -664,7 +944,12 @@ def render_prompt(bundle: dict) -> str:
     add("")
     add("TASK")
     add("For each finding listed below, output exactly one review object. Judge only")
-    add("from the shown context windows; if the window does not support a judgement,")
+    add("from the shown windows and compiler-linked source attachments; if these do not support a judgement,")
+    add("Use reported paths, IR operations, bindings, units and declared models when available.")
+    add("Models describe the scanner's assumptions, not independently checked runtime behavior.")
+    add("Do not infer a call target from a same-spelled name, or infer safety from missing context.")
+    add("For cross-file evidence include attachment_id, file, start_line, end_line and exact quote.")
+    add("An attachment_id must belong to this finding. Omit it only for the original finding window.")
     add("say so with insufficient_context and list what is missing in missing_context.")
     add("")
     add("RESPONSE FORMAT - output ONLY raw JSON (no markdown fences, no extra text):")
@@ -694,8 +979,9 @@ def render_prompt(bundle: dict) -> str:
     add("- likely_false_positive / supported_concern: ONLY allowed for findings with")
     add("  status context_ready, and require at least one exact evidence quote.")
     add("  These verdicts are opinions about the FINDING, not proof of anything.")
+    add("  If compiler-linked context has status unavailable, use needs_review or insufficient_context.")
     add("- insufficient_context: evidence may be empty (quotes optional).")
-    add("- Evidence lines must lie inside the finding's shown window, and the quote")
+    add("- Evidence lines must lie inside the finding's window or its identified source attachment, and the quote")
     add("  must exactly EQUAL the text of the cited line range (those source")
     add("  lines joined with a newline). Substrings, partial lines and fabricated")
     add("  or out-of-window citations are rejected.")
@@ -734,7 +1020,7 @@ def render_prompt(bundle: dict) -> str:
         add("There are no findings in this bundle. No model call is required; a response")
         add('with an empty reviews list validates trivially. That result does NOT prove')
         add("the project safe.")
-        return "\n".join(lines)
+        return bounded_prompt(lines)
     for index, finding in enumerate(bundle["findings"], start=1):
         add("")
         add(f"[finding {index}/{len(bundle['findings'])}] id={finding['finding_id']} status={finding['status']}"
@@ -744,6 +1030,7 @@ def render_prompt(bundle: dict) -> str:
         add(f"message (untrusted): {finding['message']}")
         add(f"reported snippet (untrusted): {finding['snippet']!r}")
         add(f"static evidence: {finding['evidence']} (unchanged by this review)")
+        render_semantic_context(add, finding)
         if finding["source_sha256"]:
             add(f"source sha256: {finding['source_sha256']}")
         if finding["status"] == "context_ready":
@@ -761,7 +1048,7 @@ def render_prompt(bundle: dict) -> str:
             add("verdict must be needs_review or insufficient_context with empty evidence).")
     add("")
     add("Respond with the JSON object only.")
-    return "\n".join(lines)
+    return bounded_prompt(lines)
 
 
 # --------------------------------------------------------------------------
@@ -832,6 +1119,8 @@ def reverify_sources(bundle: dict) -> None:
     limits = bundle.get("limits")
     if isinstance(limits, dict) and isinstance(limits.get("source_bytes_max"), int):
         max_bytes = limits["source_bytes_max"]
+    if bundle.get("semantic_snapshot_verified"):
+        verify_semantic_snapshot(bundle["scan_state"], root)
     seen = set()
     for finding in bundle["findings"]:
         digest = finding.get("source_sha256")
@@ -855,6 +1144,14 @@ def check_evidence(finding: dict, evidence) -> None:
     for key in ("file", "start_line", "end_line", "quote"):
         if key not in evidence:
             raise ReviewError(f"evidence is missing field '{key}'")
+    if "attachment_id" in evidence:
+        matches = [a for a in finding.get("semantic_context", {}).get("attachments", [])
+                   if a["attachment_id"] == evidence["attachment_id"]]
+        if len(matches) != 1:
+            raise ReviewError("evidence references an unknown attachment for this finding")
+        attachment = matches[0]
+        finding = {**finding, "file": attachment["file"], "window_start_line": attachment["start_line"],
+                   "window_end_line": attachment["end_line"], "window_text": attachment["text"]}
     if not isinstance(evidence["file"], str) or evidence["file"] != finding["file"]:
         raise ReviewError(f"evidence file does not match the finding: {evidence['file']!r}")
     start, end = evidence["start_line"], evidence["end_line"]
@@ -922,6 +1219,8 @@ def validate_response(bundle: dict, response) -> list:
         for item in evidence:
             check_evidence(finding, item)
         if verdict in ("likely_false_positive", "supported_concern"):
+            if finding.get("semantic_context", {}).get("status") == "unavailable":
+                raise ReviewError("strong opinion requires the missing compiler-linked context")
             if not ready:
                 raise ReviewError(
                     f"{verdict} is not accepted for finding {finding_id}: status is {finding['status']} "
@@ -975,12 +1274,14 @@ def cmd_validate(args) -> int:
             "finding_context_reason": finding["status_reason"],
             "static_evidence": finding["evidence"],
             "static_dataflow": finding["dataflow"],
+            "semantic_context": finding.get("semantic_context"),
             "opinion_origin": "llm_unverified",
         })
 
     scope_complete = (
         not bundle.get("omitted_findings")
-        and all(finding["status"] == "context_ready" for finding in bundle["findings"])
+        and all(finding["status"] == "context_ready" and finding.get("semantic_context", {}).get("status") != "unavailable"
+                for finding in bundle["findings"])
     )
     result = {
         "schema": SCHEMA_RESULT,

@@ -84,6 +84,12 @@ jobs:
           export ANALYZER="$PWD/dist/extracted/moon-audit"
           if [ "${{ runner.os }}" = Windows ]; then export ANALYZER="$ANALYZER.exe"; fi
           python scripts/compilation_context_test.py --corpus "${{ runner.temp }}/moon-audit-models/mocket" --output dist/compilation-context-acceptance.json
+      - name: Accept compiler-linked LLM evidence from extracted helpers
+        shell: bash
+        run: |
+          export ANALYZER="$PWD/dist/extracted/moon-audit"
+          if [ "${{ runner.os }}" = Windows ]; then export ANALYZER="$ANALYZER.exe"; fi
+          python scripts/llm_context_test.py --corpus "${{ runner.temp }}/moon-audit-models/mocket" --review-script dist/extracted/extras/llm_review.py --output dist/llm-context-acceptance.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
