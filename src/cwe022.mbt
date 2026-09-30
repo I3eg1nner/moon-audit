@@ -40,6 +40,14 @@ fn is_path_like_var(name : String) -> Bool {
     name.contains("href") {
     return false
   }
+  if name.contains("offset") ||
+    name.contains("size") ||
+    name.contains("index") ||
+    name.contains("count") ||
+    name.contains("profile") ||
+    name.contains("len") {
+    return false
+  }
   name.contains("path") ||
   name.contains("file") ||
   name.contains("dir") ||
@@ -80,9 +88,100 @@ fn expr_var_name(expr : @syntax.Expr) -> String? {
 fn is_path_separator_string(expr : @syntax.Expr) -> Bool {
   match expr {
     Constant(c=String(s), ..) =>
-      s == "/" || s == "\\" || s.has_prefix("/") || s.has_suffix("/")
+      if is_non_path_fragment(s) {
+        false
+      } else {
+        s == "/" || s == "\\" || s.has_prefix("/") || s.has_suffix("/")
+      }
     _ => false
   }
+}
+
+///|
+/// API routes and protocol identifiers rather than filesystem paths.
+fn is_api_route_string(s : String) -> Bool {
+  s.has_prefix("/runs/") ||
+  s.has_prefix("/modules/") ||
+  s.has_prefix("/api/") ||
+  s.has_prefix("/steps/") ||
+  s.has_prefix("wiki://") ||
+  // refs/heads/, refs/tags/ and friends are git ref names, not file paths.
+  s.has_prefix("refs/")
+}
+
+///|
+/// Fragments that build shell scripts: test commands, env expansion, redirection.
+fn is_shell_fragment(s : String) -> Bool {
+  s.contains("[ -f") ||
+  s.contains("[ -d") ||
+  s.contains("[ -e") ||
+  s.contains("[ -x") ||
+  s.contains("$_TMPDIR") ||
+  s.contains("$(") ||
+  s.contains("> \"") ||
+  s.contains(">/dev/null") ||
+  s.contains("2>/dev/null")
+}
+
+///|
+/// Framework-internal hardcoded paths, not user-input concatenation targets.
+fn is_framework_internal_path(s : String) -> Bool {
+  s.contains(".mooncakes/") || s.contains("__sol__")
+}
+
+///|
+fn is_html_or_url_fragment(s : String) -> Bool {
+  s.contains("<") ||
+  s.contains(">") ||
+  s.has_prefix("http://") ||
+  s.has_prefix("https://") ||
+  // Protocol-relative URLs and JS/MoonBit comment-style fragments.
+  s.has_prefix("//") ||
+  s.contains("://")
+}
+
+///|
+/// Any constant fragment that is clearly not a filesystem path component.
+fn is_non_path_fragment(s : String) -> Bool {
+  is_html_or_url_fragment(s) ||
+  is_api_route_string(s) ||
+  is_shell_fragment(s) ||
+  is_framework_internal_path(s)
+}
+
+///|
+fn is_non_path_constant(expr : @syntax.Expr) -> Bool {
+  match expr {
+    Constant(c=String(s), ..) => is_non_path_fragment(s)
+    _ => false
+  }
+}
+
+///|
+fn is_string_comparison_method(name : String) -> Bool {
+  name == "has_suffix" || name == "has_prefix" || name == "contains"
+}
+
+///|
+impl @syntax.IterVisitor for Cwe022Visitor with fn visit_Expr_DotApply(
+  env,
+  self~,
+  method_name~,
+  args~,
+  return_self~,
+  loc~,
+) {
+  if is_string_comparison_method(method_name.name) {
+    return
+  }
+  @syntax.IterVisitor::visit_Expr_DotApply(
+    @syntax.IterVisitor::base(env),
+    self~,
+    method_name~,
+    args~,
+    return_self~,
+    loc~,
+  )
 }
 
 ///|
@@ -94,31 +193,35 @@ impl @syntax.IterVisitor for Cwe022Visitor with fn visit_Expr_Infix(
   loc~,
 ) {
   match op.name {
-    Ident(name="+") => {
-      let lhs_name = expr_var_name(lhs)
-      let rhs_name = expr_var_name(rhs)
-      let has_path_context = match (lhs_name, rhs_name) {
-        (Some(l), Some(r)) =>
-          (is_path_like_var(l) && is_input_like_var(r)) ||
-          (is_input_like_var(l) && is_path_like_var(r))
-        (Some(l), None) => is_path_like_var(l) && !is_any_constant(rhs)
-        (None, Some(r)) => is_path_separator_string(lhs) && is_input_like_var(r)
-        _ => false
+    Ident(name="+") =>
+      if is_non_path_constant(lhs) || is_non_path_constant(rhs) {
+
+      } else {
+        let lhs_name = expr_var_name(lhs)
+        let rhs_name = expr_var_name(rhs)
+        let has_path_context = match (lhs_name, rhs_name) {
+          (Some(l), Some(r)) =>
+            (is_path_like_var(l) && is_input_like_var(r)) ||
+            (is_input_like_var(l) && is_path_like_var(r))
+          (Some(l), None) => is_path_like_var(l) && !is_any_constant(rhs)
+          (None, Some(r)) =>
+            is_path_separator_string(lhs) && is_input_like_var(r)
+          _ => false
+        }
+        if has_path_context {
+          env.findings.push(
+            make_finding(
+              { cwe: 22, variant: "path-concat", },
+              env.severity,
+              Low,
+              "Concatenation uses path/input-like names. Review any filesystem use, source trust and containment checks.",
+              env.file,
+              env.source,
+              loc,
+            ),
+          )
+        }
       }
-      if has_path_context {
-        env.findings.push(
-          make_finding(
-            { cwe: 22, variant: "path-concat", },
-            env.severity,
-            Low,
-            "Concatenation uses path/input-like names. Review any filesystem use, source trust and containment checks.",
-            env.file,
-            env.source,
-            loc,
-          ),
-        )
-      }
-    }
     _ => ()
   }
   @syntax.IterVisitor::visit_Expr_Infix(

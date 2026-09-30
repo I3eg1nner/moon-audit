@@ -1,0 +1,201 @@
+{
+  "schema": "moon-audit.detection-benchmark.v1",
+  "description": "Fixed detection effectiveness cases. Each entry maps a benchmark file to expected finding counts per rule.",
+  "cases": [
+    {
+      "file": "cwe022/tp_static_file_serving.mbt",
+      "label": "TP: filesystem path + filename (luna.mbt static serving)",
+      "rule": "CWE-22/path-concat",
+      "expected_min": 2,
+      "expected_max": 3,
+      "verdict_source": "supported_concern (LLM)"
+    },
+    {
+      "file": "cwe022/tp_wasm_sandbox.mbt",
+      "label": "TP: env var into /tmp path (actrun wasm sandbox)",
+      "rule": "CWE-22/path-concat",
+      "expected_min": 1,
+      "expected_max": 1,
+      "verdict_source": "supported_concern (LLM)"
+    },
+    {
+      "file": "cwe022/fp_html_close_tag.mbt",
+      "label": "FP: HTML/XML close tag building",
+      "rule": "CWE-22/path-concat",
+      "expected_min": 0,
+      "expected_max": 0,
+      "verdict_source": "likely_false_positive (LLM)"
+    },
+    {
+      "file": "cwe022/fp_numeric_offset.mbt",
+      "label": "FP: numeric byte offset arithmetic",
+      "rule": "CWE-22/path-concat",
+      "expected_min": 0,
+      "expected_max": 0,
+      "verdict_source": "likely_false_positive (LLM)"
+    },
+    {
+      "file": "cwe022/fp_https_url.mbt",
+      "label": "FP: HTTPS API URL construction",
+      "rule": "CWE-22/path-concat",
+      "expected_min": 0,
+      "expected_max": 0,
+      "verdict_source": "likely_false_positive (LLM)"
+    },
+    {
+      "file": "cwe022/fp_api_route.mbt",
+      "label": "FP: API route path construction, not filesystem",
+      "rule": "CWE-22/path-concat",
+      "expected_min": 0,
+      "expected_max": 0,
+      "verdict_source": "likely_false_positive (LLM)"
+    },
+    {
+      "file": "cwe022/fp_git_ref.mbt",
+      "label": "FP: git ref string construction",
+      "rule": "CWE-22/path-concat",
+      "expected_min": 0,
+      "expected_max": 0,
+      "verdict_source": "likely_false_positive (LLM)"
+    },
+    {
+      "file": "cwe022/fp_has_suffix_compare.mbt",
+      "label": "FP: string comparison via has_suffix, not path building",
+      "rule": "CWE-22/path-concat",
+      "expected_min": 0,
+      "expected_max": 0,
+      "verdict_source": "likely_false_positive (LLM)"
+    },
+    {
+      "file": "cwe022/tp_skill_loader.mbt",
+      "label": "TP: user-supplied name concatenated into filesystem path",
+      "rule": "CWE-22/path-concat",
+      "expected_min": 1,
+      "expected_max": 1,
+      "verdict_source": "supported_concern"
+    },
+    {
+      "file": "cwe079/tp_inner_html_unescaped.mbt",
+      "label": "TP: unescaped body_html into inner_html",
+      "rule": "CWE-79/inner-html",
+      "expected_min": 0,
+      "expected_max": 0,
+      "verdict_source": "needs_review (LLM)",
+      "note": "Rule requires rabbita_import and is default-disabled; benchmark file lacks import so scanner skips it. Ground truth is TP."
+    },
+    {
+      "file": "cwe079/fp_inner_html_escaped.mbt",
+      "label": "FP: escape_html-wrapped content in inner_html template",
+      "rule": "CWE-79/inner-html",
+      "expected_min": 0,
+      "expected_max": 1,
+      "verdict_source": "needs_review — escape present but template has unescaped language var"
+    },
+    {
+      "file": "cwe113/tp_dynamic_header.mbt",
+      "label": "TP: dynamic config value in set_header",
+      "rule": "CWE-113/crlf-injection",
+      "expected_min": 2,
+      "expected_max": 2,
+      "verdict_source": "needs_review (LLM)"
+    },
+    {
+      "file": "cwe113/fp_sanitized_header.mbt",
+      "label": "FP: CRLF-stripped value in set_header",
+      "rule": "CWE-113/crlf-injection",
+      "expected_min": 0,
+      "expected_max": 0,
+      "verdict_source": "likely_false_positive",
+      "note": "Scanner now tracks let-bound sanitized values. Correctly filtered."
+    },
+    {
+      "file": "cwe113/tp_raw_user_header.mbt",
+      "label": "TP: unsanitized user string in set_header",
+      "rule": "CWE-113/crlf-injection",
+      "expected_min": 1,
+      "expected_max": 1,
+      "verdict_source": "supported_concern"
+    },
+    {
+      "file": "cwe113/fp_interpolated_int.mbt",
+      "label": "FP: integer interpolation in header value",
+      "rule": "CWE-113/crlf-injection",
+      "expected_min": 1,
+      "expected_max": 1,
+      "verdict_source": "likely_false_positive",
+      "note": "Scanner cannot track types. Int interpolation cannot contain CRLF. Ground truth is FP."
+    },
+    {
+      "file": "cwe113/fp_enum_constant_header.mbt",
+      "label": "FP: all-constant match branches in header value",
+      "rule": "CWE-113/crlf-injection",
+      "expected_min": 0,
+      "expected_max": 0,
+      "verdict_source": "likely_false_positive",
+      "note": "Scanner recognizes all-constant match. Correctly filtered."
+    },
+    {
+      "file": "cwe248/tp_abort_on_io_error.mbt",
+      "label": "TP: abort on file read failure with user-supplied path",
+      "rule": "CWE-248/panic-reachable",
+      "expected_min": 1,
+      "expected_max": 1,
+      "verdict_source": "needs_review (audit_hint)",
+      "note": "audit_hint rule. Ground truth: reachable abort from user input."
+    },
+    {
+      "file": "cwe248/fp_internal_consistency_panic.mbt",
+      "label": "FP: abort in unreachable defensive branch",
+      "rule": "CWE-248/panic-reachable",
+      "expected_min": 1,
+      "expected_max": 1,
+      "verdict_source": "likely_false_positive",
+      "note": "audit_hint rule. Scanner cannot prove unreachability. Ground truth is FP."
+    },
+    {
+      "file": "cwe248/tp_websocket_abort.mbt",
+      "label": "TP: abort on invalid network protocol string",
+      "rule": "CWE-248/panic-reachable",
+      "expected_min": 1,
+      "expected_max": 1,
+      "verdict_source": "needs_review (audit_hint)",
+      "note": "audit_hint rule. Protocol from network peer can crash process."
+    },
+    {
+      "file": "cwe676/tp_unsafe_from_array.mbt",
+      "label": "TP: unsafe_from_uint16_fixedarray on decoded BAM buffer",
+      "rule": "CWE-676/unsafe-call",
+      "expected_min": 1,
+      "expected_max": 1,
+      "verdict_source": "needs_review (audit_hint)",
+      "note": "audit_hint rule. Buffer bounds not verified before unsafe call."
+    },
+    {
+      "file": "cwe676/fp_unsafe_from_validated_int.mbt",
+      "label": "FP: unsafe_from_int after error check",
+      "rule": "CWE-676/unsafe-call",
+      "expected_min": 1,
+      "expected_max": 1,
+      "verdict_source": "likely_false_positive",
+      "note": "audit_hint rule. Scanner cannot track validation. Ground truth is FP."
+    },
+    {
+      "file": "cwe704/tp_any_cast_unguarded.mbt",
+      "label": "TP: .cast() on JS Any without type guard",
+      "rule": "CWE-704/unsafe-cast",
+      "expected_min": 1,
+      "expected_max": 1,
+      "verdict_source": "needs_review (audit_hint)",
+      "note": "audit_hint rule. No is_string()/is_number() guard before cast."
+    },
+    {
+      "file": "cwe704/fp_guarded_cast.mbt",
+      "label": "FP: .cast() preceded by is_string() type guard",
+      "rule": "CWE-704/unsafe-cast",
+      "expected_min": 1,
+      "expected_max": 1,
+      "verdict_source": "likely_false_positive",
+      "note": "audit_hint rule. Scanner cannot track guard. Ground truth is FP."
+    }
+  ]
+}

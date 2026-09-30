@@ -11,7 +11,11 @@ pub fn format_text(result : ScanResult, verbose : Bool) -> String {
     buf.write_string(severity_str(f.severity))
     buf.write_char('[')
     buf.write_string(rule_id_str(f.rule_id))
-    buf.write_string("] (")
+    buf.write_string("]")
+    if is_audit_hint(f.rule_id) {
+      buf.write_string(" [audit-hint]")
+    }
+    buf.write_string(" (")
     buf.write_string(confidence_str(f.confidence))
     buf.write_string(") ")
     buf.write_string(f.message)
@@ -118,6 +122,13 @@ fn finding_to_json(f : Finding) -> Json {
     "snippet": Json::string(f.snippet),
     "fingerprint": Json::string(f.fingerprint),
     "evidence": Json::string(f.evidence),
+    "disposition": Json::string(
+      if is_audit_hint(f.rule_id) {
+        "audit_hint"
+      } else {
+        "review_hint"
+      },
+    ),
     "dataflow": f.dataflow.to_json(),
   }
 }

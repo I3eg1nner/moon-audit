@@ -292,6 +292,154 @@ test "CWE-022: path + constant string should not trigger" {
   assert_true(findings.length() == 0)
 }
 
+///|
+test "CWE-022: HTML tag concat should not trigger" {
+  let source = "fn foo(name : String) -> String { \"</template></\" + name + \">\" }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe022(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-022: HTTPS URL building should not trigger" {
+  let source = "fn foo(account_id : String) -> String { \"https://api.example.com/v1/accounts/\" + account_id }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe022(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-022: numeric offset with dir-like name should not trigger" {
+  let source = "fn foo(dir_offset : Int, i : Int) -> Int { dir_offset + i * 28 }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe022(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-022: filesystem path + filename should still trigger" {
+  let source = "fn foo(filename : String) -> String { \".sol/dev/static/\" + filename }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe022(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "CWE-022: close tag with elem_name should not trigger" {
+  let source = "fn foo(elem_name : String) -> String { \"</\" + elem_name + \">\" }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe022(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-022: API route path should not trigger" {
+  let source = "fn foo(run_id : String) -> String { \"/runs/\" + run_id + \"/steps\" }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe022(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-022: git ref should not trigger" {
+  let source = "fn foo(user_branch : String) -> String { \"refs/heads/\" + user_branch }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe022(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-022: has_suffix comparison should not trigger" {
+  let source = "fn foo(name : String) -> Bool { name.has_suffix(\"/\" + name) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe022(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-022: has_prefix comparison should not trigger" {
+  let source = "fn foo(path : String) -> Bool { path.has_prefix(\"/\" + path) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe022(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-022: shell script fragment should not trigger" {
+  let source = "fn foo(dir : String) -> String { \"[ -f \" + dir + \" ]\" }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe022(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-022: mooncakes internal path should not trigger" {
+  let source = "fn foo(name : String) -> String { \".mooncakes/\" + name }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe022(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-022: __sol__ path should not trigger" {
+  let source = "fn foo(name : String) -> String { \"__sol__/\" + name }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe022(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-022: comment-style fragment should not trigger" {
+  let source = "fn foo(name : String) -> String { \"// \" + name }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe022(impls, "test.mbt", source, findings, Warning)
+  assert_true(findings.length() == 0)
+}
+
+// ---------------------------------------------------------------------------
+// CWE-113: CRLF injection in header values
+// ---------------------------------------------------------------------------
+
+///|
+test "CWE-113: dynamic string in set_header should trigger" {
+  let source = "fn foo(ctx : Ctx, val : String) -> Unit { ctx.set_header(\"X-Custom\", val) }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() > 0)
+}
+
+///|
+test "CWE-113: constant string in set_header should not trigger" {
+  let source = "struct Ctx { mut headers : Array[(String, String)] }\nfn set_header(self : Ctx, k : String, v : String) -> Unit { self.headers.push((k, v)) }\nfn foo(ctx : Ctx) -> Unit { ctx.set_header(\"Content-Type\", \"application/json\") }"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
+///|
+test "CWE-113: enum match all-constant branches should not trigger" {
+  let source = "struct Ctx { mut headers : Array[(String, String)] }\nfn set_header(self : Ctx, k : String, v : String) -> Unit { self.headers.push((k, v)) }\nenum CT { Json; Html }\nfn foo(ctx : Ctx, ct : CT) -> Unit {\n  let v = match ct { Json => \"application/json\"; Html => \"text/html\" }\n  ctx.set_header(\"Content-Type\", v)\n}"
+  let (impls, _) = @parser.parse_string(source, name="test.mbt")
+  let findings : Array[@src.Finding] = []
+  @src.run_cwe113(impls, "test.mbt", source, findings, Error)
+  assert_true(findings.length() == 0)
+}
+
 // ---------------------------------------------------------------------------
 // CWE-676: unsafe_* function calls
 // ---------------------------------------------------------------------------
