@@ -29,7 +29,13 @@ pub fn run_cwe113(
   findings : Array[Finding],
   severity : Severity,
 ) -> Unit {
-  let visitor : Cwe113Visitor = { findings, file, source, severity, safe_vars: Map([]) }
+  let visitor : Cwe113Visitor = {
+    findings,
+    file,
+    source,
+    severity,
+    safe_vars: Map([]),
+  }
   impls.each(fn(impl_) { @syntax.IterVisitor::visit_Impl(visitor, impl_) })
 }
 
@@ -42,10 +48,7 @@ fn is_header_setter(method_name : String) -> Bool {
 }
 
 ///|
-fn is_safe_header_value(
-  env : Cwe113Visitor,
-  expr : @syntax.Expr,
-) -> Bool {
+fn is_safe_header_value(env : Cwe113Visitor, expr : @syntax.Expr) -> Bool {
   if is_constant_string(expr) {
     return true
   }
@@ -114,7 +117,8 @@ impl @syntax.IterVisitor for Cwe113Visitor with fn visit_Expr_Let(
 ) {
   match extract_pattern_name(pattern) {
     Some(name) => {
-      let safe = is_constant_string(expr) || is_sanitized_expr(expr) ||
+      let safe = is_constant_string(expr) ||
+        is_sanitized_expr(expr) ||
         is_all_constant_match(expr)
       if safe {
         env.safe_vars[name] = true

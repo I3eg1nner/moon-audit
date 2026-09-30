@@ -79,6 +79,8 @@ pub fn has_labelled_bool_arg(@list.List[@syntax.Argument], String, Bool) -> Bool
 
 pub fn is_any_constant(@syntax.Expr) -> Bool
 
+pub fn is_audit_hint(RuleId) -> Bool
+
 pub fn is_constant_ident(@syntax.LongIdent) -> Bool
 
 pub fn is_constant_string(@syntax.Expr) -> Bool

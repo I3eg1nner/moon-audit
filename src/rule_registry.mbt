@@ -149,7 +149,8 @@ fn disposition_for(entry : RuleEntry) -> String {
     return "review_hint"
   }
   let id = rule_id_str(entry.info.id)
-  if id == "CWE-248/panic-reachable" || id == "CWE-704/unsafe-cast" ||
+  if id == "CWE-248/panic-reachable" ||
+    id == "CWE-704/unsafe-cast" ||
     id == "CWE-676/unsafe-call" {
     return "audit_hint"
   }
@@ -159,7 +160,8 @@ fn disposition_for(entry : RuleEntry) -> String {
 ///|
 pub fn is_audit_hint(id : RuleId) -> Bool {
   let s = rule_id_str(id)
-  s == "CWE-248/panic-reachable" || s == "CWE-704/unsafe-cast" ||
+  s == "CWE-248/panic-reachable" ||
+  s == "CWE-704/unsafe-cast" ||
   s == "CWE-676/unsafe-call"
 }
 

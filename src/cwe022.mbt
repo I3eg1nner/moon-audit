@@ -193,34 +193,35 @@ impl @syntax.IterVisitor for Cwe022Visitor with fn visit_Expr_Infix(
   loc~,
 ) {
   match op.name {
-    Ident(name="+") => {
+    Ident(name="+") =>
       if is_non_path_constant(lhs) || is_non_path_constant(rhs) {
+
       } else {
-      let lhs_name = expr_var_name(lhs)
-      let rhs_name = expr_var_name(rhs)
-      let has_path_context = match (lhs_name, rhs_name) {
-        (Some(l), Some(r)) =>
-          (is_path_like_var(l) && is_input_like_var(r)) ||
-          (is_input_like_var(l) && is_path_like_var(r))
-        (Some(l), None) => is_path_like_var(l) && !is_any_constant(rhs)
-        (None, Some(r)) => is_path_separator_string(lhs) && is_input_like_var(r)
-        _ => false
+        let lhs_name = expr_var_name(lhs)
+        let rhs_name = expr_var_name(rhs)
+        let has_path_context = match (lhs_name, rhs_name) {
+          (Some(l), Some(r)) =>
+            (is_path_like_var(l) && is_input_like_var(r)) ||
+            (is_input_like_var(l) && is_path_like_var(r))
+          (Some(l), None) => is_path_like_var(l) && !is_any_constant(rhs)
+          (None, Some(r)) =>
+            is_path_separator_string(lhs) && is_input_like_var(r)
+          _ => false
+        }
+        if has_path_context {
+          env.findings.push(
+            make_finding(
+              { cwe: 22, variant: "path-concat", },
+              env.severity,
+              Low,
+              "Concatenation uses path/input-like names. Review any filesystem use, source trust and containment checks.",
+              env.file,
+              env.source,
+              loc,
+            ),
+          )
+        }
       }
-      if has_path_context {
-        env.findings.push(
-          make_finding(
-            { cwe: 22, variant: "path-concat", },
-            env.severity,
-            Low,
-            "Concatenation uses path/input-like names. Review any filesystem use, source trust and containment checks.",
-            env.file,
-            env.source,
-            loc,
-          ),
-        )
-      }
-      }
-    }
     _ => ()
   }
   @syntax.IterVisitor::visit_Expr_Infix(

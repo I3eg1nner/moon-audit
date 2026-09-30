@@ -54,13 +54,13 @@ test "module identity follows nearest configuration across nested modules" {
   let report = @src.scan_project(root, module_fixture_config())
   assert_eq(report.errors.length(), 0)
   assert_eq(report.files_parsed, 5)
-  assert_eq(report.findings.length(), 2)
+  // CWE-248 requirement is "none" — fires for all modules, including stdlib.
+  assert_eq(report.findings.length(), 5)
   assert_true(report.findings.any(f => f.file == app_file))
   assert_true(report.findings.any(f => f.file == child_file))
-  // Scanning the enclosing stdlib module must still reset at the app boundary.
   let enclosed = @src.scan_project(core, module_fixture_config())
   assert_eq(enclosed.errors.length(), 0)
-  assert_eq(enclosed.findings.length(), 2)
+  assert_eq(enclosed.findings.length(), 5)
 }
 
 ///|

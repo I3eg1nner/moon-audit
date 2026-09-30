@@ -123,7 +123,11 @@ fn finding_to_json(f : Finding) -> Json {
     "fingerprint": Json::string(f.fingerprint),
     "evidence": Json::string(f.evidence),
     "disposition": Json::string(
-      if is_audit_hint(f.rule_id) { "audit_hint" } else { "review_hint" },
+      if is_audit_hint(f.rule_id) {
+        "audit_hint"
+      } else {
+        "review_hint"
+      },
     ),
     "dataflow": f.dataflow.to_json(),
   }
