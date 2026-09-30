@@ -1,3 +1,10 @@
 
 # Preserve the exact audited upstream bytes, including on Windows checkouts.
 src/vendor/parser_compat/** -text -whitespace linguist-vendored
+
+# Exclude support scripts from GitHub language statistics.
+scripts/*.py linguist-vendored
+tests/**/*.py linguist-vendored
+experiments/**/*.py linguist-vendored
+docs/**/*.py linguist-vendored
+dist/** linguist-generated
