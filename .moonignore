@@ -1,0 +1,11 @@
+experiments/
+scripts/
+benchmarks/
+docs/
+tests/
+.github/
+.env
+*.py
+*.sh
+*.json.gz
+llm_analysis_results.json

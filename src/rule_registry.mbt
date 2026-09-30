@@ -124,23 +124,43 @@ fn rule_registry() -> Array[RuleEntry] {
     },
     {
       info: cwe248_info(),
-      requirement: "non_stdlib_module",
+      requirement: "none",
       api: "panic/abort-like API",
       forms: "unqualified function only",
-      limitation: "No reachability analysis; String contents and function names are not safety proofs; Platform file exclusion hides compiled target behavior; Local binding unresolved",
+      limitation: "No reachability analysis; guard-else, message keywords, zero-arg panic, platform filename and stdlib module-name exemptions removed 2026-09-28 (none were proofs); same-name local functions still match; Local binding unresolved",
       default_enabled: false,
       run: run_cwe248,
     },
     {
       info: cwe704_info(),
-      requirement: "non_stdlib_module",
+      requirement: "none",
       api: "cast-like API",
       forms: "receiver.cast; receiver.reinterpret_cast",
-      limitation: "No receiver or declaration identity; File-wide extern substring suppresses unrelated calls; Custom safe conversions match",
+      limitation: "No receiver or declaration identity; file-wide extern substring exemption removed 2026-09-28; custom safe conversions still match",
       default_enabled: false,
       run: run_cwe704,
     },
   ]
+}
+
+///|
+fn disposition_for(entry : RuleEntry) -> String {
+  if entry.default_enabled {
+    return "review_hint"
+  }
+  let id = rule_id_str(entry.info.id)
+  if id == "CWE-248/panic-reachable" || id == "CWE-704/unsafe-cast" ||
+    id == "CWE-676/unsafe-call" {
+    return "audit_hint"
+  }
+  "opt_in_unverified"
+}
+
+///|
+pub fn is_audit_hint(id : RuleId) -> Bool {
+  let s = rule_id_str(id)
+  s == "CWE-248/panic-reachable" || s == "CWE-704/unsafe-cast" ||
+  s == "CWE-676/unsafe-call"
 }
 
 ///|
@@ -162,13 +182,7 @@ pub fn rule_capabilities() -> Json {
       "evidence": Json::string("syntax_hint"),
       "requirement": Json::string(entry.requirement),
       "default_enabled": Json::boolean(entry.default_enabled),
-      "disposition": Json::string(
-        if entry.default_enabled {
-          "review_hint"
-        } else {
-          "opt_in_unverified"
-        },
-      ),
+      "disposition": Json::string(disposition_for(entry)),
       "api_scope": Json::string(entry.api),
       "call_forms": Json::string(entry.forms),
       "limitations": Json::string(entry.limitation),
@@ -177,7 +191,7 @@ pub fn rule_capabilities() -> Json {
         "selected by project compiler when verification requested; otherwise not verified",
       ),
       "version_policy": Json::string(
-        "parser 0.4.0 + legacy.1 syntax backport; no arbitrary library version claim",
+        "parser 0.4.0 + legacy.2 syntax backport (legacy.1 loop/try? + identifier-compat-v1); no arbitrary library version claim",
       ),
       "validation": Json::string("experiments/rule_audit/README.md"),
       "model_fingerprint": Json::null(),
