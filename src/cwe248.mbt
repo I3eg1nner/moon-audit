@@ -1,11 +1,10 @@
-// CWE-248: panic()/abort() in library code can crash the entire program.
-// Filters:
-//   - guard...else{panic/abort}: logically unreachable, standard MoonBit pattern
-//   - Platform stub files (.wasm.mbt, .js.mbt): platform-specific, won't execute on other targets
-//   - abort("unreachable") / abort("unimplemented"): developer-annotated dead code
-//   - Bare panic() with no arguments: typically a match-exhaustiveness sentinel, not a real error
-//   - Contract assertions: standard library patterns like abort("index out of bounds"),
-//     abort("division by zero") — these are correct runtime behavior, not security bugs
+// CWE-248: calls named panic/abort are syntax hints, not resolved runtime facts.
+// As of 2026-09-28 the legacy noise heuristics (guard-else containment, unwrap
+// function names, message keywords such as "unreachable"/"invalid", zero-arg
+// panic and .wasm/.js/.native filename suffixes) no longer suppress findings:
+// none of them proved unreachability, and they hid actually reachable
+// terminations. Every bare, unqualified panic/abort call in parsed selected
+// sources is now reported as a candidate.
 
 ///|
 priv struct Cwe248Visitor {
@@ -13,8 +12,6 @@ priv struct Cwe248Visitor {
   file : String
   source : String
   severity : Severity
-  mut in_guard_else : Bool
-  mut in_unwrap_fn : Bool
 }
 
 ///|
@@ -22,7 +19,7 @@ pub fn cwe248_info() -> RuleInfo {
   {
     id: { cwe: 248, variant: "panic-reachable", },
     name: "Panic/Abort Syntax in Library Code",
-    description: "Call named panic/abort may terminate execution if it resolves to the builtin. Review reachability and input conditions; filtered locations are not proven safe.",
+    description: "Call named panic/abort may terminate execution if it resolves to the builtin. Review reachability and input conditions; bare calls in parsed selected sources are reported without further syntactic exemption.",
     default_severity: Warning,
   }
 }
@@ -35,25 +32,8 @@ pub fn run_cwe248(
   findings : Array[Finding],
   severity : Severity,
 ) -> Unit {
-  if is_platform_stub_file(file) {
-    return
-  }
-  let visitor : Cwe248Visitor = {
-    findings,
-    file,
-    source,
-    severity,
-    in_guard_else: false,
-    in_unwrap_fn: false,
-  }
+  let visitor : Cwe248Visitor = { findings, file, source, severity, }
   impls.each(fn(impl_) { @syntax.IterVisitor::visit_Impl(visitor, impl_) })
-}
-
-///|
-fn is_platform_stub_file(file : String) -> Bool {
-  file.has_suffix(".wasm.mbt") ||
-  file.has_suffix(".js.mbt") ||
-  file.has_suffix(".native.mbt")
 }
 
 ///|
@@ -70,124 +50,19 @@ fn get_panic_kind(func : @syntax.Expr) -> String {
 }
 
 ///|
-fn is_unwrap_function(name : String) -> Bool {
-  name == "unwrap" ||
-  name == "unwrap_or_error" ||
-  name == "get_exn" ||
-  name == "exn"
-}
-
-///|
-fn is_unreachable_abort(args : @list.List[@syntax.Argument]) -> Bool {
-  args.any(fn(arg) {
-    match arg.value {
-      Constant(c=String(s), ..) => {
-        let lower = s.to_lower()
-        lower.contains("unreachable") || lower.contains("unimplemented")
-      }
-      _ => false
-    }
-  })
-}
-
-///|
-fn is_bare_panic(kind : String, args : @list.List[@syntax.Argument]) -> Bool {
-  kind == "panic" && args.is_empty()
-}
-
-///|
-fn is_contract_assertion(
-  kind : String,
-  args : @list.List[@syntax.Argument],
-) -> Bool {
-  if kind != "abort" {
-    return false
-  }
-  args.any(fn(arg) {
-    match arg.value {
-      Constant(c=String(s), ..) => {
-        let lower = s.to_lower()
-        lower.contains("out of bounds") ||
-        lower.contains("division by zero") ||
-        lower.contains("divide by zero") ||
-        lower.contains("overflow") ||
-        lower.contains("underflow") ||
-        lower.contains("negative") ||
-        lower.contains("empty") ||
-        lower.contains("length") ||
-        lower.contains("capacity") ||
-        lower.contains("not found") ||
-        lower.contains("invalid")
-      }
-      _ => false
-    }
-  })
-}
-
-///|
-impl @syntax.IterVisitor for Cwe248Visitor with fn visit_Impl_TopFuncDef(
-  env,
-  fun_decl~,
-  decl_body~,
-  where_clause~,
-  loc~,
-) {
-  let prev = env.in_unwrap_fn
-  env.in_unwrap_fn = is_unwrap_function(fun_decl.name.name)
-  @syntax.IterVisitor::visit_Impl_TopFuncDef(
-    @syntax.IterVisitor::base(env),
-    fun_decl~,
-    decl_body~,
-    where_clause~,
-    loc~,
-  )
-  env.in_unwrap_fn = prev
-}
-
-///|
-impl @syntax.IterVisitor for Cwe248Visitor with fn visit_Expr_Guard(
-  env,
-  cond~,
-  otherwise~,
-  body~,
-  exclamation~,
-  guard_loc~,
-  loc~,
-) {
-  let _ = (loc, exclamation, guard_loc)
-  @syntax.IterVisitor::visit_Expr(@syntax.IterVisitor::base(env), cond)
-  match otherwise {
-    Some(else_expr) => {
-      let prev = env.in_guard_else
-      env.in_guard_else = true
-      @syntax.IterVisitor::visit_Expr(@syntax.IterVisitor::base(env), else_expr)
-      env.in_guard_else = prev
-    }
-    None => ()
-  }
-  @syntax.IterVisitor::visit_Expr(@syntax.IterVisitor::base(env), body)
-}
-
-///|
 impl @syntax.IterVisitor for Cwe248Visitor with fn visit_Expr_Apply(
   env,
   func~,
   args~,
   loc~,
 ) {
-  let kind = get_panic_kind(func)
-  if kind != "" &&
-    !env.in_guard_else &&
-    !env.in_unwrap_fn &&
-    !is_unreachable_abort(args) &&
-    !is_bare_panic(kind, args) &&
-    !is_contract_assertion(kind, args) {
+  if get_panic_kind(func) != "" {
     env.findings.push(
       make_finding(
         { cwe: 248, variant: "panic-reachable", },
         env.severity,
         Medium,
-        "Call named panic/abort may terminate execution if it resolves to the builtin. Review reachability and input conditions; filtered locations are not proven safe.",
+        "Call named panic/abort may terminate execution if it resolves to the builtin. Review reachability and input conditions; bare calls in parsed selected sources are reported without further syntactic exemption.",
         env.file,
         env.source,
         loc,

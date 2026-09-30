@@ -512,12 +512,12 @@ test "CWE-676: unsafe_new as function call should trigger" {
 // ---------------------------------------------------------------------------
 
 ///|
-test "CWE-248: bare panic() should not trigger (match exhaustiveness sentinel)" {
+test "CWE-248: bare panic() now triggers (exemptions removed)" {
   let source = "fn foo(x : Int) -> Int { if x < 0 { panic() }; x }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[@src.Finding] = []
   @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
-  assert_true(findings.length() == 0)
+  assert_true(findings.length() > 0)
 }
 
 ///|
@@ -539,75 +539,75 @@ test "CWE-248: normal function should not trigger" {
 }
 
 ///|
-test "CWE-248: abort(unreachable) should not trigger" {
+test "CWE-248: abort(unreachable) now triggers (exemptions removed)" {
   let source = "fn foo() -> Unit { abort(\"unreachable\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[@src.Finding] = []
   @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
-  assert_true(findings.length() == 0)
+  assert_true(findings.length() > 0)
 }
 
 ///|
-test "CWE-248: abort(unimplemented) should not trigger" {
+test "CWE-248: abort(unimplemented) now triggers (exemptions removed)" {
   let source = "fn foo() -> Unit { abort(\"unimplemented\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[@src.Finding] = []
   @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
-  assert_true(findings.length() == 0)
+  assert_true(findings.length() > 0)
 }
 
 ///|
-test "CWE-248: panic in guard else should not trigger" {
+test "CWE-248: panic in guard else now triggers (exemptions removed)" {
   let source = "fn foo(x : Int?) -> Int { guard x is Some(v) else { panic() }; v }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[@src.Finding] = []
   @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
-  assert_true(findings.length() == 0)
+  assert_true(findings.length() > 0)
 }
 
 ///|
-test "CWE-248: platform stub file should not trigger" {
+test "CWE-248: platform stub file now triggers (exemptions removed)" {
   let source = "fn foo() -> Unit { panic() }"
   let (impls, _) = @parser.parse_string(source, name="test.wasm.mbt")
   let findings : Array[@src.Finding] = []
   @src.run_cwe248(impls, "test.wasm.mbt", source, findings, Warning)
-  assert_true(findings.length() == 0)
+  assert_true(findings.length() > 0)
 }
 
 ///|
-test "CWE-248: abort(Unreachable) case-insensitive should not trigger" {
+test "CWE-248: abort(Unreachable) now triggers (exemptions removed)" {
   let source = "fn foo() -> Unit { abort(\"Unreachable\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[@src.Finding] = []
   @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
-  assert_true(findings.length() == 0)
+  assert_true(findings.length() > 0)
 }
 
 ///|
-test "CWE-248: abort(index out of bounds) contract assertion should not trigger" {
+test "CWE-248: abort(index out of bounds) now triggers (exemptions removed)" {
   let source = "fn foo() -> Unit { abort(\"index out of bounds\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[@src.Finding] = []
   @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
-  assert_true(findings.length() == 0)
+  assert_true(findings.length() > 0)
 }
 
 ///|
-test "CWE-248: abort(division by zero) contract assertion should not trigger" {
+test "CWE-248: abort(division by zero) now triggers (exemptions removed)" {
   let source = "fn foo() -> Unit { abort(\"division by zero\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[@src.Finding] = []
   @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
-  assert_true(findings.length() == 0)
+  assert_true(findings.length() > 0)
 }
 
 ///|
-test "CWE-248: abort(integer overflow) contract assertion should not trigger" {
+test "CWE-248: abort(integer overflow) now triggers (exemptions removed)" {
   let source = "fn foo() -> Unit { abort(\"integer overflow\") }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[@src.Finding] = []
   @src.run_cwe248(impls, "test.mbt", source, findings, Warning)
-  assert_true(findings.length() == 0)
+  assert_true(findings.length() > 0)
 }
 
 ///|
@@ -642,21 +642,21 @@ test "CWE-704: .to_string() should not trigger" {
 }
 
 ///|
-test "CWE-704: .cast() in extern js file should not trigger" {
+test "CWE-704: .cast() in extern js file now triggers (exemption removed)" {
   let source = "extern \"js\" fn js_get() -> JsValue = #| ...\nfn foo(v : JsValue) -> String { v.cast() }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[@src.Finding] = []
   @src.run_cwe704(impls, "test.mbt", source, findings, Warning)
-  assert_true(findings.length() == 0)
+  assert_true(findings.length() > 0)
 }
 
 ///|
-test "CWE-704: .cast() in #external type file should not trigger" {
+test "CWE-704: .cast() in #external type file now triggers (exemption removed)" {
   let source = "#external\ntype JsValue\nfn foo(v : JsValue) -> String { v.cast() }"
   let (impls, _) = @parser.parse_string(source, name="test.mbt")
   let findings : Array[@src.Finding] = []
   @src.run_cwe704(impls, "test.mbt", source, findings, Warning)
-  assert_true(findings.length() == 0)
+  assert_true(findings.length() > 0)
 }
 
 // ---------------------------------------------------------------------------
